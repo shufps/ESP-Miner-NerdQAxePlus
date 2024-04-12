@@ -9,6 +9,7 @@
 #include "nvs_flash.h"
 #include "oled.h"
 #include "utils.h"
+#include <string.h>
 
 static const char * TAG = "self_test";
 

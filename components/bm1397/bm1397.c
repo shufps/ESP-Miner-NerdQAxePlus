@@ -272,7 +272,8 @@ void BM1397_init(uint64_t frequency)
 
     memset(asic_response_buffer, 0, sizeof(asic_response_buffer));
 
-    esp_rom_gpio_pad_select_gpio(BM1397_RST_PIN);
+    //esp_rom_gpio_pad_select_gpio(BM1397_RST_PIN);
+    gpio_pad_select_gpio(BM1397_RST_PIN);
     gpio_set_direction(BM1397_RST_PIN, GPIO_MODE_OUTPUT);
 
     // reset the bm1397

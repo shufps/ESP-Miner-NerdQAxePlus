@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "driver/gpio.h"
+#include "rom/gpio.h"
 #include "mining.h"
 
 #define CRC5_MASK 0x1F

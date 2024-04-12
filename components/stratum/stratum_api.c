@@ -253,7 +253,8 @@ int STRATUM_V1_subscribe(int socket, char ** extranonce, int * extranonce2_len, 
 int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty)
 {
     char difficulty_msg[BUFFER_SIZE];
-    sprintf(difficulty_msg, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%ld]}\n", send_uid++, difficulty);
+    //sprintf(difficulty_msg, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%ld]}\n", send_uid++, difficulty);
+    sprintf(difficulty_msg, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%u]}\n", send_uid++, difficulty);
     debug_stratum_tx(difficulty_msg);
     write(socket, difficulty_msg, strlen(difficulty_msg));
 
@@ -292,7 +293,8 @@ void STRATUM_V1_submit_share(int socket, const char * username, const char * job
 {
     char submit_msg[BUFFER_SIZE];
     sprintf(submit_msg,
-            "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
+            //"{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
+            "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08x\", \"%08x\", \"%08x\"]}\n",
             send_uid++, username, jobid, extranonce_2, ntime, nonce, version);
     debug_stratum_tx(submit_msg);
     write(socket, submit_msg, strlen(submit_msg));
@@ -319,7 +321,8 @@ void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)
         if (cJSON_IsBool(version_rolling_enabled) && cJSON_IsTrue(version_rolling_enabled)) {
             cJSON * mask = cJSON_GetObjectItem(result, "version-rolling.mask");
             *version_mask = strtoul(mask->valuestring, NULL, 16);
-            ESP_LOGI(TAG, "Set version mask: %08lx", *version_mask);
+            //ESP_LOGI(TAG, "Set version mask: %08lx", *version_mask);
+            ESP_LOGI(TAG, "Set version mask: %08x", *version_mask);
         }
     }else{
         printf("configure_version result null\n");

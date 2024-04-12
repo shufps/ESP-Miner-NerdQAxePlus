@@ -14,7 +14,8 @@
 
 #include "driver/gpio.h"
 #include "driver/i2c.h"
-#include "esp_app_desc.h"
+//#include "esp_app_desc.h"
+#include "esp_ota_ops.h"
 #include "esp_netif.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
@@ -175,7 +176,7 @@ static void _update_esp32_info(SystemModule * module)
     if (OLED_status()) {
 
         memset(module->oled_buf, 0, 20);
-        snprintf(module->oled_buf, 20, "FH: %lu bytes", free_heap_size);
+        snprintf(module->oled_buf, 20, "FH: %u bytes", free_heap_size);
         OLED_writeString(0, 0, module->oled_buf);
 
         memset(module->oled_buf, 0, 20);
@@ -190,7 +191,8 @@ static void _update_esp32_info(SystemModule * module)
         snprintf(module->oled_buf, 20, "IP: %s", ip_address_str);
         OLED_writeString(0, 2, module->oled_buf);
 
-        OLED_writeString(0, 3, esp_app_get_description()->version);
+        //OLED_writeString(0, 3, esp_app_get_description()->version);
+        OLED_writeString(0, 3, esp_ota_get_app_description()->version);
     }
 }
 

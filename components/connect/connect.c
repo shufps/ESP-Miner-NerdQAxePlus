@@ -106,7 +106,7 @@ esp_netif_t * wifi_init_softap(void)
     wifi_ap_config.ap.channel = 1;
     wifi_ap_config.ap.max_connection = 30;
     wifi_ap_config.ap.authmode = WIFI_AUTH_OPEN;
-    wifi_ap_config.ap.pmf_cfg.required = false;
+    //wifi_ap_config.ap.pmf_cfg.required = false;
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
 
