@@ -11,10 +11,10 @@
 #include "led_controller.h"
 #include "nvs_config.h"
 #include "oled.h"
+#include "displays/displayDriver.h"
 
 #include "driver/gpio.h"
 #include "driver/i2c.h"
-//#include "esp_app_desc.h"
 #include "esp_ota_ops.h"
 #include "esp_netif.h"
 #include "esp_timer.h"
@@ -27,6 +27,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+
+//Comment to use standard OLED
+//#define DISPLAY_OLED
+#define DISPLAY_TTGO
 
 static const char * TAG = "SystemModule";
 
@@ -84,20 +88,28 @@ static void _init_system(GlobalState * global_state, SystemModule * module)
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
-    // oled
-    if (!OLED_init()) {
-        ESP_LOGI(TAG, "OLED init failed!");
-    } else {
-        ESP_LOGI(TAG, "OLED init success!");
-        // clear the oled screen
-        OLED_fill(0);
-    }
+    #ifdef DISPLAY_TTGO
+        //Display TTGO-TdisplayS3
+        display_init();
+    #else
+        // oled
+        if (!OLED_init()) {
+            ESP_LOGI(TAG, "OLED init failed!");
+        } else {
+            ESP_LOGI(TAG, "OLED init success!");
+            // clear the oled screen
+            OLED_fill(0);
+        }
+    #endif
+
 
     netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 }
 
 static void _update_hashrate(SystemModule * module, float power)
 {
+
+    display_updateHashrate(module, power);
 
     if (module->screen_page != 0) {
         return;
@@ -110,10 +122,13 @@ static void _update_hashrate(SystemModule * module, float power)
     snprintf(module->oled_buf, 20, "Gh%s: %.1f W/Th: %.1f", module->historical_hashrate_init < HISTORY_LENGTH ? "*" : "",
              module->current_hashrate, efficiency);
     OLED_writeString(0, 0, module->oled_buf);
+    
 }
 
 static void _update_shares(SystemModule * module)
 {
+    display_updateShares(module);
+
     if (module->screen_page != 0) {
         return;
     }
@@ -230,7 +245,7 @@ static void _update_system_performance(GlobalState * GLOBAL_STATE)
     int uptime_in_hours = remaining_seconds / 3600;
     remaining_seconds %= 3600;
     int uptime_in_minutes = remaining_seconds / 60;
-
+    
     if (OLED_status()) {
 
         _update_hashrate(module, GLOBAL_STATE->POWER_MANAGEMENT_MODULE.power);
@@ -378,20 +393,39 @@ void SYSTEM_task(void * pvParameters)
     }
 
     while (1) {
-        _clear_display();
-        module->screen_page = 0;
-        _update_system_performance(GLOBAL_STATE);
-        vTaskDelay(40000 / portTICK_PERIOD_MS);
+        
+        #ifdef DISPLAY_TTGO
+        
+            //Display TTGO-TDISPLAYS3
+            display_updateGlobalState(GLOBAL_STATE);
 
-        _clear_display();
-        module->screen_page = 1;
-        _update_system_info(GLOBAL_STATE);
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+            esp_netif_get_ip_info(netif, &ip_info);
+            char ip_address_str[IP4ADDR_STRLEN_MAX];
+            esp_ip4addr_ntoa(&ip_info.ip, ip_address_str, IP4ADDR_STRLEN_MAX);
 
-        _clear_display();
-        module->screen_page = 2;
-        _update_esp32_info(module);
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+            display_updateIpAddress(ip_address_str);
+
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+
+        #else
+
+            //Display OLED
+            _clear_display();
+            module->screen_page = 0;
+            _update_system_performance(GLOBAL_STATE);
+            vTaskDelay(40000 / portTICK_PERIOD_MS);
+
+            _clear_display();
+            module->screen_page = 1;
+            _update_system_info(GLOBAL_STATE);
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+
+            _clear_display();
+            module->screen_page = 2;
+            _update_esp32_info(module);
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+        
+        #endif
     }
 }
 

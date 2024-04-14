@@ -19,13 +19,29 @@ SRCS
     "./tasks/power_management_task.c"
     "./http_server/http_server.c"
     "./self_test/self_test.c"
+    "./displays/displayDriver.c"
+    "./displays/ui.c"
+    "./displays/ui_helpers.c"
+    "./displays/images/ui_font_DigitalNumbers16.c"
+    "./displays/images/ui_font_DigitalNumbers28.c"
+    "./displays/images/ui_font_DigitalNumbers16.c"
+    "./displays/images/ui_font_OpenSansBold13.c"
+    "./displays/images/ui_font_OpenSansBold14.c"
+    "./displays/images/ui_img_initscreen2_png.c"
+    "./displays/images/ui_img_miningscreen2_png.c"
+    "./displays/images/ui_img_settingsscreen_png.c"
+    "./displays/images/ui_img_splashscreen2_png.c"
+
 
 INCLUDE_DIRS
     "."
     "tasks"
     "http_server"
+    "displays"
+    "displays/images"
     "../components/connect/include"
 )
+
 
 set(WEB_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/http_server/axe-os")
 
