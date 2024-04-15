@@ -437,7 +437,7 @@ void ui_SettingsScreen_screen_init(void)
     lv_obj_set_style_text_align(ui_lbPortSet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbPortSet, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    ui_lbBestDifficulty = lv_label_create(ui_SettingsScreen);
+    /*ui_lbBestDifficulty = lv_label_create(ui_SettingsScreen);
     lv_obj_set_width(ui_lbBestDifficulty, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_lbBestDifficulty, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_x(ui_lbBestDifficulty, 34);
@@ -448,7 +448,7 @@ void ui_SettingsScreen_screen_init(void)
     lv_obj_set_style_text_opa(ui_lbBestDifficulty, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbBestDifficulty, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbBestDifficulty, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
-
+    */
 }
 
 void ui_init(void)

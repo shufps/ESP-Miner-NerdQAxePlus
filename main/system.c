@@ -108,8 +108,9 @@ static void _init_system(GlobalState * global_state, SystemModule * module)
 
 static void _update_hashrate(SystemModule * module, float power)
 {
-
-    display_updateHashrate(module, power);
+    #ifdef DISPLAY_TTGO
+        display_updateHashrate(module, power);
+    #endif
 
     if (module->screen_page != 0) {
         return;
@@ -127,7 +128,9 @@ static void _update_hashrate(SystemModule * module, float power)
 
 static void _update_shares(SystemModule * module)
 {
-    display_updateShares(module);
+    #ifdef DISPLAY_TTGO
+        display_updateShares(module);
+    #endif
 
     if (module->screen_page != 0) {
         return;
@@ -392,20 +395,27 @@ void SYSTEM_task(void * pvParameters)
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
+    uint8_t countCycle = 10;
     while (1) {
         
         #ifdef DISPLAY_TTGO
         
             //Display TTGO-TDISPLAYS3
+
+            //display_updateTime(&GLOBAL_STATE->SYSTEM_MODULE);
             display_updateGlobalState(GLOBAL_STATE);
+            if(countCycle++>10){
+                countCycle = 0;
+                
 
-            esp_netif_get_ip_info(netif, &ip_info);
-            char ip_address_str[IP4ADDR_STRLEN_MAX];
-            esp_ip4addr_ntoa(&ip_info.ip, ip_address_str, IP4ADDR_STRLEN_MAX);
+                esp_netif_get_ip_info(netif, &ip_info);
+                char ip_address_str[IP4ADDR_STRLEN_MAX];
+                esp_ip4addr_ntoa(&ip_info.ip, ip_address_str, IP4ADDR_STRLEN_MAX);
 
-            display_updateIpAddress(ip_address_str);
+                display_updateIpAddress(ip_address_str);
+            }
 
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
 
         #else
 

@@ -18,7 +18,7 @@
 #include "displayDriver.h"
 #include "ui.h"
 
-static const char *TAG = "example";
+static const char *TAG = "TDisplayS3";
 
 
 
@@ -60,21 +60,21 @@ static void lvglTimerTask(void* param)
 		// The task running lv_timer_handler should have lower priority than that running `lv_tick_inc`
 		lv_timer_handler();
 
-		vTaskDelay(10/portTICK_PERIOD_MS);
+		vTaskDelay(50/portTICK_PERIOD_MS);
 	}
 }
 
 static void main_creatSysteTasks(void)
 {
 
-	xTaskCreatePinnedToCore(lvglTimerTask, "lvgl Timer", 10000, NULL, 4, NULL, 1);
+	xTaskCreatePinnedToCore(lvglTimerTask, "lvgl Timer", 6000, NULL, 4, NULL, 1); //Antes 10000
 }
 
 lv_obj_t * initTDisplayS3(void){
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
     //GPIO configuration
-    ESP_LOGI(TAG, "TDisplayS3 - Turn off LCD backlight");
+    ESP_LOGI(TAG, "Turn off LCD backlight");
     gpio_config_t bk_gpio_config = {
         .mode = GPIO_MODE_OUTPUT,
         .pin_bit_mask = 1ULL << TDISPLAYS3_PIN_NUM_BK_LIGHT
@@ -95,7 +95,7 @@ lv_obj_t * initTDisplayS3(void){
     gpio_set_level(TDISPLAYS3_PIN_RD, true);
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_OFF_LEVEL);
 
-    ESP_LOGI(TAG, "TDisplayS3 - Initialize Intel 8080 bus");
+    ESP_LOGI(TAG, "Initialize Intel 8080 bus");
     esp_lcd_i80_bus_handle_t i80_bus = NULL;
     esp_lcd_i80_bus_config_t bus_config = {
         .dc_gpio_num = TDISPLAYS3_PIN_NUM_DC,
@@ -134,7 +134,7 @@ lv_obj_t * initTDisplayS3(void){
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(i80_bus, &io_config, &io_handle));
 
-    ESP_LOGI(TAG, "TDisplayS3 - Install LCD driver of st7789");
+    ESP_LOGI(TAG, "Install LCD driver of st7789");
     esp_lcd_panel_handle_t panel_handle = NULL;
 
     esp_lcd_panel_dev_config_t panel_config =
@@ -157,13 +157,13 @@ lv_obj_t * initTDisplayS3(void){
 
 
 
-    ESP_LOGI(TAG, "TDisplayS3 - Turn on LCD backlight");
+    ESP_LOGI(TAG, "Turn on LCD backlight");
     gpio_set_level(TDISPLAYS3_PIN_PWR, true);
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_ON_LEVEL);
 
 
 
-    ESP_LOGI(TAG, "TDisplayS3 - Initialize LVGL library");
+    ESP_LOGI(TAG, "Initialize LVGL library");
     lv_init();
     // alloc draw buffers used by LVGL
     // it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized
@@ -174,7 +174,7 @@ lv_obj_t * initTDisplayS3(void){
     // initialize LVGL draw buffers
     lv_disp_draw_buf_init(&disp_buf, buf1, NULL, LVGL_LCD_BUF_SIZE);
 
-    ESP_LOGI(TAG, "TDisplayS3 - Register display driver to LVGL");
+    ESP_LOGI(TAG, "Register display driver to LVGL");
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = TDISPLAYS3_LCD_H_RES;
     disp_drv.ver_res = TDISPLAYS3_LCD_V_RES;
@@ -207,14 +207,14 @@ void display_updateHashrate(SystemModule * module, float power){
 
     float efficiency = power / (module->current_hashrate / 1000.0);
 
-    sprintf(strData, "%.1f", module->current_hashrate);
+    snprintf(strData, sizeof(strData), "%.1f", module->current_hashrate);
     lv_label_set_text(ui_lbHashrate, strData); // Update hashrate
     lv_label_set_text(ui_lbHashrateSet, strData); // Update hashrate
 
-    sprintf(strData, "%.1f", efficiency);
+    snprintf(strData, sizeof(strData), "%.1f", efficiency);
     lv_label_set_text(ui_lbEficiency, strData); // Update eficiency label
     
-    sprintf(strData, "%.3fW", power);
+    snprintf(strData, sizeof(strData), "%.3fW", power);
     lv_label_set_text(ui_lbPower, strData); // Actualiza el label
 
 }
@@ -222,19 +222,16 @@ void display_updateHashrate(SystemModule * module, float power){
 void display_updateShares(SystemModule * module){
     char strData[20];
     
-    sprintf(strData, "%d/%d", module->shares_accepted, module->shares_rejected);
+    snprintf(strData, sizeof(strData), "%d/%d", module->shares_accepted, module->shares_rejected);
     lv_label_set_text(ui_lbShares, strData); // Update shares
 
+    snprintf(strData, sizeof(strData), "%s", module->best_diff_string);
     lv_label_set_text(ui_lbBestDifficulty, module->best_diff_string); // Update Bestdifficulty
     lv_label_set_text(ui_lbBestDifficultySet, module->best_diff_string); // Update Bestdifficulty
 
 }
-
-void display_updateGlobalState(GlobalState * GLOBAL_STATE){
+void display_updateTime(SystemModule * module){
     char strData[20];
-
-    SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
-    PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
 
     // Calculate the uptime in seconds
     double uptime_in_seconds = (esp_timer_get_time() - module->start_time) / 1000000;
@@ -243,35 +240,48 @@ void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     int uptime_in_hours = remaining_seconds / 3600;
     remaining_seconds %= 3600;
     int uptime_in_minutes = remaining_seconds / 60;
+    int current_seconds = remaining_seconds % 60;
 
-    sprintf(strData, "%dd %ih %im", uptime_in_days, uptime_in_hours, uptime_in_minutes);
+    snprintf(strData, sizeof(strData), "%dd %ih %im %is", uptime_in_days, uptime_in_hours, uptime_in_minutes, current_seconds);
     lv_label_set_text(ui_lbTime, strData); // Update label
+}
 
-    sprintf(strData, "%.0f", power_management->chip_temp);
+void display_updateGlobalState(GlobalState * GLOBAL_STATE){
+    char strData[20];
+
+    
+    SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
+    PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
+
+    snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp);
     lv_label_set_text(ui_lbTemp, strData); // Update label
 
-    sprintf(strData, "%d", power_management->fan_speed);
+    snprintf(strData, sizeof(strData), "%d", power_management->fan_speed);
     lv_label_set_text(ui_lbRPM, strData); // Update label
 
-    sprintf(strData, "%.3fW", power_management->power);
+    snprintf(strData, sizeof(strData), "%.3fW", power_management->power);
     lv_label_set_text(ui_lbPower, strData); // Update label
 
-    sprintf(strData, "%imA", (int) power_management->current);
+    snprintf(strData, sizeof(strData), "%imA", (int) power_management->current);
     lv_label_set_text(ui_lbIntensidad, strData); // Update label
 
-    sprintf(strData, "%imV", (int) power_management->voltage);
+    snprintf(strData, sizeof(strData), "%imV", (int) power_management->voltage);
     lv_label_set_text(ui_lbVinput, strData); // Update label
 
+    display_updateTime(module);
     display_updateShares(module);
     display_updateHashrate(module, GLOBAL_STATE->POWER_MANAGEMENT_MODULE.power);
 
     uint16_t vcore = ADC_get_vcore();
-    sprintf(strData, "%umV", vcore);
+    snprintf(strData, sizeof(strData), "%umV", vcore);
     lv_label_set_text(ui_lbVcore, strData); // Update label
 
 }
 
 void display_updateIpAddress(char * ip_address_str){
+    char strData[20];
+
+    snprintf(strData, sizeof(strData), "%s", ip_address_str);
     lv_label_set_text(ui_lbIP, ip_address_str); // Update label
     lv_label_set_text(ui_lbIPSet, ip_address_str); // Update label
 }
