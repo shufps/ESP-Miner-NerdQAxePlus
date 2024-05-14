@@ -24,6 +24,24 @@ static int send_uid = 1;
 
 static void debug_stratum_tx(const char *);
 
+int is_socket_connected(int socket) {
+    struct timeval tv;
+    fd_set writefds;
+
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000; // 100 ms
+
+    FD_ZERO(&writefds);
+    FD_SET(socket, &writefds);
+
+    int ret = select(socket + 1, NULL, &writefds, NULL, &tv);
+    if (ret > 0 && FD_ISSET(socket, &writefds)) {
+        return 1; // Socket is ready
+    } else {
+        return 0; // Socket not ready
+    }
+}
+
 void STRATUM_V1_initialize_buffer()
 {
     json_rpc_buffer = malloc(BUFFER_SIZE);
@@ -78,11 +96,22 @@ char * STRATUM_V1_receive_jsonrpc_line(int sockfd)
         do {
             memset(recv_buffer, 0, BUFFER_SIZE);
             nbytes = recv(sockfd, recv_buffer, BUFFER_SIZE - 1, 0);
-            if (nbytes == -1) {
-                perror("recv");
-                esp_restart();
+            if (nbytes < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    // Try again if the operation would block
+                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    continue;
+                }
+                ESP_LOGE("STRATUM", "Socket recv failed: errno %d", errno);
+                //free(recv_buffer);
+                return NULL;
             }
-
+            else if (nbytes == 0) {
+                // Connection closed
+                ESP_LOGW("STRATUM", "Socket connection closed");
+                //free(recv_buffer);
+                return NULL;
+            }
             realloc_json_buffer(nbytes);
             strncat(json_rpc_buffer, recv_buffer, nbytes);
         } while (!strstr(json_rpc_buffer, "\n"));
@@ -292,6 +321,12 @@ void STRATUM_V1_submit_share(int socket, const char * username, const char * job
                              const uint32_t nonce, const uint32_t version)
 {
     char submit_msg[BUFFER_SIZE];
+
+    if (!is_socket_connected(socket)) {
+        ESP_LOGI(TAG,"Socket not connected. Cannot send message.\n");
+        return;
+    }
+
     sprintf(submit_msg,
             //"{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
             "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08x\", \"%08x\", \"%08x\"]}\n",

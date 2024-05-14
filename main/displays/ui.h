@@ -58,8 +58,11 @@ LV_FONT_DECLARE(ui_font_OpenSansBold13);
 LV_FONT_DECLARE(ui_font_OpenSansBold14);
 
 
+#define TDISPLAYS3_LVGL_TICK_PERIOD_MS    30
+
 void ui_init(void);
-void changeScreen(void * arg);
+void changeScreen(void); //* arg);
+void manual_lvgl_update();
 
 #ifdef __cplusplus
 } /*extern "C"*/

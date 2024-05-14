@@ -109,7 +109,8 @@ static void _init_system(GlobalState * global_state, SystemModule * module)
 static void _update_hashrate(SystemModule * module, float power)
 {
     #ifdef DISPLAY_TTGO
-        display_updateHashrate(module, power);
+        //display_updateHashrate(module, power);
+        //display_RefreshScreen();
     #endif
 
     if (module->screen_page != 0) {
@@ -129,7 +130,8 @@ static void _update_hashrate(SystemModule * module, float power)
 static void _update_shares(SystemModule * module)
 {
     #ifdef DISPLAY_TTGO
-        display_updateShares(module);
+        //display_updateShares(module);
+        //display_RefreshScreen();
     #endif
 
     if (module->screen_page != 0) {
@@ -364,10 +366,37 @@ static void _suffix_string(uint64_t val, char * buf, size_t bufsiz, int sigdigit
     }
 }
 
+void showLastResetReason() {
+    // Obtener la razón del último reinicio
+    esp_reset_reason_t reason = esp_reset_reason();
+
+    // Convertir la razón del reinicio a un string legible
+    const char* reason_str;
+    switch (reason) {
+        case ESP_RST_UNKNOWN:    reason_str = "Unknown"; break;
+        case ESP_RST_POWERON:    reason_str = "Power on reset"; break;
+        case ESP_RST_EXT:        reason_str = "External reset"; break;
+        case ESP_RST_SW:         reason_str = "Software reset"; break;
+        case ESP_RST_PANIC:      reason_str = "Software panic reset"; break;
+        case ESP_RST_INT_WDT:    reason_str = "Interrupt watchdog reset"; break;
+        case ESP_RST_TASK_WDT:   reason_str = "Task watchdog reset"; break;
+        case ESP_RST_WDT:        reason_str = "Other watchdog reset"; break;
+        case ESP_RST_DEEPSLEEP:  reason_str = "Exiting deep sleep"; break;
+        case ESP_RST_BROWNOUT:   reason_str = "Brownout reset"; break;
+        case ESP_RST_SDIO:       reason_str = "SDIO reset"; break;
+        default:                 reason_str = "Not specified"; break;
+    }
+
+    // Imprimir la razón del reinicio en el log
+    ESP_LOGI(TAG, "Reset reason: %s", reason_str);
+}
+
 void SYSTEM_task(void * pvParameters)
 {
     GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
+
+    showLastResetReason();
 
     _init_system(GLOBAL_STATE, module);
 
@@ -395,6 +424,13 @@ void SYSTEM_task(void * pvParameters)
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
+    #ifdef DISPLAY_TTGO
+        esp_netif_get_ip_info(netif, &ip_info);
+        char ip_address_str[IP4ADDR_STRLEN_MAX];
+        esp_ip4addr_ntoa(&ip_info.ip, ip_address_str, IP4ADDR_STRLEN_MAX);
+        display_updateIpAddress(ip_address_str);
+    #endif
+
     uint8_t countCycle = 10;
     while (1) {
         
@@ -403,19 +439,15 @@ void SYSTEM_task(void * pvParameters)
             //Display TTGO-TDISPLAYS3
 
             //display_updateTime(&GLOBAL_STATE->SYSTEM_MODULE);
-            display_updateGlobalState(GLOBAL_STATE);
-            if(countCycle++>10){
-                countCycle = 0;
+            
+            //if(countCycle++>5){
+                //countCycle = 0;
                 
+                display_updateGlobalState(GLOBAL_STATE);
+                display_RefreshScreen();
+            //}
 
-                esp_netif_get_ip_info(netif, &ip_info);
-                char ip_address_str[IP4ADDR_STRLEN_MAX];
-                esp_ip4addr_ntoa(&ip_info.ip, ip_address_str, IP4ADDR_STRLEN_MAX);
-
-                display_updateIpAddress(ip_address_str);
-            }
-
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
 
         #else
 

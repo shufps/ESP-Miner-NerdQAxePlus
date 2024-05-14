@@ -17,8 +17,11 @@
 
 #include "displayDriver.h"
 #include "ui.h"
+#include "ui_helpers.h"
 
 static const char *TAG = "TDisplayS3";
+static bool lvgl_update_enabled = true; // Set animations on at beginning
+static bool doCangeScreenFlag = false;
 
 
 
@@ -47,21 +50,47 @@ static void example_lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_
     esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
 }
 
-static void example_increase_lvgl_tick(void *arg)
+
+
+static void increase_lvgl_tick()
 {
     /* Tell LVGL how many milliseconds has elapsed */
     lv_tick_inc(TDISPLAYS3_LVGL_TICK_PERIOD_MS);
 }
 
+// Refresh screen values (for manual operations)
+void display_RefreshScreen() { 
+    lv_timer_handler(); // Maneja las tareas pendientes de LVGL
+    increase_lvgl_tick(); // Incrementa el tick según el periodo que definías antes
+}
+
 static void lvglTimerTask(void* param)
 {
-	while(1)
-	{
-		// The task running lv_timer_handler should have lower priority than that running `lv_tick_inc`
-		lv_timer_handler();
+    int64_t myLastTime = esp_timer_get_time();
+	while(1) {
+        if(lvgl_update_enabled) {
+            //int32_t elapsedTimeInMilliseconds = (esp_timer_get_time() - myLastTime) / 1000;
+            //if(elapsedTimeInMilliseconds>20) lv_tick_inc(TDISPLAYS3_LVGL_TICK_PERIOD_MS);
+            //else lv_tick_inc(elapsedTimeInMilliseconds);
+            increase_lvgl_tick();
+            lv_timer_handler(); // Process pending LVGL tasks
+            vTaskDelay(15 / portTICK_PERIOD_MS); // Delay during animations
+            
+        }
+        else{
+            if(doCangeScreenFlag) {
+                doCangeScreenFlag = false;
+                changeScreen();
+            }
+            vTaskDelay(200 / portTICK_PERIOD_MS); // Delay waiting animation trigger
+        }
+        
+    }
+}
 
-		vTaskDelay(50/portTICK_PERIOD_MS);
-	}
+// Función para activar las actualizaciones
+void enable_lvgl_animations(bool enable) {
+    lvgl_update_enabled = enable;
 }
 
 static void main_creatSysteTasks(void)
@@ -188,13 +217,13 @@ lv_obj_t * initTDisplayS3(void){
 
     ESP_LOGI(TAG, "Install LVGL tick timer");
     // Tick interface for LVGL (using esp_timer to generate 2ms periodic event)
-    const esp_timer_create_args_t lvgl_tick_timer_args = {
+    /*const esp_timer_create_args_t lvgl_tick_timer_args = {
         .callback = &example_increase_lvgl_tick,
         .name = "lvgl_tick"
-    };
+    };*/
     esp_timer_handle_t lvgl_tick_timer = NULL;
-    ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, TDISPLAYS3_LVGL_TICK_PERIOD_MS * 1000));
+    //ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
+    //ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, TDISPLAYS3_LVGL_TICK_PERIOD_MS * 1000));
 
     ESP_LOGI(TAG, "Display LVGL animation");
     lv_obj_t *scr = lv_disp_get_scr_act(disp);
@@ -233,7 +262,8 @@ void display_updateShares(SystemModule * module){
 void display_updateTime(SystemModule * module){
     char strData[20];
 
-    // Calculate the uptime in seconds
+    // Calculate the uptime in seconds                     
+    //int64_t currentTimeTest = esp_timer_get_time() + (8 * 3600 * 1000000LL) + (1800 * 1000000LL);//(8 * 60 * 60 * 10000);
     double uptime_in_seconds = (esp_timer_get_time() - module->start_time) / 1000000;
     int uptime_in_days = uptime_in_seconds / (3600 * 24);
     int remaining_seconds = (int) uptime_in_seconds % (3600 * 24);
@@ -244,12 +274,12 @@ void display_updateTime(SystemModule * module){
 
     snprintf(strData, sizeof(strData), "%dd %ih %im %is", uptime_in_days, uptime_in_hours, uptime_in_minutes, current_seconds);
     lv_label_set_text(ui_lbTime, strData); // Update label
+
 }
 
 void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     char strData[20];
 
-    
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
     PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
 
@@ -275,7 +305,6 @@ void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     uint16_t vcore = ADC_get_vcore();
     snprintf(strData, sizeof(strData), "%umV", vcore);
     lv_label_set_text(ui_lbVcore, strData); // Update label
-
 }
 
 void display_updateIpAddress(char * ip_address_str){
@@ -284,6 +313,7 @@ void display_updateIpAddress(char * ip_address_str){
     snprintf(strData, sizeof(strData), "%s", ip_address_str);
     lv_label_set_text(ui_lbIP, ip_address_str); // Update label
     lv_label_set_text(ui_lbIPSet, ip_address_str); // Update label
+
 }
 
 /*
@@ -307,7 +337,9 @@ void startUpdateScreenTask() {
 // ISR Handler para el botón
 static void boton_isr_handler(void* arg) {
     //ESP_LOGI("UI", "Button pressed changing screen");
-    lv_async_call(changeScreen, NULL);
+    doCangeScreenFlag = true;
+    lvgl_update_enabled = false;
+    //lv_async_call(changeScreen, NULL);
 }
 
 void buttons_init(void) {
@@ -335,7 +367,8 @@ void display_init(void)
     lv_obj_t * scr = initTDisplayS3();
 
     ui_init();
-
+    //manual_lvgl_update();
+    
     //startUpdateScreenTask(); //Start screen update task
     main_creatSysteTasks();
 

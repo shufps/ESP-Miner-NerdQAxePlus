@@ -49,7 +49,7 @@
 #define TDISPLAYS3_LCD_CMD_BITS           8
 #define TDISPLAYS3_LCD_PARAM_BITS         8
 
-#define TDISPLAYS3_LVGL_TICK_PERIOD_MS    8
+
 
 /* FUNCTIONS DECLARATION -----------------------------------------------------*/
 void display_init(void);
@@ -58,6 +58,8 @@ void display_updateShares(SystemModule * module);
 void display_updateTime(SystemModule * module);
 void display_updateGlobalState(GlobalState * GLOBAL_STATE);
 void display_updateIpAddress(char * ip_address_str);
+void enable_lvgl_animations(bool enable);
+void display_RefreshScreen(void);
 
 
 

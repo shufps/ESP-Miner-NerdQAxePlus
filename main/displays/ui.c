@@ -3,6 +3,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "displayDriver.h"
 
 ///////////////////// VARIABLES ////////////////////
 lv_obj_t *current_screen = NULL;
@@ -47,21 +48,23 @@ lv_obj_t * ui_lbPortSet;
 
 int64_t last_screen_change_time = 0;
 
-void changeScreen(void * arg) {
+void changeScreen(void){ // * arg) {
     int64_t current_time = esp_timer_get_time();
     
     //Check if screen is changing to avoid problems during change
-    if (current_time - last_screen_change_time < 500000) return; // 500000 microsegundos = 500 ms - No cambies pantalla
+    if ((current_time - last_screen_change_time) < 1500000) return; // 1500000 microsegundos = 1500 ms = 1.5s - No cambies pantalla
     last_screen_change_time = current_time;
     
-    if(current_screen == ui_MiningScreen) {
-        _ui_screen_change(ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 400, 0);
+    if(current_screen == ui_MiningScreen) {  
+        enable_lvgl_animations(true); //AutoStops after loading the screen
+        _ui_screen_change(ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         current_screen = ui_SettingsScreen; // Actualiza la pantalla actual
         ESP_LOGI("UI", "NewScreen Settings displayed");
     } else {
-        _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 400, 0);
+        enable_lvgl_animations(true); //AutoStops after loading the screen
+        _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
         current_screen = ui_MiningScreen; // Actualiza la pantalla actual
-        ESP_LOGI("UI", "NewScreen Mining displayed");
+        ESP_LOGI("UI", "NewScreen Mining displayed");       
     }
 
 }
@@ -81,6 +84,30 @@ void ui_event_Splash2(lv_event_t * e)
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_SCREEN_LOADED) {
         _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 1500);
+        //Delete previous screen and free memory
+        lv_obj_clean(ui_Splash1);
+    }
+}
+
+void ui_event_MiningScreen(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+    lv_obj_t * target = lv_event_get_target(e);
+    if(event_code == LV_EVENT_SCREEN_LOADED) {
+        //Delete previous screen and free memory
+        lv_obj_clean(ui_Splash2);
+        enable_lvgl_animations(false);
+    }
+}
+
+void ui_event_SettingsScreen(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+    lv_obj_t * target = lv_event_get_target(e);
+    if(event_code == LV_EVENT_SCREEN_LOADED) {
+        //Delete previous screen and free memory
+        //lv_obj_clean(ui_Splash2);
+        enable_lvgl_animations(false);
     }
 }
 
@@ -127,6 +154,7 @@ void ui_Splash2_screen_init(void)
     lv_obj_set_style_text_font(ui_lbConnect, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
+
 
 }
 
@@ -315,6 +343,8 @@ void ui_MiningScreen_screen_init(void)
     lv_obj_set_style_text_align(ui_lbASIC, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbASIC, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    lv_obj_add_event_cb(ui_MiningScreen, ui_event_MiningScreen, LV_EVENT_ALL, NULL);
+
 }
 void ui_SettingsScreen_screen_init(void)
 {
@@ -437,18 +467,7 @@ void ui_SettingsScreen_screen_init(void)
     lv_obj_set_style_text_align(ui_lbPortSet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbPortSet, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    /*ui_lbBestDifficulty = lv_label_create(ui_SettingsScreen);
-    lv_obj_set_width(ui_lbBestDifficulty, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_lbBestDifficulty, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_lbBestDifficulty, 34);
-    lv_obj_set_y(ui_lbBestDifficulty, 21);
-    lv_obj_set_align(ui_lbBestDifficulty, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbBestDifficulty, "22M");
-    lv_obj_set_style_text_color(ui_lbBestDifficulty, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui_lbBestDifficulty, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui_lbBestDifficulty, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbBestDifficulty, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
-    */
+
 }
 
 void ui_init(void)
