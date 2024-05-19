@@ -32,7 +32,7 @@ The bitaxetool requires a config.cvs preloaded file and the appropiate firmware.
 3. Flash with the bitaxetool
 
 ```
-bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-v2.0.3.bin
+bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-nerd101-v2.1.4.bin
 ```
 
 ## How to build firmware
@@ -64,7 +64,7 @@ The following are recommendations but it is necessary that you do have all value
   asicvoltage,data,u16,1200
   asicmodel,data,string,BM1366
   devicemodel,data,string,ultra
-  boardversion,data,string,0.11
+  boardversion,data,string,101
   ```
 
 ## API
