@@ -6,10 +6,7 @@
 #include "displayDriver.h"
 
 ///////////////////// VARIABLES ////////////////////
-lv_obj_t *current_screen = NULL;
 
-void ui_event_Splash1(lv_event_t * e);
-void ui_event_imgSplash1(lv_event_t * e);
 lv_obj_t * ui_Splash1;
 lv_obj_t * ui_Splash2;
 lv_obj_t * ui_PortalScreen;
@@ -42,39 +39,29 @@ lv_obj_t * ui_lbPoolSet;
 lv_obj_t * ui_lbHashrateSet;
 lv_obj_t * ui_lbShares;
 lv_obj_t * ui_lbPortSet;
+lv_obj_t * ui_LogScreen;
+lv_obj_t * ui_LogLabel;
 
 
 ///////////////////// FUNCTIONS ////////////////////
 
 int64_t last_screen_change_time = 0;
+void ui_SettingsScreen_screen_init(void);
+void ui_MiningScreen_screen_init(void);
+void ui_Portal_screen_init(void);
+void ui_Splash2_screen_init(void);
+void ui_Splash1_screen_init(void);
 
-void changeScreen(void){ // * arg) {
-    int64_t current_time = esp_timer_get_time();
-    
-    //Check if screen is changing to avoid problems during change
-    if ((current_time - last_screen_change_time) < 1500000) return; // 1500000 microsegundos = 1500 ms = 1.5s - No cambies pantalla
-    last_screen_change_time = current_time;
-    
-    if(current_screen == ui_MiningScreen) {  
-        enable_lvgl_animations(true); //AutoStops after loading the screen
-        _ui_screen_change(ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
-        current_screen = ui_SettingsScreen; // Actualiza la pantalla actual
-        ESP_LOGI("UI", "NewScreen Settings displayed");
-    } else {
-        enable_lvgl_animations(true); //AutoStops after loading the screen
-        _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
-        current_screen = ui_MiningScreen; // Actualiza la pantalla actual
-        ESP_LOGI("UI", "NewScreen Mining displayed");       
-    }
-
-}
-
+/*
 void ui_event_Splash1(lv_event_t * e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_SCREEN_LOADED) {
-        _ui_screen_change(ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 1500);
+        if (ui_Splash2 == NULL) {
+            ui_Splash2_screen_init();
+        }
+        _ui_screen_change(ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 3000);
     }
 }
 
@@ -83,20 +70,26 @@ void ui_event_Splash2(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_SCREEN_LOADED) {
-        _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 1500);
+        enable_lvgl_animations(false);
+        //_ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 4000);
         //Delete previous screen and free memory
         lv_obj_clean(ui_Splash1);
+        ui_Splash1 = NULL;
+        displayInitDone = true;
     }
-}
+}*/
 
-void ui_event_MiningScreen(lv_event_t * e)
+/*void ui_event_MiningScreen(lv_event_t * e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_SCREEN_LOADED) {
         //Delete previous screen and free memory
-        lv_obj_clean(ui_Splash2);
-        enable_lvgl_animations(false);
+        if (ui_Splash2 != NULL) {
+            lv_obj_clean(ui_Splash2);
+            ui_Splash2 = NULL;
+        }
+        //enable_lvgl_animations(false);
     }
 }
 
@@ -106,12 +99,12 @@ void ui_event_SettingsScreen(lv_event_t * e)
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_SCREEN_LOADED) {
         //Delete previous screen and free memory
-        //lv_obj_clean(ui_Splash2);
-        enable_lvgl_animations(false);
+        //enable_lvgl_animations(false);
     }
-}
+}*/
 
 ///////////////////// SCREENS ////////////////////
+
 void ui_Splash1_screen_init(void)
 {
     ui_Splash1 = lv_obj_create(NULL);
@@ -125,9 +118,10 @@ void ui_Splash1_screen_init(void)
     lv_obj_add_flag(ui_imgSplash1, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_imgSplash1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
-    lv_obj_add_event_cb(ui_Splash1, ui_event_Splash1, LV_EVENT_ALL, NULL);
+    //lv_obj_add_event_cb(ui_Splash1, ui_event_Splash1, LV_EVENT_ALL, NULL);
 
 }
+
 void ui_Splash2_screen_init(void)
 {
     ui_Splash2 = lv_obj_create(NULL);
@@ -147,24 +141,24 @@ void ui_Splash2_screen_init(void)
     lv_obj_set_x(ui_lbConnect, -31);
     lv_obj_set_y(ui_lbConnect, -40);
     lv_obj_set_align(ui_lbConnect, LV_ALIGN_RIGHT_MID);
-    lv_label_set_text(ui_lbConnect, "mySSID");
+    lv_label_set_text(ui_lbConnect, "Connecting...");
     lv_obj_set_style_text_color(ui_lbConnect, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbConnect, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbConnect, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbConnect, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
+    //lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
 
 }
 
-/*void ui_Portal_screen_init(void)
+void ui_Portal_screen_init(void)
 {
     ui_PortalScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_PortalScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_Image1 = lv_img_create(ui_PortalScreen);
-    lv_img_set_src(ui_Image1, &ui_img_splashscreen2_png);
+    lv_img_set_src(ui_Image1, &ui_img_PortalScreen_png);
     lv_obj_set_width(ui_Image1, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Image1, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_Image1, LV_ALIGN_CENTER);
@@ -172,20 +166,21 @@ void ui_Splash2_screen_init(void)
     lv_obj_clear_flag(ui_Image1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_lbSSID = lv_label_create(ui_PortalScreen);
-    lv_obj_set_width(ui_lbConnect, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_lbConnect, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_lbConnect, -31);
-    lv_obj_set_y(ui_lbConnect, -40);
-    lv_obj_set_align(ui_lbConnect, LV_ALIGN_RIGHT_MID);
-    lv_label_set_text(ui_lbConnect, "mySSID");
-    lv_obj_set_style_text_color(ui_lbConnect, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui_lbConnect, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui_lbConnect, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbConnect, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_width(ui_lbSSID, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_lbSSID, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_lbSSID, 75);
+    lv_obj_set_y(ui_lbSSID, 52);
+    lv_obj_set_align(ui_lbSSID, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_lbSSID, "NERDAXE_XXXX");
+    lv_obj_set_style_text_color(ui_lbSSID, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lbSSID, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui_lbSSID, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbSSID, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
+    //lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
-}*/
+}
+
 void ui_MiningScreen_screen_init(void)
 {
     ui_MiningScreen = lv_obj_create(NULL);
@@ -205,7 +200,7 @@ void ui_MiningScreen_screen_init(void)
     lv_obj_set_x(ui_lbVinput, 234);
     lv_obj_set_y(ui_lbVinput, -34);
     lv_obj_set_align(ui_lbVinput, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbVinput, "1200mV");
+    lv_label_set_text(ui_lbVinput, "5V");
     lv_obj_set_style_text_color(ui_lbVinput, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbVinput, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbVinput, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -217,7 +212,7 @@ void ui_MiningScreen_screen_init(void)
     lv_obj_set_x(ui_lbVcore, 234);
     lv_obj_set_y(ui_lbVcore, -12);
     lv_obj_set_align(ui_lbVcore, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbVcore, "12,2W");
+    lv_label_set_text(ui_lbVcore, "1200mV");
     lv_obj_set_style_text_color(ui_lbVcore, lv_color_hex(0xDEDEDE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbVcore, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbVcore, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -241,7 +236,7 @@ void ui_MiningScreen_screen_init(void)
     lv_obj_set_x(ui_lbPower, 234);
     lv_obj_set_y(ui_lbPower, 32);
     lv_obj_set_align(ui_lbPower, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbPower, "0rpm");
+    lv_label_set_text(ui_lbPower, "0W");
     lv_obj_set_style_text_color(ui_lbPower, lv_color_hex(0xDEDEDE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbPower, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbPower, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -343,7 +338,7 @@ void ui_MiningScreen_screen_init(void)
     lv_obj_set_style_text_align(ui_lbASIC, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbASIC, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    lv_obj_add_event_cb(ui_MiningScreen, ui_event_MiningScreen, LV_EVENT_ALL, NULL);
+    //lv_obj_add_event_cb(ui_MiningScreen, ui_event_MiningScreen, LV_EVENT_ALL, NULL);
 
 }
 void ui_SettingsScreen_screen_init(void)
@@ -470,17 +465,37 @@ void ui_SettingsScreen_screen_init(void)
 
 }
 
+void ui_LogScreen_init(void)
+{
+    ui_LogScreen = lv_obj_create(NULL);
+    lv_obj_clear_flag(ui_LogScreen, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Create a black background
+    lv_obj_set_style_bg_color(ui_LogScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_LogScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    // Create a label for the log text
+    ui_LogLabel = lv_label_create(ui_LogScreen);
+    lv_label_set_text(ui_LogLabel, "");
+    lv_obj_set_style_text_color(ui_LogLabel, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_LogLabel, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_LogLabel, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_width(ui_LogLabel, lv_pct(100));  // Set label width to 100% of the parent
+    lv_obj_set_style_text_align(ui_LogLabel, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_align(ui_LogLabel, LV_ALIGN_TOP_LEFT, 0, 0);
+}
+
 void ui_init(void)
 {
     lv_disp_t * dispp = lv_disp_get_default();
     lv_theme_t * theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED),
                                                false, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, theme);
-    ui_Splash1_screen_init();
-    ui_Splash2_screen_init();
-    ui_MiningScreen_screen_init();
-    ui_SettingsScreen_screen_init();
+    if(ui_Splash1 == NULL) ui_Splash1_screen_init();
+    //ui_Splash2_screen_init();
+    //ui_Portal_screen_init();
+    //ui_MiningScreen_screen_init();
+    //ui_SettingsScreen_screen_init();
+    //ui_LogScreen_init();
     lv_disp_load_scr(ui_Splash1);
-
-    current_screen = ui_MiningScreen;
 }

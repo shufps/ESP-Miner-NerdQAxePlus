@@ -31,6 +31,7 @@ SRCS
     "./displays/images/ui_img_miningscreen2_png.c"
     "./displays/images/ui_img_settingsscreen_png.c"
     "./displays/images/ui_img_splashscreen2_png.c"
+    "./displays/images/ui_img_PortalScreen_png.c"
 
 
 INCLUDE_DIRS

@@ -125,10 +125,17 @@ void DS4432U_read(void)
     ESP_LOGI(TAG, "DS4432U+ OUT1 = 0x%02X", data[0]);
 }
 
-static void DS4432U_set(uint8_t val)
+static esp_err_t DS4432U_set(uint8_t val)
 {
     ESP_LOGI(TAG, "Writing 0x%02X", val);
-    ESP_ERROR_CHECK(register_write_byte(DS4432U_OUT0_REG, val));
+    esp_err_t ret = register_write_byte(DS4432U_OUT0_REG, val);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to write 0x%02X to register 0x%02X, error: 0x%X", val, DS4432U_OUT0_REG, ret);
+        return ret;
+    }
+
+    ESP_LOGI(TAG, "Successfully wrote 0x%02X to register 0x%02X", val, DS4432U_OUT0_REG);
+    return ESP_OK;
 }
 
 bool DS4432U_set_vcore(float core_voltage)
@@ -139,7 +146,8 @@ bool DS4432U_set_vcore(float core_voltage)
 
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV [0x%02X]", core_voltage, reg_setting);
 
-    DS4432U_set(reg_setting); /// eek!
+    esp_err_t ret = DS4432U_set(reg_setting); /// eek!
+    if (ret != ESP_OK) return false;
 
     return true;
 }

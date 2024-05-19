@@ -223,6 +223,7 @@ static void _init_connection(SystemModule * module)
         snprintf(module->oled_buf, 20, "Connecting to ssid:");
         OLED_writeString(0, 0, module->oled_buf);
     }
+    
 }
 
 static void _update_connection(SystemModule * module)
@@ -238,6 +239,7 @@ static void _update_connection(SystemModule * module)
         snprintf(module->oled_buf, 20, "%s", module->wifi_status);
         OLED_writeString(0, 3, module->oled_buf);
     }
+    display_UpdateWifiStatus(module->wifi_status);
 }
 
 static void _update_system_performance(GlobalState * GLOBAL_STATE)
@@ -265,16 +267,22 @@ static void _update_system_performance(GlobalState * GLOBAL_STATE)
 
 static void show_ap_information(const char * error)
 {
+    char ap_ssid[13];
+    generate_ssid(ap_ssid);
+    display_PortalScreen(ap_ssid);
+    
     if (OLED_status()) {
         _clear_display();
         if (error != NULL) {
             OLED_writeString(0, 0, error);
         }
         OLED_writeString(0, 1, "connect to ssid:");
-        char ap_ssid[13];
-        generate_ssid(ap_ssid);
+        
+        
         OLED_writeString(0, 2, ap_ssid);
     }
+   
+
 }
 
 static double _calculate_network_difficulty(uint32_t nBits)
@@ -408,7 +416,9 @@ void SYSTEM_task(void * pvParameters)
 
     while (GLOBAL_STATE->ASIC_functions.init_fn == NULL) {
         show_ap_information("ASIC MODEL INVALID");
+        display_log_message("ERROR > ASIC MODEL INVALID");
         vTaskDelay(5000 / portTICK_PERIOD_MS);
+
     }
 
     // show the connection screen
@@ -424,11 +434,14 @@ void SYSTEM_task(void * pvParameters)
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
+    //At this point connection was done
     #ifdef DISPLAY_TTGO
+        display_MiningScreen(); //Create Miner Screens to be able to update its vars
         esp_netif_get_ip_info(netif, &ip_info);
         char ip_address_str[IP4ADDR_STRLEN_MAX];
         esp_ip4addr_ntoa(&ip_info.ip, ip_address_str, IP4ADDR_STRLEN_MAX);
         display_updateIpAddress(ip_address_str);
+        display_updateCurrentSettings(GLOBAL_STATE);
     #endif
 
     uint8_t countCycle = 10;
@@ -440,12 +453,9 @@ void SYSTEM_task(void * pvParameters)
 
             //display_updateTime(&GLOBAL_STATE->SYSTEM_MODULE);
             
-            //if(countCycle++>5){
-                //countCycle = 0;
-                
-                display_updateGlobalState(GLOBAL_STATE);
-                display_RefreshScreen();
-            //}
+            display_updateGlobalState(GLOBAL_STATE);
+            display_RefreshScreen();
+
 
             vTaskDelay(5000 / portTICK_PERIOD_MS);
 

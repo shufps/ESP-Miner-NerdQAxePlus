@@ -49,6 +49,14 @@
 #define TDISPLAYS3_LCD_CMD_BITS           8
 #define TDISPLAYS3_LCD_PARAM_BITS         8
 
+//Display screens status
+#define STATE_ONINIT            0
+#define STATE_SPLASH1           1
+#define STATE_INIT_OK           2
+#define SCREEN_PORTAL           3
+#define SCREEN_MINING           4
+#define SCREEN_SETTINGS         5
+#define SCREEN_LOG              6
 
 
 /* FUNCTIONS DECLARATION -----------------------------------------------------*/
@@ -57,9 +65,14 @@ void display_updateHashrate(SystemModule * module, float power);
 void display_updateShares(SystemModule * module);
 void display_updateTime(SystemModule * module);
 void display_updateGlobalState(GlobalState * GLOBAL_STATE);
+void display_updateCurrentSettings(GlobalState * GLOBAL_STATE);
 void display_updateIpAddress(char * ip_address_str);
 void enable_lvgl_animations(bool enable);
 void display_RefreshScreen(void);
+void display_log_message(const char *message);
+void display_MiningScreen(void);
+void display_PortalScreen(const char *message);
+void display_UpdateWifiStatus(const char *message);
 
 
 

@@ -7,10 +7,7 @@ extern "C" {
 
 #include "lvgl.h"
 
-extern lv_obj_t *current_screen;
 
-void ui_event_Splash1(lv_event_t * e);
-void ui_event_Splash2(lv_event_t * e);
 extern lv_obj_t * ui_Splash1;
 extern lv_obj_t * ui_Splash2;
 extern lv_obj_t * ui_PortalScreen;
@@ -42,13 +39,17 @@ extern lv_obj_t * ui_lbPoolSet;
 extern lv_obj_t * ui_lbHashrateSet;
 extern lv_obj_t * ui_lbShares;
 extern lv_obj_t * ui_lbPortSet;
+extern lv_obj_t * ui_LogScreen;
+extern lv_obj_t * ui_LogLabel;
+extern lv_obj_t * ui_lbSSID;
+
 
 
 
 LV_IMG_DECLARE(ui_img_initscreen2_png);    // assets\InitScreen2.png
 LV_IMG_DECLARE(ui_img_splashscreen2_png);    // assets\SplashScreen2.png
 LV_IMG_DECLARE(ui_img_miningscreen2_png);    // assets\MiningScreen2.png
-//LV_IMG_DECLARE(ui_img_PortalScreen_png);    // assets\PortalScreen.png
+LV_IMG_DECLARE(ui_img_PortalScreen_png);    // assets\PortalScreen.png
 LV_IMG_DECLARE(ui_img_settingsscreen_png);    // assets\SettingsScreen.png
 
 #define LV_FONT_CUSTOM_DECLARE
@@ -63,6 +64,13 @@ LV_FONT_DECLARE(ui_font_OpenSansBold14);
 void ui_init(void);
 void changeScreen(void); //* arg);
 void manual_lvgl_update();
+
+void ui_MiningScreen_screen_init(void);
+void ui_SettingsScreen_screen_init(void);
+void ui_Portal_screen_init(void);
+void ui_Splash2_screen_init(void);
+void ui_Portal_screen_init(void);
+void ui_LogScreen_init(void);
 
 #ifdef __cplusplus
 } /*extern "C"*/

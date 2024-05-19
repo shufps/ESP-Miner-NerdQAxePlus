@@ -74,7 +74,7 @@ static void event_handler(void * arg, esp_event_base_t event_base, int32_t event
         }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t * event = (ip_event_got_ip_t *) event_data;
-        ESP_LOGI(TAG, "Bitaxe ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        ESP_LOGI(TAG, "Nerdaxe ip:" IPSTR, IP2STR(&event->ip_info.ip));
         s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
@@ -86,7 +86,7 @@ void generate_ssid(char * ssid)
     esp_wifi_get_mac(ESP_IF_WIFI_AP, mac);
 
     // Format the last 4 bytes of the MAC address as a hexadecimal string
-    snprintf(ssid, 32, "Bitaxe_%02X%02X", mac[4], mac[5]);
+    snprintf(ssid, 32, "Nerdaxe_%02X%02X", mac[4], mac[5]);
 }
 
 esp_netif_t * wifi_init_softap(void)

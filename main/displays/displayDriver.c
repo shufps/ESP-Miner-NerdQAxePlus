@@ -12,6 +12,7 @@
 #include "lv_conf.h"
 #include "../adc.h"
 #include "esp_netif.h"
+#include "nvs_config.h"
 //#include "../system.h"
 //#include "lvgl.h"
 
@@ -20,10 +21,11 @@
 #include "ui_helpers.h"
 
 static const char *TAG = "TDisplayS3";
-static bool lvgl_update_enabled = true; // Set animations on at beginning
+static bool animations_enabled = false; 
 static bool doCangeScreenFlag = false;
-
-
+static int screenStatus = STATE_ONINIT;
+static int NextScreen = 0;
+char portalWifiName[30];
 
 static void example_increase_lvgl_tick			(void *arg);
 static bool example_notify_lvgl_flush_ready		(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
@@ -64,18 +66,44 @@ void display_RefreshScreen() {
     increase_lvgl_tick(); // Incrementa el tick según el periodo que definías antes
 }
 
+void changeScreen(void){ // * arg) {
+    
+    if(screenStatus == SCREEN_MINING) {  
+        enable_lvgl_animations(true); //AutoStops after loading the screen
+        _ui_screen_change(ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        screenStatus = SCREEN_SETTINGS; // Actualiza la pantalla actual
+        ESP_LOGI("UI", "NewScreen Settings displayed");
+    } else if(screenStatus == SCREEN_SETTINGS) { 
+        enable_lvgl_animations(true); //AutoStops after loading the screen
+        _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
+        screenStatus = SCREEN_MINING; // Actualiza la pantalla actual
+        ESP_LOGI("UI", "NewScreen Mining displayed");       
+    }
+
+}
+
 static void lvglTimerTask(void* param)
 {
     int64_t myLastTime = esp_timer_get_time();
+    //int64_t current_time = esp_timer_get_time();
+    
+    //Check if screen is changing to avoid problems during change
+    //if ((current_time - last_screen_change_time) < 1500000) return; // 1500000 microsegundos = 1500 ms = 1.5s - No cambies pantalla
+    //last_screen_change_time = current_time;
+    
+    int32_t elapsed_Ani_cycles = 0;
 	while(1) {
-        if(lvgl_update_enabled) {
-            //int32_t elapsedTimeInMilliseconds = (esp_timer_get_time() - myLastTime) / 1000;
-            //if(elapsedTimeInMilliseconds>20) lv_tick_inc(TDISPLAYS3_LVGL_TICK_PERIOD_MS);
-            //else lv_tick_inc(elapsedTimeInMilliseconds);
+        
+        //Enabled when change screen animation is activated
+        if(animations_enabled) {
             increase_lvgl_tick();
             lv_timer_handler(); // Process pending LVGL tasks
             vTaskDelay(15 / portTICK_PERIOD_MS); // Delay during animations
-            
+            if(elapsed_Ani_cycles++>80) {
+                //After 1s aprox stop animations
+                animations_enabled = false;
+                elapsed_Ani_cycles = 0;
+            }
         }
         else{
             if(doCangeScreenFlag) {
@@ -85,12 +113,67 @@ static void lvglTimerTask(void* param)
             vTaskDelay(200 / portTICK_PERIOD_MS); // Delay waiting animation trigger
         }
         
+        if((screenStatus > STATE_INIT_OK)) continue; //Doesn't need to do the initial animation screens
+
+        //Screen initial process
+        int32_t elapsed = (esp_timer_get_time() - myLastTime) / 1000;
+        switch(screenStatus){
+            case STATE_ONINIT: //First splash Screen
+                                if(elapsed > 3000) { 
+                                    ESP_LOGI(TAG, "Changing Screen to SPLASH2");
+                                    if (ui_Splash2 == NULL) ui_Splash2_screen_init();  
+                                    enable_lvgl_animations(true);                                
+                                    _ui_screen_change(ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+                                    screenStatus = STATE_SPLASH1;
+                                    myLastTime = esp_timer_get_time();
+                               }
+                               break;
+            case STATE_SPLASH1: //Second splash screen
+                                if(elapsed > 3000) { 
+                                    //Init done, wait until on portal or mining is shown
+                                    screenStatus = STATE_INIT_OK;
+                                    ESP_LOGI(TAG, "Changing Screen to WAIT SELECTION");
+                                    lv_obj_clean(ui_Splash1);
+                                    ui_Splash1 = NULL;
+                               }
+                               break;
+            case STATE_INIT_OK: //Show portal
+                                if(NextScreen == SCREEN_PORTAL) {
+                                    ESP_LOGI(TAG, "Changing Screen to Show Portal");
+                                    screenStatus = SCREEN_PORTAL;
+                                    if (ui_PortalScreen == NULL) {
+                                        ui_Portal_screen_init();
+                                    }
+                                    lv_label_set_text(ui_lbSSID, portalWifiName); // Actualiza el label
+                                    enable_lvgl_animations(true);
+                                    _ui_screen_change(ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+                                    lv_obj_clean(ui_Splash2);
+                                    ui_Splash2 = NULL;
+                                 }
+                                else if(NextScreen == SCREEN_MINING){
+                                    //Show Mining screen
+                                    ESP_LOGI(TAG, "Changing Screen to Mining screen");
+                                    screenStatus = SCREEN_MINING;
+                                    if (ui_MiningScreen == NULL) {
+                                        ui_MiningScreen_screen_init();
+                                    }
+                                    if (ui_SettingsScreen == NULL) {
+                                        ui_SettingsScreen_screen_init();
+                                    }
+                                    enable_lvgl_animations(true);
+                                    _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+                                    lv_obj_clean(ui_Splash2);
+                                    ui_Splash2 = NULL;
+                                 }
+                               break;
+
+        }
     }
 }
 
 // Función para activar las actualizaciones
 void enable_lvgl_animations(bool enable) {
-    lvgl_update_enabled = enable;
+    animations_enabled = enable;
 }
 
 static void main_creatSysteTasks(void)
@@ -277,9 +360,36 @@ void display_updateTime(SystemModule * module){
 
 }
 
+void display_updateCurrentSettings(GlobalState * GLOBAL_STATE){
+    char strData[20];
+    if(ui_SettingsScreen == NULL)  return;
+
+    lv_label_set_text(ui_lbPoolSet, GLOBAL_STATE->SYSTEM_MODULE.pool_url); // Update label
+
+    snprintf(strData, sizeof(strData), "%d", GLOBAL_STATE->SYSTEM_MODULE.pool_port);
+    lv_label_set_text(ui_lbPortSet, strData); // Update label
+    
+    snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY)); 
+    lv_label_set_text(ui_lbFreqSet, strData); // Update label 
+
+    snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
+    lv_label_set_text(ui_lbVcoreSet, strData); // Update label
+
+    uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
+    if(auto_fan_speed == 1) lv_label_set_text(ui_lbFanSet, "AUTO"); // Update label
+    else {
+        snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100));
+        lv_label_set_text(ui_lbFanSet, strData); // Update label
+    }
+
+}
+
 void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     char strData[20];
 
+    if(ui_MiningScreen == NULL)  return;
+    if(ui_SettingsScreen == NULL)  return;
+    
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
     PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
 
@@ -310,36 +420,49 @@ void display_updateGlobalState(GlobalState * GLOBAL_STATE){
 void display_updateIpAddress(char * ip_address_str){
     char strData[20];
 
+    if(ui_MiningScreen == NULL)  return;
+    if(ui_SettingsScreen == NULL)  return;
+
     snprintf(strData, sizeof(strData), "%s", ip_address_str);
     lv_label_set_text(ui_lbIP, ip_address_str); // Update label
     lv_label_set_text(ui_lbIPSet, ip_address_str); // Update label
 
 }
 
-/*
-void updateScreensTask(void *pvParameter) {
-    int hash = 0;
-    
-    while (1) {
-
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Espera un segundo
-
-        //lv_label_set_text(ui_lbTime,
-    }
+void display_log_message(const char *message)
+{
+    screenStatus = SCREEN_LOG;
+    if(ui_LogScreen == NULL) ui_LogScreen_init();
+    lv_label_set_text(ui_LogLabel, message);
+    enable_lvgl_animations(true);
+    _ui_screen_change(ui_LogScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0);
 }
 
-void startUpdateScreenTask() {
-    xTaskCreate(updateScreensTask, "updateScreensTask", 2048, NULL, 5, NULL);
-}*/
+void display_MiningScreen(void)
+{
+    //Only called once at the beggining from system lib
+    if (ui_MiningScreen == NULL) ui_MiningScreen_screen_init();
+    if (ui_SettingsScreen == NULL) ui_SettingsScreen_screen_init();
+    NextScreen = SCREEN_MINING;
+}
 
-
+void display_PortalScreen(const char *message)
+{
+    NextScreen = SCREEN_PORTAL;
+    strcpy(portalWifiName, message);
+}
+void display_UpdateWifiStatus(const char *message)
+{
+    if(ui_lbConnect != NULL)
+        lv_label_set_text(ui_lbConnect, message); // Actualiza el label
+    display_RefreshScreen();
+    
+}
 
 // ISR Handler para el botón
 static void boton_isr_handler(void* arg) {
     //ESP_LOGI("UI", "Button pressed changing screen");
-    doCangeScreenFlag = true;
-    lvgl_update_enabled = false;
-    //lv_async_call(changeScreen, NULL);
+    doCangeScreenFlag=true;
 }
 
 void buttons_init(void) {

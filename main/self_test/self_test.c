@@ -8,6 +8,7 @@
 #include "nvs_config.h"
 #include "nvs_flash.h"
 #include "oled.h"
+#include "displays/displayDriver.h"
 #include "utils.h"
 #include <string.h>
 
@@ -47,6 +48,11 @@ static bool core_voltage_pass()
 void self_test(void * pvParameters)
 {
 
+    //Initialize display
+    display_init();
+    display_log_message("Self test initiated...");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
     GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
 
@@ -68,10 +74,19 @@ void self_test(void * pvParameters)
     ESP_LOGI(TAG, "I2C initialized successfully");
 
     ADC_init();
-    DS4432U_set_vcore(nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE) / 1000.0);
+    bool isOK = DS4432U_set_vcore(nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE) / 1000.0);
+    if(!isOK) {
+        display_log_message("Test result: DS4432U not detected");
+        return;
+    }
 
-    EMC2101_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
+    isOK =  EMC2101_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
+    if(!isOK) {
+        display_log_message("Test result: EMC2101 not detected");
+        return;
+    }
     EMC2101_set_fan_speed(1);
+    
 
     // oled
     if (!OLED_init()) {
@@ -94,6 +109,7 @@ void self_test(void * pvParameters)
             snprintf(module->oled_buf, 20, "DS4432U:FAIL");
             OLED_writeString(0, 2, module->oled_buf);
         }
+        display_log_message("Test result: ERROR > DS4432U:FAIL");
     }
 
 
@@ -173,6 +189,7 @@ void self_test(void * pvParameters)
             snprintf(module->oled_buf, 20, "ASIC:FAIL NO CHIPS");
             OLED_writeString(0, 2, module->oled_buf);
         }
+        display_log_message("Test result: ERROR > NO CHIPS DETECTED");
         return;
     }
 
@@ -185,6 +202,7 @@ void self_test(void * pvParameters)
             snprintf(module->oled_buf, 20, "POWER:     FAIL");
             OLED_writeString(0, 2, module->oled_buf);
         }
+        display_log_message("Test result: ERROR > Power FAIL, core voltage");
         return;
     }
 
@@ -194,6 +212,7 @@ void self_test(void * pvParameters)
             snprintf(module->oled_buf, 20, "POWER:     FAIL");
             OLED_writeString(0, 2, module->oled_buf);
         }
+        display_log_message("Test result: ERROR > Power FAIL, power consumption");
         return;
     }
 
@@ -201,9 +220,11 @@ void self_test(void * pvParameters)
         memset(module->oled_buf, 0, 20);
         snprintf(module->oled_buf, 20, "FAN:       WARN");
         OLED_writeString(0, 1, module->oled_buf);
+        display_log_message("Test result: OK PASS > Warning fan");
     }
+    
 
-
+    display_log_message("Test result: OK PASS");
     memset(module->oled_buf, 0, 20);
     snprintf(module->oled_buf, 20, "           PASS");
     OLED_writeString(0, 2, module->oled_buf);

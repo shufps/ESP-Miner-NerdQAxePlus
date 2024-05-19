@@ -39,15 +39,23 @@ static esp_err_t register_write_byte(uint8_t reg_addr, uint8_t data)
 }
 
 // run this first. sets up the config register
-void EMC2101_init(bool invertPolarity)
+bool EMC2101_init(bool invertPolarity)
 {
 
     // set the TACH input
-    ESP_ERROR_CHECK(register_write_byte(EMC2101_REG_CONFIG, 0x04));
+    esp_err_t ret = register_write_byte(EMC2101_REG_CONFIG, 0x04);
+    if (ret != ESP_OK) {
+        ESP_LOGE("EMC2101", "Failed to write 0x%02X to EMC2101 register 0x%02X, error: 0x%X", 0x04, EMC2101_REG_CONFIG, ret);
+        return false;
+    }
+
+    ESP_LOGI("EMC2101", "Successfully wrote 0x%02X to EMC2101 register 0x%02X", 0x04, EMC2101_REG_CONFIG);
+    
 
     if (invertPolarity) {
         ESP_ERROR_CHECK(register_write_byte(EMC2101_FAN_CONFIG, 0b00100011));
     }
+    return true;
 }
 
 // takes a fan speed percent
