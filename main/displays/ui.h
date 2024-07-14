@@ -42,7 +42,12 @@ extern lv_obj_t * ui_lbPortSet;
 extern lv_obj_t * ui_LogScreen;
 extern lv_obj_t * ui_LogLabel;
 extern lv_obj_t * ui_lbSSID;
-
+extern lv_obj_t * ui_BTCScreen;
+extern lv_obj_t * ui_ImgBTCscreen;
+extern lv_obj_t * ui_lblBTCPrice;
+extern lv_obj_t * ui_lblPriceInc;
+extern lv_obj_t * ui_lblHashPrice;
+extern lv_obj_t * ui_lblTempPrice;
 
 
 
@@ -51,12 +56,15 @@ LV_IMG_DECLARE(ui_img_splashscreen2_png);    // assets\SplashScreen2.png
 LV_IMG_DECLARE(ui_img_miningscreen2_png);    // assets\MiningScreen2.png
 LV_IMG_DECLARE(ui_img_PortalScreen_png);    // assets\PortalScreen.png
 LV_IMG_DECLARE(ui_img_settingsscreen_png);    // assets\SettingsScreen.png
+LV_IMG_DECLARE(ui_img_btcscreen_png);    // assets\BTCScreen.png
 
 #define LV_FONT_CUSTOM_DECLARE
 LV_FONT_DECLARE(ui_font_DigitalNumbers16);
 LV_FONT_DECLARE(ui_font_DigitalNumbers28);
 LV_FONT_DECLARE(ui_font_OpenSansBold13);
 LV_FONT_DECLARE(ui_font_OpenSansBold14);
+LV_FONT_DECLARE(ui_font_OpenSansBold45);
+LV_FONT_DECLARE(ui_font_OpenSansBold24);
 
 
 #define TDISPLAYS3_LVGL_TICK_PERIOD_MS    30
@@ -71,6 +79,7 @@ void ui_Portal_screen_init(void);
 void ui_Splash2_screen_init(void);
 void ui_Portal_screen_init(void);
 void ui_LogScreen_init(void);
+void ui_BTCScreen_screen_init(void);
 
 #ifdef __cplusplus
 } /*extern "C"*/

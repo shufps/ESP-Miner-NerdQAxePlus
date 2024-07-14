@@ -163,7 +163,7 @@ esp_netif_t * wifi_init_sta(const char * wifi_ssid, const char * wifi_pass)
     return esp_netif_sta;
 }
 
-void wifi_init(const char * wifi_ssid, const char * wifi_pass)
+void wifi_init(const char * wifi_ssid, const char * wifi_pass, const char * hostname)
 {
     s_wifi_event_group = xEventGroupCreate();
 

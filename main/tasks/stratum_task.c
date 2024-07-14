@@ -162,7 +162,7 @@ void stratum_task(void * pvParameters)
                 ESP_LOGE(TAG, "Failed to receive JSON-RPC line, reconnecting...");
                 shutdown(GLOBAL_STATE->sock, SHUT_RDWR);
                 close(GLOBAL_STATE->sock);
-                vTaskDelay(5000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
+                vTaskDelay(1000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
                 break;
             }
 

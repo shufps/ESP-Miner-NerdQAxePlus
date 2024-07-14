@@ -44,7 +44,7 @@
 // The pixel number in horizontal and vertical
 #define TDISPLAYS3_LCD_H_RES              320
 #define TDISPLAYS3_LCD_V_RES              170
-#define LVGL_LCD_BUF_SIZE            (TDISPLAYS3_LCD_H_RES * TDISPLAYS3_LCD_V_RES)
+#define LVGL_LCD_BUF_SIZE            (TDISPLAYS3_LCD_H_RES * TDISPLAYS3_LCD_V_RES) /4
 // Bit number used to represent command and parameter
 #define TDISPLAYS3_LCD_CMD_BITS           8
 #define TDISPLAYS3_LCD_PARAM_BITS         8
@@ -55,8 +55,9 @@
 #define STATE_INIT_OK           2
 #define SCREEN_PORTAL           3
 #define SCREEN_MINING           4
-#define SCREEN_SETTINGS         5
-#define SCREEN_LOG              6
+#define SCREEN_BTCPRICE         5
+#define SCREEN_SETTINGS         6
+#define SCREEN_LOG              7
 
 
 /* FUNCTIONS DECLARATION -----------------------------------------------------*/

@@ -41,6 +41,12 @@ lv_obj_t * ui_lbShares;
 lv_obj_t * ui_lbPortSet;
 lv_obj_t * ui_LogScreen;
 lv_obj_t * ui_LogLabel;
+lv_obj_t * ui_BTCScreen;
+lv_obj_t * ui_ImgBTCscreen;
+lv_obj_t * ui_lblBTCPrice;
+lv_obj_t * ui_lblPriceInc;
+lv_obj_t * ui_lblHashPrice;
+lv_obj_t * ui_lblTempPrice;
 
 
 ///////////////////// FUNCTIONS ////////////////////
@@ -52,56 +58,6 @@ void ui_Portal_screen_init(void);
 void ui_Splash2_screen_init(void);
 void ui_Splash1_screen_init(void);
 
-/*
-void ui_event_Splash1(lv_event_t * e)
-{
-    lv_event_code_t event_code = lv_event_get_code(e);
-    lv_obj_t * target = lv_event_get_target(e);
-    if(event_code == LV_EVENT_SCREEN_LOADED) {
-        if (ui_Splash2 == NULL) {
-            ui_Splash2_screen_init();
-        }
-        _ui_screen_change(ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 3000);
-    }
-}
-
-void ui_event_Splash2(lv_event_t * e)
-{
-    lv_event_code_t event_code = lv_event_get_code(e);
-    lv_obj_t * target = lv_event_get_target(e);
-    if(event_code == LV_EVENT_SCREEN_LOADED) {
-        enable_lvgl_animations(false);
-        //_ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 4000);
-        //Delete previous screen and free memory
-        lv_obj_clean(ui_Splash1);
-        ui_Splash1 = NULL;
-        displayInitDone = true;
-    }
-}*/
-
-/*void ui_event_MiningScreen(lv_event_t * e)
-{
-    lv_event_code_t event_code = lv_event_get_code(e);
-    lv_obj_t * target = lv_event_get_target(e);
-    if(event_code == LV_EVENT_SCREEN_LOADED) {
-        //Delete previous screen and free memory
-        if (ui_Splash2 != NULL) {
-            lv_obj_clean(ui_Splash2);
-            ui_Splash2 = NULL;
-        }
-        //enable_lvgl_animations(false);
-    }
-}
-
-void ui_event_SettingsScreen(lv_event_t * e)
-{
-    lv_event_code_t event_code = lv_event_get_code(e);
-    lv_obj_t * target = lv_event_get_target(e);
-    if(event_code == LV_EVENT_SCREEN_LOADED) {
-        //Delete previous screen and free memory
-        //enable_lvgl_animations(false);
-    }
-}*/
 
 ///////////////////// SCREENS ////////////////////
 
@@ -119,6 +75,9 @@ void ui_Splash1_screen_init(void)
     lv_obj_clear_flag(ui_imgSplash1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     //lv_obj_add_event_cb(ui_Splash1, ui_event_Splash1, LV_EVENT_ALL, NULL);
+
+    // Liberar memoria de imágenes no utilizadas
+    lv_img_cache_invalidate_src(&ui_img_splashscreen2_png);
 
 }
 
@@ -149,6 +108,8 @@ void ui_Splash2_screen_init(void)
 
     //lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
+    // Liberar memoria de imágenes no utilizadas
+    lv_img_cache_invalidate_src(&ui_img_initscreen2_png);
 
 }
 
@@ -179,6 +140,8 @@ void ui_Portal_screen_init(void)
 
     //lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
+    // Liberar memoria de imágenes no utilizadas
+    lv_img_cache_invalidate_src(&ui_img_initscreen2_png);
 }
 
 void ui_MiningScreen_screen_init(void)
@@ -483,6 +446,69 @@ void ui_LogScreen_init(void)
     lv_obj_set_width(ui_LogLabel, lv_pct(100));  // Set label width to 100% of the parent
     lv_obj_set_style_text_align(ui_LogLabel, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_align(ui_LogLabel, LV_ALIGN_TOP_LEFT, 0, 0);
+}
+
+void ui_BTCScreen_screen_init(void)
+{
+    ui_BTCScreen = lv_obj_create(NULL);
+    lv_obj_clear_flag(ui_BTCScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_set_style_bg_color(ui_BTCScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_BTCScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_ImgBTCscreen = lv_img_create(ui_BTCScreen);
+    lv_img_set_src(ui_ImgBTCscreen, &ui_img_btcscreen_png);
+    lv_obj_set_width(ui_ImgBTCscreen, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_ImgBTCscreen, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_ImgBTCscreen, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_ImgBTCscreen, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
+    lv_obj_clear_flag(ui_ImgBTCscreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_lblBTCPrice = lv_label_create(ui_BTCScreen);
+    lv_obj_set_width(ui_lblBTCPrice, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_lblBTCPrice, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_lblBTCPrice, 30);
+    lv_obj_set_y(ui_lblBTCPrice, 47);
+    lv_obj_set_align(ui_lblBTCPrice, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_lblBTCPrice, "62523$");
+    lv_obj_set_style_text_color(ui_lblBTCPrice, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lblBTCPrice, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lblBTCPrice, &ui_font_OpenSansBold45, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_lblPriceInc = lv_label_create(ui_BTCScreen);
+    lv_obj_set_width(ui_lblPriceInc, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_lblPriceInc, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_lblPriceInc, 193);
+    lv_obj_set_y(ui_lblPriceInc, 49);
+    lv_obj_set_align(ui_lblPriceInc, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_lblPriceInc, "2%");
+    lv_obj_set_style_text_color(ui_lblPriceInc, lv_color_hex(0x07FF2A), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lblPriceInc, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lblPriceInc, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_lblHashPrice = lv_label_create(ui_BTCScreen);
+    lv_obj_set_width(ui_lblHashPrice, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_lblHashPrice, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_lblHashPrice, 236);
+    lv_obj_set_y(ui_lblHashPrice, -63);
+    lv_obj_set_align(ui_lblHashPrice, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_lblHashPrice, "500,0");
+    lv_obj_set_style_text_color(ui_lblHashPrice, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lblHashPrice, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui_lblHashPrice, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lblHashPrice, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_lblTempPrice = lv_label_create(ui_BTCScreen);
+    lv_obj_set_width(ui_lblTempPrice, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_lblTempPrice, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_lblTempPrice, 261);
+    lv_obj_set_y(ui_lblTempPrice, -18);
+    lv_obj_set_align(ui_lblTempPrice, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_lblTempPrice, "24");
+    lv_obj_set_style_text_color(ui_lblTempPrice, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lblTempPrice, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui_lblTempPrice, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lblTempPrice, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+
 }
 
 void ui_init(void)
