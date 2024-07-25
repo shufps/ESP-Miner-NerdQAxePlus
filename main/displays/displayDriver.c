@@ -310,7 +310,7 @@ lv_obj_t * initTDisplayS3(void){
     esp_lcd_i80_bus_config_t bus_config = {
         .dc_gpio_num = TDISPLAYS3_PIN_NUM_DC,
         .wr_gpio_num = TDISPLAYS3_PIN_NUM_PCLK,
-		.clk_src	= LCD_CLK_SRC_PLL160M,
+		.clk_src	= LCD_CLK_SRC_DEFAULT,
         .data_gpio_nums =
         {
             TDISPLAYS3_PIN_NUM_DATA0,
@@ -323,7 +323,9 @@ lv_obj_t * initTDisplayS3(void){
             TDISPLAYS3_PIN_NUM_DATA7,
         },
         .bus_width = 8,
-        .max_transfer_bytes = LVGL_LCD_BUF_SIZE * sizeof(uint16_t)
+        .max_transfer_bytes = LVGL_LCD_BUF_SIZE * sizeof(uint16_t),
+        .psram_trans_align = LCD_PSRAM_TRANS_ALIGN,
+        .sram_trans_align = LCD_SRAM_TRANS_ALIGN
     };
     ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &i80_bus));
     esp_lcd_panel_io_handle_t io_handle = NULL;
@@ -365,7 +367,7 @@ lv_obj_t * initTDisplayS3(void){
     // the gap is LCD panel specific, even panels with the same driver IC, can have different gap value
     esp_lcd_panel_set_gap(panel_handle, 0, 35);
 
-
+    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 
     ESP_LOGI(TAG, "Turn on LCD backlight");
     gpio_set_level(TDISPLAYS3_PIN_PWR, true);

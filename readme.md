@@ -4,13 +4,17 @@
 
 | Supported Targets | ESP32-S3              |
 | ----------------- | --------------------- |
-| Required Platform | ESP-IDF v4.4.6        |
+| Old Platform      | ~~ESP-IDF v4.4.6~~        |
+| ----------------- | --------------------- |
+| Required Platform | ESP-IDF v5.2.X        | Update!
 | ----------------- | --------------------- |
 
 This is a forked version of ESP-miner, the original firmware of Bitaxe project developed by @skot/ESP-Miner, @ben and @jhonny.
 The current fork supports LVGL library with an UI that works with 8bit parallel screen over `TTGO-TdiplayS3` board.
 
-This features unfortunatelly can't be added to the original project because requires specific ESP-IDF version to be built.
+~~This features unfortunatelly can't be added to the original project because requires specific ESP-IDF version to be built.~~
+
+Now firmware is up to date with current ESP-miner, so this firmware adds a Display layer
 
 
 ## How to flash/update firmware

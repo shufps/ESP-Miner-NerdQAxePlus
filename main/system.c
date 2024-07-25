@@ -196,7 +196,7 @@ static void _update_esp32_info(SystemModule * module)
     if (OLED_status()) {
 
         memset(module->oled_buf, 0, 20);
-        snprintf(module->oled_buf, 20, "FH: %u bytes", free_heap_size);
+        snprintf(module->oled_buf, 20, "FH: %ld bytes", free_heap_size);
         OLED_writeString(0, 0, module->oled_buf);
 
         memset(module->oled_buf, 0, 20);

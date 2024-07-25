@@ -49,6 +49,11 @@
 #define TDISPLAYS3_LCD_CMD_BITS           8
 #define TDISPLAYS3_LCD_PARAM_BITS         8
 
+// Supported alignment: 16, 32, 64.
+// A higher alignment can enable higher burst transfer size, thus a higher i80 bus throughput.
+#define LCD_PSRAM_TRANS_ALIGN    64
+#define LCD_SRAM_TRANS_ALIGN     4
+
 //Display screens status
 #define STATE_ONINIT            0
 #define STATE_SPLASH1           1
