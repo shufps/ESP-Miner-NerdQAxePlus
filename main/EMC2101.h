@@ -1,6 +1,8 @@
 #ifndef EMC2101_H_
 #define EMC2101_H_
 
+#include "i2c_master.h"
+
 #define EMC2101_I2CADDR_DEFAULT 0x4C ///< EMC2101 default i2c address
 #define EMC2101_CHIP_ID 0x16         ///< EMC2101 default device id from part id
 #define EMC2101_ALT_CHIP_ID 0x28     ///< EMC2101 alternate device id from part id
@@ -9,6 +11,8 @@
 #define EMC2101_INTERNAL_TEMP 0x00     ///< The internal temperature register
 #define EMC2101_EXTERNAL_TEMP_MSB 0x01 ///< high byte for the external temperature reading
 #define EMC2101_EXTERNAL_TEMP_LSB 0x10 ///< low byte for the external temperature reading
+#define EMC2101_TEMP_FAULT_OPEN_CIRCUIT 0x3F8
+#define EMC2101_TEMP_FAULT_SHORT 0x3FF
 
 #define EMC2101_STATUS 0x02          ///< Status register
 #define EMC2101_REG_CONFIG 0x03      ///< configuration register

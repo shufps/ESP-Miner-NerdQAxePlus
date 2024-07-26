@@ -1,6 +1,8 @@
 #ifndef GLOBAL_STATE_H_
 #define GLOBAL_STATE_H_
 
+#include <stdbool.h>
+#include <stdint.h>
 #include "asic_task.h"
 #include "bm1368.h"
 #include "bm1366.h"
@@ -9,14 +11,32 @@
 #include "power_management_task.h"
 #include "serial.h"
 #include "stratum_api.h"
-#include "system.h"
 #include "work_queue.h"
 
 #define STRATUM_USER CONFIG_STRATUM_USER
 
+#define HISTORY_LENGTH 100
+#define DIFF_STRING_SIZE 10
+
+typedef enum
+{
+    DEVICE_UNKNOWN = -1,
+    DEVICE_MAX,
+    DEVICE_ULTRA,
+    DEVICE_SUPRA,
+} DeviceModel;
+
+typedef enum
+{
+    ASIC_UNKNOWN = -1,
+    ASIC_BM1397,
+    ASIC_BM1366,
+    ASIC_BM1368,
+} AsicModel;
+
 typedef struct
 {
-    uint8_t (*init_fn)(u_int64_t);
+    uint8_t (*init_fn)(uint64_t, uint16_t);
     task_result * (*receive_result_fn)(void * GLOBAL_STATE);
     int (*set_max_baud_fn)(void);
     void (*set_difficulty_mask_fn)(int);
@@ -25,9 +45,43 @@ typedef struct
 
 typedef struct
 {
-    char * asic_model;
+    double duration_start;
+    int historical_hashrate_rolling_index;
+    double historical_hashrate_time_stamps[HISTORY_LENGTH];
+    double historical_hashrate[HISTORY_LENGTH];
+    int historical_hashrate_init;
+    double current_hashrate;
+    int64_t start_time;
+    uint64_t shares_accepted;
+    uint64_t shares_rejected;
+    int screen_page;
+    char oled_buf[20];
+    uint64_t best_nonce_diff;
+    char best_diff_string[DIFF_STRING_SIZE];
+    uint64_t best_session_nonce_diff;
+    char best_session_diff_string[DIFF_STRING_SIZE];
+    bool FOUND_BLOCK;
+    bool startup_done;
+    char ssid[32];
+    char wifi_status[20];
+    char * pool_url;
+    uint16_t pool_port;
+
+    uint32_t lastClockSync;
+} SystemModule;
+
+typedef struct
+{
+    DeviceModel device_model;
+    char * device_model_str;
+    int board_version;
+    AsicModel asic_model;
+    char * asic_model_str;
+    uint16_t asic_count;
+    uint16_t voltage_domain;
     AsicFunctions ASIC_functions;
     double asic_job_frequency_ms;
+    uint32_t initial_ASIC_difficulty;
 
     work_queue stratum_queue;
     work_queue ASIC_jobs_queue;

@@ -3,8 +3,11 @@
 
 typedef struct
 {
-    uint16_t fan_speed;
-    float chip_temp;
+    uint16_t fan_perc;
+    uint16_t fan_rpm;
+    float chip_temp[6];
+    float chip_temp_avg;
+    float vr_temp;
     float voltage;
     float frequency_multiplier;
     float frequency_value;
@@ -14,7 +17,6 @@ typedef struct
     bool HAS_PLUG_SENSE;
 } PowerManagementModule;
 
-static void automatic_fan_speed(float chip_temp);
 void POWER_MANAGEMENT_task(void * pvParameters);
 
 #endif

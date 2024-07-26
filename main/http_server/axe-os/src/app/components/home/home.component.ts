@@ -123,6 +123,7 @@ export class HomeComponent {
         info.current = parseFloat((info.current / 1000).toFixed(1));
         info.coreVoltageActual = parseFloat((info.coreVoltageActual / 1000).toFixed(2));
         info.coreVoltage = parseFloat((info.coreVoltage / 1000).toFixed(2));
+        info.temp = parseFloat(info.temp.toFixed(1));
 
 
 
@@ -132,21 +133,7 @@ export class HomeComponent {
     );
 
     this.expectedHashRate$ = this.info$.pipe(map(info => {
-      if (info.ASICModel === eASICModel.BM1366) {
-        const version = parseInt(info.boardVersion);
-        if (version >= 400 && version < 500) {
-          return Math.floor(info.frequency * ((894 * 6) / 1000))
-        } else {
-          return Math.floor(info.frequency * (894 / 1000))
-        }
-      } else if (info.ASICModel === eASICModel.BM1397) {
-        return Math.floor(info.frequency * (672 / 1000))
-      } else if (info.ASICModel === eASICModel.BM1368) {
-        return Math.floor(info.frequency * (1276 / 1000))
-      }
-
-      return undefined;
-
+      return Math.floor(info.frequency * ((info.smallCoreCount * info.asicCount) / 1000))
     }))
 
     this.quickLink$ = this.info$.pipe(
@@ -154,6 +141,15 @@ export class HomeComponent {
         if (info.stratumURL.includes('public-pool.io')) {
           const address = info.stratumUser.split('.')[0]
           return `https://web.public-pool.io/#/app/${address}`;
+        } else if (info.stratumURL.includes('ocean.xyz')) {
+          const address = info.stratumUser.split('.')[0]
+          return `https://ocean.xyz/stats/${address}`;
+        } else if (info.stratumURL.includes('solo.d-central.tech')) {
+          const address = info.stratumUser.split('.')[0]
+          return `https://solo.d-central.tech/#/app/${address}`;
+        } else if (info.stratumURL.includes('solo.ckpool.org')) {
+          const address = info.stratumUser.split('.')[0]
+          return `https://solostats.ckpool.org/stats/${address}`;
         } else {
           return undefined;
         }

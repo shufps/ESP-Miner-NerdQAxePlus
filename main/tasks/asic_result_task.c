@@ -1,4 +1,4 @@
-#include "global_state.h"
+#include "system.h"
 #include "work_queue.h"
 #include "serial.h"
 #include "bm1397.h"
@@ -7,12 +7,11 @@
 #include "nvs_config.h"
 #include "utils.h"
 
-const char *TAG = "asic_result";
+static const char *TAG = "asic_result";
 
 void ASIC_result_task(void *pvParameters)
 {
     GlobalState *GLOBAL_STATE = (GlobalState *)pvParameters;
-    //SERIAL_clear_buffer();
 
     char *user = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, STRATUM_USER);
 
@@ -30,8 +29,8 @@ void ASIC_result_task(void *pvParameters)
 
         if (GLOBAL_STATE->valid_jobs[job_id] == 0)
         {
-            ESP_LOGI(TAG, "Invalid job nonce found, id=%d", job_id);
-			continue;
+            ESP_LOGI(TAG, "Invalid job nonce found, 0x%02X", job_id);
+            continue;
         }
 
         // check the nonce difficulty
@@ -40,7 +39,8 @@ void ASIC_result_task(void *pvParameters)
             asic_result->nonce,
             asic_result->rolled_version);
 
-        ESP_LOGI(TAG, "Nonce difficulty %.2f of %ld.", nonce_diff, GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->pool_diff);
+        //log the ASIC response
+        ESP_LOGI(TAG, "Ver: %08" PRIX32 " Nonce %08" PRIX32 " diff %.1f of %ld.", asic_result->rolled_version, asic_result->nonce, nonce_diff, GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->pool_diff);
 
         if (nonce_diff > GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->pool_diff)
         {
@@ -54,9 +54,8 @@ void ASIC_result_task(void *pvParameters)
                 asic_result->nonce,
                 asic_result->rolled_version ^ GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->version);
 
-            SYSTEM_notify_found_nonce(&GLOBAL_STATE->SYSTEM_MODULE, GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->pool_diff,
-                                      nonce_diff, GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->target,
-                                      GLOBAL_STATE->POWER_MANAGEMENT_MODULE.power);
         }
+
+        SYSTEM_notify_found_nonce(GLOBAL_STATE, nonce_diff, job_id);
     }
 }
