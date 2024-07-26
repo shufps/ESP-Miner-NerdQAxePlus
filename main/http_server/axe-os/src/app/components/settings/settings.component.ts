@@ -58,6 +58,7 @@ export class SettingsComponent {
         this.form = this.fb.group({
           flipscreen: [info.flipscreen == 1],
           invertscreen: [info.invertscreen == 1],
+          autoscreenoff: [info.autoscreenoff == 0],
           stratumURL: [info.stratumURL, [
             Validators.required,
             Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
@@ -114,7 +115,8 @@ export class SettingsComponent {
     form.flipscreen = form.flipscreen == true ? 1 : 0;
     form.invertscreen = form.invertscreen == true ? 1 : 0;
     form.invertfanpolarity = form.invertfanpolarity == true ? 1 : 0;
-    form.autofanspeed = form.autofanspeed == true ? 1 : 0;
+    form.autofanspeed = form.autofanspeed == true ? 1 : 0; 
+    form.autoscreenoff = form.autoscreenoff == true ? 1 : 0;
 
     if (form.wifiPass === 'password') {
       delete form.wifiPass;

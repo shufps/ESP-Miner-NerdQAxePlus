@@ -176,6 +176,7 @@ void changeScreen(void){ // * arg) {
 static void lvglTimerTask(void* param)
 {
     int64_t myLastTime = esp_timer_get_time();
+    uint8_t autoOffEnabled = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0);
     //int64_t current_time = esp_timer_get_time();
     
     //Check if screen is changing to avoid problems during change
@@ -212,7 +213,7 @@ static void lvglTimerTask(void* param)
         }
         
         //Check if screen need to be turned off
-        checkAutoTurnOffScreen();
+        if (autoOffEnabled) checkAutoTurnOffScreen();
 
         if((screenStatus > STATE_INIT_OK)) continue; //Doesn't need to do the initial animation screens
 

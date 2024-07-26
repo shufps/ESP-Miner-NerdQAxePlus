@@ -15,6 +15,7 @@ typedef struct
     float current;
     bool HAS_POWER_EN;
     bool HAS_PLUG_SENSE;
+    bool AUTO_SCREEN_OFF;
 } PowerManagementModule;
 
 void POWER_MANAGEMENT_task(void * pvParameters);
