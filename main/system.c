@@ -355,12 +355,13 @@ static void _update_system_performance(GlobalState * GLOBAL_STATE)
 
 static void show_ap_information(const char * error, GlobalState * GLOBAL_STATE)
 {
+    char ap_ssid[13];
+    generate_ssid(ap_ssid);
+    
     #ifdef DISPLAY_TTGO
-        char ap_ssid[13];
-        generate_ssid(ap_ssid);
         display_PortalScreen(ap_ssid);
     #endif
-    
+
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
         case DEVICE_ULTRA:
@@ -371,8 +372,8 @@ static void show_ap_information(const char * error, GlobalState * GLOBAL_STATE)
                     OLED_writeString(0, 0, error);
                 }
                 OLED_writeString(0, 1, "Configuration SSID:");
-                char ap_ssid[13];
-                generate_ssid(ap_ssid);
+                //char ap_ssid[13];
+                //generate_ssid(ap_ssid);
                 OLED_writeString(0, 2, ap_ssid);
             }
             break;
@@ -528,14 +529,16 @@ void SYSTEM_task(void * pvParameters)
 
     //At this point connection was done
     #ifdef DISPLAY_TTGO
+        wifi_mode_t wifi_mode;
+        esp_err_t result;
         while (!module->startup_done) {
             result = esp_wifi_get_mode(&wifi_mode);
             if (result == ESP_OK && (wifi_mode == WIFI_MODE_APSTA || wifi_mode == WIFI_MODE_AP) &&
                 strcmp(module->wifi_status, "Failed to connect") == 0) {
-                show_ap_information(NULL);
+                show_ap_information(NULL, GLOBAL_STATE);
                 vTaskDelay(5000 / portTICK_PERIOD_MS);
             } else {
-                _update_connection(module);
+                _update_connection(GLOBAL_STATE);
             }
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }

@@ -435,7 +435,7 @@ void display_updateHashrate(SystemModule * module, float power){
 void display_updateShares(SystemModule * module){
     char strData[20];
     
-    snprintf(strData, sizeof(strData), "%d/%d", module->shares_accepted, module->shares_rejected);
+    snprintf(strData, sizeof(strData), "%lld/%lld", module->shares_accepted, module->shares_rejected);
     lv_label_set_text(ui_lbShares, strData); // Update shares
 
     snprintf(strData, sizeof(strData), "%s", module->best_diff_string);
@@ -494,11 +494,12 @@ void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
     PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
 
-    snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp);
+    //snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp);
+    snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp_avg);
     lv_label_set_text(ui_lbTemp, strData); // Update label
     lv_label_set_text(ui_lblTempPrice, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", power_management->fan_speed);
+    snprintf(strData, sizeof(strData), "%d", power_management->fan_perc);
     lv_label_set_text(ui_lbRPM, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%.3fW", power_management->power);

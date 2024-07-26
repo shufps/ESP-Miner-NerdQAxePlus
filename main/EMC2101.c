@@ -12,7 +12,7 @@ bool EMC2101_init(bool invertPolarity)
 {
 
     // set the TACH input
-    esp_err_t ret = register_write_byte(EMC2101_REG_CONFIG, 0x04);
+    esp_err_t ret = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_REG_CONFIG, 0x04);
     if (ret != ESP_OK) {
         ESP_LOGE("EMC2101", "Failed to write 0x%02X to EMC2101 register 0x%02X, error: 0x%X", 0x04, EMC2101_REG_CONFIG, ret);
         return false;

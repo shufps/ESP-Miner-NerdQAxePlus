@@ -51,6 +51,8 @@ INCLUDE_DIRS
     "displays/images"
     "../components/bm1397/include"
     "../components/connect/include"
+    "../components/dns_server/include"
+    "../components/stratum/include"
     
     PRIV_REQUIRES
     "app_update"
@@ -62,10 +64,12 @@ INCLUDE_DIRS
     "esp_netif"
     "esp_timer"
     "esp_wifi"
+    "esp_lcd"
     "json"
     "nvs_flash"
     "spiffs"
     "vfs"
+    "lvgl"
 )
 
 

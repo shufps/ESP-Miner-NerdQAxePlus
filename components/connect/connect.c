@@ -46,6 +46,8 @@
 #define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WAPI_PSK
 #endif
 
+#define WIFI_MAXIMUM_RETRY 5
+
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
 
@@ -60,12 +62,18 @@ static void event_handler(void * arg, esp_event_base_t event_base, int32_t event
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
 
         // Wait a little
-        vTaskDelay(2500 / portTICK_PERIOD_MS);
-        esp_wifi_connect();
-        s_retry_num++;
-        ESP_LOGI(TAG, "Retrying WiFi connection...");
-        MINER_set_wifi_status(WIFI_RETRYING, s_retry_num);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
 
+        if (s_retry_num < WIFI_MAXIMUM_RETRY) {
+            esp_wifi_connect();
+            s_retry_num++;
+            ESP_LOGI(TAG, "Retrying WiFi connection...");
+            MINER_set_wifi_status(WIFI_RETRYING, s_retry_num);
+        } else {
+            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+            ESP_LOGI(TAG, "Could not connect to WiFi.");
+            MINER_set_wifi_status(WIFI_CONNECT_FAILED, 0);
+        }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t * event = (ip_event_got_ip_t *) event_data;
         ESP_LOGI(TAG, "Nerdaxe ip:" IPSTR, IP2STR(&event->ip_info.ip));
