@@ -201,6 +201,7 @@ static void lvglTimerTask(void* param)
             if(Button1Pressed_Flag) {
                 Button1Pressed_Flag = false;
                 last_keypress_time = esp_timer_get_time();
+                if(!DisplayIsOn) display_turn_on();
                 changeScreen();
             }
             vTaskDelay(200 / portTICK_PERIOD_MS); // Delay waiting animation trigger
@@ -500,7 +501,7 @@ void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     lv_label_set_text(ui_lbTemp, strData); // Update label
     lv_label_set_text(ui_lblTempPrice, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", power_management->fan_perc);
+    snprintf(strData, sizeof(strData), "%d", power_management->fan_rpm);
     lv_label_set_text(ui_lbRPM, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%.3fW", power_management->power);
