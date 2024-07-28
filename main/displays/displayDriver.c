@@ -10,6 +10,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "lv_conf.h"
+#include "APIs.h"
 #include "../adc.h"
 #include "esp_netif.h"
 #include "nvs_config.h"
@@ -487,6 +488,17 @@ void display_updateCurrentSettings(GlobalState * GLOBAL_STATE){
 
 }
 
+unsigned int BTCprice = 0;
+void display_updateBTCprice(void){
+    char price_str[32];
+
+    if ((screenStatus != SCREEN_BTCPRICE)&&(BTCprice != 0)) return;
+    
+    BTCprice = getBTCprice();
+    snprintf(price_str, sizeof(price_str), "%u$", BTCprice);
+    lv_label_set_text(ui_lblBTCPrice, price_str); // Update label
+}
+
 void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     char strData[20];
 
@@ -516,6 +528,7 @@ void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     display_updateTime(module);
     display_updateShares(module);
     display_updateHashrate(module, GLOBAL_STATE->POWER_MANAGEMENT_MODULE.power);
+    display_updateBTCprice();
 
     uint16_t vcore = ADC_get_vcore();
     snprintf(strData, sizeof(strData), "%umV", vcore);
