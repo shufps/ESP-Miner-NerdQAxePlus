@@ -364,10 +364,9 @@ int TPS53647_init(void)
         return -1;
     }
 
-    /* Make sure power is turned off until commanded */
-    u8_value = ON_OFF_CONFIG;
-    ESP_LOGI(TAG, "Power config-ON_OFF_CONFIG: %02x", u8_value);
-    smb_write_byte(PMBUS_ON_OFF_CONFIG, u8_value);
+    /* set ON_OFF config, make sure the buck is switched off */
+    smb_write_byte(PMBUS_ON_OFF_CONFIG, ON_OFF_CONFIG);
+    smb_write_byte(PMBUS_OPERATION, OPERATION_OFF);
 
     // Switch frequency, 500kHz
     smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20); // default value

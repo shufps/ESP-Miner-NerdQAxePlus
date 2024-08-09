@@ -9,6 +9,6 @@
 #define TMP1075_DEVICE_ID 0x0F        ///< Device ID register
 
 bool TMP1075_installed(int);
-uint8_t TMP1075_read_temperature(int);
+float TMP1075_read_temperature(int);
 
 #endif /* TMP1075_H_ */

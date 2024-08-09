@@ -1,4 +1,5 @@
 #include "EMC2101.h"
+#include "EMC2302.h"
 #include "INA260.h"
 #include "bm1397.h"
 #include "esp_log.h"
@@ -57,14 +58,16 @@ static double automatic_fan_speed(float chip_temp, GlobalState * GLOBAL_STATE)
         result = ((chip_temp - min_temp) / temp_range) * fan_range + min_fan_speed;
     }
 
+    float perc = (float) result / 100;
+    GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_perc = perc;
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
-        case DEVICE_NERDQAXE_PLUS:
-            float perc = (float) result / 100;
-            GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_perc = perc;
             EMC2101_set_fan_speed( perc );
+            break;
+        case DEVICE_NERDQAXE_PLUS:
+            EMC2302_set_fan_speed( perc );
             break;
         default:
     }
@@ -79,8 +82,21 @@ void POWER_MANAGEMENT_task(void * pvParameters)
 
     power_management->frequency_multiplier = 1;
 
-    power_management->HAS_POWER_EN = GLOBAL_STATE->board_version == 202 || GLOBAL_STATE->board_version == 203 || GLOBAL_STATE->board_version == 204;
-    power_management->HAS_PLUG_SENSE = GLOBAL_STATE->board_version == 204;
+    switch (GLOBAL_STATE->device_model) {
+        case DEVICE_MAX:
+        case DEVICE_ULTRA:
+        case DEVICE_SUPRA:
+            power_management->HAS_POWER_EN = GLOBAL_STATE->board_version == 202 || GLOBAL_STATE->board_version == 203 || GLOBAL_STATE->board_version == 204;
+            power_management->HAS_PLUG_SENSE = GLOBAL_STATE->board_version == 204;
+            break;
+        case DEVICE_NERDQAXE_PLUS:
+            // we have the port wired to the EN pin but we don't use it
+            // and enable per i2c
+            power_management->HAS_POWER_EN = false;
+            power_management->HAS_PLUG_SENSE = false;
+        break;
+        default:
+    }
 
     int last_frequency_increase = 0;
 
@@ -92,7 +108,6 @@ void POWER_MANAGEMENT_task(void * pvParameters)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
-        case DEVICE_NERDQAXE_PLUS:
             if (GLOBAL_STATE->board_version != 402) {
                 // Configure GPIO12 as input(barrel jack) 1 is plugged in
                 gpio_config_t barrel_jack_conf = {
@@ -111,6 +126,11 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     gpio_set_level(GPIO_NUM_10, 1);
                 }
 			}
+            break;
+        case DEVICE_NERDQAXE_PLUS:
+            // no barrel jack switch used
+	    // we have an EN but it is deactivated via i2c
+            // gpio_set_level(GPIO_NUM_10, 0);
             break;
         default:
     }
@@ -140,7 +160,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 power_management->voltage = TPS53647_get_vin() * 1000.0;
                 power_management->current = TPS53647_get_iout() * 1000.0;
                 power_management->power = TPS53647_get_pin() * 1000.0;
-                power_management->fan_rpm = EMC2101_get_fan_speed();
+                power_management->fan_rpm = EMC2302_get_fan_speed();
                 break;
             default:
         }
@@ -173,8 +193,6 @@ void POWER_MANAGEMENT_task(void * pvParameters)
             switch (GLOBAL_STATE->device_model) {
                 case DEVICE_ULTRA:
                 case DEVICE_SUPRA:
-                case DEVICE_NERDQAXE_PLUS:
-
                     if (GLOBAL_STATE->board_version == 402) {
                         power_management->chip_temp_avg = EMC2101_get_external_temp();
 						power_management->vr_temp = (float)TPS546_get_temperature();
@@ -207,7 +225,12 @@ void POWER_MANAGEMENT_task(void * pvParameters)
 					}
 
                     break;
-
+                case DEVICE_NERDQAXE_PLUS: // TODO nerdqaxe
+                    // 1st tmp1075 is measuring asic temps
+                    power_management->chip_temp_avg = TMP1075_read_temperature(0);
+                    // 2nd tmp1075 is on the back side below power stages and inductors
+                    power_management->vr_temp = TMP1075_read_temperature(1);
+                    break;
                 default:
             }
         }
@@ -217,16 +240,16 @@ void POWER_MANAGEMENT_task(void * pvParameters)
             power_management->fan_perc = (float)automatic_fan_speed(power_management->chip_temp_avg, GLOBAL_STATE);
 
         } else {
+            float fs = (float) nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100);
+            power_management->fan_perc = fs;
             switch (GLOBAL_STATE->device_model) {
                 case DEVICE_MAX:
                 case DEVICE_ULTRA:
                 case DEVICE_SUPRA:
-                case DEVICE_NERDQAXE_PLUS:
-
-                    float fs = (float) nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100);
-                    power_management->fan_perc = fs;
                     EMC2101_set_fan_speed((float) fs / 100);
-
+                    break;
+                case DEVICE_NERDQAXE_PLUS:
+                    EMC2302_set_fan_speed((float) fs / 100);
                     break;
                 default:
             }

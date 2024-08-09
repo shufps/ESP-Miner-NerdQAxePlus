@@ -4,6 +4,7 @@
 
 #include "i2c_master.h"
 #include "EMC2101.h"
+#include "EMC2302.h"
 #include "INA260.h"
 #include "TMP1075.h"
 #include "adc.h"
@@ -103,8 +104,10 @@ static void _init_system(GlobalState * GLOBAL_STATE)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
-        case DEVICE_NERDQAXE_PLUS:
             EMC2101_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
+            break;
+        case DEVICE_NERDQAXE_PLUS:
+            EMC2302_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
             break;
         default:
     }
