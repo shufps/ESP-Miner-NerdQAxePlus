@@ -39,6 +39,7 @@ static bool fan_sense_pass(GlobalState * GLOBAL_STATE)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
+        case DEVICE_NERDQAXE_PLUS:
             fan_speed = EMC2101_get_fan_speed();
             break;
         default:
@@ -94,6 +95,7 @@ void self_test(void * pvParameters)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
+        case DEVICE_NERDQAXE_PLUS:
             // turn ASIC on
             gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
             gpio_set_level(GPIO_NUM_10, 0);
@@ -112,6 +114,7 @@ void self_test(void * pvParameters)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
+        case DEVICE_NERDQAXE_PLUS:
             EMC2101_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
             EMC2101_set_fan_speed(1);
             break;
@@ -147,6 +150,8 @@ void self_test(void * pvParameters)
                     display_log_message("Test result: ERROR > DS4432U:FAIL");
                 }
             }
+            break;
+        case DEVICE_NERDQAXE_PLUS:
             break;
         default:
     }
@@ -257,7 +262,7 @@ void self_test(void * pvParameters)
         display_msg("FAN:       WARN", GLOBAL_STATE);
         display_log_message("Test result: OK PASS > Warning fan");
     }
-    
+
 
     display_msg("           PASS", GLOBAL_STATE);
     display_log_message("Test result: OK PASS");

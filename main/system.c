@@ -10,9 +10,7 @@
 #include "connect.h"
 #include "led_controller.h"
 #include "nvs_config.h"
-#include "oled.h"
 #include "vcore.h"
-#include "displays/displayDriver.h"
 
 #include "driver/gpio.h"
 #include "esp_app_desc.h"
@@ -36,6 +34,14 @@
 //Comment to use standard OLED
 //#define DISPLAY_OLED
 #define DISPLAY_TTGO
+
+#ifdef DISPLAY_OLED
+#include "oled.h"
+#endif
+
+#ifdef DISPLAY_TTGO
+#include "displays/displayDriver.h"
+#endif
 
 static const char * TAG = "SystemModule";
 
@@ -63,7 +69,7 @@ static void _init_system(GlobalState * GLOBAL_STATE)
     module->lastClockSync = 0;
     module->FOUND_BLOCK = false;
     module->startup_done = false;
-    
+
     // set the pool url
     module->pool_url = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
 
@@ -97,17 +103,19 @@ static void _init_system(GlobalState * GLOBAL_STATE)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
+        case DEVICE_NERDQAXE_PLUS:
             EMC2101_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
             break;
         default:
     }
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
-    
+
     #ifdef DISPLAY_TTGO
         //Display TTGO-TdisplayS3
         display_init();
-    #else
+    #endif
+    #ifdef DISPLAY_OLED
         switch (GLOBAL_STATE->device_model) {
             case DEVICE_MAX:
             case DEVICE_ULTRA:
@@ -126,7 +134,7 @@ static void _init_system(GlobalState * GLOBAL_STATE)
     #endif
     netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 }
-
+#ifdef DISPLAY_OLED
 static void _update_hashrate(GlobalState * GLOBAL_STATE)
 {
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
@@ -290,7 +298,7 @@ static void _init_connection(GlobalState * GLOBAL_STATE)
             break;
         default:
     }
-    
+
 }
 
 static void _update_connection(GlobalState * GLOBAL_STATE)
@@ -306,7 +314,7 @@ static void _update_connection(GlobalState * GLOBAL_STATE)
                 strncpy(module->oled_buf, module->ssid, sizeof(module->oled_buf));
                 module->oled_buf[sizeof(module->oled_buf) - 1] = 0;
                 OLED_writeString(0, 1, module->oled_buf);
-                
+
                 memset(module->oled_buf, 0, 20);
                 snprintf(module->oled_buf, 20, "Configuration SSID:");
                 OLED_writeString(0, 2, module->oled_buf);
@@ -320,7 +328,6 @@ static void _update_connection(GlobalState * GLOBAL_STATE)
             break;
         default:
     }
-    display_UpdateWifiStatus(module->wifi_status);
 }
 
 static void _update_system_performance(GlobalState * GLOBAL_STATE)
@@ -357,10 +364,6 @@ static void show_ap_information(const char * error, GlobalState * GLOBAL_STATE)
 {
     char ap_ssid[13];
     generate_ssid(ap_ssid);
-    
-    #ifdef DISPLAY_TTGO
-        display_PortalScreen(ap_ssid);
-    #endif
 
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
@@ -379,9 +382,57 @@ static void show_ap_information(const char * error, GlobalState * GLOBAL_STATE)
             break;
         default:
     }
-   
-
 }
+#endif
+
+#ifdef DISPLAY_TTGO
+//Display TTGO-TdisplayS3
+static void _update_hashrate(GlobalState * GLOBAL_STATE)
+{
+}
+
+static void _update_shares(GlobalState * GLOBAL_STATE)
+{
+}
+
+static void _update_best_diff(GlobalState * GLOBAL_STATE)
+{
+}
+
+static void _clear_display(GlobalState * GLOBAL_STATE)
+{
+}
+
+static void _update_system_info(GlobalState * GLOBAL_STATE)
+{
+}
+
+static void _update_esp32_info(GlobalState * GLOBAL_STATE)
+{
+}
+
+static void _init_connection(GlobalState * GLOBAL_STATE)
+{
+}
+
+static void _update_connection(GlobalState * GLOBAL_STATE)
+{
+    SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
+    display_UpdateWifiStatus(module->wifi_status);
+}
+
+static void _update_system_performance(GlobalState * GLOBAL_STATE)
+{
+}
+
+static void show_ap_information(const char * error, GlobalState * GLOBAL_STATE)
+{
+    char ap_ssid[13];
+    generate_ssid(ap_ssid);
+    display_PortalScreen(ap_ssid);
+}
+#endif
+
 
 static double _calculate_network_difficulty(uint32_t nBits)
 {
@@ -519,13 +570,17 @@ void SYSTEM_task(void * pvParameters)
     ESP_LOGI(TAG, "SYSTEM_task started");
 
     while (GLOBAL_STATE->ASIC_functions.init_fn == NULL) {
+#ifdef DISPLAY_OLED
         show_ap_information("ASIC MODEL INVALID", GLOBAL_STATE);
+#endif
+#ifdef DISPLAY_TTGO
         display_log_message("ERROR > ASIC MODEL INVALID");
+#endif
         vTaskDelay(5000 / portTICK_PERIOD_MS);
 
     }
 
-    
+
 
     //At this point connection was done
     #ifdef DISPLAY_TTGO
@@ -559,13 +614,13 @@ void SYSTEM_task(void * pvParameters)
 
     uint8_t countCycle = 10;
     while (1) {
-        
+
         #ifdef DISPLAY_TTGO
-        
+
             //Display TTGO-TDISPLAYS3
 
             //display_updateTime(&GLOBAL_STATE->SYSTEM_MODULE);
-            
+
             display_updateGlobalState(GLOBAL_STATE);
             display_RefreshScreen();
 
@@ -600,12 +655,12 @@ void SYSTEM_task(void * pvParameters)
                         break;
                     } else if (strcmp(input_event, "LONG") == 0) {
                         ESP_LOGI(TAG, "Long button press detected, toggling WiFi SoftAP");
-                        toggle_wifi_softap(); // Toggle AP 
+                        toggle_wifi_softap(); // Toggle AP
                     }
                 }
             }
         }
-        
+
         #endif
     }
 }

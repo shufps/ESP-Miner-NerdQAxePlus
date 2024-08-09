@@ -11,6 +11,7 @@
 #include "serial.h"
 #include "TMP1075.h"
 #include "TPS546.h"
+#include "TPS53647.h"
 #include "vcore.h"
 #include <string.h>
 
@@ -60,6 +61,7 @@ static double automatic_fan_speed(float chip_temp, GlobalState * GLOBAL_STATE)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
+        case DEVICE_NERDQAXE_PLUS:
             float perc = (float) result / 100;
             GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_perc = perc;
             EMC2101_set_fan_speed( perc );
@@ -90,7 +92,8 @@ void POWER_MANAGEMENT_task(void * pvParameters)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
-			if (GLOBAL_STATE->board_version != 402) {
+        case DEVICE_NERDQAXE_PLUS:
+            if (GLOBAL_STATE->board_version != 402) {
                 // Configure GPIO12 as input(barrel jack) 1 is plugged in
                 gpio_config_t barrel_jack_conf = {
                     .pin_bit_mask = (1ULL << GPIO_NUM_12),
@@ -120,19 +123,24 @@ void POWER_MANAGEMENT_task(void * pvParameters)
             case DEVICE_MAX:
             case DEVICE_ULTRA:
             case DEVICE_SUPRA:
-				if (GLOBAL_STATE->board_version == 402) {
+                if (GLOBAL_STATE->board_version == 402) {
                     power_management->voltage = TPS546_get_vin() * 1000;
                     power_management->current = TPS546_get_iout() * 1000;
                     // calculate regulator power (in milliwatts)
                     power_management->power = (TPS546_get_vout() * power_management->current) / 1000;
-				} else if (INA260_installed() == true) {
+                } else if (INA260_installed() == true) {
                     power_management->voltage = INA260_read_voltage();
                     power_management->current = INA260_read_current();
                     power_management->power = INA260_read_power() / 1000;
-				}
-            
+                }
+
                 power_management->fan_rpm = EMC2101_get_fan_speed();
-            
+                break;
+            case DEVICE_NERDQAXE_PLUS:
+                power_management->voltage = TPS53647_get_vin() * 1000.0;
+                power_management->current = TPS53647_get_iout() * 1000.0;
+                power_management->power = TPS53647_get_pin() * 1000.0;
+                power_management->fan_rpm = EMC2101_get_fan_speed();
                 break;
             default:
         }
@@ -141,8 +149,6 @@ void POWER_MANAGEMENT_task(void * pvParameters)
 
             switch (GLOBAL_STATE->device_model) {
                 case DEVICE_MAX:
-                case DEVICE_ULTRA:
-                case DEVICE_SUPRA:
                     power_management->chip_temp_avg = EMC2101_get_external_temp();
 
                     if ((power_management->chip_temp_avg > THROTTLE_TEMP) &&
@@ -165,17 +171,17 @@ void POWER_MANAGEMENT_task(void * pvParameters)
             }
         } else if (GLOBAL_STATE->asic_model == ASIC_BM1366 || GLOBAL_STATE->asic_model == ASIC_BM1368) {
             switch (GLOBAL_STATE->device_model) {
-                case DEVICE_MAX:
                 case DEVICE_ULTRA:
                 case DEVICE_SUPRA:
-                    
-					if (GLOBAL_STATE->board_version == 402) {
+                case DEVICE_NERDQAXE_PLUS:
+
+                    if (GLOBAL_STATE->board_version == 402) {
                         power_management->chip_temp_avg = EMC2101_get_external_temp();
 						power_management->vr_temp = (float)TPS546_get_temperature();
-					} else {
+                    } else {
                         power_management->chip_temp_avg = EMC2101_get_internal_temp() + 5;
     					power_management->vr_temp = 0.0;
-					}
+                    }
 
                     // EMC2101 will give bad readings if the ASIC is turned off
                     if(power_management->voltage < TPS546_INIT_VOUT_MIN){
@@ -215,6 +221,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 case DEVICE_MAX:
                 case DEVICE_ULTRA:
                 case DEVICE_SUPRA:
+                case DEVICE_NERDQAXE_PLUS:
 
                     float fs = (float) nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100);
                     power_management->fan_perc = fs;

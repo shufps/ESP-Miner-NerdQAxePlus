@@ -13,6 +13,7 @@ SRCS
     "system.c"
     "TMP1075.c"
     "TPS546.c"
+    "TPS53647.c"
     "vcore.c"
     "work_queue.c"
     "./http_server/http_server.c"
@@ -54,7 +55,7 @@ INCLUDE_DIRS
     "../components/connect/include"
     "../components/dns_server/include"
     "../components/stratum/include"
-    
+
     PRIV_REQUIRES
     "app_update"
     "driver"
