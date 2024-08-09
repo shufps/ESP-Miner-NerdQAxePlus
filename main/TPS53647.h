@@ -32,6 +32,8 @@
 #define TPS53647_INIT_VOUT_MIN 1.0
 #define TPS53647_INIT_VOUT_MAX 1.4
 
+#define TPS43647_INIT_IMAX 60 /* A (int) */
+
   /* iout current */
 #define TPS53647_INIT_IOUT_OC_WARN_LIMIT  45.00 /* A */
 #define TPS53647_INIT_IOUT_OC_FAULT_LIMIT 55.00 /* A */

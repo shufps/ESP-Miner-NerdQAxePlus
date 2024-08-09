@@ -24,10 +24,6 @@
 
 static const char *TAG = "TPS53647.c";
 
-static uint8_t MFR_ID[] = {'B', 'A', 'X'};
-static uint8_t MFR_MODEL[] = {'H', 'E', 'X'};
-static uint8_t MFR_REVISION[] = {0x00, 0x00, 0x01};
-
 /**
  * @brief SMBus read byte
  */
@@ -353,7 +349,6 @@ static uint16_t float_2_slinear11(float value)
 int TPS53647_init(void)
 {
     uint8_t u8_value;
-    uint8_t read_mfr_revision[4];
 
     ESP_LOGI(TAG, "Initializing the core voltage regulator");
 
@@ -374,17 +369,52 @@ int TPS53647_init(void)
     ESP_LOGI(TAG, "Power config-ON_OFF_CONFIG: %02x", u8_value);
     smb_write_byte(PMBUS_ON_OFF_CONFIG, u8_value);
 
-    /* Read version number and see if it matches */
-    TPS53647_read_mfr_info(read_mfr_revision);
-    if (memcmp(read_mfr_revision, MFR_REVISION, 3) != 0) {
-        uint8_t voutmode;
-        // If it doesn't match, then write all the registers and set new version number
-        ESP_LOGI(TAG, "--------------------------------");
-        ESP_LOGI(TAG, "Config version mismatch, writing new config values");
-        smb_read_byte(PMBUS_VOUT_MODE, &voutmode);
-        ESP_LOGI(TAG, "VOUT_MODE: %02x", voutmode);
-        TPS53647_write_entire_config();
-    }
+    // Switch frequency, 500kHz
+    smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20); // default value
+
+    // set maximum current
+    // with 100k on the IMON pin  the device should report the correct current
+    // via PMBUS_READ_IOUT
+    smb_write_byte(PMBUS_MFR_SPECIFIC_10, TPS43647_INIT_IMAX);
+
+    // operation mode
+    // VR12 Mode
+    // Enable dynamic phase shedding
+    // Slew Rate 0.68mV/us
+    smb_write_byte(PMBUS_MFR_SPECIFIC_13, 0x89); // default value
+
+    // 2 phase operation
+    smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
+
+    ESP_LOGI(TAG, "---Writing new config values to TPS53647---");
+    /* set up the ON_OFF_CONFIG */
+    ESP_LOGI(TAG, "Setting ON_OFF_CONFIG");
+    smb_write_byte(PMBUS_ON_OFF_CONFIG, TPS53647_INIT_ON_OFF_CONFIG);
+
+    /* Switch frequency, 500kHz */
+    ESP_LOGI(TAG, "Setting FREQUENCY");
+    smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20);
+
+    // 2 phase operation
+    smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
+
+    /* vout voltage */
+    smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_COMMAND));
+    smb_write_word(PMBUS_VOUT_MAX, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MAX));
+    smb_write_word(PMBUS_VOUT_MARGIN_HIGH, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MARGIN_HIGH));
+    smb_write_word(PMBUS_VOUT_MARGIN_LOW, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MARGIN_LOW));
+
+    /* iout current */
+    ESP_LOGI(TAG, "Setting IOUT");
+    smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_WARN_LIMIT));
+    smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_FAULT_LIMIT));
+    smb_write_byte(PMBUS_IOUT_OC_FAULT_RESPONSE, TPS53647_INIT_IOUT_OC_FAULT_RESPONSE);
+
+    /* temperature */
+    ESP_LOGI(TAG, "Setting TEMPERATURE");
+    smb_write_word(PMBUS_OT_WARN_LIMIT, int_2_slinear11(TPS53647_INIT_OT_WARN_LIMIT));
+    smb_write_word(PMBUS_OT_FAULT_LIMIT, int_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
+    smb_write_byte(PMBUS_OT_FAULT_RESPONSE, TPS53647_INIT_OT_FAULT_RESPONSE);
 
     /* Show temperature */
     ESP_LOGI(TAG, "--------------------------------");
@@ -402,88 +432,6 @@ int TPS53647_init(void)
     TPS53647_get_vout();
 
     return 0;
-}
-
-/* Read the manufacturer model and revision */
-void TPS53647_read_mfr_info(uint8_t *read_mfr_revision)
-{
-    uint8_t read_mfr_id[4];
-    uint8_t read_mfr_model[4];
-
-    ESP_LOGI(TAG, "Reading MFR info");
-    smb_read_block(PMBUS_MFR_ID, read_mfr_id, 3);
-    read_mfr_id[3] = 0x00;
-    smb_read_block(PMBUS_MFR_MODEL, read_mfr_model, 3);
-    read_mfr_model[3] = 0x00;
-    smb_read_block(PMBUS_MFR_REVISION, read_mfr_revision, 3);
-
-    ESP_LOGI(TAG, "MFR_ID: %s", read_mfr_id);
-    ESP_LOGI(TAG, "MFR_MODEL: %s", read_mfr_model);
-    ESP_LOGI(TAG, "MFR_REVISION: %d%d%d ", read_mfr_revision[0],
-        read_mfr_revision[1], read_mfr_revision[2]);
-}
-
-/* Write the manufacturer ID and revision to NVM */
-void TPS53647_set_mfr_info(void)
-{
-    ESP_LOGI(TAG, "Setting MFR info");
-	smb_write_block(PMBUS_MFR_ID, MFR_ID, 3);
-	smb_write_block(PMBUS_MFR_MODEL, MFR_MODEL, 3);
-	smb_write_block(PMBUS_MFR_REVISION, MFR_REVISION, 3);
-}
-
-/* Set all the relevant config registers for normal operation */
-void TPS53647_write_entire_config(void)
-{
-    ESP_LOGI(TAG, "---Writing new config values to TPS53647---");
-    /* set up the ON_OFF_CONFIG */
-    ESP_LOGI(TAG, "Setting ON_OFF_CONFIG");
-    smb_write_byte(PMBUS_ON_OFF_CONFIG, TPS53647_INIT_ON_OFF_CONFIG);
-
-    /* Switch frequency, 500kHz */
-    ESP_LOGI(TAG, "Setting FREQUENCY");
-    smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20);
-
-    // 2 phase operation
-    smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
-
-
-    /* vout voltage */
-    ESP_LOGI(TAG, "VOUT_COMMAND");
-    smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_COMMAND));
-    ESP_LOGI(TAG, "VOUT_MAX");
-    smb_write_word(PMBUS_VOUT_MAX, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MAX));
-    ESP_LOGI(TAG, "VOUT_MARGIN_HIGH");
-    smb_write_word(PMBUS_VOUT_MARGIN_HIGH, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MARGIN_HIGH));
-    ESP_LOGI(TAG, "VOUT_MARGIN_LOW");
-    smb_write_word(PMBUS_VOUT_MARGIN_LOW, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MARGIN_LOW));
-
-    /* iout current */
-    ESP_LOGI(TAG, "Setting IOUT");
-    smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_WARN_LIMIT));
-    smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_FAULT_LIMIT));
-    smb_write_byte(PMBUS_IOUT_OC_FAULT_RESPONSE, TPS53647_INIT_IOUT_OC_FAULT_RESPONSE);
-
-    /* temperature */
-    ESP_LOGI(TAG, "Setting TEMPERATURE");
-    ESP_LOGI(TAG, "OT_WARN_LIMIT");
-    smb_write_word(PMBUS_OT_WARN_LIMIT, int_2_slinear11(TPS53647_INIT_OT_WARN_LIMIT));
-    ESP_LOGI(TAG, "OT_FAULT_LIMIT");
-    smb_write_word(PMBUS_OT_FAULT_LIMIT, int_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
-    ESP_LOGI(TAG, "OT_FAULT_RESPONSE");
-    smb_write_byte(PMBUS_OT_FAULT_RESPONSE, TPS53647_INIT_OT_FAULT_RESPONSE);
-
-    /* Compensation config */
-    //ESP_LOGI(TAG, "COMPENSATION");
-    //smb_write_block(PMBUS_COMPENSATION_CONFIG, COMPENSATION_CONFIG, 5);
-
-    /* TODO write new MFR_REVISION number to reflect these parameters */
-    ESP_LOGI(TAG, "Writing MFR ID");
-    smb_write_block(PMBUS_MFR_ID, MFR_ID, 3);
-    ESP_LOGI(TAG, "Writing MFR MODEL");
-    smb_write_block(PMBUS_MFR_ID, MFR_MODEL, 3);
-    ESP_LOGI(TAG, "Writing MFR REVISION");
-    smb_write_block(PMBUS_MFR_ID, MFR_REVISION, 3);
 }
 
 int TPS53647_get_temperature(void)
