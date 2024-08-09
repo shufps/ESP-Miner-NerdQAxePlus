@@ -428,7 +428,7 @@ int TPS53647_init(void)
     TPS53647_get_vin();
     /* Get output current (SLINEAR11) */
     TPS53647_get_iout();
-    /* Get voltage output (ULINEAR16) */
+    /* Get voltage output (VID) */
     TPS53647_get_vout();
 
     return 0;
@@ -478,7 +478,7 @@ float TPS53647_get_vin(void)
     uint16_t u16_value;
     float vin;
 
-    /* Get voltage input (ULINEAR16) */
+    /* Get voltage input (SLINEAR11) */
     smb_read_word(PMBUS_READ_VIN, &u16_value);
     vin = slinear11_2_float(u16_value);
 #ifdef _DEBUG_LOG_
