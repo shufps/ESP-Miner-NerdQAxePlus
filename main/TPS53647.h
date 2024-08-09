@@ -33,8 +33,8 @@
 #define TPS53647_INIT_VOUT_MAX 1.4
 
   /* iout current */
-#define TPS53647_INIT_IOUT_OC_WARN_LIMIT  25.00 /* A */
-#define TPS53647_INIT_IOUT_OC_FAULT_LIMIT 30.00 /* A */
+#define TPS53647_INIT_IOUT_OC_WARN_LIMIT  45.00 /* A */
+#define TPS53647_INIT_IOUT_OC_FAULT_LIMIT 55.00 /* A */
 #define TPS53647_INIT_IOUT_OC_FAULT_RESPONSE 0xC0  /* shut down, no retries */
 
   /* temperature */
