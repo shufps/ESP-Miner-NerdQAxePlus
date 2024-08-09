@@ -556,7 +556,12 @@ void TPS53647_set_vout(float volts)
         return;
     }
 
+    /* set output voltage */
     smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(volts));
+
+    /* turn on output */
+    smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
+
     ESP_LOGI(TAG, "Vout changed to %1.2f V", volts);
 }
 
