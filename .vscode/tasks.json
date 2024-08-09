@@ -4,7 +4,7 @@
         {
             "label": "Build - Build project with Docker",
             "type": "shell",
-            "command": "docker run --rm -it -v \"${workspaceFolder}/..\":/project esp-idf-builder /bin/bash -c 'idf.py build'",
+            "command": "docker run --rm -it -v \"${workspaceFolder}\":/project esp-idf-builder /bin/bash -c 'idf.py build'",
             "options": {
                 "env": {
                     "PATH": "${env:PATH}"
@@ -44,7 +44,7 @@
                 "isDefault": true
             },
             "windows": {
-                "command": "docker run --rm -it -v \"${workspaceFolder}\\..\":/project esp-idf-builder /bin/bash -c 'idf.py build'",
+                "command": "docker run --rm -it -v \"${workspaceFolder}\":/project esp-idf-builder /bin/bash -c 'idf.py build'",
                 "options": {
                     "env": {
                         "PATH": "${env:PATH}"
