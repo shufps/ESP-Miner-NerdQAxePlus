@@ -1,5 +1,7 @@
 #pragma once
 
+#include "i2c_master.h"
+
 #define EMC2302_ADDR 0x12 // todo
 
 #define EMC2302_CONFIG 0x20
