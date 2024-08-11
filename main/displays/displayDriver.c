@@ -23,7 +23,7 @@
 #include "ui_helpers.h"
 
 static const char *TAG = "TDisplayS3";
-static bool animations_enabled = false; 
+static bool animations_enabled = false;
 static bool Button1Pressed_Flag = false;
 static bool Button2Pressed_Flag = false;
 static int64_t last_keypress_time = 0;
@@ -112,7 +112,7 @@ void display_hide_countdown(void) {
 void checkAutoTurnOffScreen(void) {
 
     if (DisplayIsOn == false) return;
-    
+
     int64_t current_time = esp_timer_get_time();
 
     // Verificar si han pasado más de 2 minutos (120000000 microsegundos) desde la última pulsación de tecla
@@ -148,28 +148,28 @@ static void increase_lvgl_tick()
 }
 
 // Refresh screen values (for manual operations)
-void display_RefreshScreen() { 
+void display_RefreshScreen() {
     lv_timer_handler(); // Maneja las tareas pendientes de LVGL
     increase_lvgl_tick(); // Incrementa el tick según el periodo que definías antes
 }
 
 void changeScreen(void){ // * arg) {
-    
-    if(screenStatus == SCREEN_MINING) {  
+
+    if(screenStatus == SCREEN_MINING) {
         enable_lvgl_animations(true); //AutoStops after loading the screen
         _ui_screen_change(ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         screenStatus = SCREEN_SETTINGS; // Actualiza la pantalla actual
         ESP_LOGI("UI", "NewScreen Settings displayed");
-    } else if(screenStatus == SCREEN_SETTINGS) { 
+    } else if(screenStatus == SCREEN_SETTINGS) {
         enable_lvgl_animations(true); //AutoStops after loading the screen
         _ui_screen_change(ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         screenStatus = SCREEN_BTCPRICE; // Actualiza la pantalla actual
-        ESP_LOGI("UI", "NewScreen Mining displayed");       
+        ESP_LOGI("UI", "NewScreen Mining displayed");
     }else if(screenStatus == SCREEN_BTCPRICE){
         enable_lvgl_animations(true); //AutoStops after loading the screen
         _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
         screenStatus = SCREEN_MINING; // Actualiza la pantalla actual
-        ESP_LOGI("UI", "NewScreen BTCprice displayed");  
+        ESP_LOGI("UI", "NewScreen BTCprice displayed");
     }
 
 }
@@ -179,14 +179,14 @@ static void lvglTimerTask(void* param)
     int64_t myLastTime = esp_timer_get_time();
     uint8_t autoOffEnabled = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0);
     //int64_t current_time = esp_timer_get_time();
-    
+
     //Check if screen is changing to avoid problems during change
     //if ((current_time - last_screen_change_time) < 1500000) return; // 1500000 microsegundos = 1500 ms = 1.5s - No cambies pantalla
     //last_screen_change_time = current_time;
-    
+
     int32_t elapsed_Ani_cycles = 0;
 	while(1) {
-        
+
         //Enabled when change screen animation is activated
         if(animations_enabled) {
             increase_lvgl_tick();
@@ -213,7 +213,7 @@ static void lvglTimerTask(void* param)
             if(DisplayIsOn) display_turn_off();
             else display_turn_on();
         }
-        
+
         //Check if screen need to be turned off
         if (autoOffEnabled) checkAutoTurnOffScreen();
 
@@ -223,17 +223,17 @@ static void lvglTimerTask(void* param)
         int32_t elapsed = (esp_timer_get_time() - myLastTime) / 1000;
         switch(screenStatus){
             case STATE_ONINIT: //First splash Screen
-                                if(elapsed > 3000) { 
+                                if(elapsed > 3000) {
                                     ESP_LOGI(TAG, "Changing Screen to SPLASH2");
-                                    if (ui_Splash2 == NULL) ui_Splash2_screen_init();  
-                                    enable_lvgl_animations(true);                                
+                                    if (ui_Splash2 == NULL) ui_Splash2_screen_init();
+                                    enable_lvgl_animations(true);
                                     _ui_screen_change(ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
                                     screenStatus = STATE_SPLASH1;
                                     myLastTime = esp_timer_get_time();
                                }
                                break;
             case STATE_SPLASH1: //Second splash screen
-                                if(elapsed > 3000) { 
+                                if(elapsed > 3000) {
                                     //Init done, wait until on portal or mining is shown
                                     screenStatus = STATE_INIT_OK;
                                     ESP_LOGI(TAG, "Changing Screen to WAIT SELECTION");
@@ -429,7 +429,7 @@ void display_updateHashrate(SystemModule * module, float power){
 
     snprintf(strData, sizeof(strData), "%.1f", efficiency);
     lv_label_set_text(ui_lbEficiency, strData); // Update eficiency label
-    
+
     snprintf(strData, sizeof(strData), "%.3fW", power);
     lv_label_set_text(ui_lbPower, strData); // Actualiza el label
 
@@ -437,7 +437,7 @@ void display_updateHashrate(SystemModule * module, float power){
 
 void display_updateShares(SystemModule * module){
     char strData[20];
-    
+
     snprintf(strData, sizeof(strData), "%lld/%lld", module->shares_accepted, module->shares_rejected);
     lv_label_set_text(ui_lbShares, strData); // Update shares
 
@@ -449,7 +449,7 @@ void display_updateShares(SystemModule * module){
 void display_updateTime(SystemModule * module){
     char strData[20];
 
-    // Calculate the uptime in seconds                     
+    // Calculate the uptime in seconds
     //int64_t currentTimeTest = esp_timer_get_time() + (8 * 3600 * 1000000LL) + (1800 * 1000000LL);//(8 * 60 * 60 * 10000);
     double uptime_in_seconds = (esp_timer_get_time() - module->start_time) / 1000000;
     int uptime_in_days = uptime_in_seconds / (3600 * 24);
@@ -472,9 +472,9 @@ void display_updateCurrentSettings(GlobalState * GLOBAL_STATE){
 
     snprintf(strData, sizeof(strData), "%d", GLOBAL_STATE->SYSTEM_MODULE.pool_port);
     lv_label_set_text(ui_lbPortSet, strData); // Update label
-    
-    snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY)); 
-    lv_label_set_text(ui_lbFreqSet, strData); // Update label 
+
+    snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
+    lv_label_set_text(ui_lbFreqSet, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
     lv_label_set_text(ui_lbVcoreSet, strData); // Update label
@@ -493,7 +493,7 @@ void display_updateBTCprice(void){
     char price_str[32];
 
     if ((screenStatus != SCREEN_BTCPRICE)&&(BTCprice != 0)) return;
-    
+
     BTCprice = getBTCprice();
     snprintf(price_str, sizeof(price_str), "%u$", BTCprice);
     lv_label_set_text(ui_lblBTCPrice, price_str); // Update label
@@ -504,7 +504,7 @@ void display_updateGlobalState(GlobalState * GLOBAL_STATE){
 
     if(ui_MiningScreen == NULL)  return;
     if(ui_SettingsScreen == NULL)  return;
-    
+
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
     PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
 
@@ -575,7 +575,7 @@ void display_UpdateWifiStatus(const char *message)
     if(ui_lbConnect != NULL)
         lv_label_set_text(ui_lbConnect, message); // Actualiza el label
     display_RefreshScreen();
-    
+
 }
 
 // ISR Handler para el DownButton (Change Screen)
@@ -621,7 +621,7 @@ void display_init(void)
 
     ui_init();
     //manual_lvgl_update();
-    
+
     //startUpdateScreenTask(); //Start screen update task
     main_creatSysteTasks();
 
