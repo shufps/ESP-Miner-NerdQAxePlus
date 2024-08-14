@@ -21,15 +21,17 @@
 // 2: device ignores enable pin
 #define ON_OFF_CONFIG 0b00011011
 
-#define HW_MIN_VOLTAGE 0.50 // hardware limit 0.5V in x100 FP format
+//#define ON_OFF_CONFIG 0x08
+
+#define HW_MIN_VOLTAGE 0.25
 
 #define TPS53647_INIT_ON_OFF_CONFIG ON_OFF_CONFIG
-#define TPS53647_INIT_VOUT_COMMAND 1.165
+#define TPS53647_INIT_VOUT_COMMAND 0.75 //1.165
 #define TPS53647_INIT_VOUT_MAX 1.4
 #define TPS53647_INIT_VOUT_MARGIN_HIGH 1.1 /* %/100 above VOUT */
 #define TPS53647_INIT_VOUT_MARGIN_LOW 0.90 /* %/100 below VOUT */
 
-#define TPS53647_INIT_VOUT_MIN 1.0
+#define TPS53647_INIT_VOUT_MIN 0.25 //1.0
 #define TPS53647_INIT_VOUT_MAX 1.4
 
 #define TPS43647_INIT_IMAX 60 /* A (int) */

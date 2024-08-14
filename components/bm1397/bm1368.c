@@ -293,6 +293,7 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
             break;
         }
     }
+    chip_counter = 4;
     ESP_LOGI(TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
 
     //enable and set version rolling mask to 0xFFFF (again)
@@ -313,7 +314,7 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
     // _send_simple(init7, 7);
 
     // split the chip address space evenly
-    uint8_t address_interval = (uint8_t) (256 / chip_counter);
+    uint8_t address_interval = 2 /*(uint8_t) (256 / chip_counter)*/;
     for (uint8_t i = 0; i < chip_counter; i++) {
         _set_chip_address(i * address_interval);
         // unsigned char init8[7] = {0x55, 0xAA, 0x40, 0x05, 0x00, 0x00, 0x1C};

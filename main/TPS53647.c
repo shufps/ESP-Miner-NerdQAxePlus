@@ -67,6 +67,22 @@ static esp_err_t smb_write_byte(uint8_t command, uint8_t data)
     return err;
 }
 
+static esp_err_t smb_write_command(uint8_t command)
+{
+    esp_err_t err = ESP_FAIL;
+
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, TPS53647_I2CADDR << 1 | WRITE_BIT, ACK_CHECK);
+    i2c_master_write_byte(cmd, command, ACK_CHECK);
+    i2c_master_stop(cmd);
+    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
+    i2c_cmd_link_delete(cmd);
+
+    // TODO return an actual error status
+    return err;
+}
+
 /**
  * @brief SMBus read word
  */
@@ -173,12 +189,7 @@ uint8_t volt_to_vid(float volts) {
         return 0x00;
     }
 
-    // get rounded fixed point
-    int volts_fp = (int) (volts * 100.0f + 0.5f);
-    int hw_min_volts_fp = (int) (HW_MIN_VOLTAGE * 100.0f + 0.5f);
-
-    // Each step corresponds to 0.5V (i.e., 5 in the fixed-point representation)
-    int register_value = (uint8_t)((volts_fp - hw_min_volts_fp) / 5) + 0x01;
+    int register_value = (int) ((volts - HW_MIN_VOLTAGE) / 0.005f) + 1;
 
     // Ensure the register value is within the valid range (0x01 to 0xFF)
     if (register_value > 0xFF) {
@@ -186,6 +197,7 @@ uint8_t volt_to_vid(float volts) {
         ESP_LOGI(TAG, "ERR - vout register value out of range %d", register_value);
         return 0;
     }
+    ESP_LOGI(TAG, "volt_to_vid: %.3f -> 0x%04x", volts, register_value);
     return register_value;
 }
 
@@ -194,19 +206,8 @@ float vid_to_volt(uint8_t register_value) {
         return 0.0f;
     }
 
-    // Subtract the 0x01 offset
-    int step = register_value - 0x01;
-
-    // Each step corresponds to 0.005V (i.e., 5 in the fixed-point representation)
-    int volts_fp = step * 5;
-
-    // Add the hardware minimum voltage fixed-point value
-    int hw_min_volts_fp = (int) (HW_MIN_VOLTAGE * 100.0f + 0.5f);
-    volts_fp += hw_min_volts_fp;
-
-    // Convert back to float
-    float volts = volts_fp / 100.0f;
-
+    float volts = (register_value-1) * 0.005 + HW_MIN_VOLTAGE;
+    ESP_LOGI(TAG, "vid_to_volt: 0x%04x -> %.3f", register_value, volts);
     return volts;
 }
 
@@ -342,6 +343,30 @@ static uint16_t float_2_slinear11(float value)
     return result;
 }
 
+void TPS53647_status() {
+    uint8_t u8;
+    uint16_t u16;
+
+    smb_read_byte(PMBUS_STATUS_BYTE, &u8);
+    ESP_LOGI(TAG, "status byte: 0x%02x", u8);
+
+    smb_read_word(PMBUS_STATUS_WORD, &u16);
+    ESP_LOGI(TAG, "status word: 0x%04x", u16);
+
+    smb_read_byte(PMBUS_STATUS_VOUT, &u8);
+    ESP_LOGI(TAG, "status vout: 0x%02x", u8);
+
+    smb_read_byte(PMBUS_STATUS_IOUT, &u8);
+    ESP_LOGI(TAG, "status iout: 0x%02x", u8);
+
+    smb_read_byte(PMBUS_STATUS_INPUT, &u8);
+    ESP_LOGI(TAG, "status input: 0x%02x", u8);
+
+    smb_read_byte(PMBUS_STATUS_MFR_SPECIFIC, &u8);
+    ESP_LOGI(TAG, "status mfr specific: 0x%02x", u8);
+
+
+}
 
 /*--- Public TPS53647 functions ---*/
 
@@ -363,6 +388,9 @@ int TPS53647_init(void)
         ESP_LOGI(TAG, "ERROR- cannot find TPS53647 regulator");
         return -1;
     }
+
+    // restore all from nvm
+    smb_write_command(PMBUS_RESTORE_DEFAULT_ALL);
 
     /* set ON_OFF config, make sure the buck is switched off */
     smb_write_byte(PMBUS_ON_OFF_CONFIG, ON_OFF_CONFIG);
@@ -397,23 +425,22 @@ int TPS53647_init(void)
     // 2 phase operation
     smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
 
-    /* vout voltage */
-    smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_COMMAND));
-    smb_write_word(PMBUS_VOUT_MAX, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MAX));
-    smb_write_word(PMBUS_VOUT_MARGIN_HIGH, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MARGIN_HIGH));
-    smb_write_word(PMBUS_VOUT_MARGIN_LOW, (uint16_t) volt_to_vid(TPS53647_INIT_VOUT_MARGIN_LOW));
+    /* temperature */
+    ESP_LOGI(TAG, "Setting TEMPERATURE");
+    smb_write_word(PMBUS_OT_WARN_LIMIT, int_2_slinear11(TPS53647_INIT_OT_WARN_LIMIT));
+    smb_write_word(PMBUS_OT_FAULT_LIMIT, int_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
 
     /* iout current */
     ESP_LOGI(TAG, "Setting IOUT");
     smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_WARN_LIMIT));
     smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_FAULT_LIMIT));
-    smb_write_byte(PMBUS_IOUT_OC_FAULT_RESPONSE, TPS53647_INIT_IOUT_OC_FAULT_RESPONSE);
 
-    /* temperature */
-    ESP_LOGI(TAG, "Setting TEMPERATURE");
-    smb_write_word(PMBUS_OT_WARN_LIMIT, int_2_slinear11(TPS53647_INIT_OT_WARN_LIMIT));
-    smb_write_word(PMBUS_OT_FAULT_LIMIT, int_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
-    smb_write_byte(PMBUS_OT_FAULT_RESPONSE, TPS53647_INIT_OT_FAULT_RESPONSE);
+
+    /* vout voltage */
+    //smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(0.75));//TPS53647_INIT_VOUT_COMMAND));
+    //smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
+    //  smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(1.15));//TPS53647_INIT_VOUT_COMMAND));
+
 
     /* Show temperature */
     ESP_LOGI(TAG, "--------------------------------");
@@ -424,12 +451,20 @@ int TPS53647_init(void)
 
     ESP_LOGI(TAG, "-----------VOLTAGE/CURRENT---------------------");
     /* Get voltage input (SLINEAR11) */
-    TPS53647_get_vin();
+    ESP_LOGI(TAG, "VIn: %.3f", TPS53647_get_vin());
     /* Get output current (SLINEAR11) */
-    TPS53647_get_iout();
+    ESP_LOGI(TAG, "IOut: %.3f", TPS53647_get_iout());
     /* Get voltage output (VID) */
-    TPS53647_get_vout();
-
+    ESP_LOGI(TAG, "VOut: %.3f", TPS53647_get_vout());
+/*
+    // Create the task
+    xTaskCreate(TPS53647_monitoring_task,       // Task function
+                "TPS53647_monitoring_task",     // Name of the task (for debugging)
+                2048,                // Stack size for the task
+                NULL,                // Parameter passed to the task
+                1,                   // Priority of the task
+                NULL);               // Task handle (optional)
+*/
     return 0;
 }
 
@@ -452,7 +487,7 @@ float TPS53647_get_pin(void)
     smb_read_word(PMBUS_READ_PIN, &u16_value);
     pin = slinear11_2_float(u16_value);
 #ifdef _DEBUG_LOG_
-    ESP_LOGI(TAG, "Got Pin: %2.3f V", pin);
+    ESP_LOGI(TAG, "Got Pin: %2.3f W", pin);
 #endif
     return pin;
 }
@@ -466,7 +501,7 @@ float TPS53647_get_pout(void)
     smb_read_word(PMBUS_READ_POUT, &u16_value);
     pout = slinear11_2_float(u16_value);
 #ifdef _DEBUG_LOG_
-    ESP_LOGI(TAG, "Got Pout: %2.3f V", pout);
+    ESP_LOGI(TAG, "Got Pout: %2.3f W", pout);
 #endif
     return pout;
 }
@@ -483,6 +518,7 @@ float TPS53647_get_vin(void)
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Vin: %2.3f V", vin);
 #endif
+    TPS53647_status();
     return vin;
 }
 
@@ -491,8 +527,9 @@ float TPS53647_get_vout(void)
     uint16_t u16_value;
     float vout;
 
-    smb_read_word(PMBUS_READ_VOUT, &u16_value);
-    vout = vid_to_volt(u16_value);
+    smb_read_word(PMBUS_MFR_SPECIFIC_04, &u16_value);
+
+    vout = (float) u16_value * powf(2.0f, -9.0f);
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Vout: %2.3f V", vout);
 #endif
@@ -555,11 +592,13 @@ void TPS53647_set_vout(float volts)
         return;
     }
 
+    smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
+
     /* set output voltage */
     smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(volts));
 
     /* turn on output */
-    smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
+    //smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
 
     ESP_LOGI(TAG, "Vout changed to %1.2f V", volts);
 }

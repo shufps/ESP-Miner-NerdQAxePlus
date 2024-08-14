@@ -31,12 +31,12 @@ void VCORE_init(GlobalState * global_state) {
                 TPS546_init();
             }
             break;
+            ADC_init();
         case DEVICE_NERDQAXE_PLUS:
             TPS53647_init();
             break;
         default:
     }
-    ADC_init();
 }
 
 /**
@@ -94,5 +94,15 @@ bool VCORE_set_voltage(float core_voltage, GlobalState * global_state)
 }
 
 uint16_t VCORE_get_voltage_mv(GlobalState * global_state) {
-    return ADC_get_vcore() / global_state->voltage_domain;
+switch (global_state->device_model) {
+        case DEVICE_MAX:
+        case DEVICE_ULTRA:
+        case DEVICE_SUPRA:
+            return ADC_get_vcore() / global_state->voltage_domain;
+        case DEVICE_NERDQAXE_PLUS:
+            return TPS53647_get_vout() * 1000.0f;
+        // case DEVICE_HEX:
+        default:
+    }
+    return 0;
 }

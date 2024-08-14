@@ -7,6 +7,7 @@
 
 
 void EMC2302_set_fan_speed(float percent) {
+    return;
     int value = (int) (percent * 255.0 + 0.5);
     value = (value > 255) ? 255 : value;
 
@@ -15,6 +16,7 @@ void EMC2302_set_fan_speed(float percent) {
 }
 
 uint16_t EMC2302_get_fan_speed(void) {
+    return 4000;
     uint8_t tach_lsb, tach_msb;
 
     // report only first fan
@@ -27,6 +29,7 @@ uint16_t EMC2302_get_fan_speed(void) {
 }
 
 bool EMC2302_init(bool invertPolarity) {
+    return true;
     //ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_CONFIG, 0x40 /* default */));
 
     // set polarity of ch1 and ch2

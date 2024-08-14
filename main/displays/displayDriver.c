@@ -13,6 +13,7 @@
 #include "APIs.h"
 #include "../adc.h"
 #include "esp_netif.h"
+#include "TPS53647.h"
 #include "nvs_config.h"
 #include <inttypes.h>
 //#include "../system.h"
@@ -530,7 +531,8 @@ void display_updateGlobalState(GlobalState * GLOBAL_STATE){
     display_updateHashrate(module, GLOBAL_STATE->POWER_MANAGEMENT_MODULE.power);
     display_updateBTCprice();
 
-    uint16_t vcore = ADC_get_vcore();
+    //uint16_t vcore = ADC_get_vcore(); TODO
+    uint16_t vcore = (int) (TPS53647_get_vout() * 1000.0f);
     snprintf(strData, sizeof(strData), "%umV", vcore);
     lv_label_set_text(ui_lbVcore, strData); // Update label
 }

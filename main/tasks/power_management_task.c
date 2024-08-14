@@ -159,7 +159,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
             case DEVICE_NERDQAXE_PLUS:
                 power_management->voltage = TPS53647_get_vin() * 1000.0;
                 power_management->current = TPS53647_get_iout() * 1000.0;
-                power_management->power = TPS53647_get_pin() * 1000.0;
+                power_management->power = TPS53647_get_pin();
                 power_management->fan_rpm = EMC2302_get_fan_speed();
                 break;
             default:
@@ -228,9 +228,9 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     break;
                 case DEVICE_NERDQAXE_PLUS: // TODO nerdqaxe
                     // 1st tmp1075 is measuring asic temps
-                    power_management->chip_temp_avg = TMP1075_read_temperature(0);
+                    power_management->chip_temp_avg = 20.0;//TMP1075_read_temperature(0); TODO nerdqaxe
                     // 2nd tmp1075 is on the back side below power stages and inductors
-                    power_management->vr_temp = TMP1075_read_temperature(1);
+                    power_management->vr_temp = 20.0;//TMP1075_read_temperature(1); TODO nerdqaxe
                     break;
                 default:
             }
