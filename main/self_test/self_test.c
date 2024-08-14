@@ -8,7 +8,11 @@
 #include "global_state.h"
 #include "nvs_config.h"
 #include "nvs_flash.h"
+
+#ifdef DISPLAY_OLED
 #include "oled.h"
+#endif
+
 #include "vcore.h"
 #include "displays/displayDriver.h"
 #include "utils.h"
@@ -18,7 +22,7 @@ static const char * TAG = "self_test";
 
 static void display_msg(char * msg, GlobalState * GLOBAL_STATE) {
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
-
+#ifdef DISPLAY_OLED
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
         case DEVICE_ULTRA:
@@ -31,6 +35,10 @@ static void display_msg(char * msg, GlobalState * GLOBAL_STATE) {
             break;
         default:
     }
+#else
+    ESP_LOGI(TAG, "%s", msg);
+#endif
+
 }
 
 static bool fan_sense_pass(GlobalState * GLOBAL_STATE)
@@ -126,7 +134,7 @@ void self_test(void * pvParameters)
             break;
         default:
     }
-
+#ifdef DISPLAY_OLED
     // Display testing
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
@@ -143,7 +151,7 @@ void self_test(void * pvParameters)
             break;
         default:
     }
-
+#endif
     // VCore regulator testing
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:

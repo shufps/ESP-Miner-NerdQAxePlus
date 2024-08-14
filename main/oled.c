@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef DISPLAY_OLED
 #include "oled.h"
 
 extern unsigned char ucSmallFont[];
@@ -287,3 +288,5 @@ static esp_err_t write(uint8_t * data, uint8_t len)
 
     return ret;
 }
+
+#endif

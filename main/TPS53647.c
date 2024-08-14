@@ -489,7 +489,7 @@ float TPS53647_get_pin(void)
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Pin: %2.3f W", pin);
 #endif
-    return pin;
+    return pin / 4.0f; // todo
 }
 
 float TPS53647_get_pout(void)
@@ -503,7 +503,7 @@ float TPS53647_get_pout(void)
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Pout: %2.3f W", pout);
 #endif
-    return pout;
+    return pout / 4.0f; // todo
 }
 
 
@@ -549,7 +549,7 @@ float TPS53647_get_iin(void)
     ESP_LOGI(TAG, "Got Iin: %2.3f A", iin);
 #endif
 
-    return iin;
+    return iin / 4.0f; // TODO
 }
 
 float TPS53647_get_iout(void)
@@ -565,7 +565,7 @@ float TPS53647_get_iout(void)
     ESP_LOGI(TAG, "Got Iout: %2.3f A", iout);
 #endif
 
-    return iout;
+    return iout / 4.0f; // TODO
 }
 
 

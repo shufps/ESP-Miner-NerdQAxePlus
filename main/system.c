@@ -32,9 +32,6 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 
-//Comment to use standard OLED
-//#define DISPLAY_OLED
-#define DISPLAY_TTGO
 
 #ifdef DISPLAY_OLED
 #include "oled.h"
