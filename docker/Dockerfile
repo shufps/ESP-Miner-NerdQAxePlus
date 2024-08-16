@@ -25,12 +25,3 @@ WORKDIR /project
 # Switch to the unprivileged user
 USER builder
 
-# Verify installation (optional)
-#RUN node -v && npm -v
-
-# Expose any necessary ports (optional)
-# EXPOSE 3000
-
-# Command to run your application (optional)
-# CMD ["npm", "start"]
-
