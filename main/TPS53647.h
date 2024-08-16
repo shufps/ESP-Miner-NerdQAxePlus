@@ -57,6 +57,7 @@ void TPS53647_set_frequency(int);
 int TPS53647_get_temperature(void);
 float TPS53647_get_vin(void);
 float TPS53647_get_iout(void);
+float TPS53647_get_iin(void);
 float TPS53647_get_vout(void);
 float TPS53647_get_pin(void);
 void TPS53647_set_vout(float volts);

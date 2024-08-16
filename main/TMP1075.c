@@ -6,36 +6,21 @@
 
 static const char *TAG = "TMP1075.c";
 
-bool TMP1075_installed(int device_index)
-{
-    uint8_t data[2];
-    esp_err_t result = ESP_OK;
-
-    // read the configuration register
-    //ESP_LOGI(TAG, "Reading configuration register");
-    ESP_ERROR_CHECK(i2c_master_register_read(TMP1075_I2CADDR_DEFAULT + device_index, TMP1075_CONFIG_REG, data, 2));
-    //ESP_LOGI(TAG, "Configuration[%d] = %02X %02X", device_index, data[0], data[1]);
-
-    return (result == ESP_OK?true:false);
-}
 
 float TMP1075_read_temperature(int device_index)
 {
     uint8_t data[2];
-
-    ESP_ERROR_CHECK(i2c_master_register_read(TMP1075_I2CADDR_DEFAULT + device_index, TMP1075_TEMP_REG, data, 2));
-
-    int temp_data = ((int) data[0] << 4) | ((int) data[1] >> 4);
-
-    if (temp_data > 2047) {
-        temp_data -= 4096;
+    int ret = i2c_master_write_read_device(I2C_MASTER_NUM, TMP1075_I2CADDR_DEFAULT + device_index,
+                                           TMP1075_TEMP_REG, 1, data, 2, 1000 / portTICK_PERIOD_MS);
+    if (ret == ESP_OK) {
+        int16_t temp_raw = (data[0] << 8) | data[1]; // Combine the two bytes
+        temp_raw >>= 4; // Right-shift to discard the unused bits (12-bit data)
+        float temperature = temp_raw * 0.0625f; // Each bit represents 0.0625°C
+        ESP_LOGI(TAG, "Temperature %d: %.2f C", device_index, temperature);
+        return temperature;
+    } else {
+        ESP_LOGI(TAG, "Failed to read temperature from TMP1075");
+        return 0.0f;
     }
-
-    float ftemp = (float) temp_data * 0.0625;
-
-    //ESP_LOGI(TAG, "Raw Temperature = %02X %02X", data[0], data[1]);
-    //ESP_LOGI(TAG, "Temperature[%d] = %d", device_index, ftemp);
-
-    return ftemp;
 }
 

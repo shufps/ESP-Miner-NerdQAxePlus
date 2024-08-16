@@ -489,7 +489,7 @@ float TPS53647_get_pin(void)
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Pin: %2.3f W", pin);
 #endif
-    return pin / 4.0f; // todo
+    return pin;
 }
 
 float TPS53647_get_pout(void)
@@ -503,7 +503,7 @@ float TPS53647_get_pout(void)
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Pout: %2.3f W", pout);
 #endif
-    return pout / 4.0f; // todo
+    return pout; 
 }
 
 
@@ -518,7 +518,6 @@ float TPS53647_get_vin(void)
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Vin: %2.3f V", vin);
 #endif
-    TPS53647_status();
     return vin;
 }
 
@@ -542,14 +541,13 @@ float TPS53647_get_iin(void)
     float iin;
 
     /* Get current output (SLINEAR11) */
-    smb_read_word(PMBUS_READ_IOUT, &u16_value);
+    smb_read_word(PMBUS_READ_IIN, &u16_value);
     iin = slinear11_2_float(u16_value);
 
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Iin: %2.3f A", iin);
 #endif
-
-    return iin / 4.0f; // TODO
+    return iin;
 }
 
 float TPS53647_get_iout(void)
@@ -564,8 +562,7 @@ float TPS53647_get_iout(void)
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Iout: %2.3f A", iout);
 #endif
-
-    return iout / 4.0f; // TODO
+    return iout;
 }
 
 

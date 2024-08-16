@@ -293,7 +293,6 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
             break;
         }
     }
-    chip_counter = 4;
     ESP_LOGI(TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
 
     //enable and set version rolling mask to 0xFFFF (again)
@@ -404,6 +403,11 @@ uint8_t BM1368_init(uint64_t frequency, uint16_t asic_count)
     ESP_LOGI(TAG, "Initializing BM1368");
 
     memset(asic_response_buffer, 0, 1024);
+
+    // enable LDOs
+    gpio_pad_select_gpio(GPIO_NUM_13);
+    gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_13, 1);
 
     //esp_rom_gpio_pad_select_gpio(BM1368_RST_PIN);
     gpio_pad_select_gpio(BM1368_RST_PIN);
@@ -555,10 +559,11 @@ task_result * BM1368_proccess_work(void * pvParameters)
     // ESP_LOGI(TAG, "Job ID: %02X, Core: %01X", job_id, asic_result->job_id & 0x07);
 
     uint8_t job_id = (asic_result->job_id & 0xf0) >> 1;
-    uint8_t core_id = (uint8_t)((reverse_uint32(asic_result->nonce) >> 25) & 0x7f); // BM1368 has 80 cores, so it should be coded on 7 bits
-    uint8_t small_core_id = asic_result->job_id & 0x0f; // BM1368 has 16 small cores, so it should be coded on 4 bits
     uint32_t version_bits = (reverse_uint16(asic_result->version) << 13); // shift the 16 bit value left 13
-    ESP_LOGI(TAG, "Job ID: %02X, Core: %d/%d, Ver: %08" PRIX32, job_id, core_id, small_core_id, version_bits);
+
+    int asic_nr = (asic_result->nonce & 0x0000fc00) >> 10;
+
+    ESP_LOGI(TAG, "Job ID: %02X, AsicNr: %d, Ver: %08" PRIX32, job_id, asic_nr, version_bits);
 
     GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
 

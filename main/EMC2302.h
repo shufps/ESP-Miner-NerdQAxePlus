@@ -2,7 +2,7 @@
 
 #include "i2c_master.h"
 
-#define EMC2302_ADDR 0x12 // todo
+#define EMC2302_ADDR 0x2e
 
 #define EMC2302_CONFIG 0x20
 #define EMC2302_FAN_STATUS 0x24
@@ -31,7 +31,7 @@
 #define EMC2302_OFS_TACH_READING_MSB 0x0e
 #define EMC2302_OFS_TACH_READING_LSB 0x0f
 
-#define EMC2302_FAN1 0x20
+#define EMC2302_FAN1 0x30
 #define EMC2302_FAN2 0x40
 
 

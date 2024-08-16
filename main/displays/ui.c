@@ -295,7 +295,7 @@ void ui_MiningScreen_screen_init(void)
     lv_obj_set_x(ui_lbASIC, 111);
     lv_obj_set_y(ui_lbASIC, -66);
     lv_obj_set_align(ui_lbASIC, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_lbASIC, "BM1366");
+    lv_label_set_text(ui_lbASIC, "BM1368");
     lv_obj_set_style_text_color(ui_lbASIC, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbASIC, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbASIC, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
