@@ -57,7 +57,8 @@ export class SystemService {
           autoscreenoff: 0,
 
           boardtemp1: 30,
-          boardtemp2: 40
+          boardtemp2: 40,
+          overheat_mode: 0
         }
       ).pipe(delay(1000));
     }

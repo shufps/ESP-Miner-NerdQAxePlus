@@ -1,13 +1,18 @@
 #include "i2c_master.h"
 #include "DS4432U.h"
 #include "EMC2101.h"
+#include "EMC2302.h"
 #include "INA260.h"
 #include "adc.h"
 #include "esp_log.h"
 #include "global_state.h"
 #include "nvs_config.h"
 #include "nvs_flash.h"
+
+#ifdef DISPLAY_OLED
 #include "oled.h"
+#endif
+
 #include "vcore.h"
 #include "displays/displayDriver.h"
 #include "utils.h"
@@ -17,7 +22,7 @@ static const char * TAG = "self_test";
 
 static void display_msg(char * msg, GlobalState * GLOBAL_STATE) {
     SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
-
+#ifdef DISPLAY_OLED
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
         case DEVICE_ULTRA:
@@ -30,6 +35,10 @@ static void display_msg(char * msg, GlobalState * GLOBAL_STATE) {
             break;
         default:
     }
+#else
+    ESP_LOGI(TAG, "%s", msg);
+#endif
+
 }
 
 static bool fan_sense_pass(GlobalState * GLOBAL_STATE)
@@ -40,6 +49,9 @@ static bool fan_sense_pass(GlobalState * GLOBAL_STATE)
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
             fan_speed = EMC2101_get_fan_speed();
+            break;
+        case DEVICE_NERDQAXE_PLUS:
+            fan_speed = EMC2302_get_fan_speed();
             break;
         default:
     }
@@ -94,6 +106,7 @@ void self_test(void * pvParameters)
         case DEVICE_MAX:
         case DEVICE_ULTRA:
         case DEVICE_SUPRA:
+        case DEVICE_NERDQAXE_PLUS:
             // turn ASIC on
             gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
             gpio_set_level(GPIO_NUM_10, 0);
@@ -115,9 +128,13 @@ void self_test(void * pvParameters)
             EMC2101_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
             EMC2101_set_fan_speed(1);
             break;
+        case DEVICE_NERDQAXE_PLUS:
+            EMC2302_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
+            EMC2302_set_fan_speed(1);
+            break;
         default:
     }
-
+#ifdef DISPLAY_OLED
     // Display testing
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
@@ -134,7 +151,7 @@ void self_test(void * pvParameters)
             break;
         default:
     }
-
+#endif
     // VCore regulator testing
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
@@ -147,6 +164,9 @@ void self_test(void * pvParameters)
                     display_log_message("Test result: ERROR > DS4432U:FAIL");
                 }
             }
+            break;
+        case DEVICE_NERDQAXE_PLUS:
+            // no DS4432
             break;
         default:
     }
@@ -257,7 +277,7 @@ void self_test(void * pvParameters)
         display_msg("FAN:       WARN", GLOBAL_STATE);
         display_log_message("Test result: OK PASS > Warning fan");
     }
-    
+
 
     display_msg("           PASS", GLOBAL_STATE);
     display_log_message("Test result: OK PASS");

@@ -98,6 +98,7 @@ char * STRATUM_V1_receive_jsonrpc_line(int sockfd)
     if (json_rpc_buffer == NULL) {
         STRATUM_V1_initialize_buffer();
     }
+
     char *line, *tok = NULL;
     char recv_buffer[BUFFER_SIZE];
     int nbytes;
@@ -108,18 +109,36 @@ char * STRATUM_V1_receive_jsonrpc_line(int sockfd)
             memset(recv_buffer, 0, BUFFER_SIZE);
             nbytes = recv(sockfd, recv_buffer, BUFFER_SIZE - 1, 0);
             if (nbytes == -1) {
-                ESP_LOGI(TAG, "Error: recv");
-                if (json_rpc_buffer) {
-                    free(json_rpc_buffer);
-                    json_rpc_buffer=0;
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    ESP_LOGW(TAG, "Socket receive timeout occurred");
+
+                    // Check if the socket is still connected
+                    if (is_socket_connected(sockfd)) {
+                        ESP_LOGI(TAG, "Socket still connected, retrying recv()");
+                        continue;  // Retry the recv() call
+                    } else {
+                        ESP_LOGE(TAG, "Socket not connected after timeout, closing socket");
+                        if (json_rpc_buffer) {
+                            free(json_rpc_buffer);
+                            json_rpc_buffer = 0;
+                        }
+                        return 0;
+                    }
+                } else {
+                    ESP_LOGE(TAG, "Error in recv: %s", strerror(errno));
+                    if (json_rpc_buffer) {
+                        free(json_rpc_buffer);
+                        json_rpc_buffer = 0;
+                    }
+                    return 0;
                 }
-                return 0;
             }
 
             realloc_json_buffer(nbytes);
             strncat(json_rpc_buffer, recv_buffer, nbytes);
         } while (!strstr(json_rpc_buffer, "\n"));
     }
+
     buflen = strlen(json_rpc_buffer);
     tok = strtok(json_rpc_buffer, "\n");
     line = strdup(tok);
@@ -128,6 +147,7 @@ char * STRATUM_V1_receive_jsonrpc_line(int sockfd)
         memmove(json_rpc_buffer, json_rpc_buffer + len + 1, buflen - len + 1);
     else
         strcpy(json_rpc_buffer, "");
+
     return line;
 }
 
@@ -190,7 +210,7 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
             } else {
                 message->response_success = false;
             }
-        
+
         //if the id is STRATUM_ID_SUBSCRIBE parse it
         } else if (parsed_id == STRATUM_ID_SUBSCRIBE) {
             result = STRATUM_RESULT_SUBSCRIBE;
@@ -329,8 +349,8 @@ int STRATUM_V1_subscribe(int socket, char * model)
     // Subscribe
     char subscribe_msg[BUFFER_SIZE];
     const esp_app_desc_t *app_desc = esp_ota_get_app_description();
-    const char *version = app_desc->version;	
-    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"bitaxe/%s (%s)\"]}\n", send_uid++, model, version);
+    const char *version = app_desc->version;
+    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"NerdQaxe+/%s/%s\"]}\n", send_uid++, model, version);
     debug_stratum_tx(subscribe_msg);
     write(socket, subscribe_msg, strlen(subscribe_msg));
 
@@ -341,7 +361,7 @@ int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty)
 {
     char difficulty_msg[BUFFER_SIZE];
     sprintf(difficulty_msg, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%ld]}\n", send_uid++, difficulty);
-    
+
     debug_stratum_tx(difficulty_msg);
     write(socket, difficulty_msg, strlen(difficulty_msg));
 
@@ -372,7 +392,7 @@ void STRATUM_V1_submit_share(int socket, const char * username, const char * job
     char submit_msg[BUFFER_SIZE];
 
     if (!is_socket_connected(socket)) {
-        ESP_LOGI(TAG,"Socket not connected. Cannot send message.\n");
+        ESP_LOGI(TAG, "Socket not connected. Cannot send message.\n");
         return;
     }
 
@@ -380,7 +400,12 @@ void STRATUM_V1_submit_share(int socket, const char * username, const char * job
             "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
             send_uid++, username, jobid, extranonce_2, ntime, nonce, version);
     debug_stratum_tx(submit_msg);
-    write(socket, submit_msg, strlen(submit_msg));
+
+    ssize_t bytes_written = write(socket, submit_msg, strlen(submit_msg));
+    if (bytes_written == -1) {
+        ESP_LOGE(TAG, "Error writing to socket: %s", strerror(errno));
+        // Handle write error, possibly closing socket or retrying
+    }
 }
 
 void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)

@@ -6,29 +6,53 @@
 
 static const char *TAG = "TMP1075.c";
 
-bool TMP1075_installed(int);
-uint8_t TMP1075_read_temperature(int);
+#define I2C_MASTER_NUM 0 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
 
-bool TMP1075_installed(int device_index)
+#define WRITE_BIT      I2C_MASTER_WRITE
+#define READ_BIT       I2C_MASTER_READ
+#define ACK_CHECK      true
+#define ACK_VALUE      0x0
+#define NACK_VALUE     0x1
+#define MAX_BLOCK_LEN  32
+
+// don't ask me why simpler single-line calls didn't work :shrug:
+static esp_err_t TMP1075_smb_read_word(uint8_t device, uint8_t reg, uint16_t *result)
 {
     uint8_t data[2];
-    esp_err_t result = ESP_OK;
+    esp_err_t err;
 
-    // read the configuration register
-    //ESP_LOGI(TAG, "Reading configuration register");
-    ESP_ERROR_CHECK(i2c_master_register_read(TMP1075_I2CADDR_DEFAULT + device_index, TMP1075_CONFIG_REG, data, 2));
-    //ESP_LOGI(TAG, "Configuration[%d] = %02X %02X", device_index, data[0], data[1]);
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (TMP1075_I2CADDR_DEFAULT + device) << 1 | WRITE_BIT, ACK_CHECK);
+    i2c_master_write_byte(cmd, reg, ACK_CHECK);
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (TMP1075_I2CADDR_DEFAULT + device) << 1 | READ_BIT, ACK_CHECK);
+    i2c_master_read(cmd, data, 2, ACK_VALUE);
+    i2c_master_stop(cmd);
 
-    return (result == ESP_OK?true:false);
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
+    i2c_cmd_link_delete(cmd);
+
+    if (err == ESP_OK) {
+        *result = (data[0] << 8) | data[1];
+    }
+
+    return err;
 }
 
-uint8_t TMP1075_read_temperature(int device_index)
+float TMP1075_read_temperature(int device_index)
 {
-    uint8_t data[2];
+    uint16_t temp_raw;
+    int ret = TMP1075_smb_read_word(device_index, TMP1075_TEMP_REG, &temp_raw);
 
-    ESP_ERROR_CHECK(i2c_master_register_read(TMP1075_I2CADDR_DEFAULT + device_index, TMP1075_TEMP_REG, data, 2));
-    //ESP_LOGI(TAG, "Raw Temperature = %02X %02X", data[0], data[1]);
-    //ESP_LOGI(TAG, "Temperature[%d] = %d", device_index, data[0]);
-    return data[0];
+    if (ret == ESP_OK) {
+        temp_raw >>= 4; // Right-shift to discard the unused bits (12-bit data)
+        float temperature = temp_raw * 0.0625f; // Each bit represents 0.0625°C
+        ESP_LOGI(TAG, "Temperature %d: %.2f C", device_index, temperature);
+        return temperature;
+    } else {
+        ESP_LOGI(TAG, "Failed to read temperature from TMP1075");
+        return 0.0f;
+    }
 }
 

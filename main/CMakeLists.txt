@@ -3,6 +3,7 @@ SRCS
     "adc.c"
     "DS4432U.c"
     "EMC2101.c"
+    "EMC2302.c"
     "fonts.c"
     "i2c_master.c"
     "INA260.c"
@@ -13,6 +14,7 @@ SRCS
     "system.c"
     "TMP1075.c"
     "TPS546.c"
+    "TPS53647.c"
     "vcore.c"
     "work_queue.c"
     "./http_server/http_server.c"
@@ -40,7 +42,7 @@ SRCS
     "./displays/images/ui_img_miningscreen2_png.c"
     "./displays/images/ui_img_settingsscreen_png.c"
     "./displays/images/ui_img_splashscreen2_png.c"
-    "./displays/images/ui_img_PortalScreen_png.c"
+    "./displays/images/ui_img_portalscreen_png.c"
     "./displays/images/ui_img_btcscreen_png.c"
 
 
@@ -54,7 +56,7 @@ INCLUDE_DIRS
     "../components/connect/include"
     "../components/dns_server/include"
     "../components/stratum/include"
-    
+
     PRIV_REQUIRES
     "app_update"
     "driver"

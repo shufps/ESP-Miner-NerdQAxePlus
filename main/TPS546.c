@@ -5,6 +5,8 @@
 #include <math.h>
 #include <string.h>
 
+#define TPS546
+
 #include "pmbus_commands.h"
 #include "TPS546.h"
 
@@ -386,7 +388,7 @@ int TPS546_init(void)
             ON_OFF_CONFIG_POLARITY | ON_OFF_CONFIG_DELAY;
     ESP_LOGI(TAG, "Power config-ON_OFF_CONFIG: %02x", u8_value);
     smb_write_byte(PMBUS_ON_OFF_CONFIG, u8_value);
- 
+
     /* Read version number and see if it matches */
     TPS546_read_mfr_info(read_mfr_revision);
     if (memcmp(read_mfr_revision, MFR_REVISION, 3) != 0) {
@@ -462,7 +464,7 @@ void TPS546_read_mfr_info(uint8_t *read_mfr_revision)
 
     ESP_LOGI(TAG, "MFR_ID: %s", read_mfr_id);
     ESP_LOGI(TAG, "MFR_MODEL: %s", read_mfr_model);
-    ESP_LOGI(TAG, "MFR_REVISION: %d%d%d ", read_mfr_revision[0], 
+    ESP_LOGI(TAG, "MFR_REVISION: %d%d%d ", read_mfr_revision[0],
         read_mfr_revision[1], read_mfr_revision[2]);
 }
 

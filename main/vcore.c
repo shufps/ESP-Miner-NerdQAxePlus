@@ -6,6 +6,7 @@
 #include "adc.h"
 #include "DS4432U.h"
 #include "TPS546.h"
+#include "TPS53647.h"
 
 #define TPS40305_VFB 0.6
 
@@ -22,10 +23,20 @@
 static const char *TAG = "vcore.c";
 
 void VCORE_init(GlobalState * global_state) {
-    if (global_state->board_version == 402) {
-        TPS546_init();
+    switch (global_state->device_model) {
+        case DEVICE_MAX:
+        case DEVICE_ULTRA:
+        case DEVICE_SUPRA:
+            if (global_state->board_version == 402) {
+                TPS546_init();
+            }
+            break;
+            ADC_init();
+        case DEVICE_NERDQAXE_PLUS:
+            TPS53647_init();
+            break;
+        default:
     }
-    ADC_init();
 }
 
 /**
@@ -71,6 +82,10 @@ bool VCORE_set_voltage(float core_voltage, GlobalState * global_state)
                 DS4432U_set_current_code(0, reg_setting); /// eek!
             }
             break;
+        case DEVICE_NERDQAXE_PLUS:
+            ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
+            TPS53647_set_vout(core_voltage * (float)global_state->voltage_domain);
+            break;
         // case DEVICE_HEX:
         default:
     }
@@ -79,5 +94,15 @@ bool VCORE_set_voltage(float core_voltage, GlobalState * global_state)
 }
 
 uint16_t VCORE_get_voltage_mv(GlobalState * global_state) {
-    return ADC_get_vcore() / global_state->voltage_domain;
+switch (global_state->device_model) {
+        case DEVICE_MAX:
+        case DEVICE_ULTRA:
+        case DEVICE_SUPRA:
+            return ADC_get_vcore() / global_state->voltage_domain;
+        case DEVICE_NERDQAXE_PLUS:
+            return TPS53647_get_vout() * 1000.0f;
+        // case DEVICE_HEX:
+        default:
+    }
+    return 0;
 }

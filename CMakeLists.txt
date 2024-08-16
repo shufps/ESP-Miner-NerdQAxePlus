@@ -4,6 +4,10 @@ cmake_minimum_required(VERSION 3.5)
 
 add_definitions(-DLV_LVGL_H_INCLUDE_SIMPLE)
 
+#add_definitions(-DDISPLAY_OLED)
+add_definitions(-DDISPLAY_TTGO)
+
+
 # (Not part of the boilerplate)
 # This example uses an extra component for common functions such as Wi-Fi and Ethernet connection.
 # set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components/protocol_examples_common)

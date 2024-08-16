@@ -34,7 +34,7 @@ void dns_found_cb(const char * name, const ip_addr_t * ipaddr, void * callback_a
 {
     if ((ipaddr != NULL)){
         ip4_addr_t ip4addr = ipaddr->u_addr.ip4;  // Obtener la estructura ip4_addr_t
-        if (ip4_addr1(&ip4addr) != 0 && ip4_addr2(&ip4addr) != 0 && 
+        if (ip4_addr1(&ip4addr) != 0 && ip4_addr2(&ip4addr) != 0 &&
             ip4_addr3(&ip4addr) != 0 && ip4_addr4(&ip4addr) != 0) {
             ESP_LOGI(TAG, "IP found : %d.%d.%d.%d",ip4_addr1(&ip4addr),ip4_addr2(&ip4addr),ip4_addr3(&ip4addr),ip4_addr4(&ip4addr));
             ip_Addr = *ipaddr;
@@ -53,6 +53,8 @@ bool is_wifi_connected() {
         return false;
     }
 }
+
+int is_socket_connected(int socket);
 
 void cleanQueue(GlobalState * GLOBAL_STATE) {
     ESP_LOGI(TAG, "Clean Jobs: clearing queue");
@@ -137,6 +139,7 @@ void stratum_task(void * pvParameters)
                 continue;
             }
             ESP_LOGI(TAG, "Socket created, connecting to %s:%d", host_ip, port);
+
             retry_attempts = 0;
             int err = connect(GLOBAL_STATE->sock, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr_in6));
             if (err != 0)
@@ -148,6 +151,22 @@ void stratum_task(void * pvParameters)
                 // instead of restarting, retry this every 5 seconds
                 vTaskDelay(5000 / portTICK_PERIOD_MS);
                 continue;
+            }
+
+            // we add timeout to prevent recv to hang forever
+            // if it times out on the recv we will check the connection state
+            // and retry if still connected
+            struct timeval timeout;
+            timeout.tv_sec = 30;  // 30 seconds timeout
+            timeout.tv_usec = 0;  // 0 microseconds
+
+            ESP_LOGI(TAG, "Set socket timeout to %d for recv and write", (int) timeout.tv_sec);
+            if (setsockopt(GLOBAL_STATE->sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+                ESP_LOGE(TAG, "Failed to set socket receive timeout");
+            }
+
+            if (setsockopt(GLOBAL_STATE->sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
+                ESP_LOGE(TAG, "Failed to set socket send timeout");
             }
 
             STRATUM_V1_reset_uid();
@@ -172,12 +191,13 @@ void stratum_task(void * pvParameters)
             free(username);
 
             while (1) {
+                if (!is_socket_connected(GLOBAL_STATE->sock)) {
+                    ESP_LOGE(TAG, "Socket is not connected ...");
+                    break;
+                }
                 char * line = STRATUM_V1_receive_jsonrpc_line(GLOBAL_STATE->sock);
                 if (!line) {
-                    ESP_LOGE(TAG, "Failed to receive JSON-RPC line, reconnecting...");
-                    shutdown(GLOBAL_STATE->sock, SHUT_RDWR);
-                    close(GLOBAL_STATE->sock);
-                    vTaskDelay(1000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
+                    ESP_LOGE(TAG, "Failed to receive JSON-RPC line, reconnecting ...");
                     break;
                 }
                 ESP_LOGI(TAG, "rx: %s", line); // debug incoming stratum messages
@@ -211,10 +231,7 @@ void stratum_task(void * pvParameters)
                     GLOBAL_STATE->extranonce_str = stratum_api_v1_message.extranonce_str;
                     GLOBAL_STATE->extranonce_2_len = stratum_api_v1_message.extranonce_2_len;
                 } else if (stratum_api_v1_message.method == CLIENT_RECONNECT) {
-                    ESP_LOGE(TAG, "Pool requested client reconnect...");
-                    shutdown(GLOBAL_STATE->sock, SHUT_RDWR);
-                    close(GLOBAL_STATE->sock);
-                    vTaskDelay(1000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
+                    ESP_LOGE(TAG, "Pool requested client reconnect ...");
                     break;
                 } else if (stratum_api_v1_message.method == STRATUM_RESULT) {
                     if (stratum_api_v1_message.response_success) {
@@ -232,12 +249,11 @@ void stratum_task(void * pvParameters)
                     }
                 }
             }
-
-            if (GLOBAL_STATE->sock != -1) {
-                ESP_LOGE(TAG, "Shutting down socket and restarting...");
-                shutdown(GLOBAL_STATE->sock, 0);
-                close(GLOBAL_STATE->sock);
-            }
+            // shutdown and reconnect
+            ESP_LOGE(TAG, "Shutdown socket ...");
+            shutdown(GLOBAL_STATE->sock, SHUT_RDWR);
+            close(GLOBAL_STATE->sock);
+            vTaskDelay(1000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
         }
     }
     vTaskDelete(NULL);

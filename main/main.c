@@ -46,6 +46,11 @@ void app_main(void)
         GLOBAL_STATE.device_model = DEVICE_SUPRA;
         GLOBAL_STATE.asic_count = 1;
         GLOBAL_STATE.voltage_domain = 1;
+    } else if (strcmp(GLOBAL_STATE.device_model_str, "nerdqaxe_plus") == 0) {
+        ESP_LOGI(TAG, "DEVICE: NerdQaxe+");
+        GLOBAL_STATE.device_model = DEVICE_NERDQAXE_PLUS;
+        GLOBAL_STATE.asic_count = 4;
+        GLOBAL_STATE.voltage_domain = 1;
     } else {
         ESP_LOGE(TAG, "Invalid DEVICE model");
         // maybe should return here to now execute anything with a faulty device parameter !
