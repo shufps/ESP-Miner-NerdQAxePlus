@@ -23,14 +23,32 @@ uint16_t EMC2302_get_fan_speed(void) {
 
 
     // report only first fan
-    ESP_ERROR_CHECK(i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1));
     ESP_ERROR_CHECK(i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1));
+    ESP_ERROR_CHECK(i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1));
 
     // ESP_LOGI(TAG, "Raw Fan Speed = %02X %02X", tach_msb, tach_lsb);
 
-    uint16_t rpm = tach_lsb | (tach_msb << 8);
-    ESP_LOGI(TAG, "fan speed: %d", rpm);
-    return rpm;
+    int rpm_raw = tach_lsb | (tach_msb << 8);
+
+    const int poles = 2;
+    const int n = 5; // number of edges measured (typically five for a two-pole fan)
+    const int m = 1; // the multiplier defined by the RANGE bits
+    const int ftach = 32768;
+
+    //int rpm = 60 * ftach * m * (n - 1) / poles / rpm_raw;
+    int rpm = 3932160 * 1 / rpm_raw;
+
+    ESP_LOGI(TAG, "raw fan speed: %d", rpm_raw);
+
+    if (rpm > 65535) {
+        ESP_LOGE(TAG, "fan speed RPM > 16bit: %d", rpm);
+        // on invalid result set it to 0 to indicate an error
+        rpm = 0;
+    } else {
+        ESP_LOGI(TAG, "fan speed: %dRPM", rpm);
+    }
+
+    return (uint16_t) rpm;
 }
 
 bool EMC2302_init(bool invertPolarity) {
@@ -48,8 +66,9 @@ bool EMC2302_init(bool invertPolarity) {
     ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_BASE_F123, (0x01 << 0) | (0x01 << 3)));
 
     // manual fan control
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_FAN_CONFIG1, 0x00));
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_FAN_CONFIG1, 0x00));
+    // bits 4-3: 0b01 = 5 edge samples (2 poles)
+    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_FAN_CONFIG1, (0b01 << 3)));
+    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_FAN_CONFIG1, (0b01 << 3)));
 
     return true;
 }

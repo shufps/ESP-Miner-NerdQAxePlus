@@ -265,6 +265,7 @@ static void do_frequency_ramp_up() {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
+static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x68, 0x00, 0x00};
 
 static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
 {
@@ -288,7 +289,13 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
     int chip_counter = 0;
     while (true) {
         if (SERIAL_rx(asic_response_buffer, 11, 1000) > 0) {
-            chip_counter++;
+            if (!strncmp((char*) chip_id, (char*) asic_response_buffer, sizeof(chip_id))) {
+                chip_counter++;
+                ESP_LOGI(TAG, "found asic #%d", chip_counter);
+            } else {
+                ESP_LOGE(TAG, "unexpected response ... ignoring ...");
+                ESP_LOG_BUFFER_HEX(TAG, asic_response_buffer, 11);
+            }
         } else {
             break;
         }
@@ -388,6 +395,7 @@ static void _reset(void)
 
     // delay for 100ms
     vTaskDelay(100 / portTICK_PERIOD_MS);
+
 }
 
 static void _send_read_address(void)
@@ -415,6 +423,10 @@ uint8_t BM1368_init(uint64_t frequency, uint16_t asic_count)
 
     // reset the bm1368
     _reset();
+
+    // empty serial buffer because it could contain nonces from before the reset
+    // if there was no power cycle and asic chips counting would fail
+    SERIAL_clear_buffer();
 
     return _send_init(frequency, asic_count);
 }
