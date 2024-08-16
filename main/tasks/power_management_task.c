@@ -228,9 +228,9 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     break;
                 case DEVICE_NERDQAXE_PLUS: // TODO nerdqaxe
                     // 1st tmp1075 is measuring asic temps
-                    power_management->chip_temp_avg = 0.0f;//TMP1075_read_temperature(0);
+                    power_management->chip_temp_avg = TMP1075_read_temperature(0);
                     // 2nd tmp1075 is on the back side below power stages and inductors
-                    power_management->vr_temp = 0.0f;//TMP1075_read_temperature(1);
+                    power_management->vr_temp = TMP1075_read_temperature(1);
                     break;
                 default:
             }
