@@ -29,10 +29,10 @@ static const int  STRATUM_ID_CONFIGURE    = 2;
 typedef struct
 {
     char *job_id;
-    char *prev_block_hash;
+    uint8_t _prev_block_hash[HASH_SIZE];
     char *coinbase_1;
     char *coinbase_2;
-    uint8_t *merkle_branches;
+    uint8_t _merkle_branches[MAX_MERKLE_BRANCHES][HASH_SIZE];
     size_t n_merkle_branches;
     uint32_t version;
     uint32_t version_mask;

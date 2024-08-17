@@ -19,6 +19,8 @@
 #define HISTORY_LENGTH 512
 #define DIFF_STRING_SIZE 10
 
+#define MAX_ASIC_JOBS 128
+
 typedef enum
 {
     DEVICE_UNKNOWN = -1,
@@ -93,9 +95,8 @@ typedef struct
 
     char * extranonce_str;
     int extranonce_2_len;
-    int abandon_work;
 
-    uint8_t * valid_jobs;
+    uint8_t valid_jobs[MAX_ASIC_JOBS];
     pthread_mutex_t valid_jobs_lock;
 
     uint32_t stratum_difficulty;

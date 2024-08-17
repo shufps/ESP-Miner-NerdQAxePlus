@@ -27,8 +27,6 @@ static bool bDNSInvalid = false;
 
 static StratumApiV1Message stratum_api_v1_message = {};
 
-static SystemTaskModule SYSTEM_TASK_MODULE = {.stratum_difficulty = 8192};
-
 void dns_found_cb(const char * name, const ip_addr_t * ipaddr, void * callback_arg)
 {
     if ((ipaddr != NULL)){
@@ -57,13 +55,41 @@ int is_socket_connected(int socket);
 
 void cleanQueue(GlobalState * GLOBAL_STATE) {
     ESP_LOGI(TAG, "Clean Jobs: clearing queue");
-    GLOBAL_STATE->abandon_work = 1;
 
     pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
     for (int i = 0; i < 128; i = i + 4) {
         GLOBAL_STATE->valid_jobs[i] = 0;
     }
     pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
+}
+
+void free_clone_mining_notify(mining_notify *clone) {
+    if (clone->job_id) {
+        free(clone->job_id);
+        clone->job_id = 0;
+    }
+
+    if (clone->coinbase_1) {
+        free(clone->coinbase_1);
+        clone->coinbase_1 = 0;
+    }
+
+    if (clone->coinbase_2) {
+        free(clone->coinbase_2);
+        clone->coinbase_2 = 0;
+    }
+}
+
+void clone_mining_notify(mining_notify *dst, mining_notify *src) {
+    // if we have previous data free it
+    free_clone_mining_notify(dst);
+
+    // copy trivial types
+    *dst = *src;
+    // duplicate dynamic strings with unknown length
+    dst->job_id = strdup(src->job_id);
+    dst->coinbase_1 = strdup(src->coinbase_1);
+    dst->coinbase_2 = strdup(src->coinbase_2);
 }
 
 void stratum_task(void * pvParameters)
@@ -209,19 +235,20 @@ void stratum_task(void * pvParameters)
                     // mark as abandoned
                     if (stratum_api_v1_message.should_abandon_work) {
                         cleanQueue(GLOBAL_STATE);
-                    } else {
-                        GLOBAL_STATE->current_stratum_job = *stratum_api_v1_message.mining_notification;
-                        GLOBAL_STATE->abandon_work = 0;
                     }
+
+                    clone_mining_notify(&GLOBAL_STATE->current_stratum_job, stratum_api_v1_message.mining_notification);
 
                     pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
 
                     // free notify
                     STRATUM_V1_free_mining_notify(stratum_api_v1_message.mining_notification);
                 } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
-                    if (stratum_api_v1_message.new_difficulty != SYSTEM_TASK_MODULE.stratum_difficulty) {
-                        SYSTEM_TASK_MODULE.stratum_difficulty = stratum_api_v1_message.new_difficulty;
-                        ESP_LOGI(TAG, "Set stratum difficulty: %ld", SYSTEM_TASK_MODULE.stratum_difficulty);
+                    if (stratum_api_v1_message.new_difficulty != GLOBAL_STATE->stratum_difficulty) {
+                        pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
+                        GLOBAL_STATE->stratum_difficulty = stratum_api_v1_message.new_difficulty;
+                        pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
+                        ESP_LOGI(TAG, "Set stratum difficulty: %ld", GLOBAL_STATE->stratum_difficulty);
                     }
                 } else if (stratum_api_v1_message.method == MINING_SET_VERSION_MASK ||
                         stratum_api_v1_message.method == STRATUM_RESULT_VERSION_MASK) {

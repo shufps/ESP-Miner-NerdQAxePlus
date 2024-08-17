@@ -52,59 +52,60 @@ char *calculate_merkle_root_hash(const char *coinbase_tx, const uint8_t merkle_b
 }
 
 // take a mining_notify struct with ascii hex strings and convert it to a bm_job struct
-bm_job construct_bm_job(mining_notify *params, const char *merkle_root, const uint32_t version_mask)
+bm_job *construct_bm_job(mining_notify *params, const char *merkle_root, const uint32_t version_mask)
 {
-    bm_job new_job;
+    bm_job *new_job = (bm_job*) malloc(sizeof(bm_job));
 
-    new_job.version = params->version;
-    new_job.starting_nonce = 0;
-    new_job.target = params->target;
-    new_job.ntime = params->ntime;
-    new_job.pool_diff = params->difficulty;
+    new_job->version = params->version;
+    new_job->starting_nonce = 0;
+    new_job->target = params->target;
+    new_job->ntime = params->ntime;
+    new_job->pool_diff = params->difficulty;
 
-    hex2bin(merkle_root, new_job.merkle_root, 32);
+    hex2bin(merkle_root, new_job->merkle_root, 32);
 
     // hex2bin(merkle_root, new_job.merkle_root_be, 32);
-    swap_endian_words(merkle_root, new_job.merkle_root_be);
-    reverse_bytes(new_job.merkle_root_be, 32);
+    swap_endian_words(merkle_root, new_job->merkle_root_be);
+    reverse_bytes(new_job->merkle_root_be, 32);
 
-    swap_endian_words(params->prev_block_hash, new_job.prev_block_hash);
+    swap_endian_words_bin(params->_prev_block_hash, new_job->prev_block_hash, HASH_SIZE);
+    memcpy(new_job->prev_block_hash_be, params->_prev_block_hash, HASH_SIZE);
 
-    hex2bin(params->prev_block_hash, new_job.prev_block_hash_be, 32);
-    reverse_bytes(new_job.prev_block_hash_be, 32);
+    //hex2bin(params->prev_block_hash, new_job.prev_block_hash_be, 32);
+    reverse_bytes(new_job->prev_block_hash_be, 32);
 
     ////make the midstate hash
     uint8_t midstate_data[64];
 
     // copy 68 bytes header data into midstate (and deal with endianess)
-    memcpy(midstate_data, &new_job.version, 4);             // copy version
-    memcpy(midstate_data + 4, new_job.prev_block_hash, 32); // copy prev_block_hash
-    memcpy(midstate_data + 36, new_job.merkle_root, 28);    // copy merkle_root
+    memcpy(midstate_data, &new_job->version, 4);             // copy version
+    memcpy(midstate_data + 4, new_job->prev_block_hash, 32); // copy prev_block_hash
+    memcpy(midstate_data + 36, new_job->merkle_root, 28);    // copy merkle_root
 
-    midstate_sha256_bin(midstate_data, 64, new_job.midstate); // make the midstate hash
-    reverse_bytes(new_job.midstate, 32);                      // reverse the midstate bytes for the BM job packet
+    midstate_sha256_bin(midstate_data, 64, new_job->midstate); // make the midstate hash
+    reverse_bytes(new_job->midstate, 32);                      // reverse the midstate bytes for the BM job packet
 
     if (version_mask != 0)
     {
-        uint32_t rolled_version = increment_bitmask(new_job.version, version_mask);
+        uint32_t rolled_version = increment_bitmask(new_job->version, version_mask);
         memcpy(midstate_data, &rolled_version, 4);
-        midstate_sha256_bin(midstate_data, 64, new_job.midstate1);
-        reverse_bytes(new_job.midstate1, 32);
+        midstate_sha256_bin(midstate_data, 64, new_job->midstate1);
+        reverse_bytes(new_job->midstate1, 32);
 
         rolled_version = increment_bitmask(rolled_version, version_mask);
         memcpy(midstate_data, &rolled_version, 4);
-        midstate_sha256_bin(midstate_data, 64, new_job.midstate2);
-        reverse_bytes(new_job.midstate2, 32);
+        midstate_sha256_bin(midstate_data, 64, new_job->midstate2);
+        reverse_bytes(new_job->midstate2, 32);
 
         rolled_version = increment_bitmask(rolled_version, version_mask);
         memcpy(midstate_data, &rolled_version, 4);
-        midstate_sha256_bin(midstate_data, 64, new_job.midstate3);
-        reverse_bytes(new_job.midstate3, 32);
-        new_job.num_midstates = 4;
+        midstate_sha256_bin(midstate_data, 64, new_job->midstate3);
+        reverse_bytes(new_job->midstate3, 32);
+        new_job->num_midstates = 4;
     }
     else
     {
-        new_job.num_midstates = 1;
+        new_job->num_midstates = 1;
     }
 
     return new_job;

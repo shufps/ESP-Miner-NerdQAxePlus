@@ -17,7 +17,8 @@
         "string_view": "c",
         "*.tcc": "c",
         "chrono": "c",
-        "condition_variable": "c"
+        "condition_variable": "c",
+        "cstdlib": "c"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [
