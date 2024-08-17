@@ -5,6 +5,11 @@
 #include "utils.h"
 #include "mbedtls/sha256.h"
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 void free_bm_job(bm_job *job)
 {
     free(job->jobid);

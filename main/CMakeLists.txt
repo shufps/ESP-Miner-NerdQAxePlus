@@ -16,6 +16,7 @@ SRCS
     "TPS546.c"
     "TPS53647.c"
     "vcore.c"
+    "leak_tracker.c"
 
     "./http_server/http_server.c"
     "./self_test/self_test.c"

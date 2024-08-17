@@ -3,6 +3,11 @@
 #include "nvs.h"
 #include <string.h>
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 #define NVS_CONFIG_NAMESPACE "main"
 
 static const char * TAG = "nvs_config";

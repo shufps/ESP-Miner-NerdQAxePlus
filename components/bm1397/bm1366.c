@@ -15,6 +15,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 #define BM1366_RST_PIN GPIO_NUM_1
 
 #define TYPE_JOB 0x20

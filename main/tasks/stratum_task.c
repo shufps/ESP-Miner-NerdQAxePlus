@@ -232,19 +232,19 @@ void stratum_task(void * pvParameters)
                     // copy current job
                     pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
 
-                    // mark as abandoned
+                    // abandon work clears the asic job list
                     if (stratum_api_v1_message.should_abandon_work) {
                         cleanQueue(GLOBAL_STATE);
                     }
 
                     clone_mining_notify(&GLOBAL_STATE->current_stratum_job, stratum_api_v1_message.mining_notification);
-
                     pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
 
                     // free notify
                     STRATUM_V1_free_mining_notify(stratum_api_v1_message.mining_notification);
                 } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
                     if (stratum_api_v1_message.new_difficulty != GLOBAL_STATE->stratum_difficulty) {
+                        // don't change difficulty while the data is accessed
                         pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
                         GLOBAL_STATE->stratum_difficulty = stratum_api_v1_message.new_difficulty;
                         pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);

@@ -8,6 +8,10 @@
 
 #include <sys/time.h>
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
 static const char *TAG = "create_jobs_task";
 
 void create_jobs_task(void *pvParameters)
