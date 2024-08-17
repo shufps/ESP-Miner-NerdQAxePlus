@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <pthread.h>
 #include "asic_task.h"
 #include "bm1368.h"
 #include "bm1366.h"
@@ -11,7 +12,6 @@
 #include "power_management_task.h"
 #include "serial.h"
 #include "stratum_api.h"
-#include "work_queue.h"
 
 #define STRATUM_USER CONFIG_STRATUM_USER
 
@@ -83,8 +83,8 @@ typedef struct
     double asic_job_frequency_ms;
     uint32_t initial_ASIC_difficulty;
 
-    work_queue stratum_queue;
-    work_queue ASIC_jobs_queue;
+    pthread_mutex_t current_stratum_job_lock;
+    mining_notify current_stratum_job;
 
     bm1397Module BM1397_MODULE;
     SystemModule SYSTEM_MODULE;

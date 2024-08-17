@@ -1,4 +1,3 @@
-#include "work_queue.h"
 #include "global_state.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -12,45 +11,63 @@ static const char *TAG = "create_jobs_task";
 
 void create_jobs_task(void *pvParameters)
 {
-
     GlobalState *GLOBAL_STATE = (GlobalState *)pvParameters;
+
+    uint32_t extranonce_2 = 0;
+
+    GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs = malloc(sizeof(bm_job *) * 128);
+    GLOBAL_STATE->valid_jobs = malloc(sizeof(uint8_t) * 128);
+    for (int i = 0; i < 128; i++)
+    {
+        GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[i] = NULL;
+        GLOBAL_STATE->valid_jobs[i] = 0;
+    }
+
+    ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", GLOBAL_STATE->asic_job_frequency_ms);
+    SYSTEM_notify_mining_started(GLOBAL_STATE);
+    ESP_LOGI(TAG, "ASIC Ready!");
+
+    mining_notify mining_notification;
+    memset(&mining_notification, 0, sizeof(mining_notify));
 
     while (1)
     {
-        mining_notify *mining_notification = (mining_notify *)queue_dequeue(&GLOBAL_STATE->stratum_queue);
-        ESP_LOGI(TAG, "New Work Dequeued %s", mining_notification->job_id);
+        vTaskDelay((GLOBAL_STATE->asic_job_frequency_ms - 0.3) / portTICK_PERIOD_MS);
 
-        uint32_t extranonce_2 = 0;
-        while (GLOBAL_STATE->stratum_queue.count < 1 && extranonce_2 < UINT_MAX && GLOBAL_STATE->abandon_work == 0)
-        {
-            char *extranonce_2_str = extranonce_2_generate(extranonce_2, GLOBAL_STATE->extranonce_2_len);
+        pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
 
-            char *coinbase_tx = construct_coinbase_tx(mining_notification->coinbase_1, mining_notification->coinbase_2, GLOBAL_STATE->extranonce_str, extranonce_2_str);
-
-            char *merkle_root = calculate_merkle_root_hash(coinbase_tx, (uint8_t(*)[32])mining_notification->merkle_branches, mining_notification->n_merkle_branches);
-            bm_job next_job = construct_bm_job(mining_notification, merkle_root, GLOBAL_STATE->version_mask);
-
-            bm_job *queued_next_job = malloc(sizeof(bm_job));
-            memcpy(queued_next_job, &next_job, sizeof(bm_job));
-            queued_next_job->extranonce2 = strdup(extranonce_2_str);
-            queued_next_job->jobid = strdup(mining_notification->job_id);
-            queued_next_job->version_mask = GLOBAL_STATE->version_mask;
-
-            queue_enqueue(&GLOBAL_STATE->ASIC_jobs_queue, queued_next_job);
-
-            free(coinbase_tx);
-            free(merkle_root);
-            free(extranonce_2_str);
-            extranonce_2++;
+        // check the ntime, new jobs have different ntime
+        // is faster than checking the job id
+        if (mining_notification.ntime != GLOBAL_STATE->current_stratum_job.ntime) {
+            ESP_LOGI(TAG, "New Work Received %s", mining_notification.job_id);
+            mining_notify mining_notification = GLOBAL_STATE->current_stratum_job;
         }
 
-        if (GLOBAL_STATE->abandon_work == 1)
+        pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
+
+        char *extranonce_2_str = extranonce_2_generate(extranonce_2, GLOBAL_STATE->extranonce_2_len);
+
+        char *coinbase_tx = construct_coinbase_tx(mining_notification.coinbase_1, mining_notification.coinbase_2, GLOBAL_STATE->extranonce_str, extranonce_2_str);
+
+        char *merkle_root = calculate_merkle_root_hash(coinbase_tx, (uint8_t(*)[32])mining_notification.merkle_branches, mining_notification.n_merkle_branches);
+        bm_job next_job = construct_bm_job(&mining_notification, merkle_root, GLOBAL_STATE->version_mask);
+
+        if (next_job.pool_diff != GLOBAL_STATE->stratum_difficulty)
         {
-            GLOBAL_STATE->abandon_work = 0;
-            ASIC_jobs_queue_clear(&GLOBAL_STATE->ASIC_jobs_queue);
-            xSemaphoreGive(GLOBAL_STATE->ASIC_TASK_MODULE.semaphore);
+            ESP_LOGI(TAG, "New pool difficulty %lu", next_job.pool_diff);
+            GLOBAL_STATE->stratum_difficulty = next_job.pool_diff;
+
+            // adjust difficulty on asic
+            (*GLOBAL_STATE->ASIC_functions.set_difficulty_mask_fn)(GLOBAL_STATE->stratum_difficulty);
         }
 
-        STRATUM_V1_free_mining_notify(mining_notification);
+        (*GLOBAL_STATE->ASIC_functions.send_work_fn)(GLOBAL_STATE, &next_job); // send the job to the ASIC
+
+        free(coinbase_tx);
+        free(merkle_root);
+        free(extranonce_2_str);
+        extranonce_2++;
+
+
     }
 }

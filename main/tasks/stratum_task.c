@@ -7,7 +7,6 @@
 #include "lwip/dns.h"
 #include "nvs_config.h"
 #include "stratum_task.h"
-#include "work_queue.h"
 #include "esp_wifi.h"
 #include <esp_sntp.h>
 #include <time.h>
@@ -59,10 +58,8 @@ int is_socket_connected(int socket);
 void cleanQueue(GlobalState * GLOBAL_STATE) {
     ESP_LOGI(TAG, "Clean Jobs: clearing queue");
     GLOBAL_STATE->abandon_work = 1;
-    queue_clear(&GLOBAL_STATE->stratum_queue);
 
     pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
-    ASIC_jobs_queue_clear(&GLOBAL_STATE->ASIC_jobs_queue);
     for (int i = 0; i < 128; i = i + 4) {
         GLOBAL_STATE->valid_jobs[i] = 0;
     }
@@ -79,7 +76,6 @@ void stratum_task(void * pvParameters)
     int ip_protocol = 0;
 	int retry_attempts = 0;
     int delay_ms = BASE_DELAY_MS;
-
 
     char *stratum_url = GLOBAL_STATE->SYSTEM_MODULE.pool_url;
     uint16_t port = GLOBAL_STATE->SYSTEM_MODULE.pool_port;
@@ -206,17 +202,22 @@ void stratum_task(void * pvParameters)
 
                 if (stratum_api_v1_message.method == MINING_NOTIFY) {
                     SYSTEM_notify_new_ntime(GLOBAL_STATE, stratum_api_v1_message.mining_notification->ntime);
-                    if (stratum_api_v1_message.should_abandon_work &&
-                        (GLOBAL_STATE->stratum_queue.count > 0 || GLOBAL_STATE->ASIC_jobs_queue.count > 0)) {
+
+                    // copy current job
+                    pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
+
+                    // mark as abandoned
+                    if (stratum_api_v1_message.should_abandon_work) {
                         cleanQueue(GLOBAL_STATE);
-                    }
-                    if (GLOBAL_STATE->stratum_queue.count == QUEUE_SIZE) {
-                        mining_notify * next_notify_json_str = (mining_notify *) queue_dequeue(&GLOBAL_STATE->stratum_queue);
-                        STRATUM_V1_free_mining_notify(next_notify_json_str);
+                    } else {
+                        GLOBAL_STATE->current_stratum_job = *stratum_api_v1_message.mining_notification;
+                        GLOBAL_STATE->abandon_work = 0;
                     }
 
-                    stratum_api_v1_message.mining_notification->difficulty = SYSTEM_TASK_MODULE.stratum_difficulty;
-                    queue_enqueue(&GLOBAL_STATE->stratum_queue, stratum_api_v1_message.mining_notification);
+                    pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
+
+                    // free notify
+                    STRATUM_V1_free_mining_notify(stratum_api_v1_message.mining_notification);
                 } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
                     if (stratum_api_v1_message.new_difficulty != SYSTEM_TASK_MODULE.stratum_difficulty) {
                         SYSTEM_TASK_MODULE.stratum_difficulty = stratum_api_v1_message.new_difficulty;
