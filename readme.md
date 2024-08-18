@@ -66,6 +66,11 @@ This are all manual steps:
 ```bash
 # set target and build the binaries
 idf.py set-target esp32s3
+
+# optional if you want to change the sdkconfig
+idf.py menuconfig
+
+# build the binaries
 idf.py build
 
 # creat config.bin nvm partition from config.cvs
