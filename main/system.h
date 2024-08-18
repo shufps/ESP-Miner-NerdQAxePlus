@@ -3,8 +3,6 @@
 
 #include "global_state.h"
 
-#define WEAK __attribute__((weak))
-
 void SYSTEM_task(void * parameters);
 
 void SYSTEM_notify_accepted_share(GlobalState * GLOBAL_STATE);
