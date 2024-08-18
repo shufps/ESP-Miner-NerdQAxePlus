@@ -21,11 +21,7 @@ The current fork supports LVGL library with an UI that works with 8bit parallel 
 
 #### Bitaxetool
 
-The bitaxetool includes all necessary library for flashing the binary file to the Bitaxe Hardware.
-
-The bitaxetool requires a config.cvs preloaded file and the appropiate firmware.bin file in it's executed directory.
-
-3. Flash with the bitaxetool
+The bitaxetool is a convenient way of just flashing the NerdQaxe+ with the factory binary and the `config.csv` config file.
 
 ```
 bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-nerdqaxe+.bin
