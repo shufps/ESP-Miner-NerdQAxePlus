@@ -23,6 +23,11 @@
 #include "ui.h"
 #include "ui_helpers.h"
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 static const char *TAG = "TDisplayS3";
 static bool animations_enabled = false;
 static bool Button1Pressed_Flag = false;

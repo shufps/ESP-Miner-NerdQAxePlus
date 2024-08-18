@@ -2,6 +2,11 @@
 #include "utils.h"
 #include <string.h>
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 TEST_CASE("Test double sha", "[utils]")
 {
     const char *input = "68656c6c6f";

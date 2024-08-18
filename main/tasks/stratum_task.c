@@ -7,10 +7,11 @@
 #include "lwip/dns.h"
 #include "nvs_config.h"
 #include "stratum_task.h"
-#include "work_queue.h"
 #include "esp_wifi.h"
 #include <esp_sntp.h>
 #include <time.h>
+
+#include "create_jobs_task.h"
 
 #define PORT CONFIG_STRATUM_PORT
 #define STRATUM_URL CONFIG_STRATUM_URL
@@ -27,8 +28,6 @@ static bool bDNSFound = false;
 static bool bDNSInvalid = false;
 
 static StratumApiV1Message stratum_api_v1_message = {};
-
-static SystemTaskModule SYSTEM_TASK_MODULE = {.stratum_difficulty = 8192};
 
 void dns_found_cb(const char * name, const ip_addr_t * ipaddr, void * callback_arg)
 {
@@ -58,11 +57,8 @@ int is_socket_connected(int socket);
 
 void cleanQueue(GlobalState * GLOBAL_STATE) {
     ESP_LOGI(TAG, "Clean Jobs: clearing queue");
-    GLOBAL_STATE->abandon_work = 1;
-    queue_clear(&GLOBAL_STATE->stratum_queue);
 
     pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
-    ASIC_jobs_queue_clear(&GLOBAL_STATE->ASIC_jobs_queue);
     for (int i = 0; i < 128; i = i + 4) {
         GLOBAL_STATE->valid_jobs[i] = 0;
     }
@@ -79,7 +75,6 @@ void stratum_task(void * pvParameters)
     int ip_protocol = 0;
 	int retry_attempts = 0;
     int delay_ms = BASE_DELAY_MS;
-
 
     char *stratum_url = GLOBAL_STATE->SYSTEM_MODULE.pool_url;
     uint16_t port = GLOBAL_STATE->SYSTEM_MODULE.pool_port;
@@ -177,7 +172,7 @@ void stratum_task(void * pvParameters)
             STRATUM_V1_subscribe(GLOBAL_STATE->sock, GLOBAL_STATE->asic_model_str);
 
             // mining.configure - ID: 2
-            STRATUM_V1_configure_version_rolling(GLOBAL_STATE->sock, &GLOBAL_STATE->version_mask);
+            STRATUM_V1_configure_version_rolling(GLOBAL_STATE->sock);
 
             //mining.suggest_difficulty - ID: 3
             STRATUM_V1_suggest_difficulty(GLOBAL_STATE->sock, STRATUM_DIFFICULTY);
@@ -206,30 +201,26 @@ void stratum_task(void * pvParameters)
 
                 if (stratum_api_v1_message.method == MINING_NOTIFY) {
                     SYSTEM_notify_new_ntime(GLOBAL_STATE, stratum_api_v1_message.mining_notification->ntime);
-                    if (stratum_api_v1_message.should_abandon_work &&
-                        (GLOBAL_STATE->stratum_queue.count > 0 || GLOBAL_STATE->ASIC_jobs_queue.count > 0)) {
+
+                    // abandon work clears the asic job list
+                    if (stratum_api_v1_message.should_abandon_work) {
                         cleanQueue(GLOBAL_STATE);
                     }
-                    if (GLOBAL_STATE->stratum_queue.count == QUEUE_SIZE) {
-                        mining_notify * next_notify_json_str = (mining_notify *) queue_dequeue(&GLOBAL_STATE->stratum_queue);
-                        STRATUM_V1_free_mining_notify(next_notify_json_str);
-                    }
+                    create_job_mining_notify(stratum_api_v1_message.mining_notification);
 
-                    stratum_api_v1_message.mining_notification->difficulty = SYSTEM_TASK_MODULE.stratum_difficulty;
-                    queue_enqueue(&GLOBAL_STATE->stratum_queue, stratum_api_v1_message.mining_notification);
+                    // free notify
+                    STRATUM_V1_free_mining_notify(stratum_api_v1_message.mining_notification);
                 } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
-                    if (stratum_api_v1_message.new_difficulty != SYSTEM_TASK_MODULE.stratum_difficulty) {
-                        SYSTEM_TASK_MODULE.stratum_difficulty = stratum_api_v1_message.new_difficulty;
-                        ESP_LOGI(TAG, "Set stratum difficulty: %ld", SYSTEM_TASK_MODULE.stratum_difficulty);
+                    if (create_job_set_difficulty(stratum_api_v1_message.new_difficulty)) {
+                        ESP_LOGI(TAG, "Set stratum difficulty: %ld", stratum_api_v1_message.new_difficulty);
                     }
                 } else if (stratum_api_v1_message.method == MINING_SET_VERSION_MASK ||
                         stratum_api_v1_message.method == STRATUM_RESULT_VERSION_MASK) {
                     // 1fffe000
                     ESP_LOGI(TAG, "Set version mask: %08lx", stratum_api_v1_message.version_mask);
-                    GLOBAL_STATE->version_mask = stratum_api_v1_message.version_mask;
+                    create_job_set_version_mask(stratum_api_v1_message.version_mask);
                 } else if (stratum_api_v1_message.method == STRATUM_RESULT_SUBSCRIBE) {
-                    GLOBAL_STATE->extranonce_str = stratum_api_v1_message.extranonce_str;
-                    GLOBAL_STATE->extranonce_2_len = stratum_api_v1_message.extranonce_2_len;
+                    create_job_set_enonce(stratum_api_v1_message.extranonce_str, stratum_api_v1_message.extranonce_2_len);
                 } else if (stratum_api_v1_message.method == CLIENT_RECONNECT) {
                     ESP_LOGE(TAG, "Pool requested client reconnect ...");
                     break;

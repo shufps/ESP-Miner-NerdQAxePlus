@@ -5,6 +5,11 @@
 
 #include "mbedtls/sha256.h"
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 #ifndef bswap_16
 #define bswap_16(a) ((((uint16_t)(a) << 8) & 0xff00) | (((uint16_t)(a) >> 8) & 0xff))
 #endif
@@ -224,6 +229,36 @@ void midstate_sha256_bin(const uint8_t *data, const size_t data_len, uint8_t *de
     // memcpy(dest, midstate.state, 32);
     flip32bytes(dest, midstate.state);
 }
+
+void swap_endian_words_bin(uint8_t *data, uint8_t *output, size_t data_length)
+{
+    // Ensure the binary data length is a multiple of 4 bytes (32 bits)
+    if (data_length % 4 != 0)
+    {
+        fprintf(stderr, "Must be 4-byte word aligned\n");
+        exit(EXIT_FAILURE);
+    }
+
+    uint32_t *src = (uint32_t*) data;
+    uint32_t *dst = (uint32_t*) output;
+    size_t num_words = data_length / 4;
+
+    // Iterate over each 4-byte word in the data
+    for (size_t i = 0; i < num_words; i++)    {
+        // Read the 4-byte word
+        uint32_t word = *src++;
+
+        // Swap the endianess by using bitwise operations
+        word = (word >> 24) |
+               ((word >> 8) & 0x0000FF00) |
+               ((word << 8) & 0x00FF0000) |
+               (word << 24);
+
+        // Store the swapped word back in the same location
+        *dst++ = word;
+    }
+}
+
 
 void swap_endian_words(const char *hex_words, uint8_t *output)
 {

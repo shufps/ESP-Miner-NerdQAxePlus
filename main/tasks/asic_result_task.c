@@ -1,5 +1,4 @@
 #include "system.h"
-#include "work_queue.h"
 #include "serial.h"
 #include "bm1397.h"
 #include <string.h>
@@ -56,7 +55,9 @@ void ASIC_result_task(void *pvParameters)
                 asic_result->nonce,
                 asic_result->rolled_version ^ GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->version);
 
-            SYSTEM_notify_found_nonce(GLOBAL_STATE, (double) pool_difficulty, job_id);
+            SYSTEM_notify_found_nonce(GLOBAL_STATE, (double) pool_difficulty);
         }
+
+        SYSTEM_check_for_best_diff(GLOBAL_STATE, nonce_diff, job_id);
     }
 }

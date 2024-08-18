@@ -29,10 +29,10 @@ static const int  STRATUM_ID_CONFIGURE    = 2;
 typedef struct
 {
     char *job_id;
-    char *prev_block_hash;
+    uint8_t _prev_block_hash[HASH_SIZE];
     char *coinbase_1;
     char *coinbase_2;
-    uint8_t *merkle_branches;
+    uint8_t _merkle_branches[MAX_MERKLE_BRANCHES][HASH_SIZE];
     size_t n_merkle_branches;
     uint32_t version;
     uint32_t version_mask;
@@ -75,7 +75,7 @@ void STRATUM_V1_free_mining_notify(mining_notify *params);
 
 int STRATUM_V1_authenticate(int socket, const char *username, const char *pass);
 
-void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask);
+void STRATUM_V1_configure_version_rolling(int socket);
 
 int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty);
 

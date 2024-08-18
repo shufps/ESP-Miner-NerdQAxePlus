@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <pthread.h>
 #include "asic_task.h"
 #include "bm1368.h"
 #include "bm1366.h"
@@ -11,13 +12,14 @@
 #include "power_management_task.h"
 #include "serial.h"
 #include "stratum_api.h"
-#include "work_queue.h"
 
 #define STRATUM_USER CONFIG_STRATUM_USER
 
 // best is power of 2 for ring buffers
 #define HISTORY_LENGTH 512
-#define DIFF_STRING_SIZE 10
+#define DIFF_STRING_SIZE 12
+
+#define MAX_ASIC_JOBS 128
 
 typedef enum
 {
@@ -51,6 +53,7 @@ typedef struct
     uint64_t historical_hashrate_time_stamps[HISTORY_LENGTH];
     double historical_hashrate[HISTORY_LENGTH];
     double current_hashrate;
+    double hashrate_smoothed;
     int64_t start_time;
     uint64_t shares_accepted;
     uint64_t shares_rejected;
@@ -83,23 +86,13 @@ typedef struct
     double asic_job_frequency_ms;
     uint32_t initial_ASIC_difficulty;
 
-    work_queue stratum_queue;
-    work_queue ASIC_jobs_queue;
-
     bm1397Module BM1397_MODULE;
     SystemModule SYSTEM_MODULE;
     AsicTaskModule ASIC_TASK_MODULE;
     PowerManagementModule POWER_MANAGEMENT_MODULE;
 
-    char * extranonce_str;
-    int extranonce_2_len;
-    int abandon_work;
-
-    uint8_t * valid_jobs;
+    uint8_t valid_jobs[MAX_ASIC_JOBS];
     pthread_mutex_t valid_jobs_lock;
-
-    uint32_t stratum_difficulty;
-    uint32_t version_mask;
 
     int sock;
 

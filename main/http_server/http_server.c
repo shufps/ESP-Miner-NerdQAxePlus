@@ -30,6 +30,11 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 static const char * TAG = "http_server";
 
 static GlobalState * GLOBAL_STATE;
@@ -310,7 +315,7 @@ static esp_err_t PATCH_update_settings(httpd_req_t * req)
     }
     if ((item = cJSON_GetObjectItem(root, "fanspeed")) != NULL) {
         nvs_config_set_u16(NVS_CONFIG_FAN_SPEED, item->valueint);
-    } 
+    }
     if ((item = cJSON_GetObjectItem(root, "autoscreenoff")) != NULL) {
         nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, item->valueint);
     }

@@ -15,6 +15,11 @@
 #include "mining.h"
 #include "global_state.h"
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 #define BM1397_RST_PIN GPIO_NUM_1
 
 #define TYPE_JOB 0x20
@@ -197,7 +202,7 @@ void BM1397_send_hash_frequency(float frequency)
         freqbuf[4] = (unsigned char)fb;
         // fc1, fc2 'should' already be 1..15
         freqbuf[5] = (((unsigned char)fc1 & 0x7) << 4) + ((unsigned char)fc2 & 0x7);
-        
+
         newf = basef / ((float)fb * (float)fc1 * (float)fc2);
     }
 

@@ -13,6 +13,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef DEBUG_MEMORY_LOGGING
+#include "leak_tracker.h"
+#endif
+
+
 #define BUFFER_SIZE 1024
 static const char * TAG = "stratum_api";
 
@@ -260,8 +265,14 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
         mining_notify * new_work = malloc(sizeof(mining_notify));
         // new_work->difficulty = difficulty;
         cJSON * params = cJSON_GetObjectItem(json, "params");
+
         new_work->job_id = strdup(cJSON_GetArrayItem(params, 0)->valuestring);
-        new_work->prev_block_hash = strdup(cJSON_GetArrayItem(params, 1)->valuestring);
+
+        hex2bin(cJSON_GetArrayItem(params, 1)->valuestring, new_work->_prev_block_hash, HASH_SIZE);
+
+        // TODO
+        // is there a safe assumption about coinb1 and coinb2 size?
+        // we would love to use strndup here
         new_work->coinbase_1 = strdup(cJSON_GetArrayItem(params, 2)->valuestring);
         new_work->coinbase_2 = strdup(cJSON_GetArrayItem(params, 3)->valuestring);
 
@@ -271,9 +282,9 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
             printf("Too many Merkle branches.\n");
             abort();
         }
-        new_work->merkle_branches = malloc(HASH_SIZE * new_work->n_merkle_branches);
+
         for (size_t i = 0; i < new_work->n_merkle_branches; i++) {
-            hex2bin(cJSON_GetArrayItem(merkle_branch, i)->valuestring, new_work->merkle_branches + HASH_SIZE * i, HASH_SIZE * 2);
+            hex2bin(cJSON_GetArrayItem(merkle_branch, i)->valuestring, new_work->_merkle_branches[i], HASH_SIZE);
         }
 
         new_work->version = strtoul(cJSON_GetArrayItem(params, 5)->valuestring, NULL, 16);
@@ -304,10 +315,8 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
 void STRATUM_V1_free_mining_notify(mining_notify * params)
 {
     free(params->job_id);
-    free(params->prev_block_hash);
     free(params->coinbase_1);
     free(params->coinbase_2);
-    free(params->merkle_branches);
     free(params);
 }
 
@@ -408,7 +417,7 @@ void STRATUM_V1_submit_share(int socket, const char * username, const char * job
     }
 }
 
-void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)
+void STRATUM_V1_configure_version_rolling(int socket)
 {
     char configure_msg[BUFFER_SIZE * 2];
     sprintf(configure_msg,
