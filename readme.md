@@ -61,9 +61,40 @@ The default `builder` user has `uid:gid = 1000:1000` (like the main user on *bun
 
 #### 3. Compiling & Flashing using the shell
 
-This are all manual steps:
+#### 3.1. Just flashing with dockered `bitaxetool` with factory binary
+
+(no `idf-shell.sh` version)
 
 ```bash
+./docker/bitaxetool.sh --config config.cvs --firmware esp-miner-factory-nerdqaxe+.bin -p /dev/ttyACM0
+```
+
+##### 3.2. Compiling & Flashing using BitAxe tool
+
+(inside of `idf-shell.sh`)
+
+```bash
+# start idf-shell
+./docker/idf-shell.sh
+
+# set target and build the binaries
+idf.py set-target esp32s3
+idf.py build
+
+# merge all partitions including config into a single binary
+./merge_bin.sh nerdqaxe+.bin
+
+bitaxetool --config config.cvs --firmware esp-miner-factory-nerdqaxe+.bin  -p /dev/ttyACM0
+```
+
+#### 3.3. All manual steps for building and flashing
+
+(inside of `idf-shell.sh`)
+
+```bash
+# start idf-shell
+./docker/idf-shell.sh
+
 # set target and build the binaries
 idf.py set-target esp32s3
 
@@ -85,15 +116,6 @@ esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 \
   --flash_mode dio --flash_freq 80m --flash_size 16MB 0x0 nerdqaxe+.bin
 ```
 
-##### 3.1. Compiling & Flashing using BitAxe tool
-
-```bash
-# set target and build the binaries
-idf.py set-target esp32s3
-idf.py build
-
-bitaxetool --config config.cvs --firmware esp-miner-factory-nerdqaxe+.bin  -p /dev/ttyACM0
-```
 
 
 When done just `exit` the shell.
