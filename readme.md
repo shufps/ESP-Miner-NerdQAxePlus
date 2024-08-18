@@ -55,7 +55,9 @@ You will get a new terminal that supports tools like:
 - `esptool.py`
 - `nvs_partition_gen.py`
 
-The current repository will be mounted to `/home/builder/project` with `uid:gid = 1000:1000` (like the main user on *buntu/Mint)
+The current repository will be mounted to `/home/builder/project`.
+
+The default `builder` user has `uid:gid = 1000:1000` (like the main user on *buntu/Mint)
 
 #### 3. Compiling & Flashing using the shell
 
