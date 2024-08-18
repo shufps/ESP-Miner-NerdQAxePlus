@@ -5,6 +5,7 @@ import { eASICModel } from 'src/models/enum/eASICModel';
 import { ISystemInfo } from 'src/models/ISystemInfo';
 
 import { environment } from '../../environments/environment';
+import { IInfluxDB } from 'src/models/IInfluxDB';
 
 @Injectable({
   providedIn: 'root'
@@ -64,12 +65,34 @@ export class SystemService {
     }
   }
 
+  public getInfluxInfo(uri: string = ''): Observable<IInfluxDB> {
+    if (environment.production) {
+      return this.httpClient.get(`${uri}/api/influx/info`) as Observable<IInfluxDB>;
+    } else {
+      return of(
+        {
+          influxEnable: 0,
+          influxURL: "http://192.168.0.1",
+          influxPort: 8086,
+          influxToken: "TOKEN",
+          influxBucket: "BUCKET",
+          influxOrg: "ORG",
+          influxPrefix: "mainnet_stats"
+        }
+      ).pipe(delay(1000));
+    }
+  }
+
   public restart(uri: string = '') {
     return this.httpClient.post(`${uri}/api/system/restart`, {});
   }
 
   public updateSystem(uri: string = '', update: any) {
     return this.httpClient.patch(`${uri}/api/system`, update);
+  }
+
+  public updateInflux(uri: string = '', update: any) {
+    return this.httpClient.patch(`${uri}/api/influx`, update);
   }
 
 

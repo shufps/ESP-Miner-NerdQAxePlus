@@ -1,0 +1,19 @@
+typedef struct
+{
+    float temp;
+    float temp2;
+    float hashing_speed;
+    int invalid_shares;
+    int valid_shares;
+    int difficulty;
+    float best_difficulty;
+    int pool_errors;
+    int accepted;
+    int not_accepted;
+    int total_uptime;
+    float total_best_difficulty;
+    int uptime;
+    int blocks_found;
+    int total_blocks_found;
+    int duplicate_hashes;
+} Stats;

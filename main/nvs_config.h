@@ -27,6 +27,14 @@
 #define NVS_CONFIG_AUTO_SCREEN_OFF "autoscreenoff"
 #define NVS_CONFIG_OVERHEAT_MODE "overheat_mode"
 
+#define NVS_CONFIG_INFLUX_ENABLE "influx_enable"
+#define NVS_CONFIG_INFLUX_URL "influx_url"
+#define NVS_CONFIG_INFLUX_TOKEN "influx_token"
+#define NVS_CONFIG_INFLUX_PORT "influx_port"
+#define NVS_CONFIG_INFLUX_BUCKET "influx_bucket"
+#define NVS_CONFIG_INFLUX_ORG "influx_org"
+#define NVS_CONFIG_INFLUX_PREFIX "influx_prefix"
+
 #define NVS_CONFIG_SWARM "swarmconfig"
 
 char * nvs_config_get_string(const char * key, const char * default_value);
