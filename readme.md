@@ -6,15 +6,14 @@
 | ----------------- | --------------------- |
 | Old Platform      | ~~ESP-IDF v4.4.6~~        |
 | ----------------- | --------------------- |
-| Required Platform | ESP-IDF v5.2.X        | Update!
+| Required Platform | >= ESP-IDF v5.2.X       | Update!
 | ----------------- | --------------------- |
 
-This is a forked version of ESP-miner, the original firmware of Bitaxe project developed by @skot/ESP-Miner, @ben and @jhonny.
+This is a forked version from the NerdAxe miner that was modified for using on the NerdQaxe+.
+
+Both are using ESP-miner as its base - the original firmware of Bitaxe project developed by @skot/ESP-Miner, @ben and @jhonny.
 The current fork supports LVGL library with an UI that works with 8bit parallel screen over `TTGO-TdiplayS3` board.
 
-~~This features unfortunatelly can't be added to the original project because requires specific ESP-IDF version to be built.~~
-
-Now firmware is up to date with current ESP-miner, so this firmware adds a Display layer
 
 
 ## How to flash/update firmware
@@ -23,8 +22,8 @@ Now firmware is up to date with current ESP-miner, so this firmware adds a Displ
 
 Easyiest way to flash firmware. Build your own miner using the folowing firwmare flash tool:
 
-1. Get a TTGO T-display S3 
-1. Get a NerdAxe board
+1. Get a TTGO T-display S3
+1. Get a NerdQaxe+ board
 1. Go to flasher online tool: https://flasher.bitronics.store/ (recommend via Google Chrome incognito mode)
 
 #### Bitaxetool
@@ -36,7 +35,7 @@ The bitaxetool requires a config.cvs preloaded file and the appropiate firmware.
 3. Flash with the bitaxetool
 
 ```
-bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-nerd101-v2.1.4.bin
+bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-nerdqaxe+.bin
 ```
 
 ## How to build firmware
@@ -64,11 +63,11 @@ The following are recommendations but it is necessary that you do have all value
   ```
   key,type,encoding,value
   main,namespace,,
-  asicfrequency,data,u16,485
+  asicfrequency,data,u16,490
   asicvoltage,data,u16,1200
-  asicmodel,data,string,BM1366
-  devicemodel,data,string,ultra
-  boardversion,data,string,101
+  asicmodel,data,string,BM1368
+  devicemodel,data,string,nerdqaxe_plus
+  boardversion,data,string,500
   ```
 
 ## API
@@ -77,7 +76,7 @@ Nerdaxe uses same bitaxe API funcitons.
 For more details take a look at `main/http_server/http_server.c`.
 
 Things that can be done are:
-  
+
   - Get System Info
   - Get Swarm Info
   - Update Swarm
