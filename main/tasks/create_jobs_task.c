@@ -73,6 +73,7 @@ void create_job_set_enonce(char* enonce, int enonce2_len) {
 
 void create_job_mining_notify(mining_notify * notifiy)
 {
+    pthread_mutex_lock(&current_stratum_job_mutex);
     if (current_job.job_id) {
         free(current_job.job_id);
     }
@@ -91,6 +92,7 @@ void create_job_mining_notify(mining_notify * notifiy)
     current_job.job_id = strdup(notifiy->job_id);
     current_job.coinbase_1 = strdup(notifiy->coinbase_1);
     current_job.coinbase_2 = strdup(notifiy->coinbase_2);
+    pthread_mutex_unlock(&current_stratum_job_mutex);
 
     trigger_job_creation();
 }
