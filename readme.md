@@ -18,13 +18,6 @@ The current fork supports LVGL library with an UI that works with 8bit parallel 
 
 ## How to flash/update firmware
 
-#### Online Flashtool [Recommended]
-
-Easyiest way to flash firmware. Build your own miner using the folowing firwmare flash tool:
-
-1. Get a TTGO T-display S3
-1. Get a NerdQaxe+ board
-1. Go to flasher online tool: https://flasher.bitronics.store/ (recommend via Google Chrome incognito mode)
 
 #### Bitaxetool
 
@@ -38,8 +31,72 @@ The bitaxetool requires a config.cvs preloaded file and the appropiate firmware.
 bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-nerdqaxe+.bin
 ```
 
+
 ## How to build firmware
 
+### Using Docker
+
+Docker containers allow to use the toolchain without installing anything on the system.
+
+#### 1. First build the docker container
+
+```bash
+cd docker
+./build_docker.sh
+```
+
+#### 2. How to use it
+
+There are several scripts in the `docker` directory but what is most flexible is to just start the container as bash via
+
+```bash
+./docker/idf-shell.sh
+```
+
+You will get a new terminal that supports tools like:
+- `idf.py`
+- `bitaxetool`
+- `esptool.py`
+- `nvs_partition_gen.py`
+
+The current repository will be mounted to `/home/builder/project` with `uid:gid = 1000:1000` (like the main user on *buntu/Mint)
+
+#### 3. Compiling & Flashing using the shell
+
+This are all manual steps:
+
+```bash
+# set target and build the binaries
+idf.py set-target esp32s3
+idf.py build
+
+# creat config.bin nvm partition from config.cvs
+nvs_partition_gen.py generate config.cvs config.bin 12288
+
+# merge all partitions including config into a single binary
+./merge_bin_with_config.sh nerdqaxe+.bin
+
+# flash using esptool
+esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 \
+  --before=default_reset --after=hard_reset write_flash \
+  --flash_mode dio --flash_freq 80m --flash_size 16MB 0x0 nerdqaxe+.bin
+```
+
+##### 3.1. Compiling & Flashing using BitAxe tool
+
+```bash
+# set target and build the binaries
+idf.py set-target esp32s3
+idf.py build
+
+bitaxetool --config config.cvs --firmware esp-miner-factory-nerdqaxe+.bin  -p /dev/ttyACM0
+```
+
+
+When done just `exit` the shell.
+
+
+### Without Docker
 
 Install bitaxetool from pip. pip is included with Python 3.4 but if you need to install it check <https://pip.pypa.io/en/stable/installation/>
 
