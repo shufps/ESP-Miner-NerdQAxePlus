@@ -21,7 +21,7 @@
 static GlobalState GLOBAL_STATE = {.extranonce_str = NULL, .extranonce_2_len = 0, .version_mask = 0, .stratum_difficulty = 8192};
 
 static const char * TAG = "bitaxe";
-static const double NONCE_SPACE = 4294967296.0; //  2^32
+//static const double NONCE_SPACE = 4294967296.0; //  2^32
 
 void app_main(void)
 {
@@ -87,7 +87,7 @@ void app_main(void)
                                         .set_difficulty_mask_fn = BM1368_set_job_difficulty_mask,
                                         .send_work_fn = BM1368_send_work};
         //GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1368_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce Space
-        GLOBAL_STATE.asic_job_frequency_ms = 500; //ms
+        GLOBAL_STATE.asic_job_frequency_ms = 1000; //ms
         GLOBAL_STATE.initial_ASIC_difficulty = BM1368_INITIAL_DIFFICULTY;
 
         GLOBAL_STATE.ASIC_functions = ASIC_functions;
@@ -99,7 +99,7 @@ void app_main(void)
                                         .set_max_baud_fn = BM1397_set_max_baud,
                                         .set_difficulty_mask_fn = BM1397_set_job_difficulty_mask,
                                         .send_work_fn = BM1397_send_work};
-        GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1397_SMALL_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // no version-rolling so same Nonce Space is splitted between Small Cores
+        GLOBAL_STATE.asic_job_frequency_ms = 1200;//(NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1397_SMALL_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // no version-rolling so same Nonce Space is splitted between Small Cores
         GLOBAL_STATE.initial_ASIC_difficulty = BM1397_INITIAL_DIFFICULTY;
 
         GLOBAL_STATE.ASIC_functions = ASIC_functions;

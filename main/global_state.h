@@ -17,7 +17,7 @@
 
 // best is power of 2 for ring buffers
 #define HISTORY_LENGTH 512
-#define DIFF_STRING_SIZE 10
+#define DIFF_STRING_SIZE 12
 
 #define MAX_ASIC_JOBS 128
 
@@ -53,6 +53,7 @@ typedef struct
     uint64_t historical_hashrate_time_stamps[HISTORY_LENGTH];
     double historical_hashrate[HISTORY_LENGTH];
     double current_hashrate;
+    double hashrate_smoothed;
     int64_t start_time;
     uint64_t shares_accepted;
     uint64_t shares_rejected;

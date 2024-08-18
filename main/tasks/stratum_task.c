@@ -256,8 +256,11 @@ void stratum_task(void * pvParameters)
                     ESP_LOGI(TAG, "Set version mask: %08lx", stratum_api_v1_message.version_mask);
                     GLOBAL_STATE->version_mask = stratum_api_v1_message.version_mask;
                 } else if (stratum_api_v1_message.method == STRATUM_RESULT_SUBSCRIBE) {
+                    // don't change difficulty while the data is accessed
+                    pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
                     GLOBAL_STATE->extranonce_str = stratum_api_v1_message.extranonce_str;
                     GLOBAL_STATE->extranonce_2_len = stratum_api_v1_message.extranonce_2_len;
+                    pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
                 } else if (stratum_api_v1_message.method == CLIENT_RECONNECT) {
                     ESP_LOGE(TAG, "Pool requested client reconnect ...");
                     break;
