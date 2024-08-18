@@ -17,9 +17,9 @@
 
 /* PMBUS_ON_OFF_CONFIG initialization values */
 // tps53647 only supports bit 2 and 3
-// 3: device responds to the on_off_operation command
-// 2: device ignores enable pin
-#define ON_OFF_CONFIG 0b00011011
+// 3: device doesn't responds to the on_off_operation command
+// 2: device uses the enable pin
+#define ON_OFF_CONFIG 0b00010111
 
 //#define ON_OFF_CONFIG 0x08
 

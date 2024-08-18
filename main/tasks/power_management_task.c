@@ -74,13 +74,10 @@ static double automatic_fan_speed(float chip_temp, GlobalState * GLOBAL_STATE)
 	return result;
 }
 
-void POWER_MANAGEMENT_task(void * pvParameters)
-{
-    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
+void power_management_task_init_board_config(void* state) {
+    GlobalState *GLOBAL_STATE = (GlobalState *) state;
 
     PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
-
-    power_management->frequency_multiplier = 1;
 
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
@@ -90,13 +87,20 @@ void POWER_MANAGEMENT_task(void * pvParameters)
             power_management->HAS_PLUG_SENSE = GLOBAL_STATE->board_version == 204;
             break;
         case DEVICE_NERDQAXE_PLUS:
-            // we have the port wired to the EN pin but we don't use it
-            // and enable per i2c
-            power_management->HAS_POWER_EN = false;
+            power_management->HAS_POWER_EN = false; // TODO nerdqaxe+ buck enable is high active
             power_management->HAS_PLUG_SENSE = false;
         break;
         default:
     }
+}
+
+void POWER_MANAGEMENT_task(void * pvParameters)
+{
+    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
+
+    PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
+
+    power_management->frequency_multiplier = 1;
 
     int last_frequency_increase = 0;
 
@@ -117,20 +121,24 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 gpio_config(&barrel_jack_conf);
                 int barrel_jack_plugged_in = gpio_get_level(GPIO_NUM_12);
 
-                gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-                if (barrel_jack_plugged_in == 1 || !power_management->HAS_PLUG_SENSE) {
-                    // turn ASIC on
-                    gpio_set_level(GPIO_NUM_10, 0);
-                } else {
-                    // turn ASIC off
-                    gpio_set_level(GPIO_NUM_10, 1);
+                if (power_management->HAS_POWER_EN) {
+                    gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
+                    if (barrel_jack_plugged_in == 1 || !power_management->HAS_PLUG_SENSE) {
+                        // turn ASIC on
+                        gpio_set_level(GPIO_NUM_10, 0);
+                    } else {
+                        // turn ASIC off
+                        gpio_set_level(GPIO_NUM_10, 1);
+                    }
                 }
 			}
             break;
         case DEVICE_NERDQAXE_PLUS:
-            // no barrel jack switch used
-	    // we have an EN but it is deactivated via i2c
-            // gpio_set_level(GPIO_NUM_10, 0);
+            if (power_management->HAS_POWER_EN) {
+                gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
+                gpio_set_level(GPIO_NUM_10, 0);
+            }
+
             break;
         default:
     }
@@ -160,7 +168,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 power_management->voltage = TPS53647_get_vin() * 1000.0;
                 power_management->current = TPS53647_get_iin() * 1000.0;
                 power_management->power = TPS53647_get_pin();
-                power_management->fan_rpm = EMC2302_get_fan_speed();
+                EMC2302_get_fan_speed(&power_management->fan_rpm);
                 break;
             default:
         }
@@ -259,7 +267,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
         // Read the state of GPIO12
         if (power_management->HAS_PLUG_SENSE) {
             int gpio12_state = gpio_get_level(GPIO_NUM_12);
-            if (gpio12_state == 0) {
+            if (power_management->HAS_POWER_EN && gpio12_state == 0) {
                 // turn ASIC off
                 gpio_set_level(GPIO_NUM_10, 1);
             }

@@ -9,6 +9,7 @@
 #include "nvs_config.h"
 #include "nvs_flash.h"
 
+
 #ifdef DISPLAY_OLED
 #include "oled.h"
 #endif
@@ -51,7 +52,7 @@ static bool fan_sense_pass(GlobalState * GLOBAL_STATE)
             fan_speed = EMC2101_get_fan_speed();
             break;
         case DEVICE_NERDQAXE_PLUS:
-            fan_speed = EMC2302_get_fan_speed();
+            EMC2302_get_fan_speed(&fan_speed);
             break;
         default:
     }
@@ -93,6 +94,8 @@ void self_test(void * pvParameters)
 
     GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
 
+    PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
+
     for (int i = 0; i < MAX_ASIC_JOBS; i++) {
 
         GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[i] = NULL;
@@ -105,8 +108,10 @@ void self_test(void * pvParameters)
         case DEVICE_SUPRA:
         case DEVICE_NERDQAXE_PLUS:
             // turn ASIC on
-            gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-            gpio_set_level(GPIO_NUM_10, 0);
+            if (power_management->HAS_POWER_EN) {
+                gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
+                gpio_set_level(GPIO_NUM_10, 0);
+            }
             break;
         default:
     }
@@ -245,8 +250,7 @@ void self_test(void * pvParameters)
         return;
     }
 
-    free(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs);
-    free(GLOBAL_STATE->valid_jobs);
+    free(job);
 
     if (!core_voltage_pass(GLOBAL_STATE)) {
         ESP_LOGE(TAG, "SELF TEST FAIL, NO CHIPS DETECTED");

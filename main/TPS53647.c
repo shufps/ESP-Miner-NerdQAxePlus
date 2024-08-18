@@ -24,6 +24,8 @@
 
 static const char *TAG = "TPS53647.c";
 
+static bool is_initialized = false;
+
 /**
  * @brief SMBus read byte
  */
@@ -40,10 +42,9 @@ static esp_err_t smb_read_byte(uint8_t command, uint8_t *data)
     i2c_master_read_byte(cmd, data, NACK_VALUE);
     i2c_master_stop(cmd);
     i2c_set_timeout(I2C_MASTER_NUM, 20);
-    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
     i2c_cmd_link_delete(cmd);
 
-    // return get an actual error status
     return err;
 }
 
@@ -60,10 +61,9 @@ static esp_err_t smb_write_byte(uint8_t command, uint8_t data)
     i2c_master_write_byte(cmd, command, ACK_CHECK);
     i2c_master_write_byte(cmd, data, ACK_CHECK);
     i2c_master_stop(cmd);
-    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
     i2c_cmd_link_delete(cmd);
 
-    // TODO return an actual error status
     return err;
 }
 
@@ -76,10 +76,9 @@ static esp_err_t smb_write_command(uint8_t command)
     i2c_master_write_byte(cmd, TPS53647_I2CADDR << 1 | WRITE_BIT, ACK_CHECK);
     i2c_master_write_byte(cmd, command, ACK_CHECK);
     i2c_master_stop(cmd);
-    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
     i2c_cmd_link_delete(cmd);
 
-    // TODO return an actual error status
     return err;
 }
 
@@ -101,11 +100,11 @@ static esp_err_t smb_read_word(uint8_t command, uint16_t *result)
     i2c_master_read_byte(cmd, &data[1], NACK_VALUE);
     i2c_master_stop(cmd);
     i2c_set_timeout(I2C_MASTER_NUM, 20);
-    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
     i2c_cmd_link_delete(cmd);
 
     *result = (data[1] << 8) + data[0];
-    // TODO return an actual error status
+
     return err;
 }
 
@@ -123,10 +122,9 @@ static esp_err_t smb_write_word(uint8_t command, uint16_t data)
     i2c_master_write_byte(cmd, (uint8_t)(data & 0x00FF), ACK_CHECK);
     i2c_master_write_byte(cmd, (uint8_t)((data & 0xFF00) >> 8), NACK_VALUE);
     i2c_master_stop(cmd);
-    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
     i2c_cmd_link_delete(cmd);
 
-    // TODO return an actual error status
     return err;
 }
 
@@ -135,15 +133,23 @@ static esp_err_t smb_write_word(uint8_t command, uint16_t data)
  */
 static esp_err_t smb_read_block(uint8_t command, uint8_t *data, uint8_t len)
 {
+    esp_err_t err;
+    uint8_t slave_len = 0;
+
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, TPS53647_I2CADDR << 1 | WRITE_BIT, ACK_CHECK);
     i2c_master_write_byte(cmd, command, ACK_CHECK);
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, TPS53647_I2CADDR << 1 | READ_BIT, ACK_CHECK);
-    uint8_t slave_len = 0;
     i2c_master_read_byte(cmd, &slave_len, ACK_VALUE);
-    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
+
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
+    if (err != ESP_OK) {
+        i2c_cmd_link_delete(cmd);
+        return err;
+    }
+
     i2c_cmd_link_delete(cmd);
 
     cmd = i2c_cmd_link_create();
@@ -153,11 +159,10 @@ static esp_err_t smb_read_block(uint8_t command, uint8_t *data, uint8_t len)
     }
     i2c_master_read_byte(cmd, &data[slave_len - 1], NACK_VALUE);
     i2c_master_stop(cmd);
-    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
-    i2c_cmd_link_delete(cmd);
 
-    // TODO return an actual error status
-    return 0;
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
+    i2c_cmd_link_delete(cmd);
+    return err;
 }
 
 /**
@@ -165,6 +170,8 @@ static esp_err_t smb_read_block(uint8_t command, uint8_t *data, uint8_t len)
  */
 static esp_err_t smb_write_block(uint8_t command, uint8_t *data, uint8_t len)
 {
+    esp_err_t err;
+
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, TPS53647_I2CADDR << 1 | WRITE_BIT, ACK_CHECK);
@@ -176,11 +183,11 @@ static esp_err_t smb_write_block(uint8_t command, uint8_t *data, uint8_t len)
     }
     i2c_master_stop(cmd);
     i2c_set_timeout(I2C_MASTER_NUM, 20);
-    ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT));
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
     i2c_cmd_link_delete(cmd);
 
     // TODO return an actual error status
-    return 0;
+    return err;
 }
 
 
@@ -378,7 +385,7 @@ int TPS53647_init(void)
     ESP_LOGI(TAG, "Initializing the core voltage regulator");
 
     /* Establish communication with regulator */
-    uint16_t device_code;
+    uint16_t device_code = 0x0000;
     smb_read_word(PMBUS_MFR_SPECIFIC_44, &device_code);
 
     ESP_LOGI(TAG, "Device Code: %04x", device_code);
@@ -394,7 +401,7 @@ int TPS53647_init(void)
 
     /* set ON_OFF config, make sure the buck is switched off */
     smb_write_byte(PMBUS_ON_OFF_CONFIG, ON_OFF_CONFIG);
-    smb_write_byte(PMBUS_OPERATION, OPERATION_OFF);
+    //smb_write_byte(PMBUS_OPERATION, OPERATION_OFF);
 
     // Switch frequency, 500kHz
     smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20); // default value
@@ -465,6 +472,8 @@ int TPS53647_init(void)
                 1,                   // Priority of the task
                 NULL);               // Task handle (optional)
 */
+    is_initialized = true;
+
     return 0;
 }
 
@@ -472,6 +481,11 @@ int TPS53647_get_temperature(void)
 {
     uint16_t value;
     int temp;
+
+    if (!is_initialized) {
+        return 0;
+    }
+
 
     smb_read_word(PMBUS_READ_TEMPERATURE_1, &value);
     temp = slinear11_2_int(value);
@@ -482,6 +496,10 @@ float TPS53647_get_pin(void)
 {
     uint16_t u16_value;
     float pin;
+
+    if (!is_initialized) {
+        return 0.0f;
+    }
 
     /* Get voltage input (SLINEAR11) */
     smb_read_word(PMBUS_READ_PIN, &u16_value);
@@ -497,13 +515,17 @@ float TPS53647_get_pout(void)
     uint16_t u16_value;
     float pout;
 
+    if (!is_initialized) {
+        return 0.0f;
+    }
+
     /* Get voltage input (SLINEAR11) */
     smb_read_word(PMBUS_READ_POUT, &u16_value);
     pout = slinear11_2_float(u16_value);
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Pout: %2.3f W", pout);
 #endif
-    return pout; 
+    return pout;
 }
 
 
@@ -511,6 +533,10 @@ float TPS53647_get_vin(void)
 {
     uint16_t u16_value;
     float vin;
+
+    if (!is_initialized) {
+        return 0.0f;
+    }
 
     /* Get voltage input (SLINEAR11) */
     smb_read_word(PMBUS_READ_VIN, &u16_value);
@@ -526,6 +552,10 @@ float TPS53647_get_vout(void)
     uint16_t u16_value;
     float vout;
 
+    if (!is_initialized) {
+        return 0.0f;
+    }
+
     smb_read_word(PMBUS_MFR_SPECIFIC_04, &u16_value);
 
     vout = (float) u16_value * powf(2.0f, -9.0f);
@@ -539,6 +569,10 @@ float TPS53647_get_iin(void)
 {
     uint16_t u16_value;
     float iin;
+
+    if (!is_initialized) {
+        return 0.0f;
+    }
 
     /* Get current output (SLINEAR11) */
     smb_read_word(PMBUS_READ_IIN, &u16_value);
@@ -555,6 +589,10 @@ float TPS53647_get_iout(void)
     uint16_t u16_value;
     float iout;
 
+    if (!is_initialized) {
+        return 0.0f;
+    }
+
     /* Get current output (SLINEAR11) */
     smb_read_word(PMBUS_READ_IOUT, &u16_value);
     iout = slinear11_2_float(u16_value);
@@ -564,9 +602,6 @@ float TPS53647_get_iout(void)
 #endif
     return iout;
 }
-
-
-
 
 /**
  * @brief Sets the core voltage
@@ -589,7 +624,9 @@ void TPS53647_set_vout(float volts)
         return;
     }
 
-    smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
+//    smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
+    gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_10, 1);
 
     /* set output voltage */
     smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(volts));

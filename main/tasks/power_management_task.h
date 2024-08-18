@@ -19,5 +19,6 @@ typedef struct
 } PowerManagementModule;
 
 void POWER_MANAGEMENT_task(void * pvParameters);
+void power_management_task_init_board_config(void* state);
 
 #endif

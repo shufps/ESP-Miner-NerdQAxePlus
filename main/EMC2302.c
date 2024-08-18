@@ -7,24 +7,37 @@
 
 const char *TAG = "emc2301";
 
-void EMC2302_set_fan_speed(float percent) {
+esp_err_t EMC2302_set_fan_speed(float percent) {
     int value = (int) (percent * 255.0 + 0.5);
     value = (value > 255) ? 255 : value;
 
+    esp_err_t err;
+
     ESP_LOGI(TAG, "setting fan speed to %.2f%% (0x%02x)", percent, value);
 
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_FAN_SETTING, (uint8_t) value));
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_FAN_SETTING, (uint8_t) value));
-
+    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_FAN_SETTING, (uint8_t) value);
+    if (err != ESP_OK) {
+        return err;
+    }
+    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_FAN_SETTING, (uint8_t) value);
+    return err;
 }
 
-uint16_t EMC2302_get_fan_speed(void) {
+esp_err_t EMC2302_get_fan_speed(uint16_t *dst) {
+    esp_err_t err;
     uint8_t tach_lsb, tach_msb;
 
-
     // report only first fan
-    ESP_ERROR_CHECK(i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1));
-    ESP_ERROR_CHECK(i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1));
+    err = i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1);
+    if (err != ESP_OK) {
+        *dst = 0;
+        return err;
+    }
+    err = i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1);
+    if (err != ESP_OK) {
+        *dst = 0;
+        return err;
+    }
 
     // ESP_LOGI(TAG, "Raw Fan Speed = %02X %02X", tach_msb, tach_lsb);
 
@@ -56,27 +69,43 @@ uint16_t EMC2302_get_fan_speed(void) {
         ESP_LOGI(TAG, "fan speed: %dRPM", rpm);
     }
 
-    return (uint16_t) rpm;
+    *dst = rpm;
+    return ESP_OK;
 }
 
 bool EMC2302_init(bool invertPolarity) {
+    esp_err_t err;
     ESP_LOGI(TAG, "initializing EMC2302");
 
-    //ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_CONFIG, 0x40 /* default */));
-
     // set polarity of ch1 and ch2
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_POLARITY, (invertPolarity) ? 0x03 : 0x00));
+    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_POLARITY, (invertPolarity) ? 0x03 : 0x00);
+    if (err != ESP_OK) {
+        return false;
+    }
 
     // set output type to push pull of ch1 and ch2
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_OUTPUT_CONFIG, 0x03));
+    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_OUTPUT_CONFIG, 0x03);
+    if (err != ESP_OK) {
+        return false;
+    }
 
     // set base frequency of ch1 and ch2 to 19.53kHz
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_BASE_F123, (0x01 << 0) | (0x01 << 3)));
+    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_BASE_F123, (0x01 << 0) | (0x01 << 3));
+    if (err != ESP_OK) {
+        return false;
+    }
 
     // manual fan control
     // bits 4-3: 0b01 = 5 edge samples (2 poles)
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_FAN_CONFIG1, (0b01 << 3)));
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_FAN_CONFIG1, (0b01 << 3)));
+    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_FAN_CONFIG1, (0b01 << 3));
+    if (err != ESP_OK) {
+        return false;
+    }
+
+    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_FAN_CONFIG1, (0b01 << 3));
+    if (err != ESP_OK) {
+        return false;
+    }
 
     return true;
 }

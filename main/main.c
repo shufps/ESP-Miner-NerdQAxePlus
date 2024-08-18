@@ -116,6 +116,10 @@ void app_main(void)
 
     bool is_max = GLOBAL_STATE.asic_model == ASIC_BM1397;
     uint64_t best_diff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
+
+    // set variables HAS_POWER_EN and HAS_PLUG_SENSE
+    power_management_task_init_board_config(&GLOBAL_STATE);
+
     uint16_t should_self_test = nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0);
     if (should_self_test == 1 && !is_max && best_diff < 1) {
         self_test((void *) &GLOBAL_STATE);

@@ -37,6 +37,6 @@
 
 
 
-void EMC2302_set_fan_speed(float);
-uint16_t EMC2302_get_fan_speed(void);
+esp_err_t EMC2302_set_fan_speed(float);
+esp_err_t EMC2302_get_fan_speed(uint16_t *dst);
 bool EMC2302_init(bool);
