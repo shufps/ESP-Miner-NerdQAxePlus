@@ -417,7 +417,7 @@ void STRATUM_V1_submit_share(int socket, const char * username, const char * job
     }
 }
 
-void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)
+void STRATUM_V1_configure_version_rolling(int socket)
 {
     char configure_msg[BUFFER_SIZE * 2];
     sprintf(configure_msg,

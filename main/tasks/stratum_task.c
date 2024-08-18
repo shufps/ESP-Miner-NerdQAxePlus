@@ -11,6 +11,8 @@
 #include <esp_sntp.h>
 #include <time.h>
 
+#include "create_jobs_task.h"
+
 #define PORT CONFIG_STRATUM_PORT
 #define STRATUM_URL CONFIG_STRATUM_URL
 
@@ -61,35 +63,6 @@ void cleanQueue(GlobalState * GLOBAL_STATE) {
         GLOBAL_STATE->valid_jobs[i] = 0;
     }
     pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
-}
-
-void free_clone_mining_notify(mining_notify *clone) {
-    if (clone->job_id) {
-        free(clone->job_id);
-        clone->job_id = 0;
-    }
-
-    if (clone->coinbase_1) {
-        free(clone->coinbase_1);
-        clone->coinbase_1 = 0;
-    }
-
-    if (clone->coinbase_2) {
-        free(clone->coinbase_2);
-        clone->coinbase_2 = 0;
-    }
-}
-
-void clone_mining_notify(mining_notify *dst, mining_notify *src) {
-    // if we have previous data free it
-    free_clone_mining_notify(dst);
-
-    // copy trivial types
-    *dst = *src;
-    // duplicate dynamic strings with unknown length
-    dst->job_id = strdup(src->job_id);
-    dst->coinbase_1 = strdup(src->coinbase_1);
-    dst->coinbase_2 = strdup(src->coinbase_2);
 }
 
 void stratum_task(void * pvParameters)
@@ -199,7 +172,7 @@ void stratum_task(void * pvParameters)
             STRATUM_V1_subscribe(GLOBAL_STATE->sock, GLOBAL_STATE->asic_model_str);
 
             // mining.configure - ID: 2
-            STRATUM_V1_configure_version_rolling(GLOBAL_STATE->sock, &GLOBAL_STATE->version_mask);
+            STRATUM_V1_configure_version_rolling(GLOBAL_STATE->sock);
 
             //mining.suggest_difficulty - ID: 3
             STRATUM_V1_suggest_difficulty(GLOBAL_STATE->sock, STRATUM_DIFFICULTY);
@@ -229,38 +202,25 @@ void stratum_task(void * pvParameters)
                 if (stratum_api_v1_message.method == MINING_NOTIFY) {
                     SYSTEM_notify_new_ntime(GLOBAL_STATE, stratum_api_v1_message.mining_notification->ntime);
 
-                    // copy current job
-                    pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
-
                     // abandon work clears the asic job list
                     if (stratum_api_v1_message.should_abandon_work) {
                         cleanQueue(GLOBAL_STATE);
                     }
-
-                    clone_mining_notify(&GLOBAL_STATE->current_stratum_job, stratum_api_v1_message.mining_notification);
-                    pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
+                    create_job_mining_notify(stratum_api_v1_message.mining_notification);
 
                     // free notify
                     STRATUM_V1_free_mining_notify(stratum_api_v1_message.mining_notification);
                 } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
-                    if (stratum_api_v1_message.new_difficulty != GLOBAL_STATE->stratum_difficulty) {
-                        // don't change difficulty while the data is accessed
-                        pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
-                        GLOBAL_STATE->stratum_difficulty = stratum_api_v1_message.new_difficulty;
-                        pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
-                        ESP_LOGI(TAG, "Set stratum difficulty: %ld", GLOBAL_STATE->stratum_difficulty);
+                    if (create_job_set_difficulty(stratum_api_v1_message.new_difficulty)) {
+                        ESP_LOGI(TAG, "Set stratum difficulty: %ld", stratum_api_v1_message.new_difficulty);
                     }
                 } else if (stratum_api_v1_message.method == MINING_SET_VERSION_MASK ||
                         stratum_api_v1_message.method == STRATUM_RESULT_VERSION_MASK) {
                     // 1fffe000
                     ESP_LOGI(TAG, "Set version mask: %08lx", stratum_api_v1_message.version_mask);
-                    GLOBAL_STATE->version_mask = stratum_api_v1_message.version_mask;
+                    create_job_set_version_mask(stratum_api_v1_message.version_mask);
                 } else if (stratum_api_v1_message.method == STRATUM_RESULT_SUBSCRIBE) {
-                    // don't change difficulty while the data is accessed
-                    pthread_mutex_lock(&GLOBAL_STATE->current_stratum_job_lock);
-                    GLOBAL_STATE->extranonce_str = stratum_api_v1_message.extranonce_str;
-                    GLOBAL_STATE->extranonce_2_len = stratum_api_v1_message.extranonce_2_len;
-                    pthread_mutex_unlock(&GLOBAL_STATE->current_stratum_job_lock);
+                    create_job_set_enonce(stratum_api_v1_message.extranonce_str, stratum_api_v1_message.extranonce_2_len);
                 } else if (stratum_api_v1_message.method == CLIENT_RECONNECT) {
                     ESP_LOGE(TAG, "Pool requested client reconnect ...");
                     break;

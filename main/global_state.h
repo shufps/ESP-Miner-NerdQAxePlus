@@ -86,22 +86,13 @@ typedef struct
     double asic_job_frequency_ms;
     uint32_t initial_ASIC_difficulty;
 
-    pthread_mutex_t current_stratum_job_lock;
-    mining_notify current_stratum_job;
-
     bm1397Module BM1397_MODULE;
     SystemModule SYSTEM_MODULE;
     AsicTaskModule ASIC_TASK_MODULE;
     PowerManagementModule POWER_MANAGEMENT_MODULE;
 
-    char * extranonce_str;
-    int extranonce_2_len;
-
     uint8_t valid_jobs[MAX_ASIC_JOBS];
     pthread_mutex_t valid_jobs_lock;
-
-    uint32_t stratum_difficulty;
-    uint32_t version_mask;
 
     int sock;
 

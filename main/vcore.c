@@ -32,6 +32,7 @@ void VCORE_init(GlobalState * global_state) {
             }
             break;
             ADC_init();
+            break;
         case DEVICE_NERDQAXE_PLUS:
             TPS53647_init();
             break;

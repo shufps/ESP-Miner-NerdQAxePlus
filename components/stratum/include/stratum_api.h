@@ -75,7 +75,7 @@ void STRATUM_V1_free_mining_notify(mining_notify *params);
 
 int STRATUM_V1_authenticate(int socket, const char *username, const char *pass);
 
-void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask);
+void STRATUM_V1_configure_version_rolling(int socket);
 
 int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty);
 

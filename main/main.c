@@ -18,7 +18,7 @@
 #include "stratum_task.h"
 #include "user_input_task.h"
 
-static GlobalState GLOBAL_STATE = {.extranonce_str = NULL, .extranonce_2_len = 0, .version_mask = 0, .stratum_difficulty = 8192};
+static GlobalState GLOBAL_STATE = {};
 
 static const char * TAG = "bitaxe";
 //static const double NONCE_SPACE = 4294967296.0; //  2^32
@@ -181,10 +181,7 @@ void app_main(void)
         SERIAL_set_baud((*GLOBAL_STATE.ASIC_functions.set_max_baud_fn)());
         SERIAL_clear_buffer();
 
-        pthread_mutex_init(&GLOBAL_STATE.current_stratum_job_lock, NULL);
         pthread_mutex_init(&GLOBAL_STATE.valid_jobs_lock, NULL);
-
-        memset(&GLOBAL_STATE.current_stratum_job, 0, sizeof(mining_notify));
 
         for (int i = 0; i < MAX_ASIC_JOBS; i++)
         {
