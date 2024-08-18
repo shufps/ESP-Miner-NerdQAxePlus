@@ -27,7 +27,7 @@ RUN cp /tmp/esp-idf-nvs-partition-gen/esp_idf_nvs_partition_gen/nvs_partition_ge
 RUN rm -rf /tmp/esp-idf-nvs-partition-gen
 
 # Set working directory
-WORKDIR /home/builder
+WORKDIR /home/builder/project
 
 # Switch to the unprivileged user
 USER builder
