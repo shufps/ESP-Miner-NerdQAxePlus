@@ -36,7 +36,7 @@ bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-nerdqaxe+.bin
 
 ### Using Docker
 
-Docker containers allow to use the toolchain without installing `esp-idf` or `node20` on the system.
+Docker containers allow to use the toolchain without installing `esp-idf` or `Node 20.x` on the system.
 
 #### 1. First build the docker container
 
