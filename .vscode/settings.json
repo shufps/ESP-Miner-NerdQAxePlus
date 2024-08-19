@@ -18,7 +18,8 @@
         "*.tcc": "c",
         "chrono": "c",
         "condition_variable": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "mutex": "c"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

@@ -16,6 +16,8 @@
 #include "vcore.h"
 #include <string.h>
 
+#include "influx_task.h"
+
 #define POLL_RATE 2000
 #define MAX_TEMP 90.0
 #define THROTTLE_TEMP 75.0
@@ -165,9 +167,18 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 power_management->fan_rpm = EMC2101_get_fan_speed();
                 break;
             case DEVICE_NERDQAXE_PLUS:
-                power_management->voltage = TPS53647_get_vin() * 1000.0;
-                power_management->current = TPS53647_get_iin() * 1000.0;
-                power_management->power = TPS53647_get_pin();
+                float vin = TPS53647_get_vin();
+                float iin = TPS53647_get_iin();
+                float pin = TPS53647_get_pin();
+                float pout = TPS53647_get_pout();
+                float vout = TPS53647_get_vout();
+                float iout = TPS53647_get_iout();
+
+                influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
+
+                power_management->voltage = vin * 1000.0;
+                power_management->current = iin * 1000.0;
+                power_management->power = pin;
                 EMC2302_get_fan_speed(&power_management->fan_rpm);
                 break;
             default:
@@ -239,6 +250,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     power_management->chip_temp_avg = TMP1075_read_temperature(0);
                     // 2nd tmp1075 is on the back side below power stages and inductors
                     power_management->vr_temp = TMP1075_read_temperature(1);
+                    influx_task_set_temperature(power_management->chip_temp_avg, power_management->vr_temp);
                     break;
                 default:
             }

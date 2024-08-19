@@ -32,6 +32,8 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
+#include "influx_task.h"
+
 #ifdef DISPLAY_OLED
 #include "oled.h"
 #endif
@@ -67,6 +69,8 @@ static void _init_system(GlobalState * GLOBAL_STATE)
     module->lastClockSync = 0;
     module->FOUND_BLOCK = false;
     module->startup_done = false;
+    module->pool_errors = 0;
+    module->pool_difficulty = 8192;
 
     // set the pool url
     module->pool_url = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);

@@ -17,6 +17,7 @@
 #include "serial.h"
 #include "stratum_task.h"
 #include "user_input_task.h"
+#include "influx_task.h"
 
 static GlobalState GLOBAL_STATE = {};
 
@@ -74,7 +75,7 @@ void app_main(void)
                                         .set_difficulty_mask_fn = BM1366_set_job_difficulty_mask,
                                         .send_work_fn = BM1366_send_work};
         //GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1366_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce Space
-        GLOBAL_STATE.asic_job_frequency_ms = 2000; //ms
+        GLOBAL_STATE.asic_job_frequency_ms = 1900; //ms
         GLOBAL_STATE.initial_ASIC_difficulty = BM1366_INITIAL_DIFFICULTY;
 
         GLOBAL_STATE.ASIC_functions = ASIC_functions;
@@ -87,7 +88,7 @@ void app_main(void)
                                         .set_difficulty_mask_fn = BM1368_set_job_difficulty_mask,
                                         .send_work_fn = BM1368_send_work};
         //GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1368_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce Space
-        GLOBAL_STATE.asic_job_frequency_ms = 1000; //ms
+        GLOBAL_STATE.asic_job_frequency_ms = 1500; //ms
         GLOBAL_STATE.initial_ASIC_difficulty = BM1368_INITIAL_DIFFICULTY;
 
         GLOBAL_STATE.ASIC_functions = ASIC_functions;
@@ -196,6 +197,7 @@ void app_main(void)
         xTaskCreate(stratum_task, "stratum admin", 8192, (void *) &GLOBAL_STATE, 5, NULL);
         xTaskCreate(create_jobs_task, "stratum miner", 8192, (void *) &GLOBAL_STATE, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, (void *) &GLOBAL_STATE, 15, NULL);
+        xTaskCreate(influx_task, "influx", 8192, (void *) &GLOBAL_STATE, 1, NULL);
     }
 }
 

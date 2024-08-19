@@ -325,6 +325,62 @@ static esp_err_t PATCH_update_settings(httpd_req_t * req)
     return ESP_OK;
 }
 
+static esp_err_t PATCH_update_influx(httpd_req_t * req) {
+    // Set CORS headers
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    int total_len = req->content_len;
+    int cur_len = 0;
+    char * buf = ((rest_server_context_t *) (req->user_ctx))->scratch;
+    int received = 0;
+    if (total_len >= SCRATCH_BUFSIZE) {
+        /* Respond with 500 Internal Server Error */
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
+        return ESP_FAIL;
+    }
+    while (cur_len < total_len) {
+        received = httpd_req_recv(req, buf + cur_len, total_len);
+        if (received <= 0) {
+            /* Respond with 500 Internal Server Error */
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to post control value");
+            return ESP_FAIL;
+        }
+        cur_len += received;
+    }
+    buf[total_len] = '\0';
+
+    cJSON * root = cJSON_Parse(buf);
+    cJSON * item;
+    if ((item = cJSON_GetObjectItem(root, "influxEnable")) != NULL) {
+        nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, item->valueint);
+    }
+    if ((item = cJSON_GetObjectItem(root, "influxURL")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_INFLUX_URL, item->valuestring);
+    }
+    if ((item = cJSON_GetObjectItem(root, "influxPort")) != NULL) {
+        nvs_config_set_u16(NVS_CONFIG_INFLUX_PORT, item->valueint);
+    }
+    if ((item = cJSON_GetObjectItem(root, "influxToken")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_INFLUX_TOKEN, item->valuestring);
+    }
+    if ((item = cJSON_GetObjectItem(root, "influxBucket")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_INFLUX_BUCKET, item->valuestring);
+    }
+    if ((item = cJSON_GetObjectItem(root, "influxOrg")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_INFLUX_ORG, item->valuestring);
+    }
+    if ((item = cJSON_GetObjectItem(root, "influxPrefix")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_INFLUX_PREFIX, item->valuestring);
+    }
+
+    cJSON_Delete(root);
+    httpd_resp_send_chunk(req, NULL, 0);
+    return ESP_OK;
+}
+
 static esp_err_t POST_restart(httpd_req_t * req)
 {
     ESP_LOGI(TAG, "Restarting System because of API Request");
@@ -444,6 +500,45 @@ static esp_err_t GET_system_info(httpd_req_t * req)
         const char * sys_info = cJSON_Print(root);
     httpd_resp_sendstr(req, sys_info);
     free(sys_info);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+
+/* Simple handler for getting system handler */
+static esp_err_t GET_influx_info(httpd_req_t * req)
+{
+    httpd_resp_set_type(req, "application/json");
+
+    // Set CORS headers
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    char * influxURL = nvs_config_get_string(NVS_CONFIG_INFLUX_URL, CONFIG_INFLUX_URL);
+    char * influxBucket = nvs_config_get_string(NVS_CONFIG_INFLUX_BUCKET, CONFIG_INFLUX_BUCKET);
+    char * influxOrg = nvs_config_get_string(NVS_CONFIG_INFLUX_ORG, CONFIG_INFLUX_ORG);
+    char * influxPrefix = nvs_config_get_string(NVS_CONFIG_INFLUX_PREFIX, CONFIG_INFLUX_PREFIX);
+
+        cJSON * root = cJSON_CreateObject();
+
+    cJSON_AddStringToObject(root, "influxURL", influxURL);
+    cJSON_AddNumberToObject(root, "influxPort", nvs_config_get_u16(NVS_CONFIG_INFLUX_PORT, CONFIG_INFLUX_PORT));
+    cJSON_AddStringToObject(root, "influxBucket", influxBucket);
+    cJSON_AddStringToObject(root, "influxOrg", influxOrg);
+    cJSON_AddStringToObject(root, "influxPrefix", influxPrefix);
+    cJSON_AddNumberToObject(root, "influxEnable", nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, 1));
+
+
+    free(influxURL);
+    free(influxBucket);
+    free(influxOrg);
+    free(influxPrefix);
+
+    const char * influx_info = cJSON_Print(root);
+    httpd_resp_sendstr(req, influx_info);
+    free(influx_info);
     cJSON_Delete(root);
     return ESP_OK;
 }
@@ -653,6 +748,12 @@ esp_err_t start_rest_server(void * pvParameters)
         .uri = "/api/system/info", .method = HTTP_GET, .handler = GET_system_info, .user_ctx = rest_context};
     httpd_register_uri_handler(server, &system_info_get_uri);
 
+    /* URI handler for fetching system info */
+    httpd_uri_t influx_info_get_uri = {
+        .uri = "/api/influx/info", .method = HTTP_GET, .handler = GET_influx_info, .user_ctx = rest_context};
+    httpd_register_uri_handler(server, &influx_info_get_uri);
+
+
     httpd_uri_t swarm_get_uri = {.uri = "/api/swarm/info", .method = HTTP_GET, .handler = GET_swarm, .user_ctx = rest_context};
     httpd_register_uri_handler(server, &swarm_get_uri);
 
@@ -675,6 +776,10 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_uri_t update_system_settings_uri = {
         .uri = "/api/system", .method = HTTP_PATCH, .handler = PATCH_update_settings, .user_ctx = rest_context};
     httpd_register_uri_handler(server, &update_system_settings_uri);
+
+    httpd_uri_t update_influx_settings_uri = {
+        .uri = "/api/influx", .method = HTTP_PATCH, .handler = PATCH_update_influx, .user_ctx = rest_context};
+    httpd_register_uri_handler(server, &update_influx_settings_uri);
 
     httpd_uri_t system_options_uri = {
         .uri = "/api/system",
