@@ -11,7 +11,7 @@ static const char * TAG = "influx_task";
 
 static Influx * influxdb = 0;
 
-
+bool last_block_found = false;
 
 // Timer callback function to increment uptime counters
 void uptime_timer_callback(TimerHandle_t xTimer)
@@ -34,14 +34,55 @@ void influx_task_set_temperature(float temp, float temp2)
     pthread_mutex_unlock(&influxdb->lock);
 }
 
-void influx_task_set_hashrate(float hashrate)
-{
+
+void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout, float pout) {
     if (!influxdb) {
         return;
     }
     pthread_mutex_lock(&influxdb->lock);
-    influxdb->stats.hashing_speed = hashrate;
+    influxdb->stats.pwr_vin = vin;
+    influxdb->stats.pwr_iin = iin;
+    influxdb->stats.pwr_pin = pin;
+    influxdb->stats.pwr_vout = vout;
+    influxdb->stats.pwr_iout = iout;
+    influxdb->stats.pwr_pout = pout;
     pthread_mutex_unlock(&influxdb->lock);
+}
+
+static void influx_task_fetch_from_system_module(SystemModule *module) {
+    // fetch best difficulty
+    float best_diff = module->best_session_nonce_diff;
+
+    influxdb->stats.best_difficulty = best_diff;
+
+    if (best_diff > influxdb->stats.total_best_difficulty) {
+        influxdb->stats.total_best_difficulty = best_diff;
+    }
+
+    // fetch hashrate
+    influxdb->stats.hashing_speed = module->current_hashrate;
+
+    // accepted
+    influxdb->stats.accepted = module->shares_accepted;
+
+    // rejected
+    influxdb->stats.not_accepted = module->shares_rejected;
+
+    // pool errors
+    influxdb->stats.pool_errors = module->pool_errors;
+
+    // pool difficulty
+    influxdb->stats.difficulty = module->pool_difficulty;
+
+    // found block
+    // firmware sets the flag but never removes it
+    // so detect the "edge"
+    bool found = module->FOUND_BLOCK;
+    if (found && !last_block_found) {
+        influxdb->stats.blocks_found++;
+        influxdb->stats.total_blocks_found++;
+    }
+    last_block_found = found;
 }
 
 static void forever() {
@@ -125,6 +166,7 @@ void * influx_task(void * pvParameters)
 
     while (1) {
         pthread_mutex_lock(&influxdb->lock);
+        influx_task_fetch_from_system_module(module);
         influx_write(influxdb);
         pthread_mutex_unlock(&influxdb->lock);
         vTaskDelay(15000 / portTICK_PERIOD_MS);

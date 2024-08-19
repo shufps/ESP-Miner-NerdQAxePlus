@@ -2,14 +2,13 @@
 
 #include <pthread.h>
 
-
 typedef struct
 {
     float temp;
     float temp2;
     float hashing_speed;
-    int invalid_shares;
-    int valid_shares;
+    int invalid_shares; // not implemented
+    int valid_shares;   // not implemented
     int difficulty;
     float best_difficulty;
     int pool_errors;
@@ -20,7 +19,13 @@ typedef struct
     int uptime;
     int blocks_found;
     int total_blocks_found;
-    int duplicate_hashes;
+    int duplicate_hashes; // not implemented
+    float pwr_vin;
+    float pwr_iin;
+    float pwr_pin;
+    float pwr_vout;
+    float pwr_iout;
+    float pwr_pout;
 } Stats;
 
 typedef struct
@@ -35,8 +40,8 @@ typedef struct
     pthread_mutex_t lock;
 } Influx;
 
-Influx * influx_init(const char * host, int port, const char * token, const char * bucket, const char* org, const char * prefix);
+Influx * influx_init(const char * host, int port, const char * token, const char * bucket, const char * org, const char * prefix);
 void influx_write(Influx * influx);
 bool load_last_values(Influx * influx);
 bool bucket_exists(Influx * influx);
-bool influx_ping(Influx* influx);
+bool influx_ping(Influx * influx);

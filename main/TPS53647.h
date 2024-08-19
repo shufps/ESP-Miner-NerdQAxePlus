@@ -60,6 +60,7 @@ float TPS53647_get_iout(void);
 float TPS53647_get_iin(void);
 float TPS53647_get_vout(void);
 float TPS53647_get_pin(void);
+float TPS53647_get_pout(void);
 void TPS53647_set_vout(float volts);
 void TPS53647_show_voltage_settings(void);
 

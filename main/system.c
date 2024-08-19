@@ -69,6 +69,8 @@ static void _init_system(GlobalState * GLOBAL_STATE)
     module->lastClockSync = 0;
     module->FOUND_BLOCK = false;
     module->startup_done = false;
+    module->pool_errors = 0;
+    module->pool_difficulty = 8192;
 
     // set the pool url
     module->pool_url = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
@@ -784,8 +786,6 @@ void SYSTEM_notify_found_nonce(GlobalState * GLOBAL_STATE, double pool_diff)
              (current_time - oldest_time >= time_period) ? "" : "*", valid_shares, (int) ((current_time - oldest_time) / 1e6));
 
     module->current_hashrate = rolling_rate_gh;
-
-    influx_task_set_hashrate(rolling_rate_gh);
 
     _update_hashrate(GLOBAL_STATE);
 }

@@ -211,6 +211,7 @@ void stratum_task(void * pvParameters)
                     // free notify
                     STRATUM_V1_free_mining_notify(stratum_api_v1_message.mining_notification);
                 } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
+                    GLOBAL_STATE->SYSTEM_MODULE.pool_difficulty = stratum_api_v1_message.new_difficulty;
                     if (create_job_set_difficulty(stratum_api_v1_message.new_difficulty)) {
                         ESP_LOGI(TAG, "Set stratum difficulty: %ld", stratum_api_v1_message.new_difficulty);
                     }
@@ -240,6 +241,10 @@ void stratum_task(void * pvParameters)
                     }
                 }
             }
+
+            // track pool errors
+            GLOBAL_STATE->SYSTEM_MODULE.pool_errors++;
+
             // shutdown and reconnect
             ESP_LOGE(TAG, "Shutdown socket ...");
             shutdown(GLOBAL_STATE->sock, SHUT_RDWR);

@@ -167,9 +167,18 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 power_management->fan_rpm = EMC2101_get_fan_speed();
                 break;
             case DEVICE_NERDQAXE_PLUS:
-                power_management->voltage = TPS53647_get_vin() * 1000.0;
-                power_management->current = TPS53647_get_iin() * 1000.0;
-                power_management->power = TPS53647_get_pin();
+                float vin = TPS53647_get_vin();
+                float iin = TPS53647_get_iin();
+                float pin = TPS53647_get_pin();
+                float pout = TPS53647_get_pout();
+                float vout = TPS53647_get_vout();
+                float iout = TPS53647_get_iout();
+
+                influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
+
+                power_management->voltage = vin * 1000.0;
+                power_management->current = iin * 1000.0;
+                power_management->power = pin;
                 EMC2302_get_fan_speed(&power_management->fan_rpm);
                 break;
             default:

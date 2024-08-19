@@ -126,12 +126,12 @@ bool bucket_exists(Influx * influx)
 
 bool load_last_values(Influx * influx)
 {
-    char url[512];
+    char url[256];
     snprintf(url, sizeof(url), "%s:%d/api/v2/query?org=%s", influx->host, influx->port, influx->org);
     ESP_LOGI(TAG, "URL: %s", url);
 
     // Construct the JSON object with the Flux query in one step
-    char query_json[1152];
+    char query_json[256];
     snprintf(
         query_json, sizeof(query_json),
         "{\"query\":\"from(bucket:\\\"%s\\\") |> range(start:-1y) |> filter(fn:(r) => r._measurement == \\\"%s\\\") |> last()\"}",
@@ -259,11 +259,14 @@ void influx_write(Influx * influx)
              "hashing_speed=%f,invalid_shares=%d,valid_shares=%d,uptime=%d,"
              "best_difficulty=%f,total_best_difficulty=%f,pool_errors=%d,"
              "accepted=%d,not_accepted=%d,total_uptime=%d,blocks_found=%d,"
+             "pwr_vin=%f,pwr_iin=%f,pwr_pin=%f,pwr_vout=%f,pwr_iout=%f,pwr_pout=%f,"
              "total_blocks_found=%d,duplicate_hashes=%d %lld",
              influx->prefix, influx->stats.temp, influx->stats.temp2, influx->stats.hashing_speed, influx->stats.invalid_shares,
              influx->stats.valid_shares, influx->stats.uptime, influx->stats.best_difficulty, influx->stats.total_best_difficulty,
-             influx->stats.pool_errors, influx->stats.accepted, influx->stats.not_accepted, influx->stats.total_uptime,
-             influx->stats.blocks_found, influx->stats.total_blocks_found, influx->stats.duplicate_hashes, (long long) now.tv_sec);
+             influx->stats.pool_errors, influx->stats.accepted, influx->stats.not_accepted, influx->stats.total_uptime, influx->stats.blocks_found,
+             influx->stats.pwr_vin, influx->stats.pwr_iin, influx->stats.pwr_pin,
+             influx->stats.pwr_vout, influx->stats.pwr_iout, influx->stats.pwr_pout,
+             influx->stats.total_blocks_found, influx->stats.duplicate_hashes, (long long) now.tv_sec);
 
     snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", influx->host, influx->port, influx->bucket,
              influx->org);
