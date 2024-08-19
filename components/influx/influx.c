@@ -13,8 +13,8 @@
 
 static const char * TAG = "InfluxDB";
 
-static char auth_header[256];
-static char big_buffer[16384];
+static char auth_header[128];
+static char big_buffer[4096];
 
 bool influx_ping(Influx * influx)
 {
@@ -48,7 +48,7 @@ bool influx_ping(Influx * influx)
     return false;
 }
 
-bool bucket_exists(Influx *influx)
+bool bucket_exists(Influx * influx)
 {
     char url[256];
     snprintf(url, sizeof(url), "%s:%d/api/v2/buckets?org=%s&name=%s", influx->host, influx->port, influx->org, influx->bucket);
@@ -84,12 +84,12 @@ bool bucket_exists(Influx *influx)
     // Read response
     int data_read = esp_http_client_read_response(client, big_buffer, sizeof(big_buffer) - 1);
     if (data_read >= 0) {
-        big_buffer[data_read] = 0;  // Null-terminate the response
+        big_buffer[data_read] = 0; // Null-terminate the response
         ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d", esp_http_client_get_status_code(client), content_length);
         ESP_LOGD(TAG, "Response: %s", big_buffer);
 
         if (esp_http_client_get_status_code(client) == 200) {
-            cJSON *json = cJSON_Parse(big_buffer);
+            cJSON * json = cJSON_Parse(big_buffer);
             if (json == NULL) {
                 ESP_LOGE(TAG, "Failed to parse JSON response");
                 esp_http_client_close(client);
@@ -97,7 +97,7 @@ bool bucket_exists(Influx *influx)
                 return false;
             }
 
-            cJSON *buckets = cJSON_GetObjectItem(json, "buckets");
+            cJSON * buckets = cJSON_GetObjectItem(json, "buckets");
             if (buckets != NULL && cJSON_IsArray(buckets) && cJSON_GetArraySize(buckets) > 0) {
                 // If we get here, the bucket exists
                 cJSON_Delete(json);
@@ -124,36 +124,43 @@ bool bucket_exists(Influx *influx)
     return false;
 }
 
-
-void load_last_values(Influx *influx)
+bool load_last_values(Influx * influx)
 {
     char url[512];
     snprintf(url, sizeof(url), "%s:%d/api/v2/query?org=%s", influx->host, influx->port, influx->org);
     ESP_LOGI(TAG, "URL: %s", url);
 
-    char query[1024];
-    snprintf(query, sizeof(query),
-             "from(bucket:\"%s\") |> range(start:-1y) |> filter(fn:(r) => r._measurement == \"%s\") |> last()", influx->bucket,
-             influx->prefix);
+    // Construct the JSON object with the Flux query in one step
+    char query_json[1152];
+    snprintf(
+        query_json, sizeof(query_json),
+        "{\"query\":\"from(bucket:\\\"%s\\\") |> range(start:-1y) |> filter(fn:(r) => r._measurement == \\\"%s\\\") |> last()\"}",
+        influx->bucket, influx->prefix);
 
-    esp_http_client_config_t config = {
-        .url = url,
-    };
+    ESP_LOGI(TAG, "Query JSON: %s", query_json);
+
+    esp_http_client_config_t config = {.url = url, .method = HTTP_METHOD_POST};
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
     // Set headers
     esp_http_client_set_header(client, "Authorization", auth_header);
-    esp_http_client_set_header(client, "Content-Type", "application/vnd.flux");
-
-    // Set POST field
-    esp_http_client_set_post_field(client, query, strlen(query));
+    esp_http_client_set_header(client, "Content-Type", "application/json"); // Set Content-Type to JSON
+    esp_http_client_set_header(client, "Accept", "text/csv");
 
     // Open connection
-    esp_err_t err = esp_http_client_open(client, strlen(query));
+    esp_err_t err = esp_http_client_open(client, strlen(query_json));
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to open HTTP connection: %s", esp_err_to_name(err));
         esp_http_client_cleanup(client);
-        return;
+        return false;
+    }
+
+    int wlen = esp_http_client_write(client, query_json, strlen(query_json));
+    if (wlen < 0) {
+        ESP_LOGE(TAG, "Write failed");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
     }
 
     // Fetch headers
@@ -162,51 +169,75 @@ void load_last_values(Influx *influx)
         ESP_LOGE(TAG, "HTTP client fetch headers failed");
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
-        return;
+        return false;
     }
+
+    ESP_LOGI(TAG, "Expected content length: %d", content_length);
 
     // Read response
     int data_read = esp_http_client_read_response(client, big_buffer, sizeof(big_buffer) - 1);
-    if (data_read >= 0) {
-        big_buffer[data_read] = 0;  // Null-terminate the response
+    if (data_read > 0) {
+        big_buffer[data_read] = 0; // Null-terminate the response
         ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d", esp_http_client_get_status_code(client), content_length);
-        ESP_LOGD(TAG, "Response: %s", big_buffer);
+        // ESP_LOGI(TAG, "Response: %s", big_buffer);
 
         if (esp_http_client_get_status_code(client) == 200) {
-            cJSON *json = cJSON_Parse(big_buffer);
-            if (json == NULL) {
-                ESP_LOGE(TAG, "Failed to parse JSON response");
-                esp_http_client_close(client);
-                esp_http_client_cleanup(client);
-                return;
-            }
+            // Parse CSV response with CRLF line endings
+            char *saveptr1, *saveptr2;
 
-            cJSON *table = cJSON_GetArrayItem(cJSON_GetObjectItem(json, "tables"), 0);
-            if (table == NULL) {
-                ESP_LOGW(TAG, "No data found for measurement %s", influx->prefix);
-                cJSON_Delete(json);
-                esp_http_client_close(client);
-                esp_http_client_cleanup(client);
-                return;
-            }
+            // the first strtok_r skips the CSV header
+            char * line = strtok_r(big_buffer, "\r\n", &saveptr1); // Handle CRLF line endings
 
-            cJSON *record;
-            cJSON_ArrayForEach(record, table) {
-                const char *field = cJSON_GetObjectItem(record, "_field")->valuestring;
-                double value = cJSON_GetObjectItem(record, "_value")->valuedouble;
+            // now parse the actual data
+            while ((line = strtok_r(NULL, "\r\n", &saveptr1)) != NULL) {
+                // ESP_LOGI(TAG, "line: '%s'", line);
 
+                char * token;
+                // Fields from CSV: result,table,_start,_stop,_time,_value,_field,_measurement
+                strtok_r(line, ",", &saveptr2); // Skip result column
+                strtok_r(NULL, ",", &saveptr2); // Skip table column
+                strtok_r(NULL, ",", &saveptr2); // Skip _start column
+                strtok_r(NULL, ",", &saveptr2); // Skip _stop column
+                strtok_r(NULL, ",", &saveptr2); // Skip _time column
+
+                // Get _value
+                token = strtok_r(NULL, ",", &saveptr2);
+                if (token == NULL) {
+                    ESP_LOGE(TAG, "Failed to parse _value");
+                    esp_http_client_close(client);
+                    esp_http_client_cleanup(client);
+                    return false;
+                }
+                // ESP_LOGI(TAG, "Parsing _value: %s", token);
+                double value = atof(token);
+
+                // Get _field
+                token = strtok_r(NULL, ",", &saveptr2);
+                if (token == NULL) {
+                    ESP_LOGE(TAG, "Failed to parse _field");
+                    esp_http_client_close(client);
+                    esp_http_client_cleanup(client);
+                    return false;
+                }
+                char * field = token;
+
+                // Assign the parsed values to the appropriate fields
                 if (strcmp(field, "total_uptime") == 0)
-                    influx->stats.total_uptime = (int)value;
+                    influx->stats.total_uptime = (int) value;
                 else if (strcmp(field, "total_best_difficulty") == 0)
                     influx->stats.total_best_difficulty = value;
                 else if (strcmp(field, "total_blocks_found") == 0)
-                    influx->stats.total_blocks_found = (int)value;
+                    influx->stats.total_blocks_found = (int) value;
             }
-            cJSON_Delete(json);
             ESP_LOGI(TAG, "Loaded last values from InfluxDB");
+            esp_http_client_close(client);
+            esp_http_client_cleanup(client);
+            return true;
         } else {
             ESP_LOGE(TAG, "Failed to load last values, HTTP status: %d", esp_http_client_get_status_code(client));
         }
+    } else if (data_read == 0) {
+        ESP_LOGW(TAG, "Received empty response");
     } else {
         ESP_LOGE(TAG, "Failed to read response");
     }
@@ -214,8 +245,8 @@ void load_last_values(Influx *influx)
     // Close connection and cleanup
     esp_http_client_close(client);
     esp_http_client_cleanup(client);
+    return false;
 }
-
 
 void influx_write(Influx * influx)
 {
@@ -228,13 +259,13 @@ void influx_write(Influx * influx)
              "hashing_speed=%f,invalid_shares=%d,valid_shares=%d,uptime=%d,"
              "best_difficulty=%f,total_best_difficulty=%f,pool_errors=%d,"
              "accepted=%d,not_accepted=%d,total_uptime=%d,blocks_found=%d,"
-             "total_blocks_found=%d,duplicate_hashes=%d %lld000000000",
+             "total_blocks_found=%d,duplicate_hashes=%d %lld",
              influx->prefix, influx->stats.temp, influx->stats.temp2, influx->stats.hashing_speed, influx->stats.invalid_shares,
              influx->stats.valid_shares, influx->stats.uptime, influx->stats.best_difficulty, influx->stats.total_best_difficulty,
              influx->stats.pool_errors, influx->stats.accepted, influx->stats.not_accepted, influx->stats.total_uptime,
              influx->stats.blocks_found, influx->stats.total_blocks_found, influx->stats.duplicate_hashes, (long long) now.tv_sec);
 
-    snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=ns", influx->host, influx->port, influx->bucket,
+    snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", influx->host, influx->port, influx->bucket,
              influx->org);
 
     ESP_LOGI(TAG, "URL: %s", url);

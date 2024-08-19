@@ -74,13 +74,34 @@ void * influx_task(void * pvParameters)
 
     influxdb = influx_init(influxURL, influxPort, influxToken, influxBucket, influxOrg, influxPrefix);
 
-    while (!influx_ping(influxdb) || !bucket_exists(influxdb)) {
-        ESP_LOGE(TAG, "InfluxDB not reachable or bucket not found!");
+    bool ping_ok = false;
+    bool bucket_ok = false;
+    bool loaded_values_ok = false;
+    while (1) {
+        do {
+            ping_ok = ping_ok || influx_ping(influxdb);
+            if (!ping_ok) {
+                ESP_LOGE(TAG, "InfluxDB not reachable!");
+                break;
+            }
+
+            bucket_ok = bucket_ok || bucket_exists(influxdb);
+            if (!bucket_ok) {
+                ESP_LOGE(TAG, "Bucket not found!");
+                break;
+            }
+
+            loaded_values_ok = loaded_values_ok || load_last_values(influxdb);
+            if (!loaded_values_ok) {
+                ESP_LOGE(TAG, "loading last values failed");
+                break;
+            }
+        } while(0);
+        if (loaded_values_ok) {
+            break;
+        }
         vTaskDelay(15000 / portTICK_PERIOD_MS);
     }
-
-    // try to load the last values
-    load_last_values(influxdb);
 
     ESP_LOGI(TAG, "last values: total_uptime: %d, total_best_difficulty: %.3f, total_blocks_found: %d",
         influxdb->stats.total_uptime, influxdb->stats.total_best_difficulty, influxdb->stats.total_blocks_found);
