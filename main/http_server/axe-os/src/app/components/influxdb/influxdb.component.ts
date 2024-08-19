@@ -44,7 +44,7 @@ export class InfluxdbComponent implements OnInit {
           influxToken: ['password', [Validators.required]],
           influxBucket: [info.influxBucket, [Validators.required]],
           influxOrg: [info.influxOrg, [Validators.required]],
-          influxStatsName: [info.influxPrefix, [Validators.required]],
+          influxPrefix: [info.influxPrefix, [Validators.required]],
           influxEnable: [info.influxEnable == 1]
         });
       });
