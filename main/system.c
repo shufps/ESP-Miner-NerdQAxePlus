@@ -32,6 +32,8 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
+#include "influx_task.h"
+
 #ifdef DISPLAY_OLED
 #include "oled.h"
 #endif
@@ -782,6 +784,8 @@ void SYSTEM_notify_found_nonce(GlobalState * GLOBAL_STATE, double pool_diff)
              (current_time - oldest_time >= time_period) ? "" : "*", valid_shares, (int) ((current_time - oldest_time) / 1e6));
 
     module->current_hashrate = rolling_rate_gh;
+
+    influx_task_set_hashrate(rolling_rate_gh);
 
     _update_hashrate(GLOBAL_STATE);
 }

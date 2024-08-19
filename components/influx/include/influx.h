@@ -1,3 +1,8 @@
+#pragma once
+
+#include <pthread.h>
+
+
 typedef struct
 {
     float temp;
@@ -17,3 +22,21 @@ typedef struct
     int total_blocks_found;
     int duplicate_hashes;
 } Stats;
+
+typedef struct
+{
+    char * host;
+    int port;
+    char * token;
+    char * org;
+    char * bucket;
+    char * prefix;
+    Stats stats;
+    pthread_mutex_t lock;
+} Influx;
+
+Influx * influx_init(const char * host, int port, const char * token, const char * bucket, const char* org, const char * prefix);
+void influx_write(Influx * influx);
+void load_last_values(Influx * influx);
+bool bucket_exists(Influx * influx);
+bool influx_ping(Influx* influx);

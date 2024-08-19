@@ -16,6 +16,8 @@
 #include "vcore.h"
 #include <string.h>
 
+#include "influx_task.h"
+
 #define POLL_RATE 2000
 #define MAX_TEMP 90.0
 #define THROTTLE_TEMP 75.0
@@ -239,6 +241,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     power_management->chip_temp_avg = TMP1075_read_temperature(0);
                     // 2nd tmp1075 is on the back side below power stages and inductors
                     power_management->vr_temp = TMP1075_read_temperature(1);
+                    influx_task_set_temperature(power_management->chip_temp_avg, power_management->vr_temp);
                     break;
                 default:
             }

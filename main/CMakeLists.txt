@@ -24,6 +24,7 @@ SRCS
     "./tasks/create_jobs_task.c"
     "./tasks/asic_result_task.c"
     "./tasks/user_input_task.c"
+    "./tasks/influx_task.c"
     "./tasks/power_management_task.c"
     "./http_server/http_server.c"
     "./self_test/self_test.c"
@@ -55,6 +56,7 @@ INCLUDE_DIRS
     "../components/bm1397/include"
     "../components/connect/include"
     "../components/dns_server/include"
+    "../components/influx/include"
     "../components/stratum/include"
 
     PRIV_REQUIRES
