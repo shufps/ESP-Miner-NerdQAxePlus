@@ -14,11 +14,13 @@ jobs:
     - name: Get Version Tag
       id: version_tag
       run: |
+        cd /home/runner/work/ESP-Miner-NerdQAxePlus/ESP-Miner-NerdQAxePlus
         git fetch --tags  # Ensure all tags are fetched
 
         if git describe --tags --abbrev=0 >/dev/null 2>&1; then
           version=$(git describe --tags --abbrev=0)
         else
+          echo "no tag found!"
           exit 1
         fi
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
@@ -27,7 +29,6 @@ jobs:
     - name: Compile Binaries
       run: |
         # Run the Docker container to build the project
-        cd /home/runner/work/ESP-Miner-NerdQAxePlus/ESP-Miner-NerdQAxePlus && \
         docker run --rm --user root -v $PWD:/home/builder/project \
         shufps/esp-idf-builder:0.0.1 idf.py build
 
