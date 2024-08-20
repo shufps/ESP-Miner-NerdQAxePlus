@@ -64,8 +64,8 @@ jobs:
       with:
         name: nerdqaxe-firmware
 
-    - name: Generate Changelog
-      id: changelog
+    - name: Generate Version Tag
+      id: version_tag
       run: |
         git fetch --tags  # Ensure all tags are fetched
 
@@ -74,19 +74,13 @@ jobs:
         else
           version="v0.0.0"
         fi
-        echo "VERSION_TAG=${version}" >> $GITHUB_ENV        
+        echo "VERSION_TAG=${version}" >> $GITHUB_ENV
         
-        # Generate a changelog from the last tag to the current commit
-        changelog=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:'* %s' --no-merges)
-        echo "CHANGELOG=$changelog" >> $GITHUB_ENV
-
-    - name: Create Release
-      uses: ncipollo/release-action@v1
+    - name: Upload to Existing Release
+      uses: softprops/action-gh-release@v1
       with:
+        files: esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
+        tag_name: ${{ env.VERSION_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
-        name: 'Firmware Release ${{ env.VERSION_TAG }}'
-        tag: ${{ env.VERSION_TAG }}
-        artifacts: esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
-        body: |
-          ## Changelog
-          ${{ env.CHANGELOG }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
