@@ -14,7 +14,7 @@ jobs:
     - name: Get Version Tag
       id: version_tag
       run: |
-        cd /home/runner/work/ESP-Miner-NerdQAxePlus/ESP-Miner-NerdQAxePlus
+        cd /home/runner/work/ESP-Miner-NerdQAxePlus
         git fetch --tags  # Ensure all tags are fetched
 
         if git describe --tags --abbrev=0 >/dev/null 2>&1; then
