@@ -86,7 +86,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         name: 'Firmware Release ${{ env.VERSION_TAG }}'
         tag: ${{ env.VERSION_TAG }}
-        files: esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
+        artifacts: esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
         body: |
           ## Changelog
           ${{ env.CHANGELOG }}
