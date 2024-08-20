@@ -14,7 +14,6 @@ jobs:
     - name: Get Version Tag
       id: version_tag
       run: |
-        cd ESP-Miner-NerdQAxePlus
         git fetch --tags  # Ensure all tags are fetched
 
         version=$(git describe --tags --abbrev=0) || { echo "no tag found!"; exit 1; }
