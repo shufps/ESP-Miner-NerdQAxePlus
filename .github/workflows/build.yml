@@ -11,12 +11,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
     - name: Compile Binaries
       run: |
         # Run the Docker container to build the project
+        cd /home/runner/work/ESP-Miner-NerdQAxePlus/ESP-Miner-NerdQAxePlus && \
         docker run --rm -v $PWD:/home/builder/project \
         shufps/esp-idf-builder:0.0.1 idf.py build
 
