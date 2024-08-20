@@ -40,6 +40,7 @@ jobs:
           version="v0.0.0"
         fi
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
+        echo "VERSION_TAG=${version}"
 
     - name: Rename Binary with Version
       run: |
@@ -75,6 +76,7 @@ jobs:
           version="v0.0.0"
         fi
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
+        echo "VERSION_TAG=${version}"
         
     - name: Upload to Existing Release
       uses: softprops/action-gh-release@v1
