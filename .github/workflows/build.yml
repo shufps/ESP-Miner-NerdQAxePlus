@@ -1,48 +1,75 @@
-name: build-target
-on: [push, pull_request]
+name: Build and Publish ESP32 Firmware
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-    - name: Build web dist
-      working-directory: ./main/http_server/axe-os
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Compile Binaries
       run: |
-        npm ci
-        npm run build
-    - name: esp-idf build
-      uses: espressif/esp-idf-ci-action@v1
-      with:
-        esp_idf_version: v5.1
-        target: esp32s3
-        command: GITHUB_ACTIONS="true" idf.py build
-        path: '.'
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        cache: 'pip' # caching pip dependencies
-    - run: pip install esptool
-    - name: "Create factory/merged image"
-      run: "./merge_bin.sh ./esp-miner-merged.bin"
-    - name: upload esp-miner-merged.bin
+        # Run the Docker container to build the project
+        docker run --rm -v $PWD:/home/builder/project \
+        espressif/idf:release-v5.3 build
+
+    - name: Merge Binaries
+      run: |
+        docker run --rm -v $PWD:/home/builder/project \
+        espressif/idf:release-v5.3 esptool.py --chip esp32s3 merge_bin --flash_mode dio --flash_size 16MB --flash_freq 80m \
+        0x0 build/bootloader/bootloader.bin \
+        0x8000 build/partition_table/partition-table.bin \
+        0x10000 build/esp-miner.bin \
+        0x410000 build/www.bin \
+        0xf10000 build/ota_data_initial.bin \
+        -o esp-miner-factory-nerdqaxe+.bin
+
+    - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: esp-miner-factory.bin
-        path: ./esp-miner-merged.bin
-    - name: upload esp-miner.bin
-      uses: actions/upload-artifact@v3
+        name: nerdqaxe-firmware
+        path: esp-miner-factory-nerdqaxe+.bin
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Download build artifact
+      uses: actions/download-artifact@v3
       with:
-        name: esp-miner-ota.bin
-        path: ./build/esp-miner.bin
-    - name: upload www.bin
-      uses: actions/upload-artifact@v3
+        name: nerdqaxe-firmware
+
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
       with:
-        name: www.bin
-        path: ./build/www.bin
+        images: myorg/esp32-firmware
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=match,pattern=v(\d+.\d+),suffix=-alpha,group=1,enable=${{ contains(github.ref, '-alpha') }}
+          type=match,pattern=v(\d+.\d+),suffix=-beta,group=1,enable=${{ contains(github.ref, '-beta') }}
+          type=match,pattern=v(\d+.\d+),suffix=-rc,group=1,enable=${{ contains(github.ref, '-rc') }}
+
+    - name: Create Release
+      uses: ncipollo/release-action@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        name: 'Firmware Release'
+        tag: ${{ steps.meta.outputs.version }}
+        files: esp-miner-factory-nerdqaxe+.bin
+        body: |
+          Automatically generated firmware release.
+
