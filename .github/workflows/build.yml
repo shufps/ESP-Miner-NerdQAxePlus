@@ -14,15 +14,11 @@ jobs:
     - name: Get Version Tag
       id: version_tag
       run: |
-        /home/runner/work/ESP-Miner-NerdQAxePlus/ESP-Miner-NerdQAxePlus
+        cd ESP-Miner-NerdQAxePlus
         git fetch --tags  # Ensure all tags are fetched
 
-        if git describe --tags --abbrev=0 >/dev/null 2>&1; then
-          version=$(git describe --tags --abbrev=0)
-        else
-          echo "no tag found!"
-          exit 1
-        fi
+        version=$(git describe --tags --abbrev=0) || { echo "no tag found!"; exit 1; }
+        
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
         echo "VERSION_TAG=${version}"
         
