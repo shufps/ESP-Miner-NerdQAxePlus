@@ -27,10 +27,8 @@ void ASIC_result_task(void *pvParameters)
 
     char *user = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, STRATUM_USER);
 
-
-
     while (1) {
-        ESP_LOGI("Memory", "%lu", esp_get_free_heap_size());
+        //ESP_LOGI("Memory", "%lu", esp_get_free_heap_size()); test
         task_result asic_result;
 
         // get the result

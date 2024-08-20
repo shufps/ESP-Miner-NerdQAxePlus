@@ -145,21 +145,7 @@ void print_hex(const uint8_t *b, size_t len, const size_t in_line, const char *p
     printf("\n");
     fflush(stdout);
 }
-/*
-void double_sha256(const char *hex_string, uint8_t output_hash[65])
-{
-    size_t bin_len = strlen(hex_string) / 2;
-    uint8_t bin[bin_len];
-    hex2bin(hex_string, bin, bin_len);
 
-    unsigned char first_hash_output[32], second_hash_output[32];
-
-    mbedtls_sha256(bin, bin_len, first_hash_output, 0);
-    mbedtls_sha256(first_hash_output, 32, second_hash_output, 0);
-
-    bin2hex(second_hash_output, 32, output_hash, 65);
-}
-*/
 void double_sha256_bin(const uint8_t *data, const size_t data_len, uint8_t hash[32])
 {
     uint8_t first_hash_output[32];

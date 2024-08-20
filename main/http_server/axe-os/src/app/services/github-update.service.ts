@@ -13,7 +13,7 @@ export class GithubUpdateService {
 
 
   public getReleases() {
-    return this.httpClient.get(`https://api.github.com/repos/BitMaker-hub/ESP-Miner-NerdAxe/releases`) as Observable<any[]>;
+    return this.httpClient.get(`https://github.com/shufps/ESP-Miner-NerdQAxePlus/releases`) as Observable<any[]>;
   }
 
 }
