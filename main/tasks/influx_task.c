@@ -1,15 +1,15 @@
-#include <pthread.h>
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
-#include "nvs_config.h"
 #include "global_state.h"
+#include "nvs_config.h"
+#include <pthread.h>
 
 #include "influx_task.h"
 
-static const char * TAG = "influx_task";
+static const char *TAG = "influx_task";
 
-static Influx * influxdb = 0;
+static Influx *influxdb = 0;
 
 bool last_block_found = false;
 
@@ -34,8 +34,8 @@ void influx_task_set_temperature(float temp, float temp2)
     pthread_mutex_unlock(&influxdb->lock);
 }
 
-
-void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout, float pout) {
+void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout, float pout)
+{
     if (!influxdb) {
         return;
     }
@@ -49,7 +49,8 @@ void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout
     pthread_mutex_unlock(&influxdb->lock);
 }
 
-static void influx_task_fetch_from_system_module(SystemModule *module) {
+static void influx_task_fetch_from_system_module(SystemModule *module)
+{
     // fetch best difficulty
     float best_diff = module->best_session_nonce_diff;
 
@@ -85,17 +86,18 @@ static void influx_task_fetch_from_system_module(SystemModule *module) {
     last_block_found = found;
 }
 
-static void forever() {
+static void forever()
+{
     ESP_LOGE(TAG, "halting influx_task");
     while (1) {
         vTaskDelay(15000 / portTICK_PERIOD_MS);
     }
 }
 
-void * influx_task(void * pvParameters)
+void *influx_task(void *pvParameters)
 {
-    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
-    SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
+    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
+    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
     int influxEnable = nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE);
 
@@ -104,14 +106,15 @@ void * influx_task(void * pvParameters)
         forever();
     }
 
-    char * influxURL = nvs_config_get_string(NVS_CONFIG_INFLUX_URL, CONFIG_INFLUX_URL);
+    char *influxURL = nvs_config_get_string(NVS_CONFIG_INFLUX_URL, CONFIG_INFLUX_URL);
     int influxPort = nvs_config_get_u16(NVS_CONFIG_INFLUX_PORT, CONFIG_INFLUX_PORT);
-    char * influxToken = nvs_config_get_string(NVS_CONFIG_INFLUX_TOKEN, CONFIG_INFLUX_TOKEN);
-    char * influxBucket = nvs_config_get_string(NVS_CONFIG_INFLUX_BUCKET, CONFIG_INFLUX_BUCKET);
-    char * influxOrg = nvs_config_get_string(NVS_CONFIG_INFLUX_ORG, CONFIG_INFLUX_ORG);
-    char * influxPrefix = nvs_config_get_string(NVS_CONFIG_INFLUX_PREFIX, CONFIG_INFLUX_PREFIX);
+    char *influxToken = nvs_config_get_string(NVS_CONFIG_INFLUX_TOKEN, CONFIG_INFLUX_TOKEN);
+    char *influxBucket = nvs_config_get_string(NVS_CONFIG_INFLUX_BUCKET, CONFIG_INFLUX_BUCKET);
+    char *influxOrg = nvs_config_get_string(NVS_CONFIG_INFLUX_ORG, CONFIG_INFLUX_ORG);
+    char *influxPrefix = nvs_config_get_string(NVS_CONFIG_INFLUX_PREFIX, CONFIG_INFLUX_PREFIX);
 
-    ESP_LOGI(TAG, "URL: %s, port: %d, bucket: %s, org: %s, prefix: %s", influxURL, influxPort, influxBucket, influxOrg, influxPrefix);
+    ESP_LOGI(TAG, "URL: %s, port: %d, bucket: %s, org: %s, prefix: %s", influxURL, influxPort, influxBucket, influxOrg,
+             influxPrefix);
 
     influxdb = influx_init(influxURL, influxPort, influxToken, influxBucket, influxOrg, influxPrefix);
 
@@ -137,7 +140,7 @@ void * influx_task(void * pvParameters)
                 ESP_LOGE(TAG, "loading last values failed");
                 break;
             }
-        } while(0);
+        } while (0);
         if (loaded_values_ok) {
             break;
         }
@@ -145,7 +148,7 @@ void * influx_task(void * pvParameters)
     }
 
     ESP_LOGI(TAG, "last values: total_uptime: %d, total_best_difficulty: %.3f, total_blocks_found: %d",
-        influxdb->stats.total_uptime, influxdb->stats.total_best_difficulty, influxdb->stats.total_blocks_found);
+             influxdb->stats.total_uptime, influxdb->stats.total_best_difficulty, influxdb->stats.total_blocks_found);
 
     // start submitting new data
     ESP_LOGI(TAG, "waiting for clock sync ...");
@@ -162,7 +165,6 @@ void * influx_task(void * pvParameters)
         ESP_LOGE(TAG, "Failed to create uptime timer");
         forever();
     }
-
 
     while (1) {
         pthread_mutex_lock(&influxdb->lock);

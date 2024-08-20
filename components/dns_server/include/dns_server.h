@@ -31,9 +31,9 @@ extern "C"
      */
     typedef struct dns_entry_pair
     {
-        const char * name;   /**<! Exact match of the name field of the DNS query to answer */
-        const char * if_key; /**<! Use this network interface IP to answer, only if NULL, use the static IP below */
-        esp_ip4_addr_t ip;   /**<! Constant IP address to answer this query, if "if_key==NULL" */
+        const char *name;   /**<! Exact match of the name field of the DNS query to answer */
+        const char *if_key; /**<! Use this network interface IP to answer, only if NULL, use the static IP below */
+        esp_ip4_addr_t ip;  /**<! Constant IP address to answer this query, if "if_key==NULL" */
     } dns_entry_pair_t;
 
     /**
@@ -61,7 +61,7 @@ extern "C"
     /**
      * @brief DNS server handle
      */
-    typedef struct dns_server_handle * dns_server_handle_t;
+    typedef struct dns_server_handle *dns_server_handle_t;
 
     /**
      * @brief Set ups and starts a simple DNS server that will respond to all A queries (IPv4)
@@ -70,7 +70,7 @@ extern "C"
      * @param config Configuration structure listing the pairs of (name, IP/netif-id)
      * @return dns_server's handle on success, NULL on failure
      */
-    dns_server_handle_t start_dns_server(dns_server_config_t * config);
+    dns_server_handle_t start_dns_server(dns_server_config_t *config);
 
     /**
      * @brief Stops and destroys DNS server's task and structs

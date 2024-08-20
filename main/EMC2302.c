@@ -1,13 +1,14 @@
 #include "esp_log.h"
-#include <stdio.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #include "EMC2302.h"
 
 const char *TAG = "emc2301";
 
-esp_err_t EMC2302_set_fan_speed(float percent) {
+esp_err_t EMC2302_set_fan_speed(float percent)
+{
     int value = (int) (percent * 255.0 + 0.5);
     value = (value > 255) ? 255 : value;
 
@@ -23,7 +24,8 @@ esp_err_t EMC2302_set_fan_speed(float percent) {
     return err;
 }
 
-esp_err_t EMC2302_get_fan_speed(uint16_t *dst) {
+esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
+{
     esp_err_t err;
     uint8_t tach_lsb, tach_msb;
 
@@ -73,7 +75,8 @@ esp_err_t EMC2302_get_fan_speed(uint16_t *dst) {
     return ESP_OK;
 }
 
-bool EMC2302_init(bool invertPolarity) {
+bool EMC2302_init(bool invertPolarity)
+{
     esp_err_t err;
     ESP_LOGI(TAG, "initializing EMC2302");
 

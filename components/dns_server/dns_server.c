@@ -26,7 +26,7 @@
 #define QD_TYPE_A (0x0001)
 #define ANS_TTL_SEC (300)
 
-static const char * TAG = "example_dns_redirect_server";
+static const char *TAG = "example_dns_redirect_server";
 
 // DNS Header Packet
 typedef struct __attribute__((__packed__))
@@ -70,11 +70,11 @@ struct dns_server_handle
     Parse the name from the packet from the DNS name format to a regular .-seperated name
     returns the pointer to the next part of the packet
 */
-static char * parse_dns_name(char * raw_name, char * parsed_name, size_t parsed_name_max_len)
+static char *parse_dns_name(char *raw_name, char *parsed_name, size_t parsed_name_max_len)
 {
 
-    char * label = raw_name;
-    char * name_itr = parsed_name;
+    char *label = raw_name;
+    char *name_itr = parsed_name;
     int name_len = 0;
 
     do {
@@ -99,7 +99,7 @@ static char * parse_dns_name(char * raw_name, char * parsed_name, size_t parsed_
 }
 
 // Parses the DNS request and prepares a DNS response with the IP of the softAP
-static int parse_dns_request(char * req, size_t req_len, char * dns_reply, size_t dns_reply_max_len, dns_server_handle_t h)
+static int parse_dns_request(char *req, size_t req_len, char *dns_reply, size_t dns_reply_max_len, dns_server_handle_t h)
 {
     ESP_LOGD(TAG, "TEST");
     if (req_len > dns_reply_max_len) {
@@ -111,7 +111,7 @@ static int parse_dns_request(char * req, size_t req_len, char * dns_reply, size_
     memcpy(dns_reply, req, req_len);
 
     // Endianess of NW packet different from chip
-    dns_header_t * header = (dns_header_t *) dns_reply;
+    dns_header_t *header = (dns_header_t *) dns_reply;
     ESP_LOGD(TAG, "DNS query with header id: 0x%X, flags: 0x%X, qd_count: %d", ntohs(header->id), ntohs(header->flags),
              ntohs(header->qd_count));
 
@@ -132,19 +132,19 @@ static int parse_dns_request(char * req, size_t req_len, char * dns_reply, size_
     }
 
     // Pointer to current answer and question
-    char * cur_ans_ptr = dns_reply + req_len;
-    char * cur_qd_ptr = dns_reply + sizeof(dns_header_t);
+    char *cur_ans_ptr = dns_reply + req_len;
+    char *cur_qd_ptr = dns_reply + sizeof(dns_header_t);
     char name[128];
 
     // Respond to all questions based on configured rules
     for (int qd_i = 0; qd_i < qd_count; qd_i++) {
-        char * name_end_ptr = parse_dns_name(cur_qd_ptr, name, sizeof(name));
+        char *name_end_ptr = parse_dns_name(cur_qd_ptr, name, sizeof(name));
         if (name_end_ptr == NULL) {
             ESP_LOGE(TAG, "Failed to parse DNS question: %s", cur_qd_ptr);
             return -1;
         }
 
-        dns_question_t * question = (dns_question_t *) (name_end_ptr);
+        dns_question_t *question = (dns_question_t *) (name_end_ptr);
         uint16_t qd_type = ntohs(question->type);
         uint16_t qd_class = ntohs(question->class);
 
@@ -179,7 +179,7 @@ static int parse_dns_request(char * req, size_t req_len, char * dns_reply, size_
             if (ip.addr == IPADDR_ANY) { // no rule applies, continue with another question
                 continue;
             }
-            dns_answer_t * answer = (dns_answer_t *) cur_ans_ptr;
+            dns_answer_t *answer = (dns_answer_t *) cur_ans_ptr;
 
             answer->ptr_offset = htons(0xC000 | (cur_qd_ptr - dns_reply));
             answer->type = htons(qd_type);
@@ -199,7 +199,7 @@ static int parse_dns_request(char * req, size_t req_len, char * dns_reply, size_
     Sets up a socket and listen for DNS queries,
     replies to all type A queries with the IP of the softAP
 */
-void dns_server_task(void * pvParameters)
+void dns_server_task(void *pvParameters)
 {
     char rx_buffer[128];
     char addr_str[128];
@@ -279,7 +279,7 @@ void dns_server_task(void * pvParameters)
     vTaskDelete(NULL);
 }
 
-dns_server_handle_t start_dns_server(dns_server_config_t * config)
+dns_server_handle_t start_dns_server(dns_server_config_t *config)
 {
     dns_server_handle_t handle = calloc(1, sizeof(struct dns_server_handle) + config->num_of_entries * sizeof(dns_entry_pair_t));
     ESP_RETURN_ON_FALSE(handle, NULL, TAG, "Failed to allocate dns server handle");

@@ -1,15 +1,14 @@
 idf_component_register(
-SRCS 
+SRCS
     "bm1368.c"
-    "bm1366.c"
-    "bm1397.c"
     "serial.c"
     "crc.c"
+    "common.c"
 
-INCLUDE_DIRS 
+INCLUDE_DIRS
     "include"
 
-REQUIRES 
+REQUIRES
     "freertos"
     "driver"
     "stratum"

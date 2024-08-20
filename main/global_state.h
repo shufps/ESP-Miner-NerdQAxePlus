@@ -1,17 +1,15 @@
 #ifndef GLOBAL_STATE_H_
 #define GLOBAL_STATE_H_
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <pthread.h>
 #include "asic_task.h"
 #include "bm1368.h"
-#include "bm1366.h"
-#include "bm1397.h"
 #include "common.h"
 #include "power_management_task.h"
 #include "serial.h"
 #include "stratum_api.h"
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #define STRATUM_USER CONFIG_STRATUM_USER
 
@@ -24,27 +22,22 @@
 typedef enum
 {
     DEVICE_UNKNOWN = -1,
-    DEVICE_MAX,
-    DEVICE_ULTRA,
-    DEVICE_SUPRA,
     DEVICE_NERDQAXE_PLUS,
 } DeviceModel;
 
 typedef enum
 {
     ASIC_UNKNOWN = -1,
-    ASIC_BM1397,
-    ASIC_BM1366,
     ASIC_BM1368,
 } AsicModel;
 
 typedef struct
 {
     uint8_t (*init_fn)(uint64_t, uint16_t);
-    task_result * (*receive_result_fn)(void * GLOBAL_STATE);
+    task_result *(*receive_result_fn)(void *GLOBAL_STATE);
     int (*set_max_baud_fn)(void);
     void (*set_difficulty_mask_fn)(int);
-    void (*send_work_fn)(void * GLOBAL_STATE, bm_job * next_bm_job);
+    void (*send_work_fn)(void *GLOBAL_STATE, bm_job *next_bm_job);
 } AsicFunctions;
 
 typedef struct
@@ -67,7 +60,7 @@ typedef struct
     bool startup_done;
     char ssid[32];
     char wifi_status[20];
-    char * pool_url;
+    char *pool_url;
     uint16_t pool_port;
     uint32_t pool_difficulty;
 
@@ -79,17 +72,16 @@ typedef struct
 typedef struct
 {
     DeviceModel device_model;
-    char * device_model_str;
+    char *device_model_str;
     int board_version;
     AsicModel asic_model;
-    char * asic_model_str;
+    char *asic_model_str;
     uint16_t asic_count;
     uint16_t voltage_domain;
     AsicFunctions ASIC_functions;
     double asic_job_frequency_ms;
     uint32_t initial_ASIC_difficulty;
 
-    bm1397Module BM1397_MODULE;
     SystemModule SYSTEM_MODULE;
     AsicTaskModule ASIC_TASK_MODULE;
     PowerManagementModule POWER_MANAGEMENT_MODULE;

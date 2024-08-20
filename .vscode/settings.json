@@ -19,7 +19,10 @@
         "chrono": "c",
         "condition_variable": "c",
         "cstdlib": "c",
-        "mutex": "c"
+        "mutex": "c",
+        "string.h": "c",
+        "vcore.h": "c",
+        "numeric": "cpp"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

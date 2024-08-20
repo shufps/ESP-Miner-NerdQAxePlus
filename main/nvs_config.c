@@ -7,12 +7,11 @@
 #include "leak_tracker.h"
 #endif
 
-
 #define NVS_CONFIG_NAMESPACE "main"
 
-static const char * TAG = "nvs_config";
+static const char *TAG = "nvs_config";
 
-char * nvs_config_get_string(const char * key, const char * default_value)
+char *nvs_config_get_string(const char *key, const char *default_value)
 {
     nvs_handle handle;
     esp_err_t err;
@@ -28,7 +27,7 @@ char * nvs_config_get_string(const char * key, const char * default_value)
         return strdup(default_value);
     }
 
-    char * out = malloc(size);
+    char *out = malloc(size);
     err = nvs_get_str(handle, key, out, &size);
 
     if (err != ESP_OK) {
@@ -40,7 +39,7 @@ char * nvs_config_get_string(const char * key, const char * default_value)
     return out;
 }
 
-void nvs_config_set_string(const char * key, const char * value)
+void nvs_config_set_string(const char *key, const char *value)
 {
 
     nvs_handle handle;
@@ -61,7 +60,7 @@ void nvs_config_set_string(const char * key, const char * value)
     return;
 }
 
-uint16_t nvs_config_get_u16(const char * key, const uint16_t default_value)
+uint16_t nvs_config_get_u16(const char *key, const uint16_t default_value)
 {
     nvs_handle handle;
     esp_err_t err;
@@ -81,7 +80,7 @@ uint16_t nvs_config_get_u16(const char * key, const uint16_t default_value)
     return out;
 }
 
-void nvs_config_set_u16(const char * key, const uint16_t value)
+void nvs_config_set_u16(const char *key, const uint16_t value)
 {
 
     nvs_handle handle;
@@ -102,7 +101,7 @@ void nvs_config_set_u16(const char * key, const uint16_t value)
     return;
 }
 
-uint64_t nvs_config_get_u64(const char * key, const uint64_t default_value)
+uint64_t nvs_config_get_u64(const char *key, const uint64_t default_value)
 {
     nvs_handle handle;
     esp_err_t err;
@@ -122,7 +121,7 @@ uint64_t nvs_config_get_u64(const char * key, const uint64_t default_value)
     return out;
 }
 
-void nvs_config_set_u64(const char * key, const uint64_t value)
+void nvs_config_set_u64(const char *key, const uint64_t value)
 {
 
     nvs_handle handle;

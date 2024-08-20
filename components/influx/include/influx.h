@@ -30,18 +30,18 @@ typedef struct
 
 typedef struct
 {
-    char * host;
+    char *host;
     int port;
-    char * token;
-    char * org;
-    char * bucket;
-    char * prefix;
+    char *token;
+    char *org;
+    char *bucket;
+    char *prefix;
     Stats stats;
     pthread_mutex_t lock;
 } Influx;
 
-Influx * influx_init(const char * host, int port, const char * token, const char * bucket, const char * org, const char * prefix);
-void influx_write(Influx * influx);
-bool load_last_values(Influx * influx);
-bool bucket_exists(Influx * influx);
-bool influx_ping(Influx * influx);
+Influx *influx_init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix);
+void influx_write(Influx *influx);
+bool load_last_values(Influx *influx);
+bool bucket_exists(Influx *influx);
+bool influx_ping(Influx *influx);

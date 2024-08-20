@@ -14,7 +14,7 @@
 #include "leak_tracker.h"
 #endif
 
-static const char * TAG = "create_jobs_task";
+static const char *TAG = "create_jobs_task";
 
 pthread_mutex_t job_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t job_cond = PTHREAD_COND_INITIALIZER;
@@ -23,7 +23,7 @@ pthread_mutex_t current_stratum_job_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static mining_notify current_job;
 
-static char * extranonce_str = NULL;
+static char *extranonce_str = NULL;
 static int extranonce_2_len = 0;
 
 static uint32_t stratum_difficulty = 8192;
@@ -43,13 +43,15 @@ void trigger_job_creation()
     pthread_mutex_unlock(&job_mutex);
 }
 
-void create_job_set_version_mask(uint32_t mask) {
+void create_job_set_version_mask(uint32_t mask)
+{
     pthread_mutex_lock(&current_stratum_job_mutex);
     version_mask = mask;
     pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
-bool create_job_set_difficulty(uint32_t diffituly) {
+bool create_job_set_difficulty(uint32_t diffituly)
+{
     pthread_mutex_lock(&current_stratum_job_mutex);
 
     // new difficulty?
@@ -61,7 +63,8 @@ bool create_job_set_difficulty(uint32_t diffituly) {
     return is_new;
 }
 
-void create_job_set_enonce(char* enonce, int enonce2_len) {
+void create_job_set_enonce(char *enonce, int enonce2_len)
+{
     pthread_mutex_lock(&current_stratum_job_mutex);
     if (extranonce_str) {
         free(extranonce_str);
@@ -71,7 +74,7 @@ void create_job_set_enonce(char* enonce, int enonce2_len) {
     pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
-void create_job_mining_notify(mining_notify * notifiy)
+void create_job_mining_notify(mining_notify *notifiy)
 {
     pthread_mutex_lock(&current_stratum_job_mutex);
     if (current_job.job_id) {
@@ -97,9 +100,9 @@ void create_job_mining_notify(mining_notify * notifiy)
     trigger_job_creation();
 }
 
-void * create_jobs_task(void * pvParameters)
+void *create_jobs_task(void *pvParameters)
 {
-    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
+    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
 
     ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", GLOBAL_STATE->asic_job_frequency_ms);
     SYSTEM_notify_mining_started(GLOBAL_STATE);
@@ -144,15 +147,14 @@ void * create_jobs_task(void * pvParameters)
             ESP_LOGI(TAG, "New Work Received %s", current_job.job_id);
         }
 
-        char * extranonce_2_str = extranonce_2_generate(extranonce_2, extranonce_2_len);
+        char *extranonce_2_str = extranonce_2_generate(extranonce_2, extranonce_2_len);
 
-        char * coinbase_tx =
-            construct_coinbase_tx(current_job.coinbase_1, current_job.coinbase_2, extranonce_str, extranonce_2_str);
+        char *coinbase_tx = construct_coinbase_tx(current_job.coinbase_1, current_job.coinbase_2, extranonce_str, extranonce_2_str);
 
-        char * merkle_root =
+        char *merkle_root =
             calculate_merkle_root_hash(coinbase_tx, (uint8_t(*)[32]) current_job._merkle_branches, current_job.n_merkle_branches);
 
-        bm_job * next_job = construct_bm_job(&current_job, merkle_root, version_mask);
+        bm_job *next_job = construct_bm_job(&current_job, merkle_root, version_mask);
 
         next_job->jobid = strdup(current_job.job_id);
         next_job->extranonce2 = strdup(extranonce_2_str);
