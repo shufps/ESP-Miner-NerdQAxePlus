@@ -32,8 +32,13 @@ jobs:
     - name: Generate Version Tag
       id: version_tag
       run: |
-        # Extract the version from the latest tag or use a default
-        version=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+        git fetch --tags  # Ensure all tags are fetched
+
+        if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+          version=$(git describe --tags --abbrev=0)
+        else
+          version="v0.0.0"
+        fi
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
 
     - name: Rename Binary with Version
