@@ -67,6 +67,15 @@ jobs:
     - name: Generate Changelog
       id: changelog
       run: |
+        git fetch --tags  # Ensure all tags are fetched
+
+        if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+          version=$(git describe --tags --abbrev=0)
+        else
+          version="v0.0.0"
+        fi
+        echo "VERSION_TAG=${version}" >> $GITHUB_ENV        
+        
         # Generate a changelog from the last tag to the current commit
         changelog=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:'* %s' --no-merges)
         echo "CHANGELOG=$changelog" >> $GITHUB_ENV
