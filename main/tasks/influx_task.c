@@ -121,6 +121,7 @@ void *influx_task(void *pvParameters)
     bool ping_ok = false;
     bool bucket_ok = false;
     bool loaded_values_ok = false;
+    // c can be weird at times :weird-smiley-guy:
     while (1) {
         do {
             ping_ok = ping_ok || influx_ping(influxdb);

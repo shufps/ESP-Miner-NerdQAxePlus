@@ -148,14 +148,23 @@ void *create_jobs_task(void *pvParameters)
             ESP_LOGI(TAG, "New Work Received %s", current_job.job_id);
         }
 
-        char *extranonce_2_str = extranonce_2_generate(extranonce_2, extranonce_2_len);
+        // generate extranonce2 hex string
+        char extranonce_2_str[extranonce_2_len * 2 + 1]; // +1 zero termination
+        snprintf(extranonce_2_str, sizeof(extranonce_2_str), "%0*lx", (int) extranonce_2_len * 2, extranonce_2);
 
-        char *coinbase_tx = construct_coinbase_tx(current_job.coinbase_1, current_job.coinbase_2, extranonce_str, extranonce_2_str);
+        // generate coinbase tx
+        int coinbase_tx_len = strlen(current_job.coinbase_1) + strlen(extranonce_str) + strlen(extranonce_2_str) + strlen(current_job.coinbase_2);
+        char coinbase_tx[coinbase_tx_len + 1]; // +1 zero termination
+        snprintf(coinbase_tx, sizeof(coinbase_tx), "%s%s%s%s", current_job.coinbase_1, extranonce_str, extranonce_2_str,
+                 current_job.coinbase_2);
 
-        char *merkle_root =
-            calculate_merkle_root_hash(coinbase_tx, (uint8_t(*)[32]) current_job._merkle_branches, current_job.n_merkle_branches);
+        // calculate merkle root
+        char merkle_root[65];
+        calculate_merkle_root_hash(coinbase_tx, current_job._merkle_branches, current_job.n_merkle_branches, merkle_root);
 
-        bm_job *next_job = construct_bm_job(&current_job, merkle_root, version_mask);
+        // we need malloc because we will save it in the job array
+        bm_job *next_job = (bm_job *) malloc(sizeof(bm_job));
+        construct_bm_job(&current_job, merkle_root, version_mask, next_job);
 
         next_job->jobid = strdup(current_job.job_id);
         next_job->extranonce2 = strdup(extranonce_2_str);
@@ -178,9 +187,7 @@ void *create_jobs_task(void *pvParameters)
 
         int asic_job_id = (*GLOBAL_STATE->ASIC_functions.send_work_fn)(extranonce_2, next_job);
 
-#if BM1368_DEBUG_JOBS
         ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
-#endif
 
         // save job
         pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
@@ -193,9 +200,6 @@ void *create_jobs_task(void *pvParameters)
         GLOBAL_STATE->valid_jobs[asic_job_id] = 1;
         pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
 
-        free(coinbase_tx);
-        free(merkle_root);
-        free(extranonce_2_str);
         extranonce_2++;
     }
 

@@ -27,7 +27,10 @@ void ASIC_result_task(void *pvParameters)
 
     char *user = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, STRATUM_USER);
 
+
+
     while (1) {
+        ESP_LOGI("Memory", "%lu", esp_get_free_heap_size());
         task_result asic_result;
 
         // get the result
@@ -43,7 +46,7 @@ void ASIC_result_task(void *pvParameters)
             pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
             continue;
         }
-        // we create a clone because we would look during verification and stratum submit
+        // we create a clone because we would lock during verification and stratum submit
         // what is potentially bad
         bm_job *job = clone_bm_job(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id]);
         pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
@@ -51,16 +54,14 @@ void ASIC_result_task(void *pvParameters)
         // now we have the original job and can `or` the version
         asic_result.rolled_version |= job->version;
 
-        ESP_LOGI(TAG, "Job ID: %02X, AsicNr: %d, Ver: %08" PRIX32, asic_job_id, asic_result.asic_nr, asic_result.rolled_version);
-
         // check the nonce difficulty
         double nonce_diff = test_nonce_value(job, asic_result.nonce, asic_result.rolled_version);
 
         uint32_t pool_difficulty = job->pool_diff;
 
         // log the ASIC response
-        ESP_LOGI(TAG, "Ver: %08" PRIX32 " Nonce %08" PRIX32 " diff %.1f of %ld.", asic_result.rolled_version, asic_result.nonce,
-                 nonce_diff, pool_difficulty);
+        ESP_LOGI(TAG, "Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 " diff %.1f of %ld.", asic_job_id,
+                 asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce, nonce_diff, pool_difficulty);
 
         if (nonce_diff > pool_difficulty) {
 

@@ -16,48 +16,30 @@ void free_bm_job(bm_job *job)
     free(job);
 }
 
-char *construct_coinbase_tx(const char *coinbase_1, const char *coinbase_2, const char *extranonce, const char *extranonce_2)
-{
-    int coinbase_tx_len = strlen(coinbase_1) + strlen(coinbase_2) + strlen(extranonce) + strlen(extranonce_2) + 1;
-
-    char *coinbase_tx = malloc(coinbase_tx_len);
-    strcpy(coinbase_tx, coinbase_1);
-    strcat(coinbase_tx, extranonce);
-    strcat(coinbase_tx, extranonce_2);
-    strcat(coinbase_tx, coinbase_2);
-    coinbase_tx[coinbase_tx_len - 1] = '\0';
-
-    return coinbase_tx;
-}
-
-char *calculate_merkle_root_hash(const char *coinbase_tx, const uint8_t merkle_branches[][32], const int num_merkle_branches)
+void calculate_merkle_root_hash(const char *coinbase_tx, const uint8_t merkle_branches[][32], const int num_merkle_branches, char merkle_root_hash[65])
 {
     size_t coinbase_tx_bin_len = strlen(coinbase_tx) / 2;
-    uint8_t *coinbase_tx_bin = malloc(coinbase_tx_bin_len);
+    uint8_t coinbase_tx_bin[coinbase_tx_bin_len];
+
     hex2bin(coinbase_tx, coinbase_tx_bin, coinbase_tx_bin_len);
 
     uint8_t both_merkles[64];
-    uint8_t *new_root = double_sha256_bin(coinbase_tx_bin, coinbase_tx_bin_len);
-    free(coinbase_tx_bin);
+    uint8_t new_root[32];
+    double_sha256_bin(coinbase_tx_bin, coinbase_tx_bin_len, new_root);
+
     memcpy(both_merkles, new_root, 32);
-    free(new_root);
     for (int i = 0; i < num_merkle_branches; i++) {
         memcpy(both_merkles + 32, merkle_branches[i], 32);
-        uint8_t *new_root = double_sha256_bin(both_merkles, 64);
+        double_sha256_bin(both_merkles, 64, new_root);
         memcpy(both_merkles, new_root, 32);
-        free(new_root);
     }
 
-    char *merkle_root_hash = malloc(65);
     bin2hex(both_merkles, 32, merkle_root_hash, 65);
-    return merkle_root_hash;
 }
 
 // take a mining_notify struct with ascii hex strings and convert it to a bm_job struct
-bm_job *construct_bm_job(mining_notify *params, const char *merkle_root, const uint32_t version_mask)
+void construct_bm_job(mining_notify *params, const char *merkle_root, const uint32_t version_mask, bm_job *new_job)
 {
-    bm_job *new_job = (bm_job *) malloc(sizeof(bm_job));
-
     new_job->version = params->version;
     new_job->starting_nonce = 0;
     new_job->target = params->target;
@@ -75,22 +57,6 @@ bm_job *construct_bm_job(mining_notify *params, const char *merkle_root, const u
 
     // hex2bin(params->prev_block_hash, new_job.prev_block_hash_be, 32);
     reverse_bytes(new_job->prev_block_hash_be, 32);
-
-    return new_job;
-}
-
-
-
-char *extranonce_2_generate(uint32_t extranonce_2, uint32_t length)
-{
-    char *extranonce_2_str = malloc(length * 2 + 1);
-    memset(extranonce_2_str, '0', length * 2);
-    extranonce_2_str[length * 2] = '\0';
-    bin2hex((uint8_t *) &extranonce_2, sizeof(extranonce_2), extranonce_2_str, length * 2 + 1);
-    if (length > 4) {
-        extranonce_2_str[8] = '0';
-    }
-    return extranonce_2_str;
 }
 
 ///////cgminer nonce testing
