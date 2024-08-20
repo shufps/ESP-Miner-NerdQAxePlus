@@ -18,7 +18,7 @@ jobs:
       run: |
         # Run the Docker container to build the project
         docker run --rm -v $PWD:/home/builder/project \
-        espressif/idf:release-v5.3 build
+        espressif/idf:release-v5.3 idf.py build
 
     - name: Merge Binaries
       run: |
