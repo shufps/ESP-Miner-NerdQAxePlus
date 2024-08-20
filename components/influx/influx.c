@@ -11,12 +11,12 @@
 
 #include "influx.h"
 
-static const char * TAG = "InfluxDB";
+static const char *TAG = "InfluxDB";
 
 static char auth_header[128];
 static char big_buffer[4096];
 
-bool influx_ping(Influx * influx)
+bool influx_ping(Influx *influx)
 {
     char url[256];
     snprintf(url, sizeof(url), "%s:%d/ping", influx->host, influx->port);
@@ -48,7 +48,7 @@ bool influx_ping(Influx * influx)
     return false;
 }
 
-bool bucket_exists(Influx * influx)
+bool bucket_exists(Influx *influx)
 {
     char url[256];
     snprintf(url, sizeof(url), "%s:%d/api/v2/buckets?org=%s&name=%s", influx->host, influx->port, influx->org, influx->bucket);
@@ -89,7 +89,7 @@ bool bucket_exists(Influx * influx)
         ESP_LOGD(TAG, "Response: %s", big_buffer);
 
         if (esp_http_client_get_status_code(client) == 200) {
-            cJSON * json = cJSON_Parse(big_buffer);
+            cJSON *json = cJSON_Parse(big_buffer);
             if (json == NULL) {
                 ESP_LOGE(TAG, "Failed to parse JSON response");
                 esp_http_client_close(client);
@@ -97,7 +97,7 @@ bool bucket_exists(Influx * influx)
                 return false;
             }
 
-            cJSON * buckets = cJSON_GetObjectItem(json, "buckets");
+            cJSON *buckets = cJSON_GetObjectItem(json, "buckets");
             if (buckets != NULL && cJSON_IsArray(buckets) && cJSON_GetArraySize(buckets) > 0) {
                 // If we get here, the bucket exists
                 cJSON_Delete(json);
@@ -124,7 +124,7 @@ bool bucket_exists(Influx * influx)
     return false;
 }
 
-bool load_last_values(Influx * influx)
+bool load_last_values(Influx *influx)
 {
     char url[256];
     snprintf(url, sizeof(url), "%s:%d/api/v2/query?org=%s", influx->host, influx->port, influx->org);
@@ -186,13 +186,13 @@ bool load_last_values(Influx * influx)
             char *saveptr1, *saveptr2;
 
             // the first strtok_r skips the CSV header
-            char * line = strtok_r(big_buffer, "\r\n", &saveptr1); // Handle CRLF line endings
+            char *line = strtok_r(big_buffer, "\r\n", &saveptr1); // Handle CRLF line endings
 
             // now parse the actual data
             while ((line = strtok_r(NULL, "\r\n", &saveptr1)) != NULL) {
                 // ESP_LOGI(TAG, "line: '%s'", line);
 
-                char * token;
+                char *token;
                 // Fields from CSV: result,table,_start,_stop,_time,_value,_field,_measurement
                 strtok_r(line, ",", &saveptr2); // Skip result column
                 strtok_r(NULL, ",", &saveptr2); // Skip table column
@@ -219,7 +219,7 @@ bool load_last_values(Influx * influx)
                     esp_http_client_cleanup(client);
                     return false;
                 }
-                char * field = token;
+                char *field = token;
 
                 // Assign the parsed values to the appropriate fields
                 if (strcmp(field, "total_uptime") == 0)
@@ -248,7 +248,7 @@ bool load_last_values(Influx * influx)
     return false;
 }
 
-void influx_write(Influx * influx)
+void influx_write(Influx *influx)
 {
     char url[256];
     struct timeval now;
@@ -263,10 +263,10 @@ void influx_write(Influx * influx)
              "total_blocks_found=%d,duplicate_hashes=%d %lld",
              influx->prefix, influx->stats.temp, influx->stats.temp2, influx->stats.hashing_speed, influx->stats.invalid_shares,
              influx->stats.valid_shares, influx->stats.uptime, influx->stats.best_difficulty, influx->stats.total_best_difficulty,
-             influx->stats.pool_errors, influx->stats.accepted, influx->stats.not_accepted, influx->stats.total_uptime, influx->stats.blocks_found,
-             influx->stats.pwr_vin, influx->stats.pwr_iin, influx->stats.pwr_pin,
-             influx->stats.pwr_vout, influx->stats.pwr_iout, influx->stats.pwr_pout,
-             influx->stats.total_blocks_found, influx->stats.duplicate_hashes, (long long) now.tv_sec);
+             influx->stats.pool_errors, influx->stats.accepted, influx->stats.not_accepted, influx->stats.total_uptime,
+             influx->stats.blocks_found, influx->stats.pwr_vin, influx->stats.pwr_iin, influx->stats.pwr_pin,
+             influx->stats.pwr_vout, influx->stats.pwr_iout, influx->stats.pwr_pout, influx->stats.total_blocks_found,
+             influx->stats.duplicate_hashes, (long long) now.tv_sec);
 
     snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", influx->host, influx->port, influx->bucket,
              influx->org);
@@ -308,9 +308,9 @@ void influx_write(Influx * influx)
     esp_http_client_cleanup(client);
 }
 
-Influx * influx_init(const char * host, int port, const char * token, const char * bucket, const char * org, const char * prefix)
+Influx *influx_init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix)
 {
-    Influx * influxdb = (Influx *) malloc(sizeof(Influx));
+    Influx *influxdb = (Influx *) malloc(sizeof(Influx));
 
     memset(influxdb, 0, sizeof(Influx));
 

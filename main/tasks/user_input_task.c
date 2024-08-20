@@ -1,10 +1,10 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "esp_timer.h" // Include esp_timer for esp_timer_get_time
+#include "connect.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "connect.h"
+#include "esp_timer.h" // Include esp_timer for esp_timer_get_time
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/task.h"
 
 #define BUTTON_BOOT GPIO_NUM_0
 #define SHORT_PRESS_DURATION_MS 100 // Define what constitutes a short press
@@ -20,26 +20,19 @@ void USER_INPUT_task(void *pvParameters)
 {
     gpio_set_direction(BUTTON_BOOT, GPIO_MODE_INPUT);
 
-    while (1)
-    {
-        if (gpio_get_level(BUTTON_BOOT) == 0 && button_being_pressed == false)
-        { // If button is pressed
+    while (1) {
+        if (gpio_get_level(BUTTON_BOOT) == 0 && button_being_pressed == false) { // If button is pressed
             button_being_pressed = true;
             button_press_time = esp_timer_get_time();
-        }
-        else if (gpio_get_level(BUTTON_BOOT) == 1 && button_being_pressed == true)
-        {
+        } else if (gpio_get_level(BUTTON_BOOT) == 1 && button_being_pressed == true) {
             int64_t press_duration = esp_timer_get_time() - button_press_time;
             button_being_pressed = false;
-            if (press_duration > LONG_PRESS_DURATION_MS * 1000)
-            {
+            if (press_duration > LONG_PRESS_DURATION_MS * 1000) {
                 ESP_LOGI(TAG, "LONG PRESS DETECTED");
-                xQueueSend(user_input_queue, (void *)"LONG", (TickType_t)0);
-            }
-            else if (press_duration > SHORT_PRESS_DURATION_MS * 1000)
-            {
+                xQueueSend(user_input_queue, (void *) "LONG", (TickType_t) 0);
+            } else if (press_duration > SHORT_PRESS_DURATION_MS * 1000) {
                 ESP_LOGI(TAG, "SHORT PRESS DETECTED");
-                xQueueSend(user_input_queue, (void *)"SHORT", (TickType_t)0);
+                xQueueSend(user_input_queue, (void *) "SHORT", (TickType_t) 0);
             }
         }
 

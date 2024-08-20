@@ -13,12 +13,12 @@ typedef struct
     float frequency_value;
     float power;
     float current;
-    bool HAS_POWER_EN;
-    bool HAS_PLUG_SENSE;
     bool AUTO_SCREEN_OFF;
 } PowerManagementModule;
 
-void POWER_MANAGEMENT_task(void * pvParameters);
-void power_management_task_init_board_config(void* state);
+void POWER_MANAGEMENT_task(void *pvParameters);
+
+void power_management_turn_on();
+void power_management_turn_off();
 
 #endif

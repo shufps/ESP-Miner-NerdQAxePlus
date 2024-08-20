@@ -15,6 +15,4 @@ typedef struct
     bm_job *active_jobs[MAX_ASIC_JOBS];
 } AsicTaskModule;
 
-
-
 #endif

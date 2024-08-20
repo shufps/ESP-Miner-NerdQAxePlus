@@ -3,16 +3,16 @@
 
 #include "common.h"
 #include "driver/gpio.h"
-#include "rom/gpio.h"
 #include "mining.h"
+#include "rom/gpio.h"
 
 #define CRC5_MASK 0x1F
 #define BM1368_INITIAL_DIFFICULTY 256
 
 #define BM1368_SERIALTX_DEBUG false
 #define BM1368_SERIALRX_DEBUG false
-#define BM1368_DEBUG_WORK false //causes insane amount of debug output
-#define BM1368_DEBUG_JOBS false //causes insane amount of debug output
+#define BM1368_DEBUG_WORK false
+#define BM1368_DEBUG_JOBS false
 
 static const uint64_t BM1368_CORE_COUNT = 80;
 static const uint64_t BM1368_SMALL_CORE_COUNT = 1276;
@@ -37,11 +37,11 @@ typedef struct __attribute__((__packed__))
 uint8_t BM1368_init(uint64_t frequency, uint16_t asic_count);
 
 uint8_t BM1368_send_init(void);
-void BM1368_send_work(void * GLOBAL_STATE, bm_job * next_bm_job);
+uint8_t BM1368_send_work(uint32_t job_id, bm_job *next_bm_job);
 void BM1368_set_job_difficulty_mask(int);
 int BM1368_set_max_baud(void);
 int BM1368_set_default_baud(void);
 void BM1368_send_hash_frequency(float frequency);
-task_result * BM1368_proccess_work(void * GLOBAL_STATE);
+void BM1368_proccess_work(task_result *result;);
 
 #endif /* BM1368_H_ */

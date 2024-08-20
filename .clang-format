@@ -5,7 +5,7 @@ AllowShortIfStatementsOnASingleLine: false
 IndentCaseLabels: false
 ColumnLimit: 132
 DerivePointerAlignment: false
-PointerAlignment: Middle
+PointerAlignment: Right
 AllowShortFunctionsOnASingleLine: None
 BreakBeforeBraces: Custom
 BraceWrapping:

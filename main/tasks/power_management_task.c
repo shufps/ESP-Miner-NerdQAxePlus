@@ -1,7 +1,6 @@
-#include "EMC2101.h"
 #include "EMC2302.h"
-#include "INA260.h"
-#include "bm1397.h"
+#include "TMP1075.h"
+#include "TPS53647.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -10,9 +9,6 @@
 #include "mining.h"
 #include "nvs_config.h"
 #include "serial.h"
-#include "TMP1075.h"
-#include "TPS546.h"
-#include "TPS53647.h"
 #include "vcore.h"
 #include <string.h>
 
@@ -27,10 +23,7 @@
 #define VOLTAGE_MIN_THROTTLE 3500
 #define VOLTAGE_RANGE (VOLTAGE_START_THROTTLE - VOLTAGE_MIN_THROTTLE)
 
-#define TPS546_THROTTLE_TEMP 105.0
-#define TPS546_MAX_TEMP 145.0
-
-static const char * TAG = "power_management";
+static const char *TAG = "power_management";
 
 static float _fbound(float value, float lower_bound, float upper_bound)
 {
@@ -44,7 +37,7 @@ static float _fbound(float value, float lower_bound, float upper_bound)
 
 // Set the fan speed between 20% min and 100% max based on chip temperature as input.
 // The fan speed increases from 20% to 100% proportionally to the temperature increase from 50 and THROTTLE_TEMP
-static double automatic_fan_speed(float chip_temp, GlobalState * GLOBAL_STATE)
+static double automatic_fan_speed(float chip_temp, GlobalState *GLOBAL_STATE)
 {
     double result = 0.0;
     double min_temp = 45.0;
@@ -63,44 +56,29 @@ static double automatic_fan_speed(float chip_temp, GlobalState * GLOBAL_STATE)
     float perc = (float) result / 100;
     GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_perc = perc;
     switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            EMC2101_set_fan_speed( perc );
-            break;
-        case DEVICE_NERDQAXE_PLUS:
-            EMC2302_set_fan_speed( perc );
-            break;
-        default:
-    }
-	return result;
-}
-
-void power_management_task_init_board_config(void* state) {
-    GlobalState *GLOBAL_STATE = (GlobalState *) state;
-
-    PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
-
-    switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            power_management->HAS_POWER_EN = GLOBAL_STATE->board_version == 202 || GLOBAL_STATE->board_version == 203 || GLOBAL_STATE->board_version == 204;
-            power_management->HAS_PLUG_SENSE = GLOBAL_STATE->board_version == 204;
-            break;
-        case DEVICE_NERDQAXE_PLUS:
-            power_management->HAS_POWER_EN = false; // TODO nerdqaxe+ buck enable is high active
-            power_management->HAS_PLUG_SENSE = false;
+    case DEVICE_NERDQAXE_PLUS:
+        EMC2302_set_fan_speed(perc);
         break;
-        default:
+    default:
     }
+    return result;
 }
 
-void POWER_MANAGEMENT_task(void * pvParameters)
-{
-    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
+void power_management_turn_on() {
+    gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_10, 1);
+}
 
-    PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
+void power_management_turn_off() {
+    gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_10, 1);
+}
+
+void POWER_MANAGEMENT_task(void *pvParameters)
+{
+    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
+
+    PowerManagementModule *power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
 
     power_management->frequency_multiplier = 1;
 
@@ -111,181 +89,60 @@ void POWER_MANAGEMENT_task(void * pvParameters)
     uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
 
     switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            if (GLOBAL_STATE->board_version != 402) {
-                // Configure GPIO12 as input(barrel jack) 1 is plugged in
-                gpio_config_t barrel_jack_conf = {
-                    .pin_bit_mask = (1ULL << GPIO_NUM_12),
-                    .mode = GPIO_MODE_INPUT,
-                };
-                gpio_config(&barrel_jack_conf);
-                int barrel_jack_plugged_in = gpio_get_level(GPIO_NUM_12);
-
-                if (power_management->HAS_POWER_EN) {
-                    gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-                    if (barrel_jack_plugged_in == 1 || !power_management->HAS_PLUG_SENSE) {
-                        // turn ASIC on
-                        gpio_set_level(GPIO_NUM_10, 0);
-                    } else {
-                        // turn ASIC off
-                        gpio_set_level(GPIO_NUM_10, 1);
-                    }
-                }
-			}
-            break;
-        case DEVICE_NERDQAXE_PLUS:
-            if (power_management->HAS_POWER_EN) {
-                gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-                gpio_set_level(GPIO_NUM_10, 0);
-            }
-
-            break;
-        default:
+    case DEVICE_NERDQAXE_PLUS:
+        power_management_turn_on();
+        break;
+    default:
     }
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
     while (1) {
-
         switch (GLOBAL_STATE->device_model) {
-            case DEVICE_MAX:
-            case DEVICE_ULTRA:
-            case DEVICE_SUPRA:
-                if (GLOBAL_STATE->board_version == 402) {
-                    power_management->voltage = TPS546_get_vin() * 1000;
-                    power_management->current = TPS546_get_iout() * 1000;
-                    // calculate regulator power (in milliwatts)
-                    power_management->power = (TPS546_get_vout() * power_management->current) / 1000;
-                } else if (INA260_installed() == true) {
-                    power_management->voltage = INA260_read_voltage();
-                    power_management->current = INA260_read_current();
-                    power_management->power = INA260_read_power() / 1000;
-                }
+        case DEVICE_NERDQAXE_PLUS:
+            float vin = TPS53647_get_vin();
+            float iin = TPS53647_get_iin();
+            float pin = TPS53647_get_pin();
+            float pout = TPS53647_get_pout();
+            float vout = TPS53647_get_vout();
+            float iout = TPS53647_get_iout();
 
-                power_management->fan_rpm = EMC2101_get_fan_speed();
-                break;
-            case DEVICE_NERDQAXE_PLUS:
-                float vin = TPS53647_get_vin();
-                float iin = TPS53647_get_iin();
-                float pin = TPS53647_get_pin();
-                float pout = TPS53647_get_pout();
-                float vout = TPS53647_get_vout();
-                float iout = TPS53647_get_iout();
+            influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
-                influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
-
-                power_management->voltage = vin * 1000.0;
-                power_management->current = iin * 1000.0;
-                power_management->power = pin;
-                EMC2302_get_fan_speed(&power_management->fan_rpm);
-                break;
-            default:
+            power_management->voltage = vin * 1000.0;
+            power_management->current = iin * 1000.0;
+            power_management->power = pin;
+            EMC2302_get_fan_speed(&power_management->fan_rpm);
+            break;
+        default:
         }
 
-        if (GLOBAL_STATE->asic_model == ASIC_BM1397) {
-
+        if (GLOBAL_STATE->asic_model == ASIC_BM1368) {
             switch (GLOBAL_STATE->device_model) {
-                case DEVICE_MAX:
-                    power_management->chip_temp_avg = EMC2101_get_external_temp();
-
-                    if ((power_management->chip_temp_avg > THROTTLE_TEMP) &&
-                        (power_management->frequency_value > 50 || power_management->voltage > 1000)) {
-                        ESP_LOGE(TAG, "OVERHEAT ASIC %fC", power_management->chip_temp_avg );
-
-                        EMC2101_set_fan_speed(1);
-                        if (power_management->HAS_POWER_EN) {
-                            gpio_set_level(GPIO_NUM_10, 1);
-                        }
-                        nvs_config_set_u16(NVS_CONFIG_ASIC_VOLTAGE, 1000);
-                        nvs_config_set_u16(NVS_CONFIG_ASIC_FREQ, 50);
-                        nvs_config_set_u16(NVS_CONFIG_FAN_SPEED, 100);
-                        nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, 0);
-                        exit(EXIT_FAILURE);
-					}
-                    break;
-
-                default:
-            }
-        } else if (GLOBAL_STATE->asic_model == ASIC_BM1366 || GLOBAL_STATE->asic_model == ASIC_BM1368) {
-            switch (GLOBAL_STATE->device_model) {
-                case DEVICE_ULTRA:
-                case DEVICE_SUPRA:
-                    if (GLOBAL_STATE->board_version == 402) {
-                        power_management->chip_temp_avg = EMC2101_get_external_temp();
-						power_management->vr_temp = (float)TPS546_get_temperature();
-                    } else {
-                        power_management->chip_temp_avg = EMC2101_get_internal_temp() + 5;
-    					power_management->vr_temp = 0.0;
-                    }
-
-                    // EMC2101 will give bad readings if the ASIC is turned off
-                    if(power_management->voltage < TPS546_INIT_VOUT_MIN){
-                        break;
-                    }
-
-                    if ((power_management->vr_temp > TPS546_THROTTLE_TEMP || power_management->chip_temp_avg > THROTTLE_TEMP) &&
-                        (power_management->frequency_value > 50 || power_management->voltage > 1000)) {
-                        ESP_LOGE(TAG, "OVERHEAT  VR: %fC ASIC %fC", power_management->vr_temp, power_management->chip_temp_avg );
-
-                        EMC2101_set_fan_speed(1);
-                        if (GLOBAL_STATE->board_version == 402) {
-                            // Turn off core voltage
-                            VCORE_set_voltage(0.0, GLOBAL_STATE);
-                        } else if (power_management->HAS_POWER_EN) {
-                            gpio_set_level(GPIO_NUM_10, 1);
-                        }
-                        nvs_config_set_u16(NVS_CONFIG_ASIC_VOLTAGE, 1000);
-                        nvs_config_set_u16(NVS_CONFIG_ASIC_FREQ, 50);
-                        nvs_config_set_u16(NVS_CONFIG_FAN_SPEED, 100);
-                        nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, 0);
-                        nvs_config_set_u16(NVS_CONFIG_OVERHEAT_MODE, 1);
-                        exit(EXIT_FAILURE);
-					}
-
-                    break;
-                case DEVICE_NERDQAXE_PLUS: // TODO nerdqaxe
-                    // 1st tmp1075 is measuring asic temps
-                    power_management->chip_temp_avg = TMP1075_read_temperature(0);
-                    // 2nd tmp1075 is on the back side below power stages and inductors
-                    power_management->vr_temp = TMP1075_read_temperature(1);
-                    influx_task_set_temperature(power_management->chip_temp_avg, power_management->vr_temp);
-                    break;
-                default:
+            case DEVICE_NERDQAXE_PLUS:
+                // 1st tmp1075 is measuring asic temps
+                power_management->chip_temp_avg = TMP1075_read_temperature(0);
+                // 2nd tmp1075 is on the back side below power stages and inductors
+                power_management->vr_temp = TMP1075_read_temperature(1);
+                influx_task_set_temperature(power_management->chip_temp_avg, power_management->vr_temp);
+                break;
+            default:
             }
         }
 
         if (auto_fan_speed == 1) {
-
-            power_management->fan_perc = (float)automatic_fan_speed(power_management->chip_temp_avg, GLOBAL_STATE);
-
+            power_management->fan_perc = (float) automatic_fan_speed(power_management->chip_temp_avg, GLOBAL_STATE);
         } else {
             float fs = (float) nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100);
             power_management->fan_perc = fs;
             switch (GLOBAL_STATE->device_model) {
-                case DEVICE_MAX:
-                case DEVICE_ULTRA:
-                case DEVICE_SUPRA:
-                    EMC2101_set_fan_speed((float) fs / 100);
-                    break;
-                case DEVICE_NERDQAXE_PLUS:
-                    EMC2302_set_fan_speed((float) fs / 100);
-                    break;
-                default:
-            }
-        }
-
-        // Read the state of GPIO12
-        if (power_management->HAS_PLUG_SENSE) {
-            int gpio12_state = gpio_get_level(GPIO_NUM_12);
-            if (power_management->HAS_POWER_EN && gpio12_state == 0) {
-                // turn ASIC off
-                gpio_set_level(GPIO_NUM_10, 1);
+            case DEVICE_NERDQAXE_PLUS:
+                EMC2302_set_fan_speed((float) fs / 100);
+                break;
+            default:
             }
         }
 
         vTaskDelay(POLL_RATE / portTICK_PERIOD_MS);
     }
 }
-

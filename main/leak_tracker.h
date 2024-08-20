@@ -1,6 +1,5 @@
 #pragma once
 
-
 void *malloc_wrapper(size_t size, const char *file, int line);
 void free_wrapper(void *ptr, const char *file, int line);
 char *strdup_wrapper(const char *str, const char *file, int line);

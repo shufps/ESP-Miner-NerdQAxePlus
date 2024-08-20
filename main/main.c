@@ -11,18 +11,18 @@
 #include "asic_task.h"
 #include "create_jobs_task.h"
 #include "esp_netif.h"
-#include "system.h"
 #include "http_server.h"
+#include "influx_task.h"
 #include "nvs_config.h"
 #include "serial.h"
 #include "stratum_task.h"
+#include "system.h"
 #include "user_input_task.h"
-#include "influx_task.h"
 
 static GlobalState GLOBAL_STATE = {};
 
-static const char * TAG = "bitaxe";
-//static const double NONCE_SPACE = 4294967296.0; //  2^32
+static const char *TAG = "bitaxe";
+// static const double NONCE_SPACE = 4294967296.0; //  2^32
 
 void app_main(void)
 {
@@ -30,25 +30,10 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
 
     GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
-    ESP_LOGI(TAG, "NVS_CONFIG_ASIC_FREQ %f", (float)GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value);
+    ESP_LOGI(TAG, "NVS_CONFIG_ASIC_FREQ %f", (float) GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value);
 
     GLOBAL_STATE.device_model_str = nvs_config_get_string(NVS_CONFIG_DEVICE_MODEL, "");
-    if (strcmp(GLOBAL_STATE.device_model_str, "max") == 0) {
-        ESP_LOGI(TAG, "DEVICE: Max");
-        GLOBAL_STATE.device_model = DEVICE_MAX;
-        GLOBAL_STATE.asic_count = 1;
-        GLOBAL_STATE.voltage_domain = 1;
-    } else if (strcmp(GLOBAL_STATE.device_model_str, "ultra") == 0) {
-        ESP_LOGI(TAG, "DEVICE: Ultra");
-        GLOBAL_STATE.device_model = DEVICE_ULTRA;
-        GLOBAL_STATE.asic_count = 1;
-        GLOBAL_STATE.voltage_domain = 1;
-    } else if (strcmp(GLOBAL_STATE.device_model_str, "supra") == 0) {
-        ESP_LOGI(TAG, "DEVICE: Supra");
-        GLOBAL_STATE.device_model = DEVICE_SUPRA;
-        GLOBAL_STATE.asic_count = 1;
-        GLOBAL_STATE.voltage_domain = 1;
-    } else if (strcmp(GLOBAL_STATE.device_model_str, "nerdqaxe_plus") == 0) {
+    if (strcmp(GLOBAL_STATE.device_model_str, "nerdqaxe_plus") == 0) {
         ESP_LOGI(TAG, "DEVICE: NerdQaxe+");
         GLOBAL_STATE.device_model = DEVICE_NERDQAXE_PLUS;
         GLOBAL_STATE.asic_count = 4;
@@ -66,20 +51,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Found Board Version: %d", GLOBAL_STATE.board_version);
 
     GLOBAL_STATE.asic_model_str = nvs_config_get_string(NVS_CONFIG_ASIC_MODEL, "");
-    if (strcmp(GLOBAL_STATE.asic_model_str, "BM1366") == 0) {
-        ESP_LOGI(TAG, "ASIC: %dx BM1366 (%" PRIu64 " cores)", GLOBAL_STATE.asic_count, BM1366_CORE_COUNT);
-        GLOBAL_STATE.asic_model = ASIC_BM1366;
-        AsicFunctions ASIC_functions = {.init_fn = BM1366_init,
-                                        .receive_result_fn = BM1366_proccess_work,
-                                        .set_max_baud_fn = BM1366_set_max_baud,
-                                        .set_difficulty_mask_fn = BM1366_set_job_difficulty_mask,
-                                        .send_work_fn = BM1366_send_work};
-        //GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1366_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce Space
-        GLOBAL_STATE.asic_job_frequency_ms = 1900; //ms
-        GLOBAL_STATE.initial_ASIC_difficulty = BM1366_INITIAL_DIFFICULTY;
-
-        GLOBAL_STATE.ASIC_functions = ASIC_functions;
-    } else if (strcmp(GLOBAL_STATE.asic_model_str, "BM1368") == 0) {
+    if (strcmp(GLOBAL_STATE.asic_model_str, "BM1368") == 0) {
         ESP_LOGI(TAG, "ASIC: %dx BM1368 (%" PRIu64 " cores)", GLOBAL_STATE.asic_count, BM1368_CORE_COUNT);
         GLOBAL_STATE.asic_model = ASIC_BM1368;
         AsicFunctions ASIC_functions = {.init_fn = BM1368_init,
@@ -87,21 +59,11 @@ void app_main(void)
                                         .set_max_baud_fn = BM1368_set_max_baud,
                                         .set_difficulty_mask_fn = BM1368_set_job_difficulty_mask,
                                         .send_work_fn = BM1368_send_work};
-        //GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1368_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce Space
-        GLOBAL_STATE.asic_job_frequency_ms = 1500; //ms
+        // GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value *
+        // BM1368_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce
+        // Space
+        GLOBAL_STATE.asic_job_frequency_ms = 1500; // ms
         GLOBAL_STATE.initial_ASIC_difficulty = BM1368_INITIAL_DIFFICULTY;
-
-        GLOBAL_STATE.ASIC_functions = ASIC_functions;
-    } else if (strcmp(GLOBAL_STATE.asic_model_str, "BM1397") == 0) {
-        ESP_LOGI(TAG, "ASIC: %dx BM1397 (%" PRIu64 " cores)", GLOBAL_STATE.asic_count, BM1397_SMALL_CORE_COUNT);
-        GLOBAL_STATE.asic_model = ASIC_BM1397;
-        AsicFunctions ASIC_functions = {.init_fn = BM1397_init,
-                                        .receive_result_fn = BM1397_proccess_work,
-                                        .set_max_baud_fn = BM1397_set_max_baud,
-                                        .set_difficulty_mask_fn = BM1397_set_job_difficulty_mask,
-                                        .send_work_fn = BM1397_send_work};
-        GLOBAL_STATE.asic_job_frequency_ms = 1200;//(NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1397_SMALL_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // no version-rolling so same Nonce Space is splitted between Small Cores
-        GLOBAL_STATE.initial_ASIC_difficulty = BM1397_INITIAL_DIFFICULTY;
 
         GLOBAL_STATE.ASIC_functions = ASIC_functions;
     } else {
@@ -115,14 +77,10 @@ void app_main(void)
         // maybe should return here to now execute anything with a faulty device parameter !
     }
 
-    bool is_max = GLOBAL_STATE.asic_model == ASIC_BM1397;
     uint64_t best_diff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
 
-    // set variables HAS_POWER_EN and HAS_PLUG_SENSE
-    power_management_task_init_board_config(&GLOBAL_STATE);
-
     uint16_t should_self_test = nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0);
-    if (should_self_test == 1 && !is_max && best_diff < 1) {
+    if (should_self_test == 1 && best_diff < 1) {
         self_test((void *) &GLOBAL_STATE);
         vTaskDelay(60 * 60 * 1000 / portTICK_PERIOD_MS);
     }
@@ -131,15 +89,13 @@ void app_main(void)
     xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, (void *) &GLOBAL_STATE, 10, NULL);
 
     // pull the wifi credentials and hostname out of NVS
-    char * wifi_ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, WIFI_SSID);
-    char * wifi_pass = nvs_config_get_string(NVS_CONFIG_WIFI_PASS, WIFI_PASS);
-    char * hostname  = nvs_config_get_string(NVS_CONFIG_HOSTNAME, HOSTNAME);
+    char *wifi_ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, WIFI_SSID);
+    char *wifi_pass = nvs_config_get_string(NVS_CONFIG_WIFI_PASS, WIFI_PASS);
+    char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, HOSTNAME);
 
     // copy the wifi ssid to the global state
-    strncpy(GLOBAL_STATE.SYSTEM_MODULE.ssid,
-            wifi_ssid,
-            sizeof(GLOBAL_STATE.SYSTEM_MODULE.ssid));
-    GLOBAL_STATE.SYSTEM_MODULE.ssid[sizeof(GLOBAL_STATE.SYSTEM_MODULE.ssid)-1] = 0;
+    strncpy(GLOBAL_STATE.SYSTEM_MODULE.ssid, wifi_ssid, sizeof(GLOBAL_STATE.SYSTEM_MODULE.ssid));
+    GLOBAL_STATE.SYSTEM_MODULE.ssid[sizeof(GLOBAL_STATE.SYSTEM_MODULE.ssid) - 1] = 0;
 
     // init and connect to wifi
     wifi_init(wifi_ssid, wifi_pass, hostname);
@@ -177,7 +133,6 @@ void app_main(void)
 
     xTaskCreate(USER_INPUT_task, "user input", 8192, (void *) &GLOBAL_STATE, 5, NULL);
 
-
     if (GLOBAL_STATE.ASIC_functions.init_fn != NULL) {
         wifi_softap_off();
 
@@ -188,8 +143,7 @@ void app_main(void)
 
         pthread_mutex_init(&GLOBAL_STATE.valid_jobs_lock, NULL);
 
-        for (int i = 0; i < MAX_ASIC_JOBS; i++)
-        {
+        for (int i = 0; i < MAX_ASIC_JOBS; i++) {
             GLOBAL_STATE.ASIC_TASK_MODULE.active_jobs[i] = NULL;
             GLOBAL_STATE.valid_jobs[i] = 0;
         }

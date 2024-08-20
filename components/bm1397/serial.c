@@ -1,15 +1,14 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "driver/uart.h"
 
 #include "esp_log.h"
 #include "soc/uart_struct.h"
 
-#include "bm1397.h"
 #include "bm1368.h"
 #include "serial.h"
 #include "utils.h"
@@ -51,14 +50,13 @@ void SERIAL_set_baud(int baud)
 
 int SERIAL_send(uint8_t *data, int len, bool debug)
 {
-    if (debug)
-    {
+    if (debug) {
         printf("tx: ");
-        prettyHex((unsigned char *)data, len);
+        prettyHex((unsigned char *) data, len);
         printf("\n");
     }
 
-    return uart_write_bytes(UART_NUM_1, (const char *)data, len);
+    return uart_write_bytes(UART_NUM_1, (const char *) data, len);
 }
 
 /// @brief waits for a serial response from the device
@@ -69,15 +67,15 @@ int16_t SERIAL_rx(uint8_t *buf, uint16_t size, uint16_t timeout_ms)
 {
     int16_t bytes_read = uart_read_bytes(UART_NUM_1, buf, size, timeout_ms / portTICK_PERIOD_MS);
 
-    #if BM1937_SERIALRX_DEBUG || BM1366_SERIALRX_DEBUG || BM1368_SERIALRX_DEBUG
+#if BM1368_SERIALRX_DEBUG
     size_t buff_len = 0;
     if (bytes_read > 0) {
         uart_get_buffered_data_len(UART_NUM_1, &buff_len);
         printf("rx: ");
-        prettyHex((unsigned char*) buf, bytes_read);
+        prettyHex((unsigned char *) buf, bytes_read);
         printf(" [%d]\n", buff_len);
     }
-    #endif
+#endif
 
     return bytes_read;
 }
@@ -88,8 +86,7 @@ void SERIAL_debug_rx(void)
     uint8_t buf[CHUNK_SIZE];
 
     ret = SERIAL_rx(buf, 100, 20);
-    if (ret < 0)
-    {
+    if (ret < 0) {
         fprintf(stderr, "unable to read data\n");
         return;
     }

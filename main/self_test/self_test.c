@@ -1,60 +1,35 @@
-#include "i2c_master.h"
-#include "DS4432U.h"
-#include "EMC2101.h"
 #include "EMC2302.h"
-#include "INA260.h"
-#include "adc.h"
 #include "esp_log.h"
 #include "global_state.h"
+#include "i2c_master.h"
 #include "nvs_config.h"
 #include "nvs_flash.h"
-
 
 #ifdef DISPLAY_OLED
 #include "oled.h"
 #endif
 
-#include "vcore.h"
 #include "displays/displayDriver.h"
-#include "utils.h"
 #include "string.h"
+#include "utils.h"
+#include "vcore.h"
 
-static const char * TAG = "self_test";
+static const char *TAG = "self_test";
 
-static void display_msg(char * msg, GlobalState * GLOBAL_STATE) {
-    SystemModule * module = &GLOBAL_STATE->SYSTEM_MODULE;
-#ifdef DISPLAY_OLED
-    switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            if (OLED_status()) {
-                memset(module->oled_buf, 0, 20);
-                snprintf(module->oled_buf, 20, msg);
-                OLED_writeString(0, 2, module->oled_buf);
-            }
-            break;
-        default:
-    }
-#else
+static void display_msg(char *msg, GlobalState *GLOBAL_STATE)
+{
+    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
     ESP_LOGI(TAG, "%s", msg);
-#endif
-
 }
 
-static bool fan_sense_pass(GlobalState * GLOBAL_STATE)
+static bool fan_sense_pass(GlobalState *GLOBAL_STATE)
 {
     uint16_t fan_speed = 0;
     switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            fan_speed = EMC2101_get_fan_speed();
-            break;
-        case DEVICE_NERDQAXE_PLUS:
-            EMC2302_get_fan_speed(&fan_speed);
-            break;
-        default:
+    case DEVICE_NERDQAXE_PLUS:
+        EMC2302_get_fan_speed(&fan_speed);
+        break;
+    default:
     }
     ESP_LOGI(TAG, "fanSpeed: %d", fan_speed);
     if (fan_speed > 1000) {
@@ -63,17 +38,7 @@ static bool fan_sense_pass(GlobalState * GLOBAL_STATE)
     return false;
 }
 
-static bool power_consumption_pass()
-{
-    float power = INA260_read_power() / 1000;
-    ESP_LOGI(TAG, "Power: %f", power);
-    if (power > 9 && power < 15) {
-        return true;
-    }
-    return false;
-}
-
-static bool core_voltage_pass(GlobalState * GLOBAL_STATE)
+static bool core_voltage_pass(GlobalState *GLOBAL_STATE)
 {
     uint16_t core_voltage = VCORE_get_voltage_mv(GLOBAL_STATE);
     ESP_LOGI(TAG, "Voltage: %u", core_voltage);
@@ -84,17 +49,17 @@ static bool core_voltage_pass(GlobalState * GLOBAL_STATE)
     return false;
 }
 
-void self_test(void * pvParameters)
+void self_test(void *pvParameters)
 {
 
-    //Initialize display
+    // Initialize display
     display_init();
     display_log_message("Self test initiated...");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
+    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
 
-    PowerManagementModule * power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
+    PowerManagementModule *power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
 
     for (int i = 0; i < MAX_ASIC_JOBS; i++) {
 
@@ -103,17 +68,11 @@ void self_test(void * pvParameters)
     }
 
     switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-        case DEVICE_NERDQAXE_PLUS:
-            // turn ASIC on
-            if (power_management->HAS_POWER_EN) {
-                gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-                gpio_set_level(GPIO_NUM_10, 0);
-            }
-            break;
-        default:
+    case DEVICE_NERDQAXE_PLUS:
+        // turn ASIC on
+        power_management_turn_on();
+        break;
+    default:
     }
 
     // Init I2C
@@ -124,58 +83,16 @@ void self_test(void * pvParameters)
     VCORE_set_voltage(nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE) / 1000.0, GLOBAL_STATE);
 
     switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            EMC2101_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
-            EMC2101_set_fan_speed(1);
-            break;
-        case DEVICE_NERDQAXE_PLUS:
-            EMC2302_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
-            EMC2302_set_fan_speed(1);
-            break;
-        default:
+    case DEVICE_NERDQAXE_PLUS:
+        EMC2302_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
+        EMC2302_set_fan_speed(1);
+        break;
+    default:
     }
-#ifdef DISPLAY_OLED
-    // Display testing
-    switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            if (!OLED_init()) {
-                ESP_LOGE(TAG, "OLED init failed!");
-            } else {
-                ESP_LOGI(TAG, "OLED init success!");
-                // clear the oled screen
-                OLED_fill(0);
-                display_msg("SELF TEST...", GLOBAL_STATE);
-            }
-            break;
-        default:
-    }
-#endif
-    // VCore regulator testing
-    switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            if(GLOBAL_STATE->board_version != 402){
-                if(!DS4432U_test()){
-                    ESP_LOGE(TAG, "DS4432 test failed!");
-                    display_msg("DS4432U:FAIL", GLOBAL_STATE);
-                    display_log_message("Test result: ERROR > DS4432U:FAIL");
-                }
-            }
-            break;
-        case DEVICE_NERDQAXE_PLUS:
-            // no DS4432
-            break;
-        default:
-    }
-
 
     SERIAL_init();
-    uint8_t chips_detected = (GLOBAL_STATE->ASIC_functions.init_fn)(GLOBAL_STATE->POWER_MANAGEMENT_MODULE.frequency_value, GLOBAL_STATE->asic_count);
+    uint8_t chips_detected =
+        (GLOBAL_STATE->ASIC_functions.init_fn)(GLOBAL_STATE->POWER_MANAGEMENT_MODULE.frequency_value, GLOBAL_STATE->asic_count);
     ESP_LOGI(TAG, "%u chips detected, %u expected", chips_detected, GLOBAL_STATE->asic_count);
 
     int baud = (*GLOBAL_STATE->ASIC_functions.set_max_baud_fn)();
@@ -193,15 +110,15 @@ void self_test(void * pvParameters)
     notify_message.ntime = 0x647025b5;
     notify_message.difficulty = 1000000;
 
-    const char * coinbase_tx = "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4b0389130cfab"
-                               "e6d6d5cbab26a2599e92916edec"
-                               "5657a94a0708ddb970f5c45b5d12905085617eff8e010000000000000031650707758de07b010000000000001cfd703"
-                               "8212f736c7573682f0000000003"
-                               "79ad0c2a000000001976a9147c154ed1dc59609e3d26abb2df2ea3d587cd8c4188ac00000000000000002c6a4c29525"
-                               "34b424c4f434b3ae725d3994b81"
-                               "1572c1f345deb98b56b465ef8e153ecbbd27fa37bf1b005161380000000000000000266a24aa21a9ed63b06a7946b19"
-                               "0a3fda1d76165b25c9b883bcc66"
-                               "21b040773050ee2a1bb18f1800000000";
+    const char *coinbase_tx = "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4b0389130cfab"
+                              "e6d6d5cbab26a2599e92916edec"
+                              "5657a94a0708ddb970f5c45b5d12905085617eff8e010000000000000031650707758de07b010000000000001cfd703"
+                              "8212f736c7573682f0000000003"
+                              "79ad0c2a000000001976a9147c154ed1dc59609e3d26abb2df2ea3d587cd8c4188ac00000000000000002c6a4c29525"
+                              "34b424c4f434b3ae725d3994b81"
+                              "1572c1f345deb98b56b465ef8e153ecbbd27fa37bf1b005161380000000000000000266a24aa21a9ed63b06a7946b19"
+                              "0a3fda1d76165b25c9b883bcc66"
+                              "21b040773050ee2a1bb18f1800000000";
     uint8_t merkles[13][32];
     int num_merkles = 13;
 
@@ -219,9 +136,11 @@ void self_test(void * pvParameters)
     hex2bin("c4f5ab01913fc186d550c1a28f3f3e9ffaca2016b961a6a751f8cca0089df924", merkles[11], 32);
     hex2bin("cff737e1d00176dd6bbfa73071adbb370f227cfb5fba186562e4060fcec877e1", merkles[12], 32);
 
-    char * merkle_root = calculate_merkle_root_hash(coinbase_tx, merkles, num_merkles);
+    char merkle_root[65];
+    calculate_merkle_root_hash(coinbase_tx, merkles, num_merkles, merkle_root);
 
-    bm_job *job = construct_bm_job(&notify_message, merkle_root, 0x1fffe000);
+    bm_job *job = (bm_job*) malloc(sizeof(bm_job));
+    construct_bm_job(&notify_message, merkle_root, 0x1fffe000, job);
 
     (*GLOBAL_STATE->ASIC_functions.set_difficulty_mask_fn)(32);
 
@@ -259,26 +178,11 @@ void self_test(void * pvParameters)
         return;
     }
 
-    switch (GLOBAL_STATE->device_model) {
-        case DEVICE_MAX:
-        case DEVICE_ULTRA:
-        case DEVICE_SUPRA:
-            if (INA260_installed() && !power_consumption_pass()) {
-                ESP_LOGE(TAG, "INA260 test failed!");
-                display_msg("MONITOR:   FAIL", GLOBAL_STATE);
-                display_log_message("Test result: ERROR > Power FAIL, power consumption");
-                return;
-            }
-            break;
-        default:
-    }
-
     if (!fan_sense_pass(GLOBAL_STATE)) {
         ESP_LOGE(TAG, "FAN test failed!");
         display_msg("FAN:       WARN", GLOBAL_STATE);
         display_log_message("Test result: OK PASS > Warning fan");
     }
-
 
     display_msg("           PASS", GLOBAL_STATE);
     display_log_message("Test result: OK PASS");

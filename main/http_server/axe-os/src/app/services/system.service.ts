@@ -42,7 +42,7 @@ export class SystemService {
           uptimeSeconds: 38,
           asicCount: 1,
           smallCoreCount: 672,
-          ASICModel: eASICModel.BM1366,
+          ASICModel: eASICModel.BM1368,
           stratumURL: "public-pool.io",
           stratumPort: 21496,
           stratumUser: "bc1q99n3pu025yyu0jlywpmwzalyhm36tg5u37w20d.bitaxe-U1",

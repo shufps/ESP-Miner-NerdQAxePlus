@@ -14,7 +14,7 @@
 #include "leak_tracker.h"
 #endif
 
-static const char * TAG = "create_jobs_task";
+static const char *TAG = "create_jobs_task";
 
 pthread_mutex_t job_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t job_cond = PTHREAD_COND_INITIALIZER;
@@ -23,7 +23,7 @@ pthread_mutex_t current_stratum_job_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static mining_notify current_job;
 
-static char * extranonce_str = NULL;
+static char *extranonce_str = NULL;
 static int extranonce_2_len = 0;
 
 static uint32_t stratum_difficulty = 8192;
@@ -43,13 +43,15 @@ void trigger_job_creation()
     pthread_mutex_unlock(&job_mutex);
 }
 
-void create_job_set_version_mask(uint32_t mask) {
+void create_job_set_version_mask(uint32_t mask)
+{
     pthread_mutex_lock(&current_stratum_job_mutex);
     version_mask = mask;
     pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
-bool create_job_set_difficulty(uint32_t diffituly) {
+bool create_job_set_difficulty(uint32_t diffituly)
+{
     pthread_mutex_lock(&current_stratum_job_mutex);
 
     // new difficulty?
@@ -61,7 +63,8 @@ bool create_job_set_difficulty(uint32_t diffituly) {
     return is_new;
 }
 
-void create_job_set_enonce(char* enonce, int enonce2_len) {
+void create_job_set_enonce(char *enonce, int enonce2_len)
+{
     pthread_mutex_lock(&current_stratum_job_mutex);
     if (extranonce_str) {
         free(extranonce_str);
@@ -71,7 +74,7 @@ void create_job_set_enonce(char* enonce, int enonce2_len) {
     pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
-void create_job_mining_notify(mining_notify * notifiy)
+void create_job_mining_notify(mining_notify *notifiy)
 {
     pthread_mutex_lock(&current_stratum_job_mutex);
     if (current_job.job_id) {
@@ -97,9 +100,10 @@ void create_job_mining_notify(mining_notify * notifiy)
     trigger_job_creation();
 }
 
-void * create_jobs_task(void * pvParameters)
+
+void *create_jobs_task(void *pvParameters)
 {
-    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
+    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
 
     ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", GLOBAL_STATE->asic_job_frequency_ms);
     SYSTEM_notify_mining_started(GLOBAL_STATE);
@@ -144,15 +148,23 @@ void * create_jobs_task(void * pvParameters)
             ESP_LOGI(TAG, "New Work Received %s", current_job.job_id);
         }
 
-        char * extranonce_2_str = extranonce_2_generate(extranonce_2, extranonce_2_len);
+        // generate extranonce2 hex string
+        char extranonce_2_str[extranonce_2_len * 2 + 1]; // +1 zero termination
+        snprintf(extranonce_2_str, sizeof(extranonce_2_str), "%0*lx", (int) extranonce_2_len * 2, extranonce_2);
 
-        char * coinbase_tx =
-            construct_coinbase_tx(current_job.coinbase_1, current_job.coinbase_2, extranonce_str, extranonce_2_str);
+        // generate coinbase tx
+        int coinbase_tx_len = strlen(current_job.coinbase_1) + strlen(extranonce_str) + strlen(extranonce_2_str) + strlen(current_job.coinbase_2);
+        char coinbase_tx[coinbase_tx_len + 1]; // +1 zero termination
+        snprintf(coinbase_tx, sizeof(coinbase_tx), "%s%s%s%s", current_job.coinbase_1, extranonce_str, extranonce_2_str,
+                 current_job.coinbase_2);
 
-        char * merkle_root =
-            calculate_merkle_root_hash(coinbase_tx, (uint8_t(*)[32]) current_job._merkle_branches, current_job.n_merkle_branches);
+        // calculate merkle root
+        char merkle_root[65];
+        calculate_merkle_root_hash(coinbase_tx, current_job._merkle_branches, current_job.n_merkle_branches, merkle_root);
 
-        bm_job * next_job = construct_bm_job(&current_job, merkle_root, version_mask);
+        // we need malloc because we will save it in the job array
+        bm_job *next_job = (bm_job *) malloc(sizeof(bm_job));
+        construct_bm_job(&current_job, merkle_root, version_mask, next_job);
 
         next_job->jobid = strdup(current_job.job_id);
         next_job->extranonce2 = strdup(extranonce_2_str);
@@ -173,11 +185,21 @@ void * create_jobs_task(void * pvParameters)
         }
         last_submit_time = current_time;
 
-        (*GLOBAL_STATE->ASIC_functions.send_work_fn)(GLOBAL_STATE, next_job);
+        int asic_job_id = (*GLOBAL_STATE->ASIC_functions.send_work_fn)(extranonce_2, next_job);
 
-        free(coinbase_tx);
-        free(merkle_root);
-        free(extranonce_2_str);
+        ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
+
+        // save job
+        pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
+        // if a slot was used before free it
+        if (GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id] != NULL) {
+            free_bm_job(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id]);
+        }
+        // save job into slot and set valid_job flag
+        GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id] = next_job;
+        GLOBAL_STATE->valid_jobs[asic_job_id] = 1;
+        pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
+
         extranonce_2++;
     }
 

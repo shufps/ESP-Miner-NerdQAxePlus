@@ -1,7 +1,6 @@
 #include "bm1368.h"
 
 #include "crc.h"
-#include "global_state.h"
 #include "serial.h"
 #include "utils.h"
 
@@ -18,7 +17,6 @@
 #ifdef DEBUG_MEMORY_LOGGING
 #include "leak_tracker.h"
 #endif
-
 
 #define BM1368_RST_PIN GPIO_NUM_1
 
@@ -60,23 +58,21 @@ typedef struct __attribute__((__packed__))
     uint8_t crc;
 } asic_result;
 
-static const char * TAG = "bm1368Module";
+static const char *TAG = "bm1368Module";
 
 static uint8_t asic_response_buffer[CHUNK_SIZE];
-static task_result result;
 
 /// @brief
 /// @param ftdi
 /// @param header
 /// @param data
 /// @param len
-static void _send_BM1368(uint8_t header, uint8_t * data, uint8_t data_len, bool debug)
+static void _send_BM1368(uint8_t header, uint8_t *data, uint8_t data_len, bool debug)
 {
     packet_type_t packet_type = (header & TYPE_JOB) ? JOB_PACKET : CMD_PACKET;
     uint8_t total_length = (packet_type == JOB_PACKET) ? (data_len + 6) : (data_len + 5);
 
-    // allocate memory for buffer
-    unsigned char * buf = malloc(total_length);
+    unsigned char buf[total_length];
 
     // add the preamble
     buf[0] = 0x55;
@@ -102,17 +98,11 @@ static void _send_BM1368(uint8_t header, uint8_t * data, uint8_t data_len, bool 
 
     // send serial data
     SERIAL_send(buf, total_length, debug);
-
-    free(buf);
 }
 
-static void _send_simple(uint8_t * data, uint8_t total_length)
+static void _send_simple(uint8_t *data, uint8_t total_length)
 {
-    unsigned char * buf = malloc(total_length);
-    memcpy(buf, data, total_length);
-    SERIAL_send(buf, total_length, BM1368_SERIALTX_DEBUG);
-
-    free(buf);
+    SERIAL_send(data, total_length, BM1368_SERIALTX_DEBUG);
 }
 
 static void _send_chain_inactive(void)
@@ -189,74 +179,28 @@ void BM1368_send_hash_frequency(float target_freq)
     ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)", target_freq, newf);
 }
 
-static void do_frequency_ramp_up() {
+static void do_frequency_ramp_up()
+{
 
-    //PLLO settings taken from a S21 dump.
-    //todo: do this right.
-    uint8_t freq_list[65][4] = {{0x40, 0xA2, 0x02, 0x55},
-        {0x40, 0xAF, 0x02, 0x64},
-        {0x40, 0xA5, 0x02, 0x54},
-        {0x40, 0xA8, 0x02, 0x63},
-        {0x40, 0xB6, 0x02, 0x63},
-        {0x40, 0xA8, 0x02, 0x53},
-        {0x40, 0xB4, 0x02, 0x53},
-        {0x40, 0xA8, 0x02, 0x62},
-        {0x40, 0xAA, 0x02, 0x43},
-        {0x40, 0xA2, 0x02, 0x52},
-        {0x40, 0xAB, 0x02, 0x52},
-        {0x40, 0xB4, 0x02, 0x52},
-        {0x40, 0xBD, 0x02, 0x52},
-        {0x40, 0xA5, 0x02, 0x42},
-        {0x40, 0xA1, 0x02, 0x61},
-        {0x40, 0xA8, 0x02, 0x61},
-        {0x40, 0xAF, 0x02, 0x61},
-        {0x40, 0xB6, 0x02, 0x61},
-        {0x40, 0xA2, 0x02, 0x51},
-        {0x40, 0xA8, 0x02, 0x51},
-        {0x40, 0xAE, 0x02, 0x51},
-        {0x40, 0xB4, 0x02, 0x51},
-        {0x40, 0xBA, 0x02, 0x51},
-        {0x40, 0xA0, 0x02, 0x41},
-        {0x40, 0xA5, 0x02, 0x41},
-        {0x40, 0xAA, 0x02, 0x41},
-        {0x40, 0xAF, 0x02, 0x41},
-        {0x40, 0xB4, 0x02, 0x41},
-        {0x40, 0xB9, 0x02, 0x41},
-        {0x40, 0xBE, 0x02, 0x41},
-        {0x40, 0xA0, 0x02, 0x31},
-        {0x40, 0xA4, 0x02, 0x31},
-        {0x40, 0xA8, 0x02, 0x31},
-        {0x40, 0xAC, 0x02, 0x31},
-        {0x40, 0xB0, 0x02, 0x31},
-        {0x40, 0xB4, 0x02, 0x31},
-        {0x40, 0xA1, 0x02, 0x60},
-        {0x40, 0xBC, 0x02, 0x31},
-        {0x40, 0xA8, 0x02, 0x60},
-        {0x40, 0xAF, 0x02, 0x60},
-        {0x50, 0xCC, 0x02, 0x31},
-        {0x40, 0xB6, 0x02, 0x60},
-        {0x50, 0xD4, 0x02, 0x31},
-        {0x40, 0xA2, 0x02, 0x50},
-        {0x40, 0xA5, 0x02, 0x50},
-        {0x40, 0xA8, 0x02, 0x50},
-        {0x40, 0xAB, 0x02, 0x50},
-        {0x40, 0xAE, 0x02, 0x50},
-        {0x40, 0xB1, 0x02, 0x50},
-        {0x40, 0xB4, 0x02, 0x50},
-        {0x40, 0xB7, 0x02, 0x50},
-        {0x40, 0xBA, 0x02, 0x50},
-        {0x40, 0xBD, 0x02, 0x50},
-        {0x40, 0xA0, 0x02, 0x40},
-        {0x50, 0xC3, 0x02, 0x50},
-        {0x40, 0xA5, 0x02, 0x40},
-        {0x50, 0xC9, 0x02, 0x50},
-        {0x40, 0xAA, 0x02, 0x40},
-        {0x50, 0xCF, 0x02, 0x50},
-        {0x40, 0xAF, 0x02, 0x40},
-        {0x50, 0xD5, 0x02, 0x50},
-        {0x40, 0xB4, 0x02, 0x40},
-        {0x50, 0xDB, 0x02, 0x50},
-        {0x40, 0xB9, 0x02, 0x40},
+    // PLLO settings taken from a S21 dump.
+    // todo: do this right.
+    uint8_t freq_list[65][4] = {
+        {0x40, 0xA2, 0x02, 0x55}, {0x40, 0xAF, 0x02, 0x64}, {0x40, 0xA5, 0x02, 0x54}, {0x40, 0xA8, 0x02, 0x63},
+        {0x40, 0xB6, 0x02, 0x63}, {0x40, 0xA8, 0x02, 0x53}, {0x40, 0xB4, 0x02, 0x53}, {0x40, 0xA8, 0x02, 0x62},
+        {0x40, 0xAA, 0x02, 0x43}, {0x40, 0xA2, 0x02, 0x52}, {0x40, 0xAB, 0x02, 0x52}, {0x40, 0xB4, 0x02, 0x52},
+        {0x40, 0xBD, 0x02, 0x52}, {0x40, 0xA5, 0x02, 0x42}, {0x40, 0xA1, 0x02, 0x61}, {0x40, 0xA8, 0x02, 0x61},
+        {0x40, 0xAF, 0x02, 0x61}, {0x40, 0xB6, 0x02, 0x61}, {0x40, 0xA2, 0x02, 0x51}, {0x40, 0xA8, 0x02, 0x51},
+        {0x40, 0xAE, 0x02, 0x51}, {0x40, 0xB4, 0x02, 0x51}, {0x40, 0xBA, 0x02, 0x51}, {0x40, 0xA0, 0x02, 0x41},
+        {0x40, 0xA5, 0x02, 0x41}, {0x40, 0xAA, 0x02, 0x41}, {0x40, 0xAF, 0x02, 0x41}, {0x40, 0xB4, 0x02, 0x41},
+        {0x40, 0xB9, 0x02, 0x41}, {0x40, 0xBE, 0x02, 0x41}, {0x40, 0xA0, 0x02, 0x31}, {0x40, 0xA4, 0x02, 0x31},
+        {0x40, 0xA8, 0x02, 0x31}, {0x40, 0xAC, 0x02, 0x31}, {0x40, 0xB0, 0x02, 0x31}, {0x40, 0xB4, 0x02, 0x31},
+        {0x40, 0xA1, 0x02, 0x60}, {0x40, 0xBC, 0x02, 0x31}, {0x40, 0xA8, 0x02, 0x60}, {0x40, 0xAF, 0x02, 0x60},
+        {0x50, 0xCC, 0x02, 0x31}, {0x40, 0xB6, 0x02, 0x60}, {0x50, 0xD4, 0x02, 0x31}, {0x40, 0xA2, 0x02, 0x50},
+        {0x40, 0xA5, 0x02, 0x50}, {0x40, 0xA8, 0x02, 0x50}, {0x40, 0xAB, 0x02, 0x50}, {0x40, 0xAE, 0x02, 0x50},
+        {0x40, 0xB1, 0x02, 0x50}, {0x40, 0xB4, 0x02, 0x50}, {0x40, 0xB7, 0x02, 0x50}, {0x40, 0xBA, 0x02, 0x50},
+        {0x40, 0xBD, 0x02, 0x50}, {0x40, 0xA0, 0x02, 0x40}, {0x50, 0xC3, 0x02, 0x50}, {0x40, 0xA5, 0x02, 0x40},
+        {0x50, 0xC9, 0x02, 0x50}, {0x40, 0xAA, 0x02, 0x40}, {0x50, 0xCF, 0x02, 0x50}, {0x40, 0xAF, 0x02, 0x40},
+        {0x50, 0xD5, 0x02, 0x50}, {0x40, 0xB4, 0x02, 0x40}, {0x50, 0xDB, 0x02, 0x50}, {0x40, 0xB9, 0x02, 0x40},
         {0x50, 0xE0, 0x02, 0x50}};
 
     uint8_t freq_cmd[6] = {0x00, 0x08, 0x40, 0xB4, 0x02, 0x40};
@@ -275,26 +219,26 @@ static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x68, 0x00, 0x00};
 static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
 {
 
-    //enable and set version rolling mask to 0xFFFF
+    // enable and set version rolling mask to 0xFFFF
     unsigned char init0[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF, 0x1C};
     _send_simple(init0, 11);
 
-    //enable and set version rolling mask to 0xFFFF (again)
+    // enable and set version rolling mask to 0xFFFF (again)
     unsigned char init1[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF, 0x1C};
     _send_simple(init1, 11);
 
-    //enable and set version rolling mask to 0xFFFF (again)
+    // enable and set version rolling mask to 0xFFFF (again)
     unsigned char init2[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF, 0x1C};
     _send_simple(init2, 11);
 
-    //read register 00 on all chips (should respond AA 55 13 68 00 00 00 00 00 00 0F)
+    // read register 00 on all chips (should respond AA 55 13 68 00 00 00 00 00 00 0F)
     unsigned char init3[7] = {0x55, 0xAA, 0x52, 0x05, 0x00, 0x00, 0x0A};
     _send_simple(init3, 7);
 
     int chip_counter = 0;
     while (true) {
         if (SERIAL_rx(asic_response_buffer, 11, 1000) > 0) {
-            if (!strncmp((char*) chip_id, (char*) asic_response_buffer, sizeof(chip_id))) {
+            if (!strncmp((char *) chip_id, (char *) asic_response_buffer, sizeof(chip_id))) {
                 chip_counter++;
                 ESP_LOGI(TAG, "found asic #%d", chip_counter);
             } else {
@@ -307,19 +251,19 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
     }
     ESP_LOGI(TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
 
-    //enable and set version rolling mask to 0xFFFF (again)
+    // enable and set version rolling mask to 0xFFFF (again)
     unsigned char init4[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF, 0x1C};
     _send_simple(init4, 11);
 
-    //Reg_A8
+    // Reg_A8
     unsigned char init5[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA8, 0x00, 0x07, 0x00, 0x00, 0x03};
     _send_simple(init5, 11);
 
-    //Misc Control
+    // Misc Control
     unsigned char init6[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x18, 0xFF, 0x0F, 0xC1, 0x00, 0x00};
     _send_simple(init6, 11);
 
-    //chain inactive
+    // chain inactive
     _send_chain_inactive();
     // unsigned char init7[7] = {0x55, 0xAA, 0x53, 0x05, 0x00, 0x00, 0x03};
     // _send_simple(init7, 7);
@@ -332,41 +276,41 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
         // _send_simple(init8, 7);
     }
 
-    //Core Register Control
+    // Core Register Control
     unsigned char init9[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x3C, 0x80, 0x00, 0x8B, 0x00, 0x12};
     _send_simple(init9, 11);
 
-    //Core Register Control
+    // Core Register Control
     unsigned char init10[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x3C, 0x80, 0x00, 0x80, 0x18, 0x1F};
     _send_simple(init10, 11);
 
-    //set ticket mask
-    // unsigned char init11[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x14, 0x00, 0x00, 0x00, 0xFF, 0x08};
-    // _send_simple(init11, 11);
+    // set ticket mask
+    //  unsigned char init11[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x14, 0x00, 0x00, 0x00, 0xFF, 0x08};
+    //  _send_simple(init11, 11);
     BM1368_set_job_difficulty_mask(BM1368_INITIAL_DIFFICULTY);
 
-    //Analog Mux Control
+    // Analog Mux Control
     unsigned char init12[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x54, 0x00, 0x00, 0x00, 0x03, 0x1D};
     _send_simple(init12, 11);
 
-    //Set the IO Driver Strength on chip 00
+    // Set the IO Driver Strength on chip 00
     unsigned char init13[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x58, 0x02, 0x11, 0x11, 0x11, 0x06};
     _send_simple(init13, 11);
 
     for (uint8_t i = 0; i < chip_counter; i++) {
-        //Reg_A8
+        // Reg_A8
         unsigned char set_a8_register[6] = {i * address_interval, 0xA8, 0x00, 0x07, 0x01, 0xF0};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_a8_register, 6, BM1368_SERIALTX_DEBUG);
-        //Misc Control
+        // Misc Control
         unsigned char set_18_register[6] = {i * address_interval, 0x18, 0xF0, 0x00, 0xC1, 0x00};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_18_register, 6, BM1368_SERIALTX_DEBUG);
-        //Core Register Control
+        // Core Register Control
         unsigned char set_3c_register_first[6] = {i * address_interval, 0x3C, 0x80, 0x00, 0x8B, 0x00};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_first, 6, BM1368_SERIALTX_DEBUG);
-        //Core Register Control
+        // Core Register Control
         unsigned char set_3c_register_second[6] = {i * address_interval, 0x3C, 0x80, 0x00, 0x80, 0x18};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_second, 6, BM1368_SERIALTX_DEBUG);
-        //Core Register Control
+        // Core Register Control
         unsigned char set_3c_register_third[6] = {i * address_interval, 0x3C, 0x80, 0x00, 0x82, 0xAA};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_third, 6, BM1368_SERIALTX_DEBUG);
     }
@@ -375,12 +319,12 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
 
     BM1368_send_hash_frequency(frequency);
 
-    //register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
+    // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
 
     // unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x11, 0x5A}; //S19k Pro Default
     // unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x14, 0x46}; //S19XP-Luxos Default
     // unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x15, 0x1C}; //S19XP-Stock Default
-    unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x15, 0xA4}; //S21-Stock Default
+    unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x15, 0xA4}; // S21-Stock Default
     // unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x0F, 0x00, 0x00}; //supposedly the "full" 32bit nonce range
     _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_WRITE), set_10_hash_counting, 6, BM1368_SERIALTX_DEBUG);
 
@@ -400,7 +344,6 @@ static void _reset(void)
 
     // delay for 100ms
     vTaskDelay(100 / portTICK_PERIOD_MS);
-
 }
 
 static void _send_read_address(void)
@@ -422,7 +365,7 @@ uint8_t BM1368_init(uint64_t frequency, uint16_t asic_count)
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
     gpio_set_level(GPIO_NUM_13, 1);
 
-    //esp_rom_gpio_pad_select_gpio(BM1368_RST_PIN);
+    // esp_rom_gpio_pad_select_gpio(BM1368_RST_PIN);
     gpio_pad_select_gpio(BM1368_RST_PIN);
     gpio_set_direction(BM1368_RST_PIN, GPIO_MODE_OUTPUT);
 
@@ -459,7 +402,6 @@ int BM1368_set_max_baud(void)
     return 1000000;
 }
 
-
 void BM1368_set_job_difficulty_mask(int difficulty)
 {
     // Default mask of 256 diff
@@ -488,16 +430,13 @@ void BM1368_set_job_difficulty_mask(int difficulty)
     _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_WRITE), job_difficulty_mask, 6, BM1368_SERIALTX_DEBUG);
 }
 
-static uint8_t id = 0;
-
-void BM1368_send_work(void * pvParameters, bm_job * next_bm_job)
+uint8_t BM1368_send_work(uint32_t job_id, bm_job *next_bm_job)
 {
-
-    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
-
     BM1368_job job;
-    id = (id + 24) % 128;
-    job.job_id = id;
+
+    // job-IDs: 00, 18, 30, 48, 60, 78, 10, 28, 40, 58, 70, 08, 20, 38, 50, 68
+    job.job_id = (job_id * 24) & 0x7f;
+
     job.num_midstates = 0x01;
     memcpy(&job.starting_nonce, &next_bm_job->starting_nonce, 4);
     memcpy(&job.nbits, &next_bm_job->target, 4);
@@ -506,24 +445,13 @@ void BM1368_send_work(void * pvParameters, bm_job * next_bm_job)
     memcpy(job.prev_block_hash, next_bm_job->prev_block_hash_be, 32);
     memcpy(&job.version, &next_bm_job->version, 4);
 
-    if (GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job.job_id] != NULL) {
-        free_bm_job(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job.job_id]);
-    }
-
-    GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job.job_id] = next_bm_job;
-
-    pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
-    GLOBAL_STATE->valid_jobs[job.job_id] = 1;
-
-    #if BM1368_DEBUG_JOBS
-    ESP_LOGI(TAG, "Send Job: %02X", job.job_id);
-    #endif
-    pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
-
     _send_BM1368((TYPE_JOB | GROUP_SINGLE | CMD_WRITE), &job, sizeof(BM1368_job), BM1368_DEBUG_WORK);
+
+    // we return it because different asics calculate it differently
+    return job.job_id;
 }
 
-asic_result * BM1368_receive_work(void)
+asic_result *BM1368_receive_work(void)
 {
     // wait for a response, wait time is pretty arbitrary
     int received = SERIAL_rx(asic_response_buffer, 11, 60000);
@@ -559,41 +487,22 @@ static uint32_t reverse_uint32(uint32_t val)
            ((val << 24) & 0xff000000); // Move byte 0 to byte 3
 }
 
-task_result * BM1368_proccess_work(void * pvParameters)
+void BM1368_proccess_work(task_result *result)
 {
-
-    asic_result * asic_result = BM1368_receive_work();
+    asic_result *asic_result = BM1368_receive_work();
 
     if (asic_result == NULL) {
-        return NULL;
+        return;
     }
 
-    // uint8_t job_id = asic_result->job_id;
-    // uint8_t rx_job_id = ((int8_t)job_id & 0xf0) >> 1;
-    // ESP_LOGI(TAG, "Job ID: %02X, RX: %02X", job_id, rx_job_id);
-
-    // uint8_t job_id = asic_result->job_id & 0xf8;
-    // ESP_LOGI(TAG, "Job ID: %02X, Core: %01X", job_id, asic_result->job_id & 0x07);
-
     uint8_t job_id = (asic_result->job_id & 0xf0) >> 1;
-    uint32_t version_bits = (reverse_uint16(asic_result->version) << 13); // shift the 16 bit value left 13
+
+    uint32_t rolled_version = (reverse_uint16(asic_result->version) << 13); // shift the 16 bit value left 13
 
     int asic_nr = (asic_result->nonce & 0x0000fc00) >> 10;
 
-    ESP_LOGI(TAG, "Job ID: %02X, AsicNr: %d, Ver: %08" PRIX32, job_id, asic_nr, version_bits);
-
-    GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
-
-    if (GLOBAL_STATE->valid_jobs[job_id] == 0) {
-        ESP_LOGE(TAG, "Invalid job nonce found, 0x%02X", job_id);
-        return NULL;
-    }
-
-    uint32_t rolled_version = GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->version | version_bits;
-
-    result.job_id = job_id;
-    result.nonce = asic_result->nonce;
-    result.rolled_version = rolled_version;
-
-    return &result;
+    result->job_id = job_id;
+    result->asic_nr = asic_nr;
+    result->nonce = asic_result->nonce;
+    result->rolled_version = rolled_version;
 }

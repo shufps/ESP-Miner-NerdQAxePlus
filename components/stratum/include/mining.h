@@ -15,11 +15,6 @@ typedef struct
     uint32_t target; // aka difficulty, aka nbits
     uint32_t starting_nonce;
 
-    uint8_t num_midstates;
-    uint8_t midstate[32];
-    uint8_t midstate1[32];
-    uint8_t midstate2[32];
-    uint8_t midstate3[32];
     uint32_t pool_diff;
     char *jobid;
     char *extranonce2;
@@ -27,12 +22,12 @@ typedef struct
 
 void free_bm_job(bm_job *job);
 
-char *construct_coinbase_tx(const char *coinbase_1, const char *coinbase_2,
-                            const char *extranonce, const char *extranonce_2);
+char *construct_coinbase_tx(const char *coinbase_1, const char *coinbase_2, const char *extranonce, const char *extranonce_2);
 
-char *calculate_merkle_root_hash(const char *coinbase_tx, const uint8_t merkle_branches[][32], const int num_merkle_branches);
+void calculate_merkle_root_hash(const char *coinbase_tx, const uint8_t merkle_branches[][32], const int num_merkle_branches,
+                                char merkle_root_hash[65]);
 
-bm_job *construct_bm_job(mining_notify *params, const char *merkle_root, const uint32_t version_mask);
+void construct_bm_job(mining_notify *params, const char *merkle_root, const uint32_t version_mask, bm_job *new_job);
 
 double test_nonce_value(const bm_job *job, const uint32_t nonce, const uint32_t rolled_version);
 
