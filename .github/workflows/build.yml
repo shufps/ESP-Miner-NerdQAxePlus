@@ -59,6 +59,13 @@ jobs:
       with:
         name: nerdqaxe-firmware
 
+    - name: Generate Changelog
+      id: changelog
+      run: |
+        # Generate a changelog from the last tag to the current commit
+        changelog=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:'* %s' --no-merges)
+        echo "CHANGELOG=$changelog" >> $GITHUB_ENV
+
     - name: Create Release
       uses: ncipollo/release-action@v1
       with:
@@ -67,4 +74,5 @@ jobs:
         tag: ${{ env.VERSION_TAG }}
         files: esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
         body: |
-          Automatically generated firmware release.
+          ## Changelog
+          ${{ env.CHANGELOG }}
