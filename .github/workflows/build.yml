@@ -29,12 +29,23 @@ jobs:
         0xf10000 build/ota_data_initial.bin \
         -o esp-miner-factory-nerdqaxe+.bin
 
+    - name: Generate Version Tag
+      id: version_tag
+      run: |
+        # Extract the version from the latest tag or use a default
+        version=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+        echo "VERSION_TAG=${version}" >> $GITHUB_ENV
+
+    - name: Rename Binary with Version
+      run: |
+        mv esp-miner-factory-nerdqaxe+.bin esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
         name: nerdqaxe-firmware
-        path: esp-miner-factory-nerdqaxe+.bin
-
+        path: esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
+        
   release:
     runs-on: ubuntu-latest
     needs: build
@@ -48,26 +59,12 @@ jobs:
       with:
         name: nerdqaxe-firmware
 
-    - name: Docker meta
-      id: meta
-      uses: docker/metadata-action@v4
-      with:
-        images: myorg/esp32-firmware
-        tags: |
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=match,pattern=v(\d+.\d+),suffix=-alpha,group=1,enable=${{ contains(github.ref, '-alpha') }}
-          type=match,pattern=v(\d+.\d+),suffix=-beta,group=1,enable=${{ contains(github.ref, '-beta') }}
-          type=match,pattern=v(\d+.\d+),suffix=-rc,group=1,enable=${{ contains(github.ref, '-rc') }}
-
     - name: Create Release
       uses: ncipollo/release-action@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        name: 'Firmware Release'
-        tag: ${{ steps.meta.outputs.version }}
-        files: esp-miner-factory-nerdqaxe+.bin
+        name: 'Firmware Release ${{ env.VERSION_TAG }}'
+        tag: ${{ env.VERSION_TAG }}
+        files: esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
         body: |
           Automatically generated firmware release.
-
