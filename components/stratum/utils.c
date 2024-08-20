@@ -193,19 +193,6 @@ void single_sha256_bin(const uint8_t *data, const size_t data_len, uint8_t *dest
     memcpy(dest, hash, 32);
 }
 
-void midstate_sha256_bin(const uint8_t *data, const size_t data_len, uint8_t *dest)
-{
-    mbedtls_sha256_context midstate;
-
-    // Calculate midstate
-    mbedtls_sha256_init(&midstate);
-    mbedtls_sha256_starts(&midstate, 0);
-    mbedtls_sha256_update(&midstate, data, 64);
-
-    // memcpy(dest, midstate.state, 32);
-    flip32bytes(dest, midstate.state);
-}
-
 void swap_endian_words_bin(uint8_t *data, uint8_t *output, size_t data_length)
 {
     // Ensure the binary data length is a multiple of 4 bytes (32 bits)

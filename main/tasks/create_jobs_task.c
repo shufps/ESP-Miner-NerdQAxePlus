@@ -100,6 +100,7 @@ void create_job_mining_notify(mining_notify *notifiy)
     trigger_job_creation();
 }
 
+
 void *create_jobs_task(void *pvParameters)
 {
     GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
@@ -175,7 +176,22 @@ void *create_jobs_task(void *pvParameters)
         }
         last_submit_time = current_time;
 
-        (*GLOBAL_STATE->ASIC_functions.send_work_fn)(GLOBAL_STATE, next_job);
+        int asic_job_id = (*GLOBAL_STATE->ASIC_functions.send_work_fn)(extranonce_2, next_job);
+
+#if BM1368_DEBUG_JOBS
+        ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
+#endif
+
+        // save job
+        pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
+        // if a slot was used before free it
+        if (GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id] != NULL) {
+            free_bm_job(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id]);
+        }
+        // save job into slot and set valid_job flag
+        GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id] = next_job;
+        GLOBAL_STATE->valid_jobs[asic_job_id] = 1;
+        pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
 
         free(coinbase_tx);
         free(merkle_root);

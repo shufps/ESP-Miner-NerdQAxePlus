@@ -34,10 +34,10 @@ typedef enum
 typedef struct
 {
     uint8_t (*init_fn)(uint64_t, uint16_t);
-    task_result *(*receive_result_fn)(void *GLOBAL_STATE);
+    void (*receive_result_fn)(task_result *result);
     int (*set_max_baud_fn)(void);
     void (*set_difficulty_mask_fn)(int);
-    void (*send_work_fn)(void *GLOBAL_STATE, bm_job *next_bm_job);
+    uint8_t (*send_work_fn)(uint32_t jobid, bm_job *next_bm_job);
 } AsicFunctions;
 
 typedef struct

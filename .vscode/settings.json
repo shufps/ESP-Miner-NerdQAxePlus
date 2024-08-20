@@ -22,7 +22,8 @@
         "mutex": "c",
         "string.h": "c",
         "vcore.h": "c",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "functional": "c"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

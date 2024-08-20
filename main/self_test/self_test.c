@@ -144,7 +144,7 @@ void self_test(void *pvParameters)
 
     ESP_LOGI(TAG, "Sending work");
 
-    (*GLOBAL_STATE->ASIC_functions.send_work_fn)(GLOBAL_STATE, job);
+    (*GLOBAL_STATE->ASIC_functions.send_work_fn)(GLOBAL_STATE, &job);
     // vTaskDelay((GLOBAL_STATE->asic_job_frequency_ms - 0.3) / portTICK_PERIOD_MS);
 
     // ESP_LOGI(TAG, "Receiving work");

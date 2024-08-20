@@ -219,6 +219,7 @@ void stratum_task(void *pvParameters)
                     ESP_LOGI(TAG, "Set version mask: %08lx", stratum_api_v1_message.version_mask);
                     create_job_set_version_mask(stratum_api_v1_message.version_mask);
                 } else if (stratum_api_v1_message.method == STRATUM_RESULT_SUBSCRIBE) {
+                    ESP_LOGI(TAG, "Set enonce %s enonce2-len: %d", stratum_api_v1_message.extranonce_str, stratum_api_v1_message.extranonce_2_len);
                     create_job_set_enonce(stratum_api_v1_message.extranonce_str, stratum_api_v1_message.extranonce_2_len);
                 } else if (stratum_api_v1_message.method == CLIENT_RECONNECT) {
                     ESP_LOGE(TAG, "Pool requested client reconnect ...");

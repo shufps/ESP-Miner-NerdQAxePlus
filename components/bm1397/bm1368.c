@@ -1,7 +1,6 @@
 #include "bm1368.h"
 
 #include "crc.h"
-#include "global_state.h"
 #include "serial.h"
 #include "utils.h"
 
@@ -62,7 +61,6 @@ typedef struct __attribute__((__packed__))
 static const char *TAG = "bm1368Module";
 
 static uint8_t asic_response_buffer[CHUNK_SIZE];
-static task_result result;
 
 /// @brief
 /// @param ftdi
@@ -74,8 +72,7 @@ static void _send_BM1368(uint8_t header, uint8_t *data, uint8_t data_len, bool d
     packet_type_t packet_type = (header & TYPE_JOB) ? JOB_PACKET : CMD_PACKET;
     uint8_t total_length = (packet_type == JOB_PACKET) ? (data_len + 6) : (data_len + 5);
 
-    // allocate memory for buffer
-    unsigned char *buf = malloc(total_length);
+    unsigned char buf[total_length];
 
     // add the preamble
     buf[0] = 0x55;
@@ -101,17 +98,11 @@ static void _send_BM1368(uint8_t header, uint8_t *data, uint8_t data_len, bool d
 
     // send serial data
     SERIAL_send(buf, total_length, debug);
-
-    free(buf);
 }
 
 static void _send_simple(uint8_t *data, uint8_t total_length)
 {
-    unsigned char *buf = malloc(total_length);
-    memcpy(buf, data, total_length);
-    SERIAL_send(buf, total_length, BM1368_SERIALTX_DEBUG);
-
-    free(buf);
+    SERIAL_send(data, total_length, BM1368_SERIALTX_DEBUG);
 }
 
 static void _send_chain_inactive(void)
@@ -439,16 +430,13 @@ void BM1368_set_job_difficulty_mask(int difficulty)
     _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_WRITE), job_difficulty_mask, 6, BM1368_SERIALTX_DEBUG);
 }
 
-static uint8_t id = 0;
-
-void BM1368_send_work(void *pvParameters, bm_job *next_bm_job)
+uint8_t BM1368_send_work(uint32_t job_id, bm_job *next_bm_job)
 {
-
-    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
-
     BM1368_job job;
-    id = (id + 24) % 128;
-    job.job_id = id;
+
+    // job-IDs: 00, 18, 30, 48, 60, 78, 10, 28, 40, 58, 70, 08, 20, 38, 50, 68
+    job.job_id = (job_id * 24) & 0x7f;
+
     job.num_midstates = 0x01;
     memcpy(&job.starting_nonce, &next_bm_job->starting_nonce, 4);
     memcpy(&job.nbits, &next_bm_job->target, 4);
@@ -457,21 +445,10 @@ void BM1368_send_work(void *pvParameters, bm_job *next_bm_job)
     memcpy(job.prev_block_hash, next_bm_job->prev_block_hash_be, 32);
     memcpy(&job.version, &next_bm_job->version, 4);
 
-    if (GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job.job_id] != NULL) {
-        free_bm_job(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job.job_id]);
-    }
-
-    GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job.job_id] = next_bm_job;
-
-    pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
-    GLOBAL_STATE->valid_jobs[job.job_id] = 1;
-
-#if BM1368_DEBUG_JOBS
-    ESP_LOGI(TAG, "Send Job: %02X", job.job_id);
-#endif
-    pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
-
     _send_BM1368((TYPE_JOB | GROUP_SINGLE | CMD_WRITE), &job, sizeof(BM1368_job), BM1368_DEBUG_WORK);
+
+    // we return it because different asics calculate it differently
+    return job.job_id;
 }
 
 asic_result *BM1368_receive_work(void)
@@ -510,41 +487,22 @@ static uint32_t reverse_uint32(uint32_t val)
            ((val << 24) & 0xff000000); // Move byte 0 to byte 3
 }
 
-task_result *BM1368_proccess_work(void *pvParameters)
+void BM1368_proccess_work(task_result *result)
 {
-
     asic_result *asic_result = BM1368_receive_work();
 
     if (asic_result == NULL) {
-        return NULL;
+        return;
     }
 
-    // uint8_t job_id = asic_result->job_id;
-    // uint8_t rx_job_id = ((int8_t)job_id & 0xf0) >> 1;
-    // ESP_LOGI(TAG, "Job ID: %02X, RX: %02X", job_id, rx_job_id);
-
-    // uint8_t job_id = asic_result->job_id & 0xf8;
-    // ESP_LOGI(TAG, "Job ID: %02X, Core: %01X", job_id, asic_result->job_id & 0x07);
-
     uint8_t job_id = (asic_result->job_id & 0xf0) >> 1;
-    uint32_t version_bits = (reverse_uint16(asic_result->version) << 13); // shift the 16 bit value left 13
+
+    uint32_t rolled_version = (reverse_uint16(asic_result->version) << 13); // shift the 16 bit value left 13
 
     int asic_nr = (asic_result->nonce & 0x0000fc00) >> 10;
 
-    ESP_LOGI(TAG, "Job ID: %02X, AsicNr: %d, Ver: %08" PRIX32, job_id, asic_nr, version_bits);
-
-    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
-
-    if (GLOBAL_STATE->valid_jobs[job_id] == 0) {
-        ESP_LOGE(TAG, "Invalid job nonce found, 0x%02X", job_id);
-        return NULL;
-    }
-
-    uint32_t rolled_version = GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->version | version_bits;
-
-    result.job_id = job_id;
-    result.nonce = asic_result->nonce;
-    result.rolled_version = rolled_version;
-
-    return &result;
+    result->job_id = job_id;
+    result->asic_nr = asic_nr;
+    result->nonce = asic_result->nonce;
+    result->rolled_version = rolled_version;
 }

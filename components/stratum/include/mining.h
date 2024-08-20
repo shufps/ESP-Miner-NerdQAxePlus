@@ -15,11 +15,6 @@ typedef struct
     uint32_t target; // aka difficulty, aka nbits
     uint32_t starting_nonce;
 
-    uint8_t num_midstates;
-    uint8_t midstate[32];
-    uint8_t midstate1[32];
-    uint8_t midstate2[32];
-    uint8_t midstate3[32];
     uint32_t pool_diff;
     char *jobid;
     char *extranonce2;
