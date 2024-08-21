@@ -37,7 +37,6 @@ void ASIC_result_task(void *pvParameters)
         uint8_t asic_job_id = asic_result.job_id;
 
         // check if we have a job with this job id
-        // and if we have clone it
         pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
         if (GLOBAL_STATE->valid_jobs[asic_job_id] == 0) {
             ESP_LOGI(TAG, "Invalid job id found, 0x%02X", asic_job_id);
