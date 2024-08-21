@@ -26,7 +26,8 @@
         "functional": "c",
         "vector": "c",
         "memory": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "random": "c"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

@@ -30,6 +30,7 @@
 #include "freertos/task.h"
 
 #include "influx_task.h"
+#include "stats_task.h"
 
 #ifdef DISPLAY_TTGO
 #include "displays/displayDriver.h"
@@ -53,6 +54,9 @@ static void _init_system(GlobalState *GLOBAL_STATE)
     memset(module->historical_hashrate_time_stamps, 0, sizeof(module->historical_hashrate_time_stamps));
 
     module->current_hashrate = 0;
+    module->current_hashrate_10m = 0.0;
+    module->current_hashrate_1h = 0.0;
+    module->current_hashrate_1d = 0.0;
     module->screen_page = 0;
     module->shares_accepted = 0;
     module->shares_rejected = 0;
@@ -455,6 +459,8 @@ void SYSTEM_notify_found_nonce(GlobalState *GLOBAL_STATE, double pool_diff)
 
     double rolling_rate = (sum * 4.294967296e9) / (double) (time_period / 1e6);
     double rolling_rate_gh = rolling_rate / 1.0e9;
+
+    stats_task_push_share(pool_diff, current_time);
 
     ESP_LOGI(TAG, "hashrate: %.3fGH%s shares: %d (historical buffer spans %ds)", rolling_rate_gh,
              (current_time - oldest_time >= time_period) ? "" : "*", valid_shares, (int) ((current_time - oldest_time) / 1e6));

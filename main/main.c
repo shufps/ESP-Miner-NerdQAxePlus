@@ -18,6 +18,7 @@
 #include "stratum_task.h"
 #include "system.h"
 #include "user_input_task.h"
+#include "stats_task.h"
 
 static GlobalState GLOBAL_STATE = {};
 
@@ -152,6 +153,7 @@ void app_main(void)
         xTaskCreate(create_jobs_task, "stratum miner", 8192, (void *) &GLOBAL_STATE, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, (void *) &GLOBAL_STATE, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, (void *) &GLOBAL_STATE, 1, NULL);
+        xTaskCreate(stats_task, "stats", 8192, (void *) &GLOBAL_STATE, 1, NULL);
     }
 }
 

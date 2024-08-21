@@ -46,7 +46,9 @@ typedef struct
     uint64_t historical_hashrate_time_stamps[HISTORY_LENGTH];
     double historical_hashrate[HISTORY_LENGTH];
     double current_hashrate;
-    double hashrate_smoothed;
+    double current_hashrate_10m;
+    double current_hashrate_1h;
+    double current_hashrate_1d;
     int64_t start_time;
     uint64_t shares_accepted;
     uint64_t shares_rejected;
