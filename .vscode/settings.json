@@ -27,7 +27,8 @@
         "vector": "c",
         "memory": "c",
         "system_error": "c",
-        "random": "c"
+        "random": "c",
+        "leak_tracker.h": "c"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

@@ -24,6 +24,8 @@ export class HomeComponent {
   public dataData1d: number[] = [];
   public chartData?: any;
 
+  private localStorageKey = 'chartData';
+
   constructor(
     private systemService: SystemService
   ) {
@@ -37,19 +39,6 @@ export class HomeComponent {
     this.chartData = {
       labels: [],
       datasets: [
-/*
-        {
-          type: 'line',
-          label: 'Hashrate',
-          data: this.dataData,
-          fill: false,
-          backgroundColor: primaryColor,
-          borderColor: primaryColor,
-          tension: .4,
-          pointRadius: 1,
-          borderWidth: 1
-        },
-*/
         {
           type: 'line',
           label: 'Hashrate 10m',
@@ -100,7 +89,7 @@ export class HomeComponent {
         x: {
           type: 'time',
           time: {
-            unit: 'hour', // Set the unit to 'minute'
+            unit: 'hour',
           },
           ticks: {
             color: textColorSecondary
@@ -124,6 +113,8 @@ export class HomeComponent {
       }
     };
 
+    this.loadChartData();
+
     this.info$ = interval(5000).pipe(
       startWith(() => this.systemService.getInfo()),
       switchMap(() => this.systemService.getInfo()),
@@ -137,18 +128,14 @@ export class HomeComponent {
         this.dataData1d.push(info.hashRate_1d * 1000000000);
         this.dataLabel.push(now);
 
-        if (this.dataData.length >= 1000) {
-          this.dataData.shift();
-          this.dataData10m.shift();
-          this.dataData1h.shift();
-          this.dataData1d.shift();
-          this.dataLabel.shift();
-        }
+        this.filterOldData();
 
         this.chartData.labels = this.dataLabel;
-        this.chartData.datasets[0].data = this.dataData;
+        this.chartData.datasets[0].data = this.dataData10m;
         this.chartData.datasets[1].data = this.dataData1h;
         this.chartData.datasets[2].data = this.dataData1d;
+
+        this.saveChartData();
 
         // Trigger chart update by assigning the chartData to itself
         this.chartData = {
@@ -157,7 +144,6 @@ export class HomeComponent {
 
       }),
       map(info => {
-        // Adjust other system info values as necessary
         info.power = parseFloat(info.power.toFixed(1));
         info.voltage = parseFloat((info.voltage / 1000).toFixed(1));
         info.current = parseFloat((info.current / 1000).toFixed(1));
@@ -194,5 +180,43 @@ export class HomeComponent {
         }
       })
     );
+  }
+
+  private loadChartData(): void {
+    const storedData = localStorage.getItem(this.localStorageKey);
+    if (storedData) {
+      const parsedData = JSON.parse(storedData);
+      this.dataLabel = parsedData.labels || [];
+      this.dataData = parsedData.dataData || [];
+      this.dataData10m = parsedData.dataData10m || [];
+      this.dataData1h = parsedData.dataData1h || [];
+      this.dataData1d = parsedData.dataData1d || [];
+
+      this.filterOldData();
+    }
+  }
+
+  private saveChartData(): void {
+    const dataToSave = {
+      labels: this.dataLabel,
+      dataData: this.dataData,
+      dataData10m: this.dataData10m,
+      dataData1h: this.dataData1h,
+      dataData1d: this.dataData1d
+    };
+    localStorage.setItem(this.localStorageKey, JSON.stringify(dataToSave));
+  }
+
+  private filterOldData(): void {
+    const now = new Date().getTime();
+    const cutoff = now - 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    while (this.dataLabel.length && this.dataLabel[0] < cutoff) {
+      this.dataLabel.shift();
+      this.dataData.shift();
+      this.dataData10m.shift();
+      this.dataData1h.shift();
+      this.dataData1d.shift();
+    }
   }
 }
