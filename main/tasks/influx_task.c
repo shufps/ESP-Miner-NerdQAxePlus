@@ -61,7 +61,7 @@ static void influx_task_fetch_from_system_module(SystemModule *module)
     }
 
     // fetch hashrate
-    influxdb->stats.hashing_speed = module->current_hashrate;
+    influxdb->stats.hashing_speed = module->current_hashrate_10m;
 
     // accepted
     influxdb->stats.accepted = module->shares_accepted;

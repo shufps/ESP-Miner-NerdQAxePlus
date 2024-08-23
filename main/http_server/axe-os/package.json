@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "start-local": "ng serve --host 0.0.0.0 --port 4200 --configuration=production --proxy-config proxy.conf.json",
     "start": "ng serve",
     "build": "ng build --configuration=production && gzipper compress --verbose --gzip --gzip-level 9 ./dist/axe-os && node only-gzip.js",
     "watch": "ng build --watch --configuration development",

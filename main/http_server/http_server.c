@@ -30,9 +30,15 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 
+#include "history.h"
+
 #ifdef DEBUG_MEMORY_LOGGING
 #include "leak_tracker.h"
 #endif
+
+#pragma GCC diagnostic error "-Wall"
+#pragma GCC diagnostic error "-Wextra"
+#pragma GCC diagnostic error "-Wmissing-prototypes"
 
 static const char *TAG = "http_server";
 
@@ -60,7 +66,25 @@ typedef struct rest_server_context
 
 #define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
 
-esp_err_t init_fs(void)
+static void *psram_malloc(size_t size)
+{
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+}
+
+static void psram_free(void *ptr)
+{
+    heap_caps_free(ptr);
+}
+
+static void configure_cjson_for_psram()
+{
+    cJSON_Hooks hooks;
+    hooks.malloc_fn = psram_malloc;
+    hooks.free_fn = psram_free;
+    cJSON_InitHooks(&hooks);
+}
+
+static esp_err_t init_fs(void)
 {
     esp_vfs_spiffs_conf_t conf = {.base_path = "", .partition_label = NULL, .max_files = 5, .format_if_mount_failed = false};
     esp_err_t ret = esp_vfs_spiffs_register(&conf);
@@ -87,13 +111,15 @@ esp_err_t init_fs(void)
 }
 
 /* Function for stopping the webserver */
-void stop_webserver(httpd_handle_t server)
+/*
+static void stop_webserver(httpd_handle_t server)
 {
     if (server) {
-        /* Stop the httpd server */
+        // Stop the httpd server
         httpd_stop(server);
     }
 }
+*/
 
 /* Set HTTP response content type according to file extension */
 static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filepath)
@@ -437,7 +463,10 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "current", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.current);
     cJSON_AddNumberToObject(root, "temp", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.chip_temp_avg);
     cJSON_AddNumberToObject(root, "vrTemp", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.vr_temp);
-    cJSON_AddNumberToObject(root, "hashRate", GLOBAL_STATE->SYSTEM_MODULE.current_hashrate);
+    cJSON_AddNumberToObject(root, "hashRateTimestamp", history_get_current_timestamp());
+    cJSON_AddNumberToObject(root, "hashRate_10m", history_get_current_10m());
+    cJSON_AddNumberToObject(root, "hashRate_1h", history_get_current_1h());
+    cJSON_AddNumberToObject(root, "hashRate_1d", history_get_current_1d());
     cJSON_AddStringToObject(root, "bestDiff", GLOBAL_STATE->SYSTEM_MODULE.best_diff_string);
     cJSON_AddStringToObject(root, "bestSessionDiff", GLOBAL_STATE->SYSTEM_MODULE.best_session_diff_string);
 
@@ -529,12 +558,160 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
 
     const char *influx_info = cJSON_Print(root);
     httpd_resp_sendstr(req, influx_info);
-    free(influx_info);
+    free((char*) influx_info);
     cJSON_Delete(root);
     return ESP_OK;
 }
 
-esp_err_t POST_WWW_update(httpd_req_t *req)
+static esp_err_t GET_history_len(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/json");
+
+    // Set CORS headers
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    // ensure consistency
+    history_lock();
+
+    uint64_t first_timestamp = 0;
+    uint64_t last_timestamp = 0;
+    uint32_t num_samples = 0;
+
+    if (!is_history_available()) {
+        ESP_LOGW(TAG, "history is not available");
+    } else {
+        history_get_timestamps(&first_timestamp, &last_timestamp, &num_samples);
+    }
+
+    history_unlock();
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddItemToObjectCS(root, "firstTimestamp", cJSON_CreateNumber(first_timestamp));
+    cJSON_AddItemToObjectCS(root, "lastTimestamp", cJSON_CreateNumber(last_timestamp));
+    cJSON_AddItemToObjectCS(root, "numSamples", cJSON_CreateNumber(num_samples));
+
+    const char *history_len = cJSON_Print(root);
+    httpd_resp_sendstr(req, history_len);
+    free((char*) history_len);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+static esp_err_t GET_history(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/json");
+
+    // Set CORS headers
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    uint64_t start_timestamp = 0;
+    uint64_t end_timestamp = 0;
+
+    // Retrieve the start timestamp from the request using the query parameter "start_timestamp"
+    char query_str[128];
+    if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
+        char param[64];
+
+        // Extract the start_timestamp
+        if (httpd_query_key_value(query_str, "start_timestamp", param, sizeof(param)) == ESP_OK) {
+            start_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
+        } else {
+            httpd_resp_send_500(req); // Bad Request if the start_timestamp parameter is missing
+            return ESP_FAIL;
+        }
+
+        // Extract the optional end_timestamp
+        if (httpd_query_key_value(query_str, "end_timestamp", param, sizeof(param)) == ESP_OK) {
+            end_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
+
+            // Ensure that the end_timestamp is not more than 1 hour after start_timestamp
+            if (end_timestamp > start_timestamp + 3600 * 1000ULL) {
+                end_timestamp = start_timestamp + 3600 * 1000ULL;
+            }
+        } else {
+            // If end_timestamp is not provided, default it to 1 hour after start_timestamp
+            end_timestamp = start_timestamp + 3600 * 1000ULL;
+        }
+    } else {
+        httpd_resp_send_500(req); // Bad Request if query string is missing
+        return ESP_FAIL;
+    }
+
+    // ensure consistency
+    history_lock();
+
+    int start_index = history_search_nearest_timestamp(start_timestamp);
+    int end_index = history_search_nearest_timestamp(end_timestamp);
+    int num_samples = end_index - start_index + 1;
+
+    if (!is_history_available()) {
+        ESP_LOGW(TAG, "history is not available");
+        num_samples = 0;
+    }
+
+    // check if something went wrong
+    bool failed = start_index == -1 || end_index == -1 || !num_samples || (end_index < start_index);
+
+    // if there is something weird return a valid struct but with only empty arrays
+    if (failed) {
+        ESP_LOGE(TAG, "history indices wrong %d %d %llu %llu", start_index, end_index, start_timestamp,
+                 end_timestamp);
+        num_samples = 0;
+    }
+
+    // Create the root object
+    cJSON *json_root = cJSON_CreateObject();
+
+    // Create arrays for the hashrate values
+    cJSON *json_hashrate_10m = cJSON_CreateArray();
+    cJSON *json_hashrate_1h = cJSON_CreateArray();
+    cJSON *json_hashrate_1d = cJSON_CreateArray();
+    cJSON *json_timestamps = cJSON_CreateArray();
+
+    // we need to save a little bit of space
+    // - send one full base timestamp
+    // - other timestamps are relative to the base
+    // - send fixed point x100 to not transfer so many unused fractional decimal places
+    uint64_t base_timestamp = 0;
+    if (num_samples) {
+        base_timestamp = history_get_timestamp_sample(start_index);
+
+        // Populate the arrays with the data
+        for (int i = start_index; i < start_index + num_samples; i++) {
+            cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int) (history_get_hashrate_10m_sample(i) * 100.0)));
+            cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int) (history_get_hashrate_1h_sample(i) * 100.0)));
+            cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int) (history_get_hashrate_1d_sample(i) * 100.0)));
+            cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(history_get_timestamp_sample(i) - base_timestamp));
+        }
+    }
+
+    history_unlock();
+
+    // Add arrays to the root object
+    cJSON_AddItemToObject(json_root, "hashrate_10m", json_hashrate_10m);
+    cJSON_AddItemToObject(json_root, "hashrate_1h", json_hashrate_1h);
+    cJSON_AddItemToObject(json_root, "hashrate_1d", json_hashrate_1d);
+    cJSON_AddItemToObject(json_root, "timestamps", json_timestamps);
+    cJSON_AddItemToObjectCS(json_root, "timestampBase", cJSON_CreateNumber(base_timestamp));
+
+    // Serialize the JSON object to a string
+    const char *response = cJSON_PrintUnformatted(json_root);
+    httpd_resp_sendstr(req, response);
+
+    // Cleanup
+    free((void *) response);
+    cJSON_Delete(json_root);
+
+    return ESP_OK;
+}
+
+static esp_err_t POST_WWW_update(httpd_req_t *req)
 {
     char buf[1000];
     int remaining = req->content_len;
@@ -580,7 +757,7 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
 /*
  * Handle OTA file upload
  */
-esp_err_t POST_OTA_update(httpd_req_t *req)
+static esp_err_t POST_OTA_update(httpd_req_t *req)
 {
     char buf[1000];
     esp_ota_handle_t ota_handle;
@@ -626,7 +803,7 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
     return ESP_OK;
 }
 
-void log_to_websocket(const char *format, va_list args)
+static void log_to_websocket(const char *format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -679,7 +856,7 @@ void log_to_websocket(const char *format, va_list args)
  * This handler echos back the received ws data
  * and triggers an async send if certain message received
  */
-esp_err_t echo_handler(httpd_req_t *req)
+static esp_err_t echo_handler(httpd_req_t *req)
 {
 
     if (req->method == HTTP_GET) {
@@ -693,7 +870,7 @@ esp_err_t echo_handler(httpd_req_t *req)
 }
 
 // HTTP Error (404) Handler - Redirects all requests to the root page
-esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
+static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
     // Set status
     httpd_resp_set_status(req, "302 Temporary Redirect");
@@ -708,6 +885,8 @@ esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 
 esp_err_t start_rest_server(void *pvParameters)
 {
+    configure_cjson_for_psram();
+
     GLOBAL_STATE = (GlobalState *) pvParameters;
     const char *base_path = "";
 
@@ -746,6 +925,14 @@ esp_err_t start_rest_server(void *pvParameters)
 
     httpd_uri_t swarm_get_uri = {.uri = "/api/swarm/info", .method = HTTP_GET, .handler = GET_swarm, .user_ctx = rest_context};
     httpd_register_uri_handler(server, &swarm_get_uri);
+
+    httpd_uri_t history_get_uri = {
+        .uri = "/api/history/data", .method = HTTP_GET, .handler = GET_history, .user_ctx = rest_context};
+    httpd_register_uri_handler(server, &history_get_uri);
+
+    httpd_uri_t history_get_len_uri = {
+        .uri = "/api/history/len", .method = HTTP_GET, .handler = GET_history_len, .user_ctx = rest_context};
+    httpd_register_uri_handler(server, &history_get_len_uri);
 
     httpd_uri_t update_swarm_uri = {
         .uri = "/api/swarm", .method = HTTP_PATCH, .handler = PATCH_update_swarm, .user_ctx = rest_context};
