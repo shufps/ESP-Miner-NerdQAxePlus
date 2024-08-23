@@ -43,19 +43,18 @@ esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
 
     // ESP_LOGI(TAG, "Raw Fan Speed = %02X %02X", tach_msb, tach_lsb);
 
-    int rpm_raw = tach_lsb | (tach_msb << 8);
+    // 3 LSBs are unused
+    int rpm_raw = (tach_msb << 5) | (tach_lsb >> 3) ;
 
     const int poles = 2;
     const int n = 5; // number of edges measured (typically five for a two-pole fan)
 
-    // no idea why 8 ... should be wrong but works with the NF-A9x14
+    // tested with NF-A9x14
     // the tacho is about 87Hz at 100%, noctua says 2 cycles per revolution
-    // and the emc2301 gives 11900 as raw value
-    // this is the only value that actually makes sense tuning it,
-    // so we do it :see-no-evil:
+    // and the emc2302 gives 1487 as raw value
     // rpm = 87Hz * 60 / 2 = 2610
-    // rpm = 60 * 32768 * 8 * (5-1) / 2 / 11900 = 2643
-    const int m = 8; // the multiplier defined by the RANGE bits
+    // rpm = 60 * 32768 * 1 * (5 - 1) / 2 / 1487 = 2644
+    const int m = 1; // the multiplier defined by the RANGE bits
 
     const int ftach = 32768;
 
