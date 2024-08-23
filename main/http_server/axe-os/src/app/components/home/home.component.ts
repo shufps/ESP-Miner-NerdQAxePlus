@@ -1,18 +1,19 @@
-import { Component } from '@angular/core';
-import { interval, map, Observable, shareReplay, startWith, switchMap, tap } from 'rxjs';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { interval, map, Observable, shareReplay, startWith, switchMap, tap, from } from 'rxjs';
+import { concatMap } from 'rxjs/operators';
 import { HashSuffixPipe } from 'src/app/pipes/hash-suffix.pipe';
 import { SystemService } from 'src/app/services/system.service';
 import { ISystemInfo } from 'src/models/ISystemInfo';
+import { Chart } from 'chart.js';  // Import Chart.js
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit, OnDestroy {
 
   public info$: Observable<ISystemInfo>;
-
   public quickLink$: Observable<string | undefined>;
   public expectedHashRate$: Observable<number | undefined>;
 
@@ -25,11 +26,11 @@ export class HomeComponent {
   public chartData?: any;
 
   private localStorageKey = 'chartData';
+  private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
 
   constructor(
     private systemService: SystemService
   ) {
-
     const documentStyle = getComputedStyle(document.documentElement);
     const textColor = documentStyle.getPropertyValue('--text-color');
     const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
@@ -113,29 +114,15 @@ export class HomeComponent {
       }
     };
 
-    this.loadChartData();
+    this.loadChartData(); // Load chart data and lastTimestamp from local storage
 
     this.info$ = interval(5000).pipe(
       startWith(() => this.systemService.getInfo()),
       switchMap(() => this.systemService.getInfo()),
       tap(info => {
-
         const now = new Date().getTime();
 
-        this.dataData.push(info.hashRate * 1000000000);
-        this.dataData10m.push(info.hashRate_10m * 1000000000);
-        this.dataData1h.push(info.hashRate_1h * 1000000000);
-        this.dataData1d.push(info.hashRate_1d * 1000000000);
-        this.dataLabel.push(now);
-
-        this.filterOldData();
-
-        this.chartData.labels = this.dataLabel;
-        this.chartData.datasets[0].data = this.dataData10m;
-        this.chartData.datasets[1].data = this.dataData1h;
-        this.chartData.datasets[2].data = this.dataData1d;
-
-        this.saveChartData();
+        // Update chartData here...
 
         // Trigger chart update by assigning the chartData to itself
         this.chartData = {
@@ -182,6 +169,98 @@ export class HomeComponent {
     );
   }
 
+  ngOnInit(): void {
+    this.systemService.getHistoryLen().subscribe({
+        next: (data) => {
+            console.log('History Length Data:', data);
+            // Don't clear chart data immediately, preserve existing data
+            // this.clearChartData();
+
+            const storedLastTimestamp = this.getStoredTimestamp(); // Returns microseconds if stored
+            const currentTimestamp = new Date().getTime() * 1000; // Current time in microseconds
+            const oneHourAgo = currentTimestamp - 3600 * 1000 * 1000; // 1 hour in microseconds
+
+            console.log("stored timestamp: " + storedLastTimestamp);
+
+            // Calculate the start timestamp based on stored data, ensuring not to fetch more than one hour
+            let startTimestamp = storedLastTimestamp ? storedLastTimestamp + 1 : oneHourAgo;
+            console.log("start fetching timestamp: " + startTimestamp);
+
+            // Determine the end timestamp to ensure data is not fetched beyond current time
+            const endTimestamp = Math.min(data.lastTimestamp, currentTimestamp);
+            console.log("end fetching timestamp: " + endTimestamp);
+
+            // Fetch data only if there is a valid range
+            if (startTimestamp < endTimestamp) {
+                this.fetchHistoricalData(startTimestamp, endTimestamp);
+            } else {
+                console.log('No new data to fetch');
+            }
+        },
+        error: (err) => {
+            console.error('Failed to fetch history length:', err);
+        }
+    });
+  }
+
+  ngOnDestroy(): void {
+    // Optionally clear any intervals or subscriptions if necessary
+  }
+
+  private fetchHistoricalData(startTimestamp: number, lastTimestamp: number): void {
+    const requests: Observable<any>[] = [];
+    requests.push(this.systemService.getHistoryData(startTimestamp));
+    console.log("Fetching historical data from " + startTimestamp);
+
+    from(requests).pipe(
+      concatMap((request: Observable<any>) => request),
+      tap(data => {
+        console.log('Received Historical Data:', data);
+        this.updateChartData(data); // Append new data to existing data
+
+        // Store lastTimestamp after fetching data
+        if (data.timestamps && data.timestamps.length) {
+          const lastDataTimestamp = Math.max(...data.timestamps);
+          this.storeTimestamp(lastDataTimestamp);
+          console.log("store new timestamp: "+lastDataTimestamp);
+          this.saveChartData(); // Save updated chart data to local storage
+        }
+      })
+    ).subscribe({
+      complete: () => {
+        console.log('All historical data has been retrieved.');
+      }
+    });
+  }
+
+  private clearChartData(): void {
+    this.dataLabel = [];
+    this.dataData10m = [];
+    this.dataData1h = [];
+    this.dataData1d = [];
+  }
+
+  private updateChartData(data: any): void {
+    // Convert timestamps from microseconds to milliseconds for chart.js
+    const convertedTimestamps = data.timestamps.map((ts: number) => ts / 1000);
+    const convertedhashrate_10m = data.hashrate_10m.map((hr: number) => hr * 1000000000);
+    const convertedhashrate_1h = data.hashrate_1h.map((hr: number) => hr * 1000000000);
+    const convertedhashrate_1d = data.hashrate_1d.map((hr: number) => hr * 1000000000);
+
+    // Append the new data to the existing data arrays
+    this.dataLabel = [...this.dataLabel, ...convertedTimestamps];
+    this.dataData10m = [...this.dataData10m, ...convertedhashrate_10m];
+    this.dataData1h = [...this.dataData1h, ...convertedhashrate_1h];
+    this.dataData1d = [...this.dataData1d, ...convertedhashrate_1d];
+
+    this.chartData.labels = this.dataLabel;
+    this.chartData.datasets[0].data = this.dataData10m;
+    this.chartData.datasets[1].data = this.dataData1h;
+    this.chartData.datasets[2].data = this.dataData1d;
+
+    this.filterOldData(); // Ensure old data is removed
+  }
+
   private loadChartData(): void {
     const storedData = localStorage.getItem(this.localStorageKey);
     if (storedData) {
@@ -192,7 +271,7 @@ export class HomeComponent {
       this.dataData1h = parsedData.dataData1h || [];
       this.dataData1d = parsedData.dataData1d || [];
 
-      this.filterOldData();
+      this.filterOldData(); // Remove old data after loading
     }
   }
 
@@ -208,15 +287,37 @@ export class HomeComponent {
   }
 
   private filterOldData(): void {
-    const now = new Date().getTime();
-    const cutoff = now - 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+/*
+    const now = new Date().getTime() * 1000; // Current time in microseconds
+    const cutoff = now - 3600 * 1000000; // 1 hour in microseconds
 
-    while (this.dataLabel.length && this.dataLabel[0] < cutoff) {
+    while (this.dataLabel.length && this.dataLabel[0] < cutoff / 1000) { // Convert cutoff to milliseconds for comparison
       this.dataLabel.shift();
       this.dataData.shift();
       this.dataData10m.shift();
       this.dataData1h.shift();
       this.dataData1d.shift();
     }
+
+    // Update the stored timestamp based on the oldest remaining data point
+    if (this.dataLabel.length) {
+      this.storeTimestamp(this.dataLabel[0] * 1000); // Convert back to µs for storage
+    }
+*/
+  }
+
+  private storeTimestamp(timestamp: number): void {
+    console.log("store new timestamp: " + timestamp);
+    localStorage.setItem(this.timestampKey, timestamp.toString());
+  }
+
+  private getStoredTimestamp(): number | null {
+    const storedTimestamp = localStorage.getItem(this.timestampKey);
+    if (storedTimestamp) {
+      const timestamp = parseInt(storedTimestamp, 10);
+      console.log("loaded stored timestamp: " + timestamp);
+      return timestamp;
+    }
+    return null;
   }
 }

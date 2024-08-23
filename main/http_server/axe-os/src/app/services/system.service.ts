@@ -86,6 +86,15 @@ export class SystemService {
     }
   }
 
+  public getHistoryLen(): Observable<any> {
+    return this.httpClient.get<any>('/api/history/len');
+  }
+
+  public getHistoryData(startTimestamp: number): Observable<any> {
+    return this.httpClient.get<any>(`/api/history/data?start_timestamp=${startTimestamp}`);
+  }
+
+
   public restart(uri: string = '') {
     return this.httpClient.post(`${uri}/api/system/restart`, {});
   }

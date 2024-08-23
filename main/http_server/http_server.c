@@ -632,7 +632,6 @@ static esp_err_t GET_history_len(httpd_req_t *req) {
     return ESP_OK;
 }
 
-/* Simple handler for getting system history */
 static esp_err_t GET_history(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
@@ -644,24 +643,37 @@ static esp_err_t GET_history(httpd_req_t *req)
     }
 
     uint64_t start_timestamp = 0;
+    uint64_t end_timestamp = 0;
 
     // Retrieve the start timestamp from the request using the query parameter "start_timestamp"
-    char start_timestamp_str[64];
-    if (httpd_req_get_url_query_str(req, start_timestamp_str, sizeof(start_timestamp_str)) == ESP_OK) {
+    char query_str[128];
+    if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
         char param[64];
-        if (httpd_query_key_value(start_timestamp_str, "start_timestamp", param, sizeof(param)) == ESP_OK) {
+
+        // Extract the start_timestamp
+        if (httpd_query_key_value(query_str, "start_timestamp", param, sizeof(param)) == ESP_OK) {
             start_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
         } else {
-            httpd_resp_send_500(req); // Bad Request if the parameter is missing
+            httpd_resp_send_500(req); // Bad Request if the start_timestamp parameter is missing
             return ESP_FAIL;
+        }
+
+        // Extract the optional end_timestamp
+        if (httpd_query_key_value(query_str, "end_timestamp", param, sizeof(param)) == ESP_OK) {
+            end_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
+
+            // Ensure that the end_timestamp is not more than 1 hour after start_timestamp
+            if (end_timestamp > start_timestamp + 3600 * 1000000ULL) {
+                end_timestamp = start_timestamp + 3600 * 1000000ULL;
+            }
+        } else {
+            // If end_timestamp is not provided, default it to 1 hour after start_timestamp
+            end_timestamp = start_timestamp + 3600 * 1000000ULL;
         }
     } else {
         httpd_resp_send_500(req); // Bad Request if query string is missing
         return ESP_FAIL;
     }
-
-    // Calculate the end timestamp for 1-hour chunk
-    uint64_t end_timestamp = start_timestamp + 3600 * 1000000ULL;
 
     // ensure consistency
     history_lock_psram();
