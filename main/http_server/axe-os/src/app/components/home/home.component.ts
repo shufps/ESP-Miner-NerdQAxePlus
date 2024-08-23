@@ -202,7 +202,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     const currentTimestamp = new Date().getTime();
     const oneHourAgo = currentTimestamp - 3600 * 1000;
 
-    let startTimestamp = storedLastTimestamp ? storedLastTimestamp + 1 : oneHourAgo;
+    // Cap the startTimestamp to be at most one hour ago
+    let startTimestamp = storedLastTimestamp ? Math.max(storedLastTimestamp + 1, oneHourAgo) : oneHourAgo;
 
     const endTimestamp = currentTimestamp; // Fetch data up to current time
 
