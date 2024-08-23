@@ -176,9 +176,9 @@ export class HomeComponent implements OnInit, OnDestroy {
             // Don't clear chart data immediately, preserve existing data
             // this.clearChartData();
 
-            const storedLastTimestamp = this.getStoredTimestamp(); // Returns microseconds if stored
-            const currentTimestamp = new Date().getTime() * 1000; // Current time in microseconds
-            const oneHourAgo = currentTimestamp - 3600 * 1000 * 1000; // 1 hour in microseconds
+            const storedLastTimestamp = this.getStoredTimestamp();
+            const currentTimestamp = new Date().getTime();
+            const oneHourAgo = currentTimestamp - 3600 * 1000;
 
             console.log("stored timestamp: " + storedLastTimestamp);
 
@@ -195,6 +195,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 this.fetchHistoricalData(startTimestamp, endTimestamp);
             } else {
                 console.log('No new data to fetch');
+                this.filterOldData(); // Call filterOldData if no new data to ensure old data cleanup
             }
         },
         error: (err) => {
@@ -220,15 +221,19 @@ export class HomeComponent implements OnInit, OnDestroy {
 
         // Store lastTimestamp after fetching data
         if (data.timestamps && data.timestamps.length) {
-          const lastDataTimestamp = Math.max(...data.timestamps);
+          const lastDataTimestamp = Math.max(...data.timestamps) / 1000;
           this.storeTimestamp(lastDataTimestamp);
-          console.log("store new timestamp: "+lastDataTimestamp);
-          this.saveChartData(); // Save updated chart data to local storage
+          console.log("x store new timestamp: " + lastDataTimestamp);
         }
+
+        // Call filterOldData after all data has been appended
+        this.filterOldData();
+        this.saveChartData(); // Save updated chart data to local storage
       })
     ).subscribe({
       complete: () => {
         console.log('All historical data has been retrieved.');
+        this.updateChart();
       }
     });
   }
@@ -252,13 +257,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.dataData10m = [...this.dataData10m, ...convertedhashrate_10m];
     this.dataData1h = [...this.dataData1h, ...convertedhashrate_1h];
     this.dataData1d = [...this.dataData1d, ...convertedhashrate_1d];
-
-    this.chartData.labels = this.dataLabel;
-    this.chartData.datasets[0].data = this.dataData10m;
-    this.chartData.datasets[1].data = this.dataData1h;
-    this.chartData.datasets[2].data = this.dataData1d;
-
-    this.filterOldData(); // Ensure old data is removed
   }
 
   private loadChartData(): void {
@@ -270,8 +268,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.dataData10m = parsedData.dataData10m || [];
       this.dataData1h = parsedData.dataData1h || [];
       this.dataData1d = parsedData.dataData1d || [];
-
-      this.filterOldData(); // Remove old data after loading
     }
   }
 
@@ -287,11 +283,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private filterOldData(): void {
-/*
-    const now = new Date().getTime() * 1000; // Current time in microseconds
-    const cutoff = now - 3600 * 1000000; // 1 hour in microseconds
+    const now = new Date().getTime(); // Current time in ms
+    const cutoff = now - 3600 * 1000; // 1 hour in ms
 
-    while (this.dataLabel.length && this.dataLabel[0] < cutoff / 1000) { // Convert cutoff to milliseconds for comparison
+    while (this.dataLabel.length && this.dataLabel[0] < cutoff) {
       this.dataLabel.shift();
       this.dataData.shift();
       this.dataData10m.shift();
@@ -301,9 +296,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     // Update the stored timestamp based on the oldest remaining data point
     if (this.dataLabel.length) {
-      this.storeTimestamp(this.dataLabel[0] * 1000); // Convert back to µs for storage
+      this.storeTimestamp(this.dataLabel[this.dataLabel.length - 1]);
     }
-*/
   }
 
   private storeTimestamp(timestamp: number): void {
@@ -319,5 +313,16 @@ export class HomeComponent implements OnInit, OnDestroy {
       return timestamp;
     }
     return null;
+  }
+
+  private updateChart() {
+    this.chartData.labels = this.dataLabel;
+    this.chartData.datasets[0].data = this.dataData10m;
+    this.chartData.datasets[1].data = this.dataData1h;
+    this.chartData.datasets[2].data = this.dataData1d;
+
+    this.chartData = {
+      ...this.chartData
+    };
   }
 }

@@ -91,7 +91,7 @@ export class SystemService {
   }
 
   public getHistoryData(startTimestamp: number): Observable<any> {
-    return this.httpClient.get<any>(`/api/history/data?start_timestamp=${startTimestamp}`);
+    return this.httpClient.get<any>(`/api/history/data?start_timestamp=${startTimestamp * 1000}`);
   }
 
 
