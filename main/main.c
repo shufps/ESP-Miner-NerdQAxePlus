@@ -18,7 +18,7 @@
 #include "stratum_task.h"
 #include "system.h"
 #include "user_input_task.h"
-#include "stats_task.h"
+#include "history.h"
 
 static GlobalState GLOBAL_STATE = {};
 
@@ -32,6 +32,11 @@ void app_main(void)
 
     if (!esp_psram_is_initialized()) {
         ESP_LOGE(TAG, "PSRAM is not available");
+        return;
+    }
+
+    if (!history_init()) {
+        ESP_LOGE(TAG, "History couldn't be initialized");
         return;
     }
 
@@ -161,7 +166,6 @@ void app_main(void)
         xTaskCreate(create_jobs_task, "stratum miner", 8192, (void *) &GLOBAL_STATE, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, (void *) &GLOBAL_STATE, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, (void *) &GLOBAL_STATE, 1, NULL);
-        xTaskCreate(stats_task, "stats", 8192, (void *) &GLOBAL_STATE, 1, NULL);
     }
 }
 

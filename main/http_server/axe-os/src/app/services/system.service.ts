@@ -27,7 +27,7 @@ export class SystemService {
           current: 2237.5,
           temp: 60,
           vrTemp: 45,
-          hashRate: 475,
+          hashRateTimestamp: 1724398272483,
           hashRate_10m: 475,
           hashRate_1h: 475,
           hashRate_1d: 475,
@@ -91,7 +91,7 @@ export class SystemService {
   }
 
   public getHistoryData(startTimestamp: number): Observable<any> {
-    return this.httpClient.get<any>(`/api/history/data?start_timestamp=${startTimestamp * 1000}`);
+    return this.httpClient.get<any>(`/api/history/data?start_timestamp=${startTimestamp}`);
   }
 
 

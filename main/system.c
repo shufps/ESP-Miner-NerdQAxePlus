@@ -30,7 +30,7 @@
 #include "freertos/task.h"
 
 #include "influx_task.h"
-#include "stats_task.h"
+#include "history.h"
 
 #ifdef DISPLAY_TTGO
 #include "displays/displayDriver.h"
@@ -49,14 +49,7 @@ static void _init_system(GlobalState *GLOBAL_STATE)
 {
     SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
-    module->historical_hashrate_rolling_index = 0;
-    memset(module->historical_hashrate, 0, sizeof(module->historical_hashrate));
-    memset(module->historical_hashrate_time_stamps, 0, sizeof(module->historical_hashrate_time_stamps));
-
-    module->current_hashrate = 0;
     module->current_hashrate_10m = 0.0;
-    module->current_hashrate_1h = 0.0;
-    module->current_hashrate_1d = 0.0;
     module->screen_page = 0;
     module->shares_accepted = 0;
     module->shares_rejected = 0;
@@ -416,56 +409,15 @@ void SYSTEM_notify_found_nonce(GlobalState *GLOBAL_STATE, double pool_diff)
 {
     SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
-    // hashrate = (nonce_difficulty * 2^32) / time_to_find
+    // use stratum client time
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    uint64_t timestamp = (uint64_t) now.tv_sec * 1000llu;
 
-    // let's calculate the 10min average hashrate
-    uint64_t time_period = 600 * 1e6;
-    uint64_t current_time = esp_timer_get_time();
+    history_push_share(pool_diff, timestamp);
 
-    int index = module->historical_hashrate_rolling_index;
 
-    module->historical_hashrate[index] = pool_diff;
-    module->historical_hashrate_time_stamps[index] = current_time;
-
-    double sum = 0;
-    uint64_t oldest_time = 0;
-    int valid_shares = 0;
-    for (int i = 0; i < HISTORY_LENGTH; i++) {
-        // sum backwards
-        // avoid modulo of a negative number
-        int rindex = (index - i + HISTORY_LENGTH) % HISTORY_LENGTH;
-
-        uint64_t timestamp = module->historical_hashrate_time_stamps[rindex];
-
-        // zero timestamps indicate that the "slot" is not used
-        if (timestamp == 0) {
-            break;
-        }
-
-        // out of scope? break
-        if (current_time - timestamp > time_period) {
-            break;
-        }
-
-        sum += module->historical_hashrate[rindex];
-        oldest_time = timestamp;
-        valid_shares++;
-    }
-
-    // increment rolling index
-    // can't be done before summation
-    index = (index + 1) % HISTORY_LENGTH;
-    module->historical_hashrate_rolling_index = index;
-
-    double rolling_rate = (sum * 4.294967296e9) / (double) (time_period / 1e6);
-    double rolling_rate_gh = rolling_rate / 1.0e9;
-
-    stats_task_push_share(pool_diff, current_time);
-
-    ESP_LOGI(TAG, "hashrate: %.3fGH%s shares: %d (historical buffer spans %ds)", rolling_rate_gh,
-             (current_time - oldest_time >= time_period) ? "" : "*", valid_shares, (int) ((current_time - oldest_time) / 1e6));
-
-    module->current_hashrate = rolling_rate_gh;
+    module->current_hashrate_10m = history_get_current_10m();
 
     _update_hashrate(GLOBAL_STATE);
 }

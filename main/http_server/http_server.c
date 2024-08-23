@@ -30,7 +30,7 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 
-#include "stats_task.h"
+#include "history.h"
 
 #ifdef DEBUG_MEMORY_LOGGING
 #include "leak_tracker.h"
@@ -62,15 +62,18 @@ typedef struct rest_server_context
 
 #define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
 
-static void *psram_malloc(size_t size) {
+static void *psram_malloc(size_t size)
+{
     return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
 }
 
-static void psram_free(void *ptr) {
+static void psram_free(void *ptr)
+{
     heap_caps_free(ptr);
 }
 
-void configure_cjson_for_psram() {
+void configure_cjson_for_psram()
+{
     cJSON_Hooks hooks;
     hooks.malloc_fn = psram_malloc;
     hooks.free_fn = psram_free;
@@ -483,10 +486,10 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "current", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.current);
     cJSON_AddNumberToObject(root, "temp", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.chip_temp_avg);
     cJSON_AddNumberToObject(root, "vrTemp", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.vr_temp);
-    cJSON_AddNumberToObject(root, "hashRate", GLOBAL_STATE->SYSTEM_MODULE.current_hashrate);
-    cJSON_AddNumberToObject(root, "hashRate_10m", stats_task_get_10m());
-    cJSON_AddNumberToObject(root, "hashRate_1h", stats_task_get_1h());
-    cJSON_AddNumberToObject(root, "hashRate_1d", stats_task_get_1d());
+    cJSON_AddNumberToObject(root, "hashRateTimestamp", history_get_current_timestamp());
+    cJSON_AddNumberToObject(root, "hashRate_10m", history_get_current_10m());
+    cJSON_AddNumberToObject(root, "hashRate_1h", history_get_current_1h());
+    cJSON_AddNumberToObject(root, "hashRate_1d", history_get_current_1d());
     cJSON_AddStringToObject(root, "bestDiff", GLOBAL_STATE->SYSTEM_MODULE.best_diff_string);
     cJSON_AddStringToObject(root, "bestSessionDiff", GLOBAL_STATE->SYSTEM_MODULE.best_session_diff_string);
 
@@ -583,7 +586,8 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
     return ESP_OK;
 }
 
-static esp_err_t GET_history_len(httpd_req_t *req) {
+static esp_err_t GET_history_len(httpd_req_t *req)
+{
     httpd_resp_set_type(req, "application/json");
 
     // Set CORS headers
@@ -593,37 +597,24 @@ static esp_err_t GET_history_len(httpd_req_t *req) {
     }
 
     // ensure consistency
-    history_lock_psram();
+    history_lock();
 
     uint64_t first_timestamp = 0;
     uint64_t last_timestamp = 0;
     uint32_t num_samples = 0;
 
-    psram_t *psram = history_get_psram();
-    if (!psram) {
-        ESP_LOGW(TAG, "psram not initialized");
+    if (!is_history_available()) {
+        ESP_LOGW(TAG, "history is not available");
     } else {
-        int lowest_index = (psram->num_samples - MAX_SAMPLES < 0) ? 0 : psram->num_samples - MAX_SAMPLES;
-        int highest_index = psram->num_samples - 1;
-
-        num_samples = highest_index - lowest_index + 1;
-
-        if (num_samples) {
-            first_timestamp = psram->timestamps[WRAP(lowest_index)];
-            last_timestamp = psram->timestamps[WRAP(highest_index)];
-        }
-
+        history_get_timestamps(&first_timestamp, &last_timestamp, &num_samples);
     }
 
-    history_unlock_psram();
+    history_unlock();
 
     cJSON *root = cJSON_CreateObject();
-//    cJSON_AddNumberToObject(root, "firstTimestamp", first_timestamp);
-//    cJSON_AddNumberToObject(root, "lastTimestamp", last_timestamp);
     cJSON_AddItemToObjectCS(root, "firstTimestamp", cJSON_CreateNumber(first_timestamp));
     cJSON_AddItemToObjectCS(root, "lastTimestamp", cJSON_CreateNumber(last_timestamp));
     cJSON_AddItemToObjectCS(root, "numSamples", cJSON_CreateNumber(num_samples));
-//    cJSON_AddNumberToObject(root, "numSamples", num_samples);
 
     const char *history_len = cJSON_Print(root);
     httpd_resp_sendstr(req, history_len);
@@ -663,12 +654,12 @@ static esp_err_t GET_history(httpd_req_t *req)
             end_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
 
             // Ensure that the end_timestamp is not more than 1 hour after start_timestamp
-            if (end_timestamp > start_timestamp + 3600 * 1000000ULL) {
-                end_timestamp = start_timestamp + 3600 * 1000000ULL;
+            if (end_timestamp > start_timestamp + 3600 * 1000ULL) {
+                end_timestamp = start_timestamp + 3600 * 1000ULL;
             }
         } else {
             // If end_timestamp is not provided, default it to 1 hour after start_timestamp
-            end_timestamp = start_timestamp + 3600 * 1000000ULL;
+            end_timestamp = start_timestamp + 3600 * 1000ULL;
         }
     } else {
         httpd_resp_send_500(req); // Bad Request if query string is missing
@@ -676,25 +667,24 @@ static esp_err_t GET_history(httpd_req_t *req)
     }
 
     // ensure consistency
-    history_lock_psram();
+    history_lock();
 
     int start_index = history_search_nearest_timestamp(start_timestamp);
     int end_index = history_search_nearest_timestamp(end_timestamp);
     int num_samples = end_index - start_index + 1;
 
-    psram_t *psram = history_get_psram();
-    if (!psram) {
-        ESP_LOGW(TAG, "psram not initialized");
+    if (!is_history_available()) {
+        ESP_LOGW(TAG, "history is not available");
+        num_samples = 0;
     }
 
-    // psram NULL, indices out of bounds of simply wrong
-    bool failed = start_index == -1 || end_index == -1 || !psram ||
-                  (start_index < 0 || start_index >= psram->num_samples || end_index < 0 || end_index >= psram->num_samples) ||
-                  (end_index < start_index);
+    // check if something went wrong
+    bool failed = start_index == -1 || end_index == -1 || !num_samples || (end_index < start_index);
 
     // if there is something weird return a valid struct but with only empty arrays
     if (failed) {
-        ESP_LOGE(TAG, "history indices wrong %d %d %d %llu %llu", start_index, end_index, psram->num_samples, start_timestamp, end_timestamp);
+        ESP_LOGE(TAG, "history indices wrong %d %d %llu %llu", start_index, end_index, start_timestamp,
+                 end_timestamp);
         num_samples = 0;
     }
 
@@ -709,13 +699,13 @@ static esp_err_t GET_history(httpd_req_t *req)
 
     // Populate the arrays with the data
     for (int i = start_index; i < start_index + num_samples; i++) {
-        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber(psram->hashrate_10m[WRAP(i)]));
-        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber(psram->hashrate_1h[WRAP(i)]));
-        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber(psram->hashrate_1d[WRAP(i)]));
-        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(psram->timestamps[WRAP(i)]));
+        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber(history_get_hashrate_10m_sample(i)));
+        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber(history_get_hashrate_1h_sample(i)));
+        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber(history_get_hashrate_1d_sample(i)));
+        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(history_get_timestamp_sample(i)));
     }
 
-    history_unlock_psram();
+    history_unlock();
 
     // Add arrays to the root object
     cJSON_AddItemToObject(json_root, "hashrate_10m", json_hashrate_10m);
@@ -949,10 +939,12 @@ esp_err_t start_rest_server(void *pvParameters)
     httpd_uri_t swarm_get_uri = {.uri = "/api/swarm/info", .method = HTTP_GET, .handler = GET_swarm, .user_ctx = rest_context};
     httpd_register_uri_handler(server, &swarm_get_uri);
 
-    httpd_uri_t history_get_uri = {.uri = "/api/history/data", .method = HTTP_GET, .handler = GET_history, .user_ctx = rest_context};
+    httpd_uri_t history_get_uri = {
+        .uri = "/api/history/data", .method = HTTP_GET, .handler = GET_history, .user_ctx = rest_context};
     httpd_register_uri_handler(server, &history_get_uri);
 
-    httpd_uri_t history_get_len_uri = {.uri = "/api/history/len", .method = HTTP_GET, .handler = GET_history_len, .user_ctx = rest_context};
+    httpd_uri_t history_get_len_uri = {
+        .uri = "/api/history/len", .method = HTTP_GET, .handler = GET_history_len, .user_ctx = rest_context};
     httpd_register_uri_handler(server, &history_get_len_uri);
 
     httpd_uri_t update_swarm_uri = {

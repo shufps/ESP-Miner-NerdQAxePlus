@@ -28,6 +28,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private localStorageKey = 'chartData';
   private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
   private isHistoricalDataLoaded: boolean = false; // Flag to indicate if historical data has been loaded
+  private last_timestamp : Number = 0;
 
   constructor(
     private systemService: SystemService
@@ -49,7 +50,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           backgroundColor: '#6484f6',
           borderColor: '#6484f6',
           tension: .4,
-          pointRadius: 1,
+          pointRadius: 0,
           borderWidth: 1
         },
         {
@@ -60,7 +61,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           backgroundColor: '#7464f6',
           borderColor: '#7464f6',
           tension: .4,
-          pointRadius: 1,
+          pointRadius: 0,
           borderWidth: 1
         },
         {
@@ -71,7 +72,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           backgroundColor: '#a564f6',
           borderColor: '#a564f6',
           tension: .4,
-          pointRadius: 1,
+          pointRadius: 0,
           borderWidth: 1
         },
       ]
@@ -122,27 +123,25 @@ export class HomeComponent implements OnInit, OnDestroy {
       tap(info => {
         if (!info) return; // Skip if no info is available (before historical data is loaded)
 
-        const now = new Date().getTime();
+        const timestamp = info.hashRateTimestamp;
+
+        // do we have new data?
+        if (timestamp == this.last_timestamp) {
+          return;
+        }
+        this.last_timestamp = timestamp;
+
+        // keep only 1h
+        this.filterOldData();
 
         this.dataData10m.push(info.hashRate_10m * 1000000000);
         this.dataData1h.push(info.hashRate_1h * 1000000000);
         this.dataData1d.push(info.hashRate_1d * 1000000000);
-        this.dataLabel.push(now);
-
-        // Update the 10m, 1h, 1d datasets
-        this.updateLiveDataArrays(info.hashRate_10m, info.hashRate_1h, info.hashRate_1d, now);
-
-        // Keep only the latest 1000 points to prevent memory overflow
-        if (this.dataData.length > 1000) {
-          this.dataLabel.shift();
-          this.dataData10m.shift();
-          this.dataData1h.shift();
-          this.dataData1d.shift();
-        }
+        this.dataLabel.push(timestamp);
 
         this.updateChart();
         this.saveChartData();
-        this.storeTimestamp(now);
+        this.storeTimestamp(timestamp);
       }),
       map(info => {
         info.power = parseFloat(info.power.toFixed(1));
@@ -188,18 +187,18 @@ export class HomeComponent implements OnInit, OnDestroy {
     const currentTimestamp = new Date().getTime();
     const oneHourAgo = currentTimestamp - 3600 * 1000;
 
-    console.log("stored timestamp: " + storedLastTimestamp);
+    //console.log("stored timestamp: " + storedLastTimestamp);
 
     let startTimestamp = storedLastTimestamp ? storedLastTimestamp + 1 : oneHourAgo;
-    console.log("start fetching timestamp: " + startTimestamp);
+    //console.log("start fetching timestamp: " + startTimestamp);
 
     const endTimestamp = currentTimestamp; // Fetch data up to current time
-    console.log("end fetching timestamp: " + endTimestamp);
+    //console.log("end fetching timestamp: " + endTimestamp);
 
     if (startTimestamp < endTimestamp) {
         this.fetchHistoricalData(startTimestamp, endTimestamp);
     } else {
-        console.log('No new data to fetch');
+        //console.log('No new data to fetch');
         this.filterOldData(); // Call filterOldData if no new data to ensure old data cleanup
         this.isHistoricalDataLoaded = true; // Set flag to true to start live data updates
     }
@@ -212,18 +211,18 @@ export class HomeComponent implements OnInit, OnDestroy {
   private fetchHistoricalData(startTimestamp: number, lastTimestamp: number): void {
     const requests: Observable<any>[] = [];
     requests.push(this.systemService.getHistoryData(startTimestamp));
-    console.log("Fetching historical data from " + startTimestamp);
+    //console.log("Fetching historical data from " + startTimestamp);
 
     from(requests).pipe(
       concatMap((request: Observable<any>) => request),
       tap(data => {
-        console.log('Received Historical Data:', data);
+        //console.log('Received Historical Data:', data);
         this.updateChartData(data);
 
         if (data.timestamps && data.timestamps.length) {
-          const lastDataTimestamp = Math.max(...data.timestamps) / 1000;
+          const lastDataTimestamp = Math.max(...data.timestamps);
           this.storeTimestamp(lastDataTimestamp);
-          console.log("store new timestamp: " + lastDataTimestamp);
+          //console.log("store new timestamp: " + lastDataTimestamp);
         }
 
         this.filterOldData();
@@ -232,17 +231,10 @@ export class HomeComponent implements OnInit, OnDestroy {
       })
     ).subscribe({
       complete: () => {
-        console.log('All historical data has been retrieved.');
+        //console.log('All historical data has been retrieved.');
         this.updateChart();
       }
     });
-  }
-
-  private updateLiveDataArrays(hashRate_10m : number, hashRate_1h : number, hashRate_1d: number, timestamp: number): void {
-    // Update the 10m, 1h, 1d arrays based on current live data
-    this.dataData10m.push(hashRate_10m * 1000000000);
-    this.dataData1h.push(hashRate_1h * 1000000000);
-    this.dataData1d.push(hashRate_1d * 1000000000);
   }
 
   private clearChartData(): void {
@@ -253,12 +245,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private updateChartData(data: any): void {
-    const convertedTimestamps = data.timestamps.map((ts: number) => ts / 1000);
     const convertedhashrate_10m = data.hashrate_10m.map((hr: number) => hr * 1000000000);
     const convertedhashrate_1h = data.hashrate_1h.map((hr: number) => hr * 1000000000);
     const convertedhashrate_1d = data.hashrate_1d.map((hr: number) => hr * 1000000000);
 
-    this.dataLabel = [...this.dataLabel, ...convertedTimestamps];
+    this.dataLabel = [...this.dataLabel, ...data.timestamps];
     this.dataData10m = [...this.dataData10m, ...convertedhashrate_10m];
     this.dataData1h = [...this.dataData1h, ...convertedhashrate_1h];
     this.dataData1d = [...this.dataData1d, ...convertedhashrate_1d];
@@ -302,7 +293,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private storeTimestamp(timestamp: number): void {
-    console.log("store new timestamp: " + timestamp);
+    //console.log("store new timestamp: " + timestamp);
     localStorage.setItem(this.timestampKey, timestamp.toString());
   }
 
@@ -310,7 +301,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     const storedTimestamp = localStorage.getItem(this.timestampKey);
     if (storedTimestamp) {
       const timestamp = parseInt(storedTimestamp, 10);
-      console.log("loaded stored timestamp: " + timestamp);
+      //console.log("loaded stored timestamp: " + timestamp);
       return timestamp;
     }
     return null;

@@ -432,9 +432,9 @@ void display_updateHashrate(SystemModule *module, float power)
 {
     char strData[20];
 
-    float efficiency = power / (module->current_hashrate / 1000.0);
+    float efficiency = power / (module->current_hashrate_10m / 1000.0);
 
-    snprintf(strData, sizeof(strData), "%.1f", module->current_hashrate);
+    snprintf(strData, sizeof(strData), "%.1f", module->current_hashrate_10m);
     lv_label_set_text(ui_lbHashrate, strData);    // Update hashrate
     lv_label_set_text(ui_lbHashrateSet, strData); // Update hashrate
     lv_label_set_text(ui_lblHashPrice, strData);  // Update hashrate

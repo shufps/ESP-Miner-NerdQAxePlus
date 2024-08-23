@@ -8,34 +8,30 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#include "stats_task.h"
+#include "history.h"
+
+#pragma GCC diagnostic error "-Wall"
+#pragma GCC diagnostic error "-Wextra"
+#pragma GCC diagnostic error "-Wmissing-prototypes"
 
 static const char *TAG = "stats_task";
 
-static pthread_mutex_t stats_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t stats_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t psram_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static const int interval = 5;
 
-// timespans in us, same resolution as the esp timer
+// timespans in ms
 static avg_t avg_10m = {
-    .first_sample = 0, .last_sample = 0, .timespan = 600llu * 1000000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0};
+    .first_sample = 0, .last_sample = 0, .timespan = 600llu * 1000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0, .timestamp = 0};
 static avg_t avg_1h = {
-    .first_sample = 0, .last_sample = 0, .timespan = 3600llu * 1000000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0};
+    .first_sample = 0, .last_sample = 0, .timespan = 3600llu * 1000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0, .timestamp = 0};
 static avg_t avg_1d = {
-    .first_sample = 0, .last_sample = 0, .timespan = 86400llu * 1000000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0};
+    .first_sample = 0, .last_sample = 0, .timespan = 86400llu * 1000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0, .timestamp = 0};
 
-// const static double alpha = 0.8;
+// use only getter to access data externally
+static psram_t *psram = 0;
 
-static double smoothed_10m = 0.0;
-static double smoothed_1h = 0.0;
-static double smoothed_1d = 0.0;
-
-// round(log(MAX_SAMPLES)/log(2))
-const int MAX_SAMPLES_BITS = (int) (log2f(MAX_SAMPLES) + 0.5f);
-
-psram_t *psram = 0;
+#define for wrapped access of psram
+#define WRAP(a) ((a) & (HISTORY_MAX_SAMPLES - 1))
 
 inline uint64_t history_get_timestamp_sample(int index)
 {
@@ -57,16 +53,68 @@ inline float history_get_hashrate_1d_sample(int index)
     return psram->hashrate_1d[WRAP(index)];
 }
 
-static void stats_timer_ticker(TimerHandle_t xTimer)
+double history_get_current_10m()
 {
-    pthread_mutex_lock(&stats_mutex);
-    pthread_cond_signal(&stats_cond);
-    pthread_mutex_unlock(&stats_mutex);
+    return avg_10m.avg_gh;
 }
+
+double history_get_current_1h()
+{
+    return avg_1h.avg_gh;
+}
+
+double history_get_current_1d()
+{
+    return avg_1d.avg_gh;
+}
+
+uint64_t history_get_current_timestamp()
+{
+    // all timestamps are equal
+    return avg_10m.timestamp;
+}
+
+void history_lock()
+{
+    pthread_mutex_lock(&psram_mutex);
+}
+
+void history_unlock()
+{
+    pthread_mutex_unlock(&psram_mutex);
+}
+
+bool is_history_available()
+{
+    return psram != 0;
+}
+
+void history_get_timestamps(uint64_t *first, uint64_t *last, int *num_samples)
+{
+    int lowest_index = (psram->num_samples - HISTORY_MAX_SAMPLES < 0) ? 0 : psram->num_samples - HISTORY_MAX_SAMPLES;
+    int highest_index = psram->num_samples - 1;
+
+    int _num_samples = highest_index - lowest_index + 1;
+
+    uint64_t first_timestamp = (_num_samples) ? history_get_timestamp_sample(lowest_index) : 0;
+    uint64_t last_timestamp = (_num_samples) ? history_get_timestamp_sample(highest_index) : 0;
+
+    *first = first_timestamp;
+    *last = last_timestamp;
+    *num_samples = _num_samples;
+}
+
+/*
+psram_t *history_get_psram()
+{
+    return psram;
+}
+*/
 
 // move avg window and track and adjust the total sum of all shares in the
 // desired time window. Calculates GH.
-void update_avg(avg_t *avg)
+// calculates incrementally without "scanning" the entire time span
+static void update_avg(avg_t *avg)
 {
     // Catch up with the latest sample and update diffsum
     uint64_t last_timestamp = 0;
@@ -102,31 +150,17 @@ void update_avg(avg_t *avg)
 
     avg->avg = (double) (avg->diffsum << 32llu) / ((double) duration / 1.0e6);
     avg->avg_gh = avg->avg / 1.0e9;
+    avg->timestamp = last_timestamp;
 }
 
-void history_lock_psram()
-{
-    pthread_mutex_lock(&psram_mutex);
-}
-
-void history_unlock_psram()
-{
-    pthread_mutex_unlock(&psram_mutex);
-}
-
-void stats_task_push_share(uint32_t diff, uint64_t timestamp)
+void history_push_share(uint32_t diff, uint64_t timestamp)
 {
     if (!psram) {
         ESP_LOGW(TAG, "PSRAM not initialized");
         return;
     }
 
-    // use stratum client time
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    timestamp = (uint64_t) now.tv_sec * 1000000llu;
-
-    history_lock_psram();
+    history_lock();
     psram->shares[WRAP(psram->num_samples)] = diff;
     psram->timestamps[WRAP(psram->num_samples)] = timestamp;
     psram->num_samples++;
@@ -138,29 +172,9 @@ void stats_task_push_share(uint32_t diff, uint64_t timestamp)
     psram->hashrate_10m[WRAP(psram->num_samples - 1)] = avg_10m.avg_gh;
     psram->hashrate_1h[WRAP(psram->num_samples - 1)] = avg_1h.avg_gh;
     psram->hashrate_1d[WRAP(psram->num_samples - 1)] = avg_1d.avg_gh;
-    history_unlock_psram();
+    history_unlock();
 
     ESP_LOGI(TAG, "%llu hashrate: 10m:%.3fGH 1h:%.3fGH 1d:%.3fGH", timestamp, avg_10m.avg_gh, avg_1h.avg_gh, avg_1d.avg_gh);
-}
-
-double stats_task_get_10m()
-{
-    return avg_10m.avg_gh;
-}
-
-double stats_task_get_1h()
-{
-    return avg_1h.avg_gh;
-}
-
-double stats_task_get_1d()
-{
-    return avg_1d.avg_gh;
-}
-
-psram_t *history_get_psram()
-{
-    return psram;
 }
 
 // successive approximation in a wrapped ring buffer with
@@ -168,7 +182,7 @@ psram_t *history_get_psram()
 int history_search_nearest_timestamp(uint64_t timestamp)
 {
     // get index of the first sample, clamp to min 0
-    int lowest_index = (psram->num_samples - MAX_SAMPLES < 0) ? 0 : psram->num_samples - MAX_SAMPLES;
+    int lowest_index = (psram->num_samples - HISTORY_MAX_SAMPLES < 0) ? 0 : psram->num_samples - HISTORY_MAX_SAMPLES;
 
     // last sample
     int highest_index = psram->num_samples - 1;
@@ -187,8 +201,8 @@ int history_search_nearest_timestamp(uint64_t timestamp)
     while (current = (highest_index + lowest_index) / 2, num_elements = highest_index - lowest_index + 1, num_elements > 1) {
         // Get timestamp at the current index, wrapping as necessary
         uint64_t stored_timestamp = psram->timestamps[WRAP(current)];
-        ESP_LOGI(TAG, "current %d num_elements %d stored_timestamp %llu wrapped-current %d", current, num_elements, stored_timestamp,
-                 WRAP(current));
+        ESP_LOGI(TAG, "current %d num_elements %d stored_timestamp %llu wrapped-current %d", current, num_elements,
+                 stored_timestamp, WRAP(current));
 
         if (stored_timestamp > timestamp) {
             // If timestamp is too large, search lower
@@ -204,55 +218,20 @@ int history_search_nearest_timestamp(uint64_t timestamp)
 
     ESP_LOGI(TAG, "current return %d", current);
 
+    if (current  < 0 || current  >= psram->num_samples) {
+        ESP_LOGE(TAG, "indices are broken");
+        return -1;
+    }
+
     return current;
 }
 
-static void forever()
-{
-    while (1) {
-        vTaskDelay(100000 / portTICK_PERIOD_MS);
-    }
-}
-
-void *stats_task(void *pvParameters)
-{
-    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
-
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
-
+bool history_init() {
     psram = (psram_t *) heap_caps_malloc(sizeof(psram_t), MALLOC_CAP_SPIRAM);
     if (!psram) {
         ESP_LOGE(TAG, "Couldn't allocate memory of PSRAM");
-        forever();
+        return false;
     }
-
     psram->num_samples = 0;
-
-    ESP_LOGI(TAG, "Stats Interval: %dms", interval * 1000);
-
-    // Create a timer
-    TimerHandle_t stats_timer = xTimerCreate(TAG, pdMS_TO_TICKS(interval * 1000), pdTRUE, NULL, stats_timer_ticker);
-
-    if (stats_timer == NULL) {
-        ESP_LOGE(TAG, "Failed to create timer");
-        return NULL;
-    }
-
-    // Start the timer
-    if (xTimerStart(stats_timer, 0) != pdPASS) {
-        ESP_LOGE(TAG, "Failed to start timer");
-        return NULL;
-    }
-
-    while (1) {
-        pthread_mutex_lock(&stats_mutex);
-        pthread_cond_wait(&stats_cond, &stats_mutex); // Wait for the timer or external trigger
-        pthread_mutex_unlock(&stats_mutex);
-        /*
-                // do some resampling to look nicer
-                smoothed_10m = (1.0 - alpha) * smoothed_10m + avg_10m.avg_gh * alpha;
-                smoothed_1h = (1.0 - alpha) * smoothed_1h + avg_1h.avg_gh * alpha;
-                smoothed_1d = (1.0 - alpha) * smoothed_1d + avg_1d.avg_gh * alpha;
-        */
-    }
+    return true;
 }

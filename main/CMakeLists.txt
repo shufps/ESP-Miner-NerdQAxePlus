@@ -11,6 +11,7 @@ SRCS
     "TPS53647.c"
     "vcore.c"
     "leak_tracker.c"
+    "history.c"
 
     "./http_server/http_server.c"
     "./self_test/self_test.c"
@@ -19,7 +20,6 @@ SRCS
     "./tasks/asic_result_task.c"
     "./tasks/user_input_task.c"
     "./tasks/influx_task.c"
-    "./tasks/stats_task.c"
     "./tasks/power_management_task.c"
     "./http_server/http_server.c"
     "./self_test/self_test.c"
