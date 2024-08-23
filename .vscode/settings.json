@@ -26,7 +26,12 @@
         "functional": "c",
         "vector": "c",
         "memory": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "random": "c",
+        "leak_tracker.h": "c",
+        "history.h": "c",
+        "system.h": "c",
+        "influx_task.h": "c"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

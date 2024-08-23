@@ -11,6 +11,7 @@ SRCS
     "TPS53647.c"
     "vcore.c"
     "leak_tracker.c"
+    "history.c"
 
     "./http_server/http_server.c"
     "./self_test/self_test.c"
@@ -65,6 +66,7 @@ INCLUDE_DIRS
     "esp_timer"
     "esp_wifi"
     "esp_lcd"
+    "esp_psram"
     "json"
     "nvs_flash"
     "spiffs"
