@@ -184,34 +184,25 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.systemService.getHistoryLen().subscribe({
-        next: (data) => {
-            console.log('History Length Data:', data);
+    const storedLastTimestamp = this.getStoredTimestamp();
+    const currentTimestamp = new Date().getTime();
+    const oneHourAgo = currentTimestamp - 3600 * 1000;
 
-            const storedLastTimestamp = this.getStoredTimestamp();
-            const currentTimestamp = new Date().getTime();
-            const oneHourAgo = currentTimestamp - 3600 * 1000;
+    console.log("stored timestamp: " + storedLastTimestamp);
 
-            console.log("stored timestamp: " + storedLastTimestamp);
+    let startTimestamp = storedLastTimestamp ? storedLastTimestamp + 1 : oneHourAgo;
+    console.log("start fetching timestamp: " + startTimestamp);
 
-            let startTimestamp = storedLastTimestamp ? storedLastTimestamp + 1 : oneHourAgo;
-            console.log("start fetching timestamp: " + startTimestamp);
+    const endTimestamp = currentTimestamp; // Fetch data up to current time
+    console.log("end fetching timestamp: " + endTimestamp);
 
-            const endTimestamp = Math.min(data.lastTimestamp, currentTimestamp);
-            console.log("end fetching timestamp: " + endTimestamp);
-
-            if (startTimestamp < endTimestamp) {
-                this.fetchHistoricalData(startTimestamp, endTimestamp);
-            } else {
-                console.log('No new data to fetch');
-                this.filterOldData(); // Call filterOldData if no new data to ensure old data cleanup
-                this.isHistoricalDataLoaded = true; // Set flag to true to start live data updates
-            }
-        },
-        error: (err) => {
-            console.error('Failed to fetch history length:', err);
-        }
-    });
+    if (startTimestamp < endTimestamp) {
+        this.fetchHistoricalData(startTimestamp, endTimestamp);
+    } else {
+        console.log('No new data to fetch');
+        this.filterOldData(); // Call filterOldData if no new data to ensure old data cleanup
+        this.isHistoricalDataLoaded = true; // Set flag to true to start live data updates
+    }
   }
 
   ngOnDestroy(): void {
@@ -252,8 +243,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.dataData10m.push(hashRate_10m * 1000000000);
     this.dataData1h.push(hashRate_1h * 1000000000);
     this.dataData1d.push(hashRate_1d * 1000000000);
-
-    // Optionally, implement logic to keep only the latest 10 minutes, 1 hour, and 1 day of data
   }
 
   private clearChartData(): void {
