@@ -409,10 +409,17 @@ void SYSTEM_notify_found_nonce(GlobalState *GLOBAL_STATE, double pool_diff)
 {
     SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
-    // use stratum client time
+    if (!module->lastClockSync) {
+        ESP_LOGW(TAG, "clock not (yet) synchronized");
+        return;
+    }
+
+    // use stratum client if synchronized time
     struct timeval now;
     gettimeofday(&now, NULL);
-    uint64_t timestamp = (uint64_t) now.tv_sec * 1000llu;
+
+    uint64_t timestamp = (uint64_t)now.tv_sec * 1000llu + (uint64_t)now.tv_usec / 1000llu;
+
 
     history_push_share(pool_diff, timestamp);
 

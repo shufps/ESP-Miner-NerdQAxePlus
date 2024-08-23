@@ -36,6 +36,10 @@
 #include "leak_tracker.h"
 #endif
 
+#pragma GCC diagnostic error "-Wall"
+#pragma GCC diagnostic error "-Wextra"
+#pragma GCC diagnostic error "-Wmissing-prototypes"
+
 static const char *TAG = "http_server";
 
 static GlobalState *GLOBAL_STATE;
@@ -72,7 +76,7 @@ static void psram_free(void *ptr)
     heap_caps_free(ptr);
 }
 
-void configure_cjson_for_psram()
+static void configure_cjson_for_psram()
 {
     cJSON_Hooks hooks;
     hooks.malloc_fn = psram_malloc;
@@ -80,7 +84,7 @@ void configure_cjson_for_psram()
     cJSON_InitHooks(&hooks);
 }
 
-esp_err_t init_fs(void)
+static esp_err_t init_fs(void)
 {
     esp_vfs_spiffs_conf_t conf = {.base_path = "", .partition_label = NULL, .max_files = 5, .format_if_mount_failed = false};
     esp_err_t ret = esp_vfs_spiffs_register(&conf);
@@ -107,13 +111,15 @@ esp_err_t init_fs(void)
 }
 
 /* Function for stopping the webserver */
-void stop_webserver(httpd_handle_t server)
+/*
+static void stop_webserver(httpd_handle_t server)
 {
     if (server) {
-        /* Stop the httpd server */
+        // Stop the httpd server
         httpd_stop(server);
     }
 }
+*/
 
 /* Set HTTP response content type according to file extension */
 static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filepath)
@@ -552,7 +558,7 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
 
     const char *influx_info = cJSON_Print(root);
     httpd_resp_sendstr(req, influx_info);
-    free(influx_info);
+    free((char*) influx_info);
     cJSON_Delete(root);
     return ESP_OK;
 }
@@ -589,7 +595,7 @@ static esp_err_t GET_history_len(httpd_req_t *req)
 
     const char *history_len = cJSON_Print(root);
     httpd_resp_sendstr(req, history_len);
-    free(history_len);
+    free((char*) history_len);
     cJSON_Delete(root);
     return ESP_OK;
 }
@@ -668,12 +674,21 @@ static esp_err_t GET_history(httpd_req_t *req)
     cJSON *json_hashrate_1d = cJSON_CreateArray();
     cJSON *json_timestamps = cJSON_CreateArray();
 
-    // Populate the arrays with the data
-    for (int i = start_index; i < start_index + num_samples; i++) {
-        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber(history_get_hashrate_10m_sample(i)));
-        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber(history_get_hashrate_1h_sample(i)));
-        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber(history_get_hashrate_1d_sample(i)));
-        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(history_get_timestamp_sample(i)));
+    // we need to save a little bit of space
+    // - send one full base timestamp
+    // - other timestamps are relative to the base
+    // - send fixed point x100 to not transfer so many unused fractional decimal places
+    uint64_t base_timestamp = 0;
+    if (num_samples) {
+        base_timestamp = history_get_timestamp_sample(start_index);
+
+        // Populate the arrays with the data
+        for (int i = start_index; i < start_index + num_samples; i++) {
+            cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int) (history_get_hashrate_10m_sample(i) * 100.0)));
+            cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int) (history_get_hashrate_1h_sample(i) * 100.0)));
+            cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int) (history_get_hashrate_1d_sample(i) * 100.0)));
+            cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(history_get_timestamp_sample(i) - base_timestamp));
+        }
     }
 
     history_unlock();
@@ -683,6 +698,7 @@ static esp_err_t GET_history(httpd_req_t *req)
     cJSON_AddItemToObject(json_root, "hashrate_1h", json_hashrate_1h);
     cJSON_AddItemToObject(json_root, "hashrate_1d", json_hashrate_1d);
     cJSON_AddItemToObject(json_root, "timestamps", json_timestamps);
+    cJSON_AddItemToObjectCS(json_root, "timestampBase", cJSON_CreateNumber(base_timestamp));
 
     // Serialize the JSON object to a string
     const char *response = cJSON_PrintUnformatted(json_root);
@@ -695,7 +711,7 @@ static esp_err_t GET_history(httpd_req_t *req)
     return ESP_OK;
 }
 
-esp_err_t POST_WWW_update(httpd_req_t *req)
+static esp_err_t POST_WWW_update(httpd_req_t *req)
 {
     char buf[1000];
     int remaining = req->content_len;
@@ -741,7 +757,7 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
 /*
  * Handle OTA file upload
  */
-esp_err_t POST_OTA_update(httpd_req_t *req)
+static esp_err_t POST_OTA_update(httpd_req_t *req)
 {
     char buf[1000];
     esp_ota_handle_t ota_handle;
@@ -787,7 +803,7 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
     return ESP_OK;
 }
 
-void log_to_websocket(const char *format, va_list args)
+static void log_to_websocket(const char *format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -840,7 +856,7 @@ void log_to_websocket(const char *format, va_list args)
  * This handler echos back the received ws data
  * and triggers an async send if certain message received
  */
-esp_err_t echo_handler(httpd_req_t *req)
+static esp_err_t echo_handler(httpd_req_t *req)
 {
 
     if (req->method == HTTP_GET) {
@@ -854,7 +870,7 @@ esp_err_t echo_handler(httpd_req_t *req)
 }
 
 // HTTP Error (404) Handler - Redirects all requests to the root page
-esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
+static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
     // Set status
     httpd_resp_set_status(req, "302 Temporary Redirect");
