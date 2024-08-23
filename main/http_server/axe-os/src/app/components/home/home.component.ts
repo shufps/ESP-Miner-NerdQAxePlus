@@ -246,7 +246,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private updateChartData(data: any): void {
     const baseTimestamp = data.timestampBase;
-    const convertedTimestamps = data.hashrate_10m.map((ts: number) => ts + baseTimestamp);
+    const convertedTimestamps = data.timestamps.map((ts: number) => ts + baseTimestamp);
     // we have to correct for integer x100 fixed point format
     const convertedhashrate_10m = data.hashrate_10m.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_1h = data.hashrate_1h.map((hr: number) => hr * 1000000000.0 / 100.0);
