@@ -13,6 +13,7 @@ typedef struct {
     double avg;
     double avg_gh;
     uint64_t timestamp;
+    bool preliminary;
 } avg_t;
 
 typedef struct {

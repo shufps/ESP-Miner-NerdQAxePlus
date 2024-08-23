@@ -434,35 +434,6 @@ static esp_err_t GET_swarm(httpd_req_t *req)
     return ESP_OK;
 }
 
-// Function to convert history_t to cJSON
-cJSON *history_to_json(const history_t *history, int num_samples)
-{
-    // Create the root object
-    cJSON *json_root = cJSON_CreateObject();
-
-    // Create arrays for the hashrate values
-    cJSON *json_hashrate_10m = cJSON_CreateArray();
-    cJSON *json_hashrate_1h = cJSON_CreateArray();
-    cJSON *json_hashrate_1d = cJSON_CreateArray();
-    cJSON *json_timestamps = cJSON_CreateArray();
-
-    // Populate the arrays with the data
-    for (int i = 0; i < num_samples; i++) {
-        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber(history->hashrate_10m[i]));
-        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber(history->hashrate_1h[i]));
-        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber(history->hashrate_1d[i]));
-        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(history->timestamps[i]));
-    }
-
-    // Add arrays to the root object
-    cJSON_AddItemToObject(json_root, "hashrate_10m", json_hashrate_10m);
-    cJSON_AddItemToObject(json_root, "hashrate_1h", json_hashrate_1h);
-    cJSON_AddItemToObject(json_root, "hashrate_1d", json_hashrate_1d);
-    cJSON_AddItemToObject(json_root, "timestamps", json_timestamps);
-
-    return json_root; // Caller needs to cJSON_Delete(json_root) when done
-}
-
 /* Simple handler for getting system handler */
 static esp_err_t GET_system_info(httpd_req_t *req)
 {

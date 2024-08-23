@@ -14,18 +14,35 @@
 #pragma GCC diagnostic error "-Wextra"
 #pragma GCC diagnostic error "-Wmissing-prototypes"
 
-static const char *TAG = "stats_task";
+static const char *TAG = "history";
 
 static pthread_mutex_t psram_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
 // timespans in ms
-static avg_t avg_10m = {
-    .first_sample = 0, .last_sample = 0, .timespan = 600llu * 1000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0, .timestamp = 0};
-static avg_t avg_1h = {
-    .first_sample = 0, .last_sample = 0, .timespan = 3600llu * 1000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0, .timestamp = 0};
-static avg_t avg_1d = {
-    .first_sample = 0, .last_sample = 0, .timespan = 86400llu * 1000llu, .diffsum = 0, .avg = 0.0, .avg_gh = 0.0, .timestamp = 0};
+static avg_t avg_10m = {.first_sample = 0,
+                        .last_sample = 0,
+                        .timespan = 600llu * 1000llu,
+                        .diffsum = 0,
+                        .avg = 0.0,
+                        .avg_gh = 0.0,
+                        .timestamp = 0,
+                        .preliminary = true};
+static avg_t avg_1h = {.first_sample = 0,
+                       .last_sample = 0,
+                       .timespan = 3600llu * 1000llu,
+                       .diffsum = 0,
+                       .avg = 0.0,
+                       .avg_gh = 0.0,
+                       .timestamp = 0,
+                       .preliminary = true};
+static avg_t avg_1d = {.first_sample = 0,
+                       .last_sample = 0,
+                       .timespan = 86400llu * 1000llu,
+                       .diffsum = 0,
+                       .avg = 0.0,
+                       .avg_gh = 0.0,
+                       .timestamp = 0,
+                       .preliminary = true};
 
 // use only getter to access data externally
 static psram_t *psram = 0;
@@ -51,6 +68,11 @@ inline float history_get_hashrate_1h_sample(int index)
 inline float history_get_hashrate_1d_sample(int index)
 {
     return psram->hashrate_1d[WRAP(index)];
+}
+
+inline uint32_t history_get_share_sample(int index)
+{
+    return psram->shares[WRAP(index)];
 }
 
 double history_get_current_10m()
@@ -104,13 +126,6 @@ void history_get_timestamps(uint64_t *first, uint64_t *last, int *num_samples)
     *num_samples = _num_samples;
 }
 
-/*
-psram_t *history_get_psram()
-{
-    return psram;
-}
-*/
-
 // move avg window and track and adjust the total sum of all shares in the
 // desired time window. Calculates GH.
 // calculates incrementally without "scanning" the entire time span
@@ -118,17 +133,24 @@ static void update_avg(avg_t *avg)
 {
     // Catch up with the latest sample and update diffsum
     uint64_t last_timestamp = 0;
-    while (last_timestamp = psram->timestamps[WRAP(avg->last_sample)], avg->last_sample + 1 < psram->num_samples) {
+    while (last_timestamp = history_get_timestamp_sample(avg->last_sample), avg->last_sample + 1 < psram->num_samples) {
         avg->last_sample++;
-        avg->diffsum += (uint64_t) psram->shares[WRAP(avg->last_sample)];
+        avg->diffsum += (uint64_t) history_get_share_sample(avg->last_sample);
     }
 
-    // Adjust the window on the older side
+    // adjust the window on the older side
+    // but make sure we have at least as many saples for the full duration
     uint64_t first_timestamp = 0;
-    while (first_timestamp = psram->timestamps[WRAP(avg->first_sample)], (last_timestamp - first_timestamp) > avg->timespan) {
-        avg->diffsum -= (uint64_t) psram->shares[WRAP(avg->first_sample)];
+    do {
+        first_timestamp = history_get_timestamp_sample(avg->first_sample);
+
+        // check if duration would be to small if subtracting the next diff
+        if ((last_timestamp - first_timestamp) < avg->timespan) {
+            break;
+        }
+        avg->diffsum -= (uint64_t) history_get_share_sample(avg->first_sample);
         avg->first_sample++;
-    }
+    } while (1);
 
     // Check for overflow in diffsum
     if (avg->diffsum >> 63ull) {
@@ -148,9 +170,10 @@ static void update_avg(avg_t *avg)
     // clamp duration to a minimum value of avg->timespan
     duration = (avg->timespan > duration) ? avg->timespan : duration;
 
-    avg->avg = (double) (avg->diffsum << 32llu) / ((double) duration / 1.0e6);
+    avg->avg = (double) (avg->diffsum << 32llu) / ((double) duration / 1.0e3);
     avg->avg_gh = avg->avg / 1.0e9;
     avg->timestamp = last_timestamp;
+    avg->preliminary = duration >= avg->timespan;
 }
 
 void history_push_share(uint32_t diff, uint64_t timestamp)
@@ -174,7 +197,12 @@ void history_push_share(uint32_t diff, uint64_t timestamp)
     psram->hashrate_1d[WRAP(psram->num_samples - 1)] = avg_1d.avg_gh;
     history_unlock();
 
-    ESP_LOGI(TAG, "%llu hashrate: 10m:%.3fGH 1h:%.3fGH 1d:%.3fGH", timestamp, avg_10m.avg_gh, avg_1h.avg_gh, avg_1d.avg_gh);
+    char preliminary_10m = (avg_10m.preliminary) ? '*' : ' ';
+    char preliminary_1h = (avg_1h.preliminary) ? '*' : ' ';
+    char preliminary_1d = (avg_1d.preliminary) ? '*' : ' ';
+
+    ESP_LOGI(TAG, "%llu hashrate: 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", timestamp, avg_10m.avg_gh, preliminary_10m, avg_1h.avg_gh,
+             preliminary_1h, avg_1d.avg_gh, preliminary_1d);
 }
 
 // successive approximation in a wrapped ring buffer with
@@ -187,21 +215,15 @@ int history_search_nearest_timestamp(uint64_t timestamp)
     // last sample
     int highest_index = psram->num_samples - 1;
 
-    ESP_LOGI(TAG, "lowest_index: %d highest_index: %d", lowest_index, highest_index);
-
-    // remove before flight
-    if (psram->timestamps[WRAP(lowest_index)] > psram->timestamps[WRAP(highest_index)]) {
-        ESP_LOGE(TAG, "something is wrong");
-        return -1;
-    }
+    ESP_LOGD(TAG, "lowest_index: %d highest_index: %d", lowest_index, highest_index);
 
     int current = 0;
     int num_elements = 0;
 
     while (current = (highest_index + lowest_index) / 2, num_elements = highest_index - lowest_index + 1, num_elements > 1) {
         // Get timestamp at the current index, wrapping as necessary
-        uint64_t stored_timestamp = psram->timestamps[WRAP(current)];
-        ESP_LOGI(TAG, "current %d num_elements %d stored_timestamp %llu wrapped-current %d", current, num_elements,
+        uint64_t stored_timestamp = history_get_timestamp_sample(current);
+        ESP_LOGD(TAG, "current %d num_elements %d stored_timestamp %llu wrapped-current %d", current, num_elements,
                  stored_timestamp, WRAP(current));
 
         if (stored_timestamp > timestamp) {
@@ -216,9 +238,9 @@ int history_search_nearest_timestamp(uint64_t timestamp)
         }
     }
 
-    ESP_LOGI(TAG, "current return %d", current);
+    ESP_LOGD(TAG, "current return %d", current);
 
-    if (current  < 0 || current  >= psram->num_samples) {
+    if (current < 0 || current >= psram->num_samples) {
         ESP_LOGE(TAG, "indices are broken");
         return -1;
     }
@@ -226,7 +248,8 @@ int history_search_nearest_timestamp(uint64_t timestamp)
     return current;
 }
 
-bool history_init() {
+bool history_init()
+{
     psram = (psram_t *) heap_caps_malloc(sizeof(psram_t), MALLOC_CAP_SPIRAM);
     if (!psram) {
         ESP_LOGE(TAG, "Couldn't allocate memory of PSRAM");
