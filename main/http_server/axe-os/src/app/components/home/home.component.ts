@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { interval, map, Observable, shareReplay, startWith, switchMap, tap, from, of } from 'rxjs';
+import { interval, map, Observable, shareReplay, merge, startWith, Subject, switchMap, tap, from, of } from 'rxjs';
 import { concatMap } from 'rxjs/operators';
 import { HashSuffixPipe } from 'src/app/pipes/hash-suffix.pipe';
 import { SystemService } from 'src/app/services/system.service';
@@ -29,6 +29,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
   private isHistoricalDataLoaded: boolean = false; // Flag to indicate if historical data has been loaded
   private last_timestamp : Number = 0;
+
+  private manualTrigger$ = new Subject<void>();
 
   constructor(
     private systemService: SystemService
@@ -118,7 +120,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.loadChartData(); // Load chart data and lastTimestamp from local storage
 
-    this.info$ = interval(5000).pipe(
+    this.info$ = merge(
+        interval(5000),
+        this.manualTrigger$.asObservable()
+    ).pipe(
       startWith(0), // Immediately start the interval observable
       switchMap(() => {
         // Make the call only if historical data is loaded
@@ -236,6 +241,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     ).subscribe({
       complete: () => {
         this.updateChart();
+        this.manualTrigger$.next();
       }
     });
   }
