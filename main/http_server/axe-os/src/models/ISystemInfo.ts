@@ -20,6 +20,7 @@ export interface ISystemInfo {
     coreVoltage: number,
     hostname: string,
     ssid: string,
+    wifiPass: string,
     wifiStatus: string,
     sharesAccepted: number,
     sharesRejected: number,
