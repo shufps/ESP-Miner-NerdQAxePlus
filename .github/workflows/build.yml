@@ -20,6 +20,12 @@ jobs:
         
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
         echo "VERSION_TAG=${version}"
+
+    - name: Set Target
+      run: |
+        # Run the Docker container to build the project
+        docker run --rm --user root -v $PWD:/home/builder/project \
+        shufps/esp-idf-builder:0.0.1 idf.py set-target esp32s3
         
     - name: Compile Binaries
       run: |
