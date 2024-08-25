@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "driver/uart.h"
 
@@ -18,6 +19,8 @@
 #define BUF_SIZE (1024)
 
 static const char *TAG = "serial";
+
+static pthread_mutex_t tx_mute = PTHREAD_MUTEX_INITIALIZER;
 
 void SERIAL_init(void)
 {
@@ -50,13 +53,18 @@ void SERIAL_set_baud(int baud)
 
 int SERIAL_send(uint8_t *data, int len, bool debug)
 {
+    // lock the transport
+    pthread_mutex_lock(&tx_mute);
     if (debug) {
         printf("tx: ");
         prettyHex((unsigned char *) data, len);
         printf("\n");
     }
 
-    return uart_write_bytes(UART_NUM_1, (const char *) data, len);
+    int written = uart_write_bytes(UART_NUM_1, (const char *) data, len);
+    pthread_mutex_unlock(&tx_mute);
+
+    return written;
 }
 
 /// @brief waits for a serial response from the device

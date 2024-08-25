@@ -62,6 +62,10 @@ static const char *TAG = "bm1368Module";
 
 static uint8_t asic_response_buffer[CHUNK_SIZE];
 
+static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x68, 0x00, 0x00};
+
+static float current_frequency = 56.25;
+
 /// @brief
 /// @param ftdi
 /// @param header
@@ -121,100 +125,113 @@ static void _set_chip_address(uint8_t chipAddr)
     _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_SETADDRESS), read_address, 2, BM1368_SERIALTX_DEBUG);
 }
 
-void BM1368_send_hash_frequency(float target_freq)
-{
-    // default 200Mhz if it fails
-    unsigned char freqbuf[9] = {0x00, 0x08, 0x40, 0xA0, 0x02, 0x41}; // freqbuf - pll0_parameter
-    float newf = 200.0;
 
-    uint8_t fb_divider = 0;
-    uint8_t post_divider1 = 0, post_divider2 = 0;
-    uint8_t ref_divider = 0;
-    float min_difference = 10;
 
-    // refdiver is 2 or 1
-    // postdivider 2 is 1 to 7
-    // postdivider 1 is 1 to 7 and less than postdivider 2
-    // fbdiv is 144 to 235
-    for (uint8_t refdiv_loop = 2; refdiv_loop > 0 && fb_divider == 0; refdiv_loop--) {
-        for (uint8_t postdiv1_loop = 7; postdiv1_loop > 0 && fb_divider == 0; postdiv1_loop--) {
-            for (uint8_t postdiv2_loop = 1; postdiv2_loop < postdiv1_loop && fb_divider == 0; postdiv2_loop++) {
-                int temp_fb_divider = round(((float) (postdiv1_loop * postdiv2_loop * target_freq * refdiv_loop) / 25.0));
+// Function to set the hash frequency
+// gives the same PLL settings as the S21 dumps
+bool send_hash_frequency(float target_freq) {
+    float max_diff = 0.001;
+    uint8_t freqbuf[6] = {0x00, 0x08, 0x40, 0xA0, 0x02, 0x41};
+    int postdiv_min = 255;
+    int postdiv2_min = 255;
+    int refdiv, fb_divider, postdiv1, postdiv2;
+    float newf;
+    bool found = false;
+    int best_refdiv, best_fb_divider, best_postdiv1, best_postdiv2;
+    float best_newf;
 
-                if (temp_fb_divider >= 144 && temp_fb_divider <= 235) {
-                    float temp_freq = 25.0 * (float) temp_fb_divider / (float) (refdiv_loop * postdiv2_loop * postdiv1_loop);
-                    float freq_diff = fabs(target_freq - temp_freq);
-
-                    if (freq_diff < min_difference) {
-                        fb_divider = temp_fb_divider;
-                        post_divider1 = postdiv1_loop;
-                        post_divider2 = postdiv2_loop;
-                        ref_divider = refdiv_loop;
-                        min_difference = freq_diff;
-                        break;
-                    }
+    for (refdiv = 2; refdiv > 0; refdiv--) {
+        for (postdiv1 = 7; postdiv1 > 0; postdiv1--) {
+            for (postdiv2 = 7; postdiv2 > 0; postdiv2--) {
+                fb_divider = (int)round(target_freq / 25.0 * (refdiv * postdiv2 * postdiv1));
+                newf = 25.0 * fb_divider / (refdiv * postdiv2 * postdiv1);
+                if (
+                    fb_divider >= 0xa0 && fb_divider <= 0xef &&
+                    fabs(target_freq - newf) < max_diff &&
+                    postdiv1 >= postdiv2 &&
+                    postdiv1 * postdiv2 < postdiv_min &&
+                    postdiv2 <= postdiv2_min
+                ) {
+                    postdiv2_min = postdiv2;
+                    postdiv_min = postdiv1 * postdiv2;
+                    best_refdiv = refdiv;
+                    best_fb_divider = fb_divider;
+                    best_postdiv1 = postdiv1;
+                    best_postdiv2 = postdiv2;
+                    best_newf = newf;
+                    found = true;
                 }
             }
         }
     }
 
-    if (fb_divider == 0) {
-        puts("Finding dividers failed, using default value (200Mhz)");
-    } else {
-        newf = 25.0 * (float) (fb_divider) / (float) (ref_divider * post_divider1 * post_divider2);
-        printf("final refdiv: %d, fbdiv: %d, postdiv1: %d, postdiv2: %d, min diff value: %f\n", ref_divider, fb_divider,
-               post_divider1, post_divider2, min_difference);
-
-        freqbuf[3] = fb_divider;
-        freqbuf[4] = ref_divider;
-        freqbuf[5] = (((post_divider1 - 1) & 0xf) << 4) + ((post_divider2 - 1) & 0xf);
-
-        if (fb_divider * 25 / (float) ref_divider >= 2400) {
-            freqbuf[2] = 0x50;
-        }
+    if (!found) {
+        ESP_LOGE(TAG, "Didn't find PLL settings for target frequency %.2f\n", target_freq);
+        return false;
     }
 
-    _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_WRITE), freqbuf, 6, BM1368_SERIALTX_DEBUG);
+    freqbuf[2] = (best_fb_divider * 25 / best_refdiv >= 2400) ? 0x50 : 0x40;
+    freqbuf[3] = best_fb_divider;
+    freqbuf[4] = best_refdiv;
+    freqbuf[5] = (((best_postdiv1 - 1) & 0xf) << 4) | ((best_postdiv2 - 1) & 0xf);
 
-    ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)", target_freq, newf);
+    _send_BM1368(TYPE_CMD | GROUP_ALL | CMD_WRITE, freqbuf, sizeof(freqbuf), BM1368_SERIALTX_DEBUG);
+    ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
+
+    ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)\n", target_freq, best_newf);
+    current_frequency = target_freq;
+    return true;
 }
 
-static void do_frequency_ramp_up()
-{
+// Function to perform frequency transition up or down
+bool do_frequency_transition(float target_frequency) {
+    float step = 6.25;
+    float current = current_frequency;
+    float target = target_frequency;
 
-    // PLLO settings taken from a S21 dump.
-    // todo: do this right.
-    uint8_t freq_list[65][4] = {
-        {0x40, 0xA2, 0x02, 0x55}, {0x40, 0xAF, 0x02, 0x64}, {0x40, 0xA5, 0x02, 0x54}, {0x40, 0xA8, 0x02, 0x63},
-        {0x40, 0xB6, 0x02, 0x63}, {0x40, 0xA8, 0x02, 0x53}, {0x40, 0xB4, 0x02, 0x53}, {0x40, 0xA8, 0x02, 0x62},
-        {0x40, 0xAA, 0x02, 0x43}, {0x40, 0xA2, 0x02, 0x52}, {0x40, 0xAB, 0x02, 0x52}, {0x40, 0xB4, 0x02, 0x52},
-        {0x40, 0xBD, 0x02, 0x52}, {0x40, 0xA5, 0x02, 0x42}, {0x40, 0xA1, 0x02, 0x61}, {0x40, 0xA8, 0x02, 0x61},
-        {0x40, 0xAF, 0x02, 0x61}, {0x40, 0xB6, 0x02, 0x61}, {0x40, 0xA2, 0x02, 0x51}, {0x40, 0xA8, 0x02, 0x51},
-        {0x40, 0xAE, 0x02, 0x51}, {0x40, 0xB4, 0x02, 0x51}, {0x40, 0xBA, 0x02, 0x51}, {0x40, 0xA0, 0x02, 0x41},
-        {0x40, 0xA5, 0x02, 0x41}, {0x40, 0xAA, 0x02, 0x41}, {0x40, 0xAF, 0x02, 0x41}, {0x40, 0xB4, 0x02, 0x41},
-        {0x40, 0xB9, 0x02, 0x41}, {0x40, 0xBE, 0x02, 0x41}, {0x40, 0xA0, 0x02, 0x31}, {0x40, 0xA4, 0x02, 0x31},
-        {0x40, 0xA8, 0x02, 0x31}, {0x40, 0xAC, 0x02, 0x31}, {0x40, 0xB0, 0x02, 0x31}, {0x40, 0xB4, 0x02, 0x31},
-        {0x40, 0xA1, 0x02, 0x60}, {0x40, 0xBC, 0x02, 0x31}, {0x40, 0xA8, 0x02, 0x60}, {0x40, 0xAF, 0x02, 0x60},
-        {0x50, 0xCC, 0x02, 0x31}, {0x40, 0xB6, 0x02, 0x60}, {0x50, 0xD4, 0x02, 0x31}, {0x40, 0xA2, 0x02, 0x50},
-        {0x40, 0xA5, 0x02, 0x50}, {0x40, 0xA8, 0x02, 0x50}, {0x40, 0xAB, 0x02, 0x50}, {0x40, 0xAE, 0x02, 0x50},
-        {0x40, 0xB1, 0x02, 0x50}, {0x40, 0xB4, 0x02, 0x50}, {0x40, 0xB7, 0x02, 0x50}, {0x40, 0xBA, 0x02, 0x50},
-        {0x40, 0xBD, 0x02, 0x50}, {0x40, 0xA0, 0x02, 0x40}, {0x50, 0xC3, 0x02, 0x50}, {0x40, 0xA5, 0x02, 0x40},
-        {0x50, 0xC9, 0x02, 0x50}, {0x40, 0xAA, 0x02, 0x40}, {0x50, 0xCF, 0x02, 0x50}, {0x40, 0xAF, 0x02, 0x40},
-        {0x50, 0xD5, 0x02, 0x50}, {0x40, 0xB4, 0x02, 0x40}, {0x50, 0xDB, 0x02, 0x50}, {0x40, 0xB9, 0x02, 0x40},
-        {0x50, 0xE0, 0x02, 0x50}};
+    // Determine the direction of the transition
+    float direction = (target > current) ? step : -step;
 
-    uint8_t freq_cmd[6] = {0x00, 0x08, 0x40, 0xB4, 0x02, 0x40};
-
-    for (int i = 0; i < 65; i++) {
-        freq_cmd[2] = freq_list[i][0];
-        freq_cmd[3] = freq_list[i][1];
-        freq_cmd[4] = freq_list[i][2];
-        freq_cmd[5] = freq_list[i][3];
-        _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_WRITE), freq_cmd, 6, BM1368_SERIALTX_DEBUG);
+    // Align to the next 6.25-dividable value if not already on one
+    if (fmod(current, step) != 0) {
+        // If ramping up, round up to the next multiple; if ramping down, round down
+        float next_dividable;
+        if (direction > 0) {
+            next_dividable = ceil(current / step) * step;
+        } else {
+            next_dividable = floor(current / step) * step;
+        }
+        current = next_dividable;
+        if (!send_hash_frequency(current)) {
+            printf("ERROR: Failed to set frequency to %.2f MHz\n", current);
+            return false;
+        }
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+
+    // Ramp in the appropriate direction
+    while ((direction > 0 && current < target) || (direction < 0 && current > target)) {
+        float next_step = fmin(fabs(direction), fabs(target - current));
+        current += direction > 0 ? next_step : -next_step;
+        if (!send_hash_frequency(current)) {
+            printf("ERROR: Failed to set frequency to %.2f MHz\n", current);
+            return false;
+        }
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+
+    // Set the exact target frequency to finalize
+    if (!send_hash_frequency(target)) {
+        printf("ERROR: Failed to set frequency to %.2f MHz\n", target);
+        return false;
+    }
+    return true;
 }
-static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x68, 0x00, 0x00};
+
+// can ramp up and down in 6.25MHz steps
+bool BM1368_send_hash_frequency(float target_freq) {
+    return do_frequency_transition(target_freq);
+}
 
 static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
 {
@@ -265,15 +282,10 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
 
     // chain inactive
     _send_chain_inactive();
-    // unsigned char init7[7] = {0x55, 0xAA, 0x53, 0x05, 0x00, 0x00, 0x03};
-    // _send_simple(init7, 7);
 
-    // split the chip address space evenly
-    uint8_t address_interval = 2 /*(uint8_t) (256 / chip_counter)*/;
+    // set chip address
     for (uint8_t i = 0; i < chip_counter; i++) {
-        _set_chip_address(i * address_interval);
-        // unsigned char init8[7] = {0x55, 0xAA, 0x40, 0x05, 0x00, 0x00, 0x1C};
-        // _send_simple(init8, 7);
+        _set_chip_address(i * 2);
     }
 
     // Core Register Control
@@ -284,9 +296,6 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
     unsigned char init10[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x3C, 0x80, 0x00, 0x80, 0x18, 0x1F};
     _send_simple(init10, 11);
 
-    // set ticket mask
-    //  unsigned char init11[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x14, 0x00, 0x00, 0x00, 0xFF, 0x08};
-    //  _send_simple(init11, 11);
     BM1368_set_job_difficulty_mask(BM1368_INITIAL_DIFFICULTY);
 
     // Analog Mux Control
@@ -299,25 +308,23 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
 
     for (uint8_t i = 0; i < chip_counter; i++) {
         // Reg_A8
-        unsigned char set_a8_register[6] = {i * address_interval, 0xA8, 0x00, 0x07, 0x01, 0xF0};
+        unsigned char set_a8_register[6] = {i * 2, 0xA8, 0x00, 0x07, 0x01, 0xF0};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_a8_register, 6, BM1368_SERIALTX_DEBUG);
         // Misc Control
-        unsigned char set_18_register[6] = {i * address_interval, 0x18, 0xF0, 0x00, 0xC1, 0x00};
+        unsigned char set_18_register[6] = {i * 2, 0x18, 0xF0, 0x00, 0xC1, 0x00};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_18_register, 6, BM1368_SERIALTX_DEBUG);
         // Core Register Control
-        unsigned char set_3c_register_first[6] = {i * address_interval, 0x3C, 0x80, 0x00, 0x8B, 0x00};
+        unsigned char set_3c_register_first[6] = {i * 2, 0x3C, 0x80, 0x00, 0x8B, 0x00};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_first, 6, BM1368_SERIALTX_DEBUG);
         // Core Register Control
-        unsigned char set_3c_register_second[6] = {i * address_interval, 0x3C, 0x80, 0x00, 0x80, 0x18};
+        unsigned char set_3c_register_second[6] = {i * 2, 0x3C, 0x80, 0x00, 0x80, 0x18};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_second, 6, BM1368_SERIALTX_DEBUG);
         // Core Register Control
-        unsigned char set_3c_register_third[6] = {i * address_interval, 0x3C, 0x80, 0x00, 0x82, 0xAA};
+        unsigned char set_3c_register_third[6] = {i * 2, 0x3C, 0x80, 0x00, 0x82, 0xAA};
         _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_third, 6, BM1368_SERIALTX_DEBUG);
     }
 
-    do_frequency_ramp_up();
-
-    BM1368_send_hash_frequency(frequency);
+    do_frequency_transition(frequency);
 
     // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
 
@@ -445,7 +452,7 @@ uint8_t BM1368_send_work(uint32_t job_id, bm_job *next_bm_job)
     memcpy(job.prev_block_hash, next_bm_job->prev_block_hash_be, 32);
     memcpy(&job.version, &next_bm_job->version, 4);
 
-    _send_BM1368((TYPE_JOB | GROUP_SINGLE | CMD_WRITE), &job, sizeof(BM1368_job), BM1368_DEBUG_WORK);
+    _send_BM1368((TYPE_JOB | GROUP_SINGLE | CMD_WRITE), (uint8_t*) &job, sizeof(BM1368_job), BM1368_DEBUG_WORK);
 
     // we return it because different asics calculate it differently
     return job.job_id;
@@ -477,14 +484,6 @@ asic_result *BM1368_receive_work(void)
 static uint16_t reverse_uint16(uint16_t num)
 {
     return (num >> 8) | (num << 8);
-}
-
-static uint32_t reverse_uint32(uint32_t val)
-{
-    return ((val >> 24) & 0xff) |      // Move byte 3 to byte 0
-           ((val << 8) & 0xff0000) |   // Move byte 1 to byte 2
-           ((val >> 8) & 0xff00) |     // Move byte 2 to byte 1
-           ((val << 24) & 0xff000000); // Move byte 0 to byte 3
 }
 
 void BM1368_proccess_work(task_result *result)

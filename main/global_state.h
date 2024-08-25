@@ -36,6 +36,7 @@ typedef struct
     int (*set_max_baud_fn)(void);
     void (*set_difficulty_mask_fn)(int);
     uint8_t (*send_work_fn)(uint32_t jobid, bm_job *next_bm_job);
+    bool (*send_hash_frequency_fn)(float frequency);
 } AsicFunctions;
 
 typedef struct
