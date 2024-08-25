@@ -6,7 +6,6 @@
 #include "TMP1075.h"
 #include "connect.h"
 #include "i2c_master.h"
-#include "led_controller.h"
 #include "nvs_config.h"
 #include "vcore.h"
 
@@ -77,11 +76,6 @@ static void _init_system(GlobalState *GLOBAL_STATE)
 
     // set the wifi_status to blank
     memset(module->wifi_status, 0, 20);
-
-    // test the LEDs
-    //  ESP_LOGI(TAG, "Init LEDs!");
-    //  ledc_init();
-    //  led_set();
 
     // Init I2C
     ESP_ERROR_CHECK(i2c_master_init());

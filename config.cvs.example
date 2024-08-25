@@ -12,7 +12,7 @@ asicvoltage,data,u16,1200
 asicmodel,data,string,BM1368
 devicemodel,data,string,nerdqaxe_plus
 boardversion,data,string,500
-flipscreen,data,u16,1
+flipscreen,data,u16,0
 invertfanpol,data,u16,0
 autofanspeed,data,u16,0
 fanspeed,data,u16,100

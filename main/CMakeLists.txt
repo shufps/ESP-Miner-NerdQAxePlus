@@ -1,9 +1,9 @@
 idf_component_register(
 SRCS
     "EMC2302.c"
-    "fonts.c"
+   
     "i2c_master.c"
-    "led_controller.c"
+   
     "main.c"
     "nvs_config.c"
     "system.c"
