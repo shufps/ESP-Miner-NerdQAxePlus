@@ -14,7 +14,7 @@ esp_err_t EMC2302_set_fan_speed(float percent)
 
     esp_err_t err;
 
-    ESP_LOGI(TAG, "setting fan speed to %.2f%% (0x%02x)", percent, value);
+    ESP_LOGI(TAG, "setting fan speed to %.2f%% (0x%02x)", percent * 100.0, value);
 
     err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_FAN_SETTING, (uint8_t) value);
     if (err != ESP_OK) {

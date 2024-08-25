@@ -44,8 +44,8 @@ static avg_t avg_1d = {.first_sample = 0,
                        .timestamp = 0,
                        .preliminary = true};
 
-// use only getter to access data externally
-static psram_t *psram = 0;
+
+psram_t *psram = 0;
 
 #define for wrapped access of psram
 #define WRAP(a) ((a) & (HISTORY_MAX_SAMPLES - 1))
@@ -141,16 +141,10 @@ static void update_avg(avg_t *avg)
     // adjust the window on the older side
     // but make sure we have at least as many saples for the full duration
     uint64_t first_timestamp = 0;
-    do {
-        first_timestamp = history_get_timestamp_sample(avg->first_sample);
-
-        // check if duration would be to small if subtracting the next diff
-        if ((last_timestamp - first_timestamp) < avg->timespan) {
-            break;
-        }
+    while (first_timestamp = history_get_timestamp_sample(avg->first_sample), (last_timestamp - first_timestamp) >= avg->timespan) {
         avg->diffsum -= (uint64_t) history_get_share_sample(avg->first_sample);
         avg->first_sample++;
-    } while (1);
+    }
 
     // Check for overflow in diffsum
     if (avg->diffsum >> 63ull) {
