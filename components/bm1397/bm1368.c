@@ -166,7 +166,7 @@ bool send_hash_frequency(float target_freq) {
     }
 
     if (!found) {
-        ESP_LOGE(TAG, "Didn't find PLL settings for target frequency %.2f\n", target_freq);
+        ESP_LOGE(TAG, "Didn't find PLL settings for target frequency %.2f", target_freq);
         return false;
     }
 
@@ -176,9 +176,9 @@ bool send_hash_frequency(float target_freq) {
     freqbuf[5] = (((best_postdiv1 - 1) & 0xf) << 4) | ((best_postdiv2 - 1) & 0xf);
 
     _send_BM1368(TYPE_CMD | GROUP_ALL | CMD_WRITE, freqbuf, sizeof(freqbuf), BM1368_SERIALTX_DEBUG);
-    ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
+    //ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
 
-    ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)\n", target_freq, best_newf);
+    ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)", target_freq, best_newf);
     current_frequency = target_freq;
     return true;
 }
