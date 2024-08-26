@@ -35,7 +35,7 @@ export class SwarmComponent {
           // Make individual API calls for each IP
           return this.refresh$.pipe(
             switchMap(() => {
-              return this.systemService.getInfo(`http://${ip}`);
+              return this.systemService.getInfo(0, `http://${ip}`);
             })
           ).pipe(
             startWith({ ip }),
