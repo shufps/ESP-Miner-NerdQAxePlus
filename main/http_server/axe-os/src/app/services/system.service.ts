@@ -73,9 +73,9 @@ export class SystemService {
     return defaultInfo;
   }
 
-  public getInfo(startTimestamp: number, uri: string = ''): Observable<ISystemInfo> {
+  public getInfo(ts: number, uri: string = ''): Observable<ISystemInfo> {
     if (environment.production) {
-      return this.httpClient.get(`${uri}/api/system/info?start_timestamp=${startTimestamp}`) as Observable<ISystemInfo>;
+      return this.httpClient.get(`${uri}/api/system/info?ts=${ts}`) as Observable<ISystemInfo>;
     } else {
       return of(defaultInfo).pipe(delay(1000));
     }
@@ -103,8 +103,8 @@ export class SystemService {
     return this.httpClient.get<any>('/api/history/len');
   }
 
-  public getHistoryData(startTimestamp: number): Observable<any> {
-    return this.httpClient.get<any>(`/api/history/data?start_timestamp=${startTimestamp}`);
+  public getHistoryData(ts: number): Observable<any> {
+    return this.httpClient.get<any>(`/api/history/data?ts=${ts}`);
   }
 
 

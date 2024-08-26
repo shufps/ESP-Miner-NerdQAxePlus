@@ -460,7 +460,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     char query_str[128];
     if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
         char param[64];
-        if (httpd_query_key_value(query_str, "start_timestamp", param, sizeof(param)) == ESP_OK) {
+        if (httpd_query_key_value(query_str, "ts", param, sizeof(param)) == ESP_OK) {
             start_timestamp = strtoull(param, NULL, 10);
             if (start_timestamp) {
                 history_requested = true;
@@ -688,7 +688,7 @@ static esp_err_t GET_history(httpd_req_t *req)
         char param[64];
 
         // Extract the start_timestamp
-        if (httpd_query_key_value(query_str, "start_timestamp", param, sizeof(param)) == ESP_OK) {
+        if (httpd_query_key_value(query_str, "ts", param, sizeof(param)) == ESP_OK) {
             start_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
         } else {
             httpd_resp_send_500(req); // Bad Request if the start_timestamp parameter is missing
@@ -696,7 +696,7 @@ static esp_err_t GET_history(httpd_req_t *req)
         }
 
         // Extract the optional end_timestamp
-        if (httpd_query_key_value(query_str, "end_timestamp", param, sizeof(param)) == ESP_OK) {
+        if (httpd_query_key_value(query_str, "ts_end", param, sizeof(param)) == ESP_OK) {
             end_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
 
             // Ensure that the end_timestamp is not more than 1 hour after start_timestamp
