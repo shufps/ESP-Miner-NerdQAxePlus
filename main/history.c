@@ -235,7 +235,6 @@ int history_search_nearest_timestamp(uint64_t timestamp)
     ESP_LOGD(TAG, "current return %d", current);
 
     if (current < 0 || current >= psram->num_samples) {
-        ESP_LOGE(TAG, "indices are broken");
         return -1;
     }
 

@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { delay, Observable, of } from 'rxjs';
 import { eASICModel } from 'src/models/enum/eASICModel';
 import { ISystemInfo } from 'src/models/ISystemInfo';
+import { IHistory } from 'src/models/IHistory';
 
 import { environment } from '../../environments/environment';
 import { IInfluxDB } from 'src/models/IInfluxDB';
@@ -48,7 +49,14 @@ const defaultInfo: ISystemInfo = {
 
   boardtemp1: 30,
   boardtemp2: 40,
-  overheat_mode: 0
+  overheat_mode: 0,
+  history: {
+    hashrate_10m: [],
+    hashrate_1h: [],
+    hashrate_1d: [],
+    timestamps: [],
+    timestampBase: 0
+  }
 }
 
 
@@ -65,9 +73,9 @@ export class SystemService {
     return defaultInfo;
   }
 
-  public getInfo(uri: string = ''): Observable<ISystemInfo> {
+  public getInfo(ts: number, uri: string = ''): Observable<ISystemInfo> {
     if (environment.production) {
-      return this.httpClient.get(`${uri}/api/system/info`) as Observable<ISystemInfo>;
+      return this.httpClient.get(`${uri}/api/system/info?ts=${ts}`) as Observable<ISystemInfo>;
     } else {
       return of(defaultInfo).pipe(delay(1000));
     }
@@ -95,8 +103,8 @@ export class SystemService {
     return this.httpClient.get<any>('/api/history/len');
   }
 
-  public getHistoryData(startTimestamp: number): Observable<any> {
-    return this.httpClient.get<any>(`/api/history/data?start_timestamp=${startTimestamp}`);
+  public getHistoryData(ts: number): Observable<any> {
+    return this.httpClient.get<any>(`/api/history/data?ts=${ts}`);
   }
 
 

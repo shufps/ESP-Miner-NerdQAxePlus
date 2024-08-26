@@ -60,7 +60,7 @@ export class EditComponent implements OnInit {
 
   }
   ngOnInit(): void {
-    this.systemService.getInfo(this.uri)
+    this.systemService.getInfo(0, this.uri)
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
         this.ASICModel = info.ASICModel;

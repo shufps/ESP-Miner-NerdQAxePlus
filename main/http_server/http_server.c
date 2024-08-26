@@ -66,6 +66,8 @@ typedef struct rest_server_context
 
 #define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
 
+static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp);
+
 static void *psram_malloc(size_t size)
 {
     return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
@@ -441,6 +443,7 @@ static esp_err_t GET_swarm(httpd_req_t *req)
 }
 
 /* Simple handler for getting system handler */
+/* Simple handler for getting system handler */
 static esp_err_t GET_system_info(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
@@ -451,6 +454,21 @@ static esp_err_t GET_system_info(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    // Parse optional start_timestamp parameter
+    uint64_t start_timestamp = 0;
+    bool history_requested = false;
+    char query_str[128];
+    if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
+        char param[64];
+        if (httpd_query_key_value(query_str, "ts", param, sizeof(param)) == ESP_OK) {
+            start_timestamp = strtoull(param, NULL, 10);
+            if (start_timestamp) {
+                history_requested = true;
+            }
+        }
+    }
+
+    // Gather system info as before
     char *ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, CONFIG_ESP_WIFI_SSID);
     char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, CONFIG_LWIP_LOCAL_HOSTNAME);
     char *stratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
@@ -496,22 +514,24 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddStringToObject(root, "stratumURL", stratumURL);
     cJSON_AddNumberToObject(root, "stratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT));
     cJSON_AddStringToObject(root, "stratumUser", stratumUser);
-
-    // cJSON_AddStringToObject(root, "version", esp_app_get_description()->version);
     cJSON_AddStringToObject(root, "version", esp_ota_get_app_description()->version);
     cJSON_AddStringToObject(root, "boardVersion", board_version);
     cJSON_AddStringToObject(root, "runningPartition", esp_ota_get_running_partition()->label);
-
     cJSON_AddNumberToObject(root, "flipscreen", nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 1));
     cJSON_AddNumberToObject(root, "overheat_mode", nvs_config_get_u16(NVS_CONFIG_OVERHEAT_MODE, 0));
     cJSON_AddNumberToObject(root, "invertscreen", nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0));
     cJSON_AddNumberToObject(root, "autoscreenoff", nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0));
-
     cJSON_AddNumberToObject(root, "invertfanpolarity", nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
     cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1));
-
     cJSON_AddNumberToObject(root, "fanspeed", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_perc);
     cJSON_AddNumberToObject(root, "fanrpm", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_rpm);
+
+    // If start_timestamp is provided, include history data
+    if (history_requested) {
+        uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour after start_timestamp
+        cJSON *history = get_history_data(start_timestamp, end_timestamp);
+        cJSON_AddItemToObject(root, "history", history);
+    }
 
     free(ssid);
     free(hostname);
@@ -525,6 +545,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_Delete(root);
     return ESP_OK;
 }
+
 
 /* Simple handler for getting system handler */
 static esp_err_t GET_influx_info(httpd_req_t *req)
@@ -563,6 +584,53 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
     return ESP_OK;
 }
 
+static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp)
+{
+    // Ensure consistency
+    history_lock();
+
+    int start_index = history_search_nearest_timestamp(start_timestamp);
+    int end_index = history_search_nearest_timestamp(end_timestamp);
+    int num_samples = end_index - start_index + 1;
+
+    cJSON *history = cJSON_CreateObject();
+
+    if (!is_history_available() || start_index == -1 || end_index == -1 || num_samples <= 0 || (end_index < start_index)) {
+        ESP_LOGW(TAG, "Invalid history indices or history not (yet) available");
+        // If the data is invalid, return an empty object
+        num_samples = 0;
+    }
+
+    cJSON *json_hashrate_10m = cJSON_CreateArray();
+    cJSON *json_hashrate_1h = cJSON_CreateArray();
+    cJSON *json_hashrate_1d = cJSON_CreateArray();
+    cJSON *json_timestamps = cJSON_CreateArray();
+
+    for (int i = start_index; i < start_index + num_samples; i++) {
+        uint64_t sample_timestamp = history_get_timestamp_sample(i);
+
+        if (sample_timestamp < start_timestamp) {
+            continue;
+        }
+
+        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int)(history_get_hashrate_10m_sample(i) * 100.0)));
+        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int)(history_get_hashrate_1h_sample(i) * 100.0)));
+        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int)(history_get_hashrate_1d_sample(i) * 100.0)));
+        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(sample_timestamp - start_timestamp));
+    }
+
+    cJSON_AddItemToObject(history, "hashrate_10m", json_hashrate_10m);
+    cJSON_AddItemToObject(history, "hashrate_1h", json_hashrate_1h);
+    cJSON_AddItemToObject(history, "hashrate_1d", json_hashrate_1d);
+    cJSON_AddItemToObject(history, "timestamps", json_timestamps);
+    cJSON_AddNumberToObject(history, "timestampBase", start_timestamp);
+
+    history_unlock();
+
+    return history;
+}
+
+
 static esp_err_t GET_history_len(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
@@ -600,6 +668,7 @@ static esp_err_t GET_history_len(httpd_req_t *req)
     return ESP_OK;
 }
 
+
 static esp_err_t GET_history(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
@@ -619,7 +688,7 @@ static esp_err_t GET_history(httpd_req_t *req)
         char param[64];
 
         // Extract the start_timestamp
-        if (httpd_query_key_value(query_str, "start_timestamp", param, sizeof(param)) == ESP_OK) {
+        if (httpd_query_key_value(query_str, "ts", param, sizeof(param)) == ESP_OK) {
             start_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
         } else {
             httpd_resp_send_500(req); // Bad Request if the start_timestamp parameter is missing
@@ -627,7 +696,7 @@ static esp_err_t GET_history(httpd_req_t *req)
         }
 
         // Extract the optional end_timestamp
-        if (httpd_query_key_value(query_str, "end_timestamp", param, sizeof(param)) == ESP_OK) {
+        if (httpd_query_key_value(query_str, "ts_end", param, sizeof(param)) == ESP_OK) {
             end_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
 
             // Ensure that the end_timestamp is not more than 1 hour after start_timestamp
@@ -643,73 +712,20 @@ static esp_err_t GET_history(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    // ensure consistency
-    history_lock();
-
-    int start_index = history_search_nearest_timestamp(start_timestamp);
-    int end_index = history_search_nearest_timestamp(end_timestamp);
-    int num_samples = end_index - start_index + 1;
-
-    if (!is_history_available()) {
-        ESP_LOGW(TAG, "history is not available");
-        num_samples = 0;
-    }
-
-    // check if something went wrong
-    bool failed = start_index == -1 || end_index == -1 || !num_samples || (end_index < start_index);
-
-    // if there is something weird return a valid struct but with only empty arrays
-    if (failed) {
-        ESP_LOGE(TAG, "history indices wrong %d %d %llu %llu", start_index, end_index, start_timestamp,
-                 end_timestamp);
-        num_samples = 0;
-    }
-
-    // Create the root object
-    cJSON *json_root = cJSON_CreateObject();
-
-    // Create arrays for the hashrate values
-    cJSON *json_hashrate_10m = cJSON_CreateArray();
-    cJSON *json_hashrate_1h = cJSON_CreateArray();
-    cJSON *json_hashrate_1d = cJSON_CreateArray();
-    cJSON *json_timestamps = cJSON_CreateArray();
-
-    // we need to save a little bit of space
-    // - send one full base timestamp
-    // - other timestamps are relative to the base
-    // - send fixed point x100 to not transfer so many unused fractional decimal places
-    uint64_t base_timestamp = 0;
-    if (num_samples) {
-        base_timestamp = history_get_timestamp_sample(start_index);
-
-        // Populate the arrays with the data
-        for (int i = start_index; i < start_index + num_samples; i++) {
-            cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int) (history_get_hashrate_10m_sample(i) * 100.0)));
-            cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int) (history_get_hashrate_1h_sample(i) * 100.0)));
-            cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int) (history_get_hashrate_1d_sample(i) * 100.0)));
-            cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(history_get_timestamp_sample(i) - base_timestamp));
-        }
-    }
-
-    history_unlock();
-
-    // Add arrays to the root object
-    cJSON_AddItemToObject(json_root, "hashrate_10m", json_hashrate_10m);
-    cJSON_AddItemToObject(json_root, "hashrate_1h", json_hashrate_1h);
-    cJSON_AddItemToObject(json_root, "hashrate_1d", json_hashrate_1d);
-    cJSON_AddItemToObject(json_root, "timestamps", json_timestamps);
-    cJSON_AddItemToObjectCS(json_root, "timestampBase", cJSON_CreateNumber(base_timestamp));
+    // Get history data
+    cJSON *history = get_history_data(start_timestamp, end_timestamp);
 
     // Serialize the JSON object to a string
-    const char *response = cJSON_PrintUnformatted(json_root);
+    const char *response = cJSON_PrintUnformatted(history);
     httpd_resp_sendstr(req, response);
 
     // Cleanup
-    free((void *) response);
-    cJSON_Delete(json_root);
+    free((void *)response);
+    cJSON_Delete(history);
 
     return ESP_OK;
 }
+
 
 static esp_err_t POST_WWW_update(httpd_req_t *req)
 {

@@ -128,32 +128,16 @@ export class HomeComponent implements OnInit, OnDestroy {
       switchMap(() => {
         // Make the call only if historical data is loaded
         if (this.isHistoricalDataLoaded) {
-          return this.systemService.getInfo();
+          const storedLastTimestamp = this.getStoredTimestamp();
+          if (storedLastTimestamp) {
+            return this.systemService.getInfo(storedLastTimestamp);
+          }
         }
         return of(null); // Emit null if historical data is not loaded
       }),
       tap(info => {
-        if (!info) return; // Skip if no info is available (before historical data is loaded)
-
-        const timestamp = info.hashRateTimestamp;
-
-        // Check if we have new data
-        if (timestamp === this.last_timestamp) {
-          return;
-        }
-        this.last_timestamp = timestamp;
-
-        // Keep only 1h of data
-        this.filterOldData();
-
-        this.dataData10m.push(info.hashRate_10m * 1000000000);
-        this.dataData1h.push(info.hashRate_1h * 1000000000);
-        this.dataData1d.push(info.hashRate_1d * 1000000000);
-        this.dataLabel.push(timestamp);
-
-        this.updateChart();
-        this.saveChartData();
-        this.storeTimestamp(timestamp);
+        if (!info || !info.history) return; // Skip if no info is available (before historical data is loaded)
+        this.importHistoricalData(info.history);
       }),
       map(info => {
         if (!info) return SystemService.defaultInfo(); // Return empty object if no info
@@ -207,65 +191,41 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     const endTimestamp = currentTimestamp; // Fetch data up to current time
 
-    if (startTimestamp < endTimestamp) {
-      this.fetchHistoricalData(startTimestamp, endTimestamp);
-    } else {
-      this.filterOldData(); // Call filterOldData if no new data to ensure old data cleanup
-      this.isHistoricalDataLoaded = true; // Set flag to true to start live data updates
-      this.triggerImmediateDataFetch(); // Trigger immediate fetch for live data
-    }
-  }
-
-  ngOnDestroy(): void {
-    // Optionally clear any intervals or subscriptions if necessary
-  }
-
-  private fetchHistoricalData(startTimestamp: number, lastTimestamp: number): void {
     const requests: Observable<any>[] = [];
     requests.push(this.systemService.getHistoryData(startTimestamp));
-
     from(requests).pipe(
       concatMap((request: Observable<any>) => request),
       tap(data => {
-        this.updateChartData(data);
-
-        if (data.timestamps && data.timestamps.length) {
-          const lastDataTimestamp = Math.max(...data.timestamps);
-          this.storeTimestamp(lastDataTimestamp);
-        }
-
-        this.filterOldData();
-        this.saveChartData();
-        this.isHistoricalDataLoaded = true; // Set flag to true after historical data is processed
-        this.triggerImmediateDataFetch(); // Trigger immediate fetch for live data
+        this.importHistoricalData(data);
       })
     ).subscribe({
       complete: () => {
-        this.updateChart();
-        this.manualTrigger$.next();
+        this.isHistoricalDataLoaded = true; // Set flag to true after historical data is processed
+        this.manualTrigger$.next(); // now lets trigger the info request
       }
     });
   }
 
-  private triggerImmediateDataFetch(): void {
-    // Immediately fetch the latest live data
-    this.systemService.getInfo().subscribe(info => {
-      if (!info) return;
+  ngOnDestroy(): void {
+  }
 
-      const timestamp = info.hashRateTimestamp;
-      if (timestamp !== this.last_timestamp) {
-        this.last_timestamp = timestamp;
-        this.filterOldData();
-        this.dataData10m.push(info.hashRate_10m * 1000000000);
-        this.dataData1h.push(info.hashRate_1h * 1000000000);
-        this.dataData1d.push(info.hashRate_1d * 1000000000);
-        this.dataLabel.push(timestamp);
+  private importHistoricalData(data: any) {
+    // relative to absolute time stamps
+    this.updateChartData(data);
 
-        this.updateChart();
-        this.saveChartData();
-        this.storeTimestamp(timestamp);
-      }
-    });
+    if (data.timestamps && data.timestamps.length) {
+      const lastDataTimestamp = Math.max(...data.timestamps);
+      this.storeTimestamp(lastDataTimestamp);
+    }
+
+    // remove data that are older than 1h
+    this.filterOldData();
+
+    // save data into the local browser storage
+    this.saveChartData();
+
+    // set flag that we have finished the initial import
+    this.updateChart();
   }
 
   private clearChartData(): void {
