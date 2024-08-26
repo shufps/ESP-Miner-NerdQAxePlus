@@ -72,7 +72,8 @@ void app_main(void)
                                         .receive_result_fn = BM1368_proccess_work,
                                         .set_max_baud_fn = BM1368_set_max_baud,
                                         .set_difficulty_mask_fn = BM1368_set_job_difficulty_mask,
-                                        .send_work_fn = BM1368_send_work};
+                                        .send_work_fn = BM1368_send_work,
+                                        .send_hash_frequency_fn = BM1368_send_hash_frequency};
         // GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value *
         // BM1368_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce
         // Space
@@ -86,7 +87,8 @@ void app_main(void)
                                         .receive_result_fn = NULL,
                                         .set_max_baud_fn = NULL,
                                         .set_difficulty_mask_fn = NULL,
-                                        .send_work_fn = NULL};
+                                        .send_work_fn = NULL,
+                                        .send_hash_frequency_fn = NULL};
         GLOBAL_STATE.ASIC_functions = ASIC_functions;
         // maybe should return here to now execute anything with a faulty device parameter !
     }

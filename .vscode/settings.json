@@ -31,7 +31,8 @@
         "leak_tracker.h": "c",
         "history.h": "c",
         "system.h": "c",
-        "influx_task.h": "c"
+        "influx_task.h": "c",
+        "cmath": "c"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

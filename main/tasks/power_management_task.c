@@ -97,7 +97,27 @@ void POWER_MANAGEMENT_task(void *pvParameters)
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
+    uint16_t last_core_voltage = 0.0;
+    uint16_t last_asic_frequency = power_management->frequency_value;
     while (1) {
+        uint16_t core_voltage = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
+        uint16_t asic_frequency = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
+
+        if (core_voltage != last_core_voltage) {
+            ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
+            VCORE_set_voltage((double) core_voltage / 1000.0, GLOBAL_STATE);
+            last_core_voltage = core_voltage;
+        }
+
+        if (asic_frequency != last_asic_frequency) {
+            ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
+            // if PLL setting was found save it in the struct
+            if ((*GLOBAL_STATE->ASIC_functions.send_hash_frequency_fn)((float) asic_frequency)) {
+                power_management->frequency_value = (float) asic_frequency;
+            }
+            last_asic_frequency = asic_frequency;
+        }
+
         switch (GLOBAL_STATE->device_model) {
         case DEVICE_NERDQAXE_PLUS:
             float vin = TPS53647_get_vin();
