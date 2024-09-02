@@ -371,7 +371,7 @@ int TPS53647_init(void)
     smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20);
 
     // 2 phase operation
-    smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
+    //smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
 
     /* temperature */
     ESP_LOGI(TAG, "Setting TEMPERATURE");
