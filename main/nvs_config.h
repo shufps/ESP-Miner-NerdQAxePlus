@@ -25,7 +25,7 @@
 #define NVS_CONFIG_BEST_DIFF "bestdiff"
 #define NVS_CONFIG_SELF_TEST "selftest"
 #define NVS_CONFIG_AUTO_SCREEN_OFF "autoscreenoff"
-#define NVS_CONFIG_OVERHEAT_MODE "overheat_mode"
+#define NVS_CONFIG_OVERHEAT_TEMP "overheat_temp"
 
 #define NVS_CONFIG_INFLUX_ENABLE "influx_enable"
 #define NVS_CONFIG_INFLUX_URL "influx_url"

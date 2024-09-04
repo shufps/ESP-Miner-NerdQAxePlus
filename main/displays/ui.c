@@ -503,6 +503,48 @@ void ui_BTCScreen_screen_init(void)
     lv_obj_set_style_text_font(ui_lblTempPrice, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
 }
 
+
+// Function to show the overlay with the overheating image
+void show_overheat_warning_overlay()
+{
+    // Get the currently active screen
+    lv_obj_t *current_screen = lv_scr_act();
+
+    // Create a container for the overlay
+    lv_obj_t *overlay_container = lv_obj_create(current_screen);
+    lv_obj_set_size(overlay_container, 274 + 4, 65 + 4); // Set the size of the overlay box
+    lv_obj_align(overlay_container, LV_ALIGN_CENTER, 0, -20); // Center the overlay on the screen
+
+    // Disable scrollbars for the container
+    lv_obj_clear_flag(overlay_container, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Set background color and border style if needed
+    lv_obj_set_style_bg_color(overlay_container, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_border_width(overlay_container, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_color(overlay_container, lv_color_hex(0xff0000), LV_PART_MAIN);
+
+    // Create the image inside the overlay container
+    lv_obj_t *overlay_image = lv_img_create(overlay_container);
+    lv_img_set_src(overlay_image, &ui_img_overheat_png); // Use the existing overheating image
+    lv_obj_set_width(overlay_image, LV_SIZE_CONTENT);  // Adjust width based on content
+    lv_obj_set_height(overlay_image, LV_SIZE_CONTENT); // Adjust height based on content
+    lv_obj_set_align(overlay_image, LV_ALIGN_CENTER);  // Center the image in the overlay
+
+    // Add any additional flags or styles as needed
+    lv_obj_add_flag(overlay_image, LV_OBJ_FLAG_ADV_HITTEST);
+    lv_obj_clear_flag(overlay_image, LV_OBJ_FLAG_SCROLLABLE);
+}
+
+// Optional function to remove the overlay
+void hide_overheat_warning_overlay(lv_obj_t *overlay_container)
+{
+    if (overlay_container != NULL) {
+        lv_obj_del(overlay_container);
+        overlay_container = NULL; // Clear the pointer
+    }
+}
+
+
 void ui_init(void)
 {
     lv_disp_t *dispp = lv_disp_get_default();

@@ -31,9 +31,7 @@
 #include "influx_task.h"
 #include "history.h"
 
-#ifdef DISPLAY_TTGO
 #include "displays/displayDriver.h"
-#endif
 
 static const char *TAG = "SystemModule";
 
@@ -44,7 +42,7 @@ static esp_netif_ip_info_t ip_info;
 
 QueueHandle_t user_input_queue;
 
-static void _init_system(GlobalState *GLOBAL_STATE)
+static void _init_system(GlobalState * GLOBAL_STATE)
 {
     SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
@@ -66,6 +64,9 @@ static void _init_system(GlobalState *GLOBAL_STATE)
 
     // set the pool port
     module->pool_port = nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT);
+
+    // Initialize overheat_temp
+    module->overheated = false;
 
     // set the best diff string
     _suffix_string(module->best_nonce_diff, module->best_diff_string, DIFF_STRING_SIZE, 0);
@@ -94,18 +95,10 @@ static void _init_system(GlobalState *GLOBAL_STATE)
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
-#ifdef DISPLAY_TTGO
     // Display TTGO-TdisplayS3
     display_init();
-#endif
-    netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-}
 
-static void _show_overheat_screen(GlobalState *GLOBAL_STATE)
-{
-#ifdef DISPLAY_TTGO
-// todo
-#endif
+    netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 }
 
 static void _update_hashrate(GlobalState *GLOBAL_STATE)
@@ -132,9 +125,8 @@ static void _init_connection(GlobalState *GLOBAL_STATE)
 static void _update_connection(GlobalState *GLOBAL_STATE)
 {
     SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
-#ifdef DISPLAY_TTGO
+
     display_UpdateWifiStatus(module->wifi_status);
-#endif
 }
 
 static void _update_system_performance(GlobalState *GLOBAL_STATE)
@@ -144,9 +136,7 @@ static void show_ap_information(const char *error, GlobalState *GLOBAL_STATE)
 {
     char ap_ssid[13];
     generate_ssid(ap_ssid);
-#ifdef DISPLAY_TTGO
     display_PortalScreen(ap_ssid);
-#endif
 }
 
 static double _calculate_network_difficulty(uint32_t nBits)
@@ -310,14 +300,12 @@ void SYSTEM_task(void *pvParameters)
     ESP_LOGI(TAG, "SYSTEM_task started");
 
     while (GLOBAL_STATE->ASIC_functions.init_fn == NULL) {
-#ifdef DISPLAY_TTGO
         display_log_message("ERROR > ASIC MODEL INVALID");
-#endif
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 
     // At this point connection was done
-#ifdef DISPLAY_TTGO
+
     wifi_mode_t wifi_mode;
     esp_err_t result;
     while (!module->startup_done) {
@@ -339,24 +327,22 @@ void SYSTEM_task(void *pvParameters)
     esp_ip4addr_ntoa(&ip_info.ip, ip_address_str, IP4ADDR_STRLEN_MAX);
     display_updateIpAddress(ip_address_str);
     display_updateCurrentSettings(GLOBAL_STATE);
-#else
-    while (!module->startup_done) {
-        _update_connection(GLOBAL_STATE);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-#endif
 
     uint8_t countCycle = 10;
+    bool shows_overlay = false;
     while (1) {
+        // Check if device is overheated
+        if (module->overheated == 1 && !shows_overlay) {
+            display_showOverheating();
+            shows_overlay = true;
+        }
 
-#ifdef DISPLAY_TTGO
         // Display TTGO-TDISPLAYS3
         // display_updateTime(&GLOBAL_STATE->SYSTEM_MODULE);
         display_updateGlobalState(GLOBAL_STATE);
         display_RefreshScreen();
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
-#endif
     }
 }
 

@@ -1,9 +1,9 @@
 idf_component_register(
 SRCS
     "EMC2302.c"
-   
+
     "i2c_master.c"
-   
+
     "main.c"
     "nvs_config.c"
     "system.c"
@@ -40,6 +40,7 @@ SRCS
     "./displays/images/ui_img_splashscreen2_png.c"
     "./displays/images/ui_img_portalscreen_png.c"
     "./displays/images/ui_img_btcscreen_png.c"
+    "./displays/images/ui_img_overheat_png.c"
 
 
 INCLUDE_DIRS

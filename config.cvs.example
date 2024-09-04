@@ -17,6 +17,7 @@ invertfanpol,data,u16,0
 autofanspeed,data,u16,0
 fanspeed,data,u16,100
 selftest,data,u16,0
+overheat_temp,data,u16,70
 influx_enable,data,u16,0
 influx_url,data,string,http://192.168.0.123
 influx_port,data,u16,8086

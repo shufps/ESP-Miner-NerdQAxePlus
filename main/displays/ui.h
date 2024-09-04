@@ -55,6 +55,7 @@ extern "C"
     LV_IMG_DECLARE(ui_img_portalscreen_png);   // assets\PortalScreen.png
     LV_IMG_DECLARE(ui_img_settingsscreen_png); // assets\SettingsScreen.png
     LV_IMG_DECLARE(ui_img_btcscreen_png);      // assets\BTCScreen.png
+    LV_IMG_DECLARE(ui_img_overheat_png);      // assets\BTCScreen.png
 
 #define LV_FONT_CUSTOM_DECLARE
     LV_FONT_DECLARE(ui_font_DigitalNumbers16);

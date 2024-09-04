@@ -4,8 +4,8 @@ cmake_minimum_required(VERSION 3.5)
 
 add_definitions(-DLV_LVGL_H_INCLUDE_SIMPLE)
 
-#add_definitions(-DDISPLAY_OLED)
-add_definitions(-DDISPLAY_TTGO)
+# not longer used
+#add_definitions(-DDISPLAY_TTGO)
 
 #enable memory tracker
 #add_definitions(-DDEBUG_MEMORY_LOGGING)

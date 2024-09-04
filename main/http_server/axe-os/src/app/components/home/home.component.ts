@@ -27,10 +27,6 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private localStorageKey = 'chartData';
   private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
-  private isHistoricalDataLoaded: boolean = false; // Flag to indicate if historical data has been loaded
-  private last_timestamp : Number = 0;
-
-  private manualTrigger$ = new Subject<void>();
 
   constructor(
     private systemService: SystemService
@@ -120,27 +116,30 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.loadChartData(); // Load chart data and lastTimestamp from local storage
 
-    this.info$ = merge(
-        interval(5000),
-        this.manualTrigger$.asObservable()
-    ).pipe(
+    this.info$ = interval(5000).pipe(
       startWith(0), // Immediately start the interval observable
       switchMap(() => {
-        // Make the call only if historical data is loaded
-        if (this.isHistoricalDataLoaded) {
-          const storedLastTimestamp = this.getStoredTimestamp();
-          if (storedLastTimestamp) {
-            return this.systemService.getInfo(storedLastTimestamp);
-          }
-        }
-        return of(null); // Emit null if historical data is not loaded
+        const storedLastTimestamp = this.getStoredTimestamp();
+        const currentTimestamp = new Date().getTime();
+        const oneHourAgo = currentTimestamp - 3600 * 1000;
+
+        // Cap the startTimestamp to be at most one hour ago
+        let startTimestamp = storedLastTimestamp ? Math.max(storedLastTimestamp + 1, oneHourAgo) : oneHourAgo;
+
+        return this.systemService.getInfo(startTimestamp);
       }),
       tap(info => {
-        if (!info || !info.history) return; // Skip if no info is available (before historical data is loaded)
-        this.importHistoricalData(info.history);
+        if (!info) {
+          return;
+        }
+        if (info.history) {
+          this.importHistoricalData(info.history);
+        }
       }),
       map(info => {
-        if (!info) return SystemService.defaultInfo(); // Return empty object if no info
+        if (!info) {
+          return SystemService.defaultInfo(); // Return empty object if no info
+        }
         info.power = parseFloat(info.power.toFixed(1));
         info.voltage = parseFloat((info.voltage / 1000).toFixed(1));
         info.current = parseFloat((info.current / 1000).toFixed(1));
@@ -182,28 +181,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const storedLastTimestamp = this.getStoredTimestamp();
-    const currentTimestamp = new Date().getTime();
-    const oneHourAgo = currentTimestamp - 3600 * 1000;
-
-    // Cap the startTimestamp to be at most one hour ago
-    let startTimestamp = storedLastTimestamp ? Math.max(storedLastTimestamp + 1, oneHourAgo) : oneHourAgo;
-
-    const endTimestamp = currentTimestamp; // Fetch data up to current time
-
-    const requests: Observable<any>[] = [];
-    requests.push(this.systemService.getHistoryData(startTimestamp));
-    from(requests).pipe(
-      concatMap((request: Observable<any>) => request),
-      tap(data => {
-        this.importHistoricalData(data);
-      })
-    ).subscribe({
-      complete: () => {
-        this.isHistoricalDataLoaded = true; // Set flag to true after historical data is processed
-        this.manualTrigger$.next(); // now lets trigger the info request
-      }
-    });
   }
 
   ngOnDestroy(): void {

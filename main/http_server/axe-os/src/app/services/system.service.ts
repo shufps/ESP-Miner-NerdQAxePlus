@@ -49,7 +49,7 @@ const defaultInfo: ISystemInfo = {
 
   boardtemp1: 30,
   boardtemp2: 40,
-  overheat_mode: 0,
+  overheat_temp: 70,
   history: {
     hashrate_10m: [],
     hashrate_1h: [],

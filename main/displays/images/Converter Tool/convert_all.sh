@@ -8,5 +8,6 @@ python3 convert_single.py ../Raw\ Images/PortalScreen.png ../ui_img_portalscreen
 python3 convert_single.py ../Raw\ Images/BTCScreen.png ../ui_img_btcscreen_png.c
 python3 convert_single.py ../Raw\ Images/SettingsScreen.png ../ui_img_settingsscreen_png.c
 python3 convert_single.py ../Raw\ Images/SplashScreen2.png ../ui_img_splashscreen2_png.c
+python3 convert_single.py ../Raw\ Images/overheat2.png ../ui_img_overheat_png.c
 
 
