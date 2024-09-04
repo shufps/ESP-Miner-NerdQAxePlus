@@ -17,6 +17,8 @@
 
 #define MAX_ASIC_JOBS 128
 
+#define OVERHEAT_DEFAULT        70
+
 typedef enum
 {
     DEVICE_UNKNOWN = -1,
@@ -60,6 +62,7 @@ typedef struct
     uint32_t pool_difficulty;
 
     int pool_errors;
+    bool overheated;
 
     uint32_t lastClockSync;
 } SystemModule;

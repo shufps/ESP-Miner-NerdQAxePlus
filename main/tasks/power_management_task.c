@@ -2,6 +2,7 @@
 #include "TMP1075.h"
 #include "TPS53647.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "global_state.h"
@@ -34,6 +35,7 @@ static float _fbound(float value, float lower_bound, float upper_bound)
 
     return value;
 }
+static bool overheated = false;
 
 // Set the fan speed between 20% min and 100% max based on chip temperature as input.
 // The fan speed increases from 20% to 100% proportionally to the temperature increase from 50 and THROTTLE_TEMP
@@ -64,14 +66,18 @@ static double automatic_fan_speed(float chip_temp, GlobalState *GLOBAL_STATE)
     return result;
 }
 
-void power_management_turn_on() {
-    gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_10, 1);
+void power_management_turn_on()
+{
+    if (!overheated) {
+        gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
+        gpio_set_level(GPIO_NUM_10, 1);
+    }
 }
 
-void power_management_turn_off() {
+void power_management_turn_off()
+{
     gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_10, 1);
+    gpio_set_level(GPIO_NUM_10, 0);
 }
 
 void POWER_MANAGEMENT_task(void *pvParameters)
@@ -79,6 +85,7 @@ void POWER_MANAGEMENT_task(void *pvParameters)
     GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
 
     PowerManagementModule *power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
+    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
     power_management->frequency_multiplier = 1;
 
@@ -102,6 +109,7 @@ void POWER_MANAGEMENT_task(void *pvParameters)
     while (1) {
         uint16_t core_voltage = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
         uint16_t asic_frequency = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
+        uint16_t overheat_temp = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, OVERHEAT_DEFAULT);
 
         if (core_voltage != last_core_voltage) {
             ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
@@ -145,6 +153,13 @@ void POWER_MANAGEMENT_task(void *pvParameters)
                 // 2nd tmp1075 is on the back side below power stages and inductors
                 power_management->vr_temp = TMP1075_read_temperature(1);
                 influx_task_set_temperature(power_management->chip_temp_avg, power_management->vr_temp);
+
+                if (overheat_temp &&
+                    (power_management->chip_temp_avg > overheat_temp || power_management->vr_temp > overheat_temp)) {
+                    // over temperature
+                    overheated = module->overheated = true;
+                    power_management_turn_off();
+                }
                 break;
             default:
             }

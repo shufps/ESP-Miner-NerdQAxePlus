@@ -43,6 +43,8 @@ static void example_lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_
 static void main_creatSysteTasks(void);
 static void lvglTimerTask(void *param);
 
+void show_overheat_warning_overlay();
+
 static bool example_notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata,
                                             void *user_ctx)
 {
@@ -161,6 +163,12 @@ void display_RefreshScreen()
 {
     lv_timer_handler();   // Maneja las tareas pendientes de LVGL
     increase_lvgl_tick(); // Incrementa el tick según el periodo que definías antes
+}
+
+void display_showOverheating()
+{
+    show_overheat_warning_overlay();
+    display_RefreshScreen();
 }
 
 void changeScreen(void)
@@ -385,7 +393,6 @@ lv_obj_t *initTDisplayS3(void)
     } else {
         esp_lcd_panel_mirror(panel_handle, false, true);
     }
-
 
     // the gap is LCD panel specific, even panels with the same driver IC, can have different gap value
     esp_lcd_panel_set_gap(panel_handle, 0, 35);
