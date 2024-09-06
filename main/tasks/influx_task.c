@@ -94,7 +94,7 @@ static void forever()
     }
 }
 
-void *influx_task(void *pvParameters)
+void influx_task(void *pvParameters)
 {
     GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
     SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;

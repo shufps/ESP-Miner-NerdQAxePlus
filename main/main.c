@@ -35,10 +35,6 @@ void app_main(void)
         return;
     }
 
-    if (!history_init()) {
-        ESP_LOGE(TAG, "History couldn't be initialized");
-        return;
-    }
 
     size_t total_psram = esp_psram_get_size();
     ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));
@@ -60,6 +56,12 @@ void app_main(void)
         GLOBAL_STATE.asic_count = -1;
         GLOBAL_STATE.voltage_domain = 1;
     }
+
+    if (!history_init(GLOBAL_STATE.asic_count)) {
+        ESP_LOGE(TAG, "History couldn't be initialized");
+        return;
+    }
+
     GLOBAL_STATE.board_version = atoi(nvs_config_get_string(NVS_CONFIG_BOARD_VERSION, "000"));
     ESP_LOGI(TAG, "Found Device Model: %s", GLOBAL_STATE.device_model_str);
     ESP_LOGI(TAG, "Found Board Version: %d", GLOBAL_STATE.board_version);

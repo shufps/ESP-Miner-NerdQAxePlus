@@ -18,6 +18,9 @@ static const char *TAG = "history";
 
 static pthread_mutex_t psram_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+static int num_asics = 0;
+static uint32_t *distribution = NULL;
+
 // timespans in ms
 static avg_t avg_10m = {.first_sample = 0,
                         .last_sample = 0,
@@ -44,10 +47,9 @@ static avg_t avg_1d = {.first_sample = 0,
                        .timestamp = 0,
                        .preliminary = true};
 
-
 psram_t *psram = 0;
 
-#define for wrapped access of psram
+// define for wrapped access of psram
 #define WRAP(a) ((a) & (HISTORY_MAX_SAMPLES - 1))
 
 inline uint64_t history_get_timestamp_sample(int index)
@@ -139,12 +141,15 @@ static void update_avg(avg_t *avg)
     }
 
     // adjust the window on the older side
-    // but make sure we have at least as many saples for the full duration
-    uint64_t first_timestamp = 0;
-    while (first_timestamp = history_get_timestamp_sample(avg->first_sample), (last_timestamp - first_timestamp) >= avg->timespan) {
+    // we move the lower window bound until the next sample would be out of
+    // the desired timespan.
+    while (avg->first_sample + 1 < avg->last_sample &&
+           last_timestamp - history_get_timestamp_sample(avg->first_sample + 1) >= avg->timespan) {
         avg->diffsum -= (uint64_t) history_get_share_sample(avg->first_sample);
         avg->first_sample++;
     }
+
+    uint64_t first_timestamp = history_get_timestamp_sample(avg->first_sample);
 
     // Check for overflow in diffsum
     if (avg->diffsum >> 63ull) {
@@ -170,7 +175,28 @@ static void update_avg(avg_t *avg)
     avg->preliminary = duration >= avg->timespan;
 }
 
-void history_push_share(uint32_t diff, uint64_t timestamp)
+static void log_distribution()
+{
+    // this can happen if we don't have asics
+    if (!distribution) {
+        return;
+    }
+
+    char buffer[256];
+    size_t offset = 0;
+
+    // Iterate through each ASIC and append its count to the log message
+    for (int i = 0; i < num_asics; i++) {
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%lu/", distribution[i]);
+    }
+    if (offset > 0) {
+        buffer[offset - 1] = 0; // remove trailing slash
+    }
+
+    ESP_LOGI(TAG, "nonce distribution: %s", buffer);
+}
+
+void history_push_share(uint32_t diff, uint64_t timestamp, int asic_nr)
 {
     if (!psram) {
         ESP_LOGW(TAG, "PSRAM not initialized");
@@ -189,6 +215,11 @@ void history_push_share(uint32_t diff, uint64_t timestamp)
     psram->hashrate_10m[WRAP(psram->num_samples - 1)] = avg_10m.avg_gh;
     psram->hashrate_1h[WRAP(psram->num_samples - 1)] = avg_1h.avg_gh;
     psram->hashrate_1d[WRAP(psram->num_samples - 1)] = avg_1d.avg_gh;
+
+    if (distribution && asic_nr < num_asics) {
+        distribution[asic_nr]++;
+    }
+
     history_unlock();
 
     char preliminary_10m = (avg_10m.preliminary) ? '*' : ' ';
@@ -197,6 +228,8 @@ void history_push_share(uint32_t diff, uint64_t timestamp)
 
     ESP_LOGI(TAG, "%llu hashrate: 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", timestamp, avg_10m.avg_gh, preliminary_10m, avg_1h.avg_gh,
              preliminary_1h, avg_1d.avg_gh, preliminary_1d);
+
+    log_distribution();
 }
 
 // successive approximation in a wrapped ring buffer with
@@ -241,7 +274,7 @@ int history_search_nearest_timestamp(uint64_t timestamp)
     return current;
 }
 
-bool history_init()
+bool history_init(int _num_asics)
 {
     psram = (psram_t *) heap_caps_malloc(sizeof(psram_t), MALLOC_CAP_SPIRAM);
     if (!psram) {
@@ -249,5 +282,12 @@ bool history_init()
         return false;
     }
     psram->num_samples = 0;
+
+    num_asics = _num_asics;
+    if (num_asics > 0) {
+        // calloc zero-initializes
+        distribution = (uint32_t *) calloc(num_asics, sizeof(uint32_t));
+    }
+
     return true;
 }
