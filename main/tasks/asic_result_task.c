@@ -65,7 +65,7 @@ void ASIC_result_task(void *pvParameters)
             STRATUM_V1_submit_share(GLOBAL_STATE->sock, user, job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
                                     asic_result.rolled_version ^ job->version);
 
-            SYSTEM_notify_found_nonce(GLOBAL_STATE, (double) pool_difficulty);
+            SYSTEM_notify_found_nonce(GLOBAL_STATE, (double) pool_difficulty, asic_result.asic_nr);
         }
 
         SYSTEM_check_for_best_diff(GLOBAL_STATE, nonce_diff, asic_job_id);

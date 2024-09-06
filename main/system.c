@@ -385,7 +385,7 @@ void SYSTEM_check_for_best_diff(GlobalState *GLOBAL_STATE, double found_diff, ui
     _check_for_best_diff(GLOBAL_STATE, found_diff, job_id);
 }
 
-void SYSTEM_notify_found_nonce(GlobalState *GLOBAL_STATE, double pool_diff)
+void SYSTEM_notify_found_nonce(GlobalState *GLOBAL_STATE, double pool_diff, int asic_nr)
 {
     SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
@@ -401,7 +401,7 @@ void SYSTEM_notify_found_nonce(GlobalState *GLOBAL_STATE, double pool_diff)
     uint64_t timestamp = (uint64_t)now.tv_sec * 1000llu + (uint64_t)now.tv_usec / 1000llu;
 
 
-    history_push_share(pool_diff, timestamp);
+    history_push_share(pool_diff, timestamp, asic_nr);
 
 
     module->current_hashrate_10m = history_get_current_10m();

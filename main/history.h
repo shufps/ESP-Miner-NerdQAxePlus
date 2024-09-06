@@ -35,8 +35,8 @@ typedef struct {
 
 void *stats_task(void *pvParameters);
 
-bool history_init(void);
-void history_push_share(uint32_t diff, uint64_t timestamp);
+bool history_init(int num_asics);
+void history_push_share(uint32_t diff, uint64_t timestamp, int asic_nr);
 int history_search_nearest_timestamp(uint64_t timestamp);
 
 uint64_t history_get_timestamp_sample(int index);
