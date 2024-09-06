@@ -646,7 +646,7 @@ static esp_err_t GET_history_len(httpd_req_t *req)
 
     uint64_t first_timestamp = 0;
     uint64_t last_timestamp = 0;
-    uint32_t num_samples = 0;
+    int num_samples = 0;
 
     if (!is_history_available()) {
         ESP_LOGW(TAG, "history is not available");

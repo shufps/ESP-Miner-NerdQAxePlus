@@ -16,25 +16,10 @@
 #include "influx_task.h"
 
 #define POLL_RATE 2000
-#define MAX_TEMP 90.0
-#define THROTTLE_TEMP 75.0
-#define THROTTLE_TEMP_RANGE (MAX_TEMP - THROTTLE_TEMP)
-
-#define VOLTAGE_START_THROTTLE 4900
-#define VOLTAGE_MIN_THROTTLE 3500
-#define VOLTAGE_RANGE (VOLTAGE_START_THROTTLE - VOLTAGE_MIN_THROTTLE)
+#define THROTTLE_TEMP 65.0
 
 static const char *TAG = "power_management";
 
-static float _fbound(float value, float lower_bound, float upper_bound)
-{
-    if (value < lower_bound)
-        return lower_bound;
-    if (value > upper_bound)
-        return upper_bound;
-
-    return value;
-}
 static bool overheated = false;
 
 // Set the fan speed between 20% min and 100% max based on chip temperature as input.
@@ -88,10 +73,6 @@ void POWER_MANAGEMENT_task(void *pvParameters)
     SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
     power_management->frequency_multiplier = 1;
-
-    int last_frequency_increase = 0;
-
-    uint16_t frequency_target = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
 
     uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
 
