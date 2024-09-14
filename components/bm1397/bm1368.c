@@ -398,7 +398,8 @@ int BM1368_set_default_baud(void)
 
 int BM1368_set_max_baud(void)
 {
-
+    return 115200;
+/*
     /// return 115749;
 
     // divider of 0 for 3,125,000
@@ -407,6 +408,7 @@ int BM1368_set_max_baud(void)
     unsigned char init8[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x28, 0x11, 0x30, 0x02, 0x00, 0x03};
     _send_simple(init8, 11);
     return 1000000;
+*/
 }
 
 void BM1368_set_job_difficulty_mask(int difficulty)
