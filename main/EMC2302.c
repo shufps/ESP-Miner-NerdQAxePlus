@@ -30,12 +30,13 @@ esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
     uint8_t tach_lsb, tach_msb;
 
     // report only first fan
-    err = i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1);
+    // use channel 2 that is closed to the CPU cooler
+    err = i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1);
     if (err != ESP_OK) {
         *dst = 0;
         return err;
     }
-    err = i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1);
+    err = i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1);
     if (err != ESP_OK) {
         *dst = 0;
         return err;
@@ -61,6 +62,15 @@ esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
     int rpm = 60 * ftach * m * (n - 1) / poles / rpm_raw;
 
     ESP_LOGI(TAG, "raw fan speed: %d", rpm_raw);
+
+    // we get this if no fan is connected
+    // would be displayed as 480RPM
+    // so we actually can't measure lower than that
+    // but the datasheet says the measurement range is
+    // 480 to 16000RPM. So it seems to be fine.
+    if (rpm_raw >= 8191) {
+        rpm = 0;
+    }
 
     if (rpm > 65535) {
         ESP_LOGE(TAG, "fan speed RPM > 16bit: %d", rpm);
