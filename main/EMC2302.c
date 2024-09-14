@@ -68,7 +68,7 @@ esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
     // so we actually can't measure lower than that
     // but the datasheet says the measurement range is
     // 480 to 16000RPM. So it seems to be fine.
-    if (rpm >= 8191) {
+    if (rpm_raw >= 8191) {
         rpm = 0;
     }
 
