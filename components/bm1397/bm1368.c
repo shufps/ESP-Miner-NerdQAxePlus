@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "boards/nerdqaxeplus.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -17,8 +18,6 @@
 #ifdef DEBUG_MEMORY_LOGGING
 #include "leak_tracker.h"
 #endif
-
-#define BM1368_RST_PIN GPIO_NUM_1
 
 #define TYPE_JOB 0x20
 #define TYPE_CMD 0x40
@@ -366,11 +365,6 @@ uint8_t BM1368_init(uint64_t frequency, uint16_t asic_count)
     ESP_LOGI(TAG, "Initializing BM1368");
 
     memset(asic_response_buffer, 0, 1024);
-
-    // enable LDOs
-    gpio_pad_select_gpio(GPIO_NUM_13);
-    gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_13, 1);
 
     // esp_rom_gpio_pad_select_gpio(BM1368_RST_PIN);
     gpio_pad_select_gpio(BM1368_RST_PIN);

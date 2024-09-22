@@ -5,17 +5,16 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "rom/gpio.h"
+#include "driver/gpio.h"
 
 #define TPS53647
 
 #include "TPS53647.h"
 #include "pmbus_commands.h"
+#include "boards/nerdqaxeplus.h"
 
-void power_management_turn_on();
-void power_management_turn_off();
-
-#define I2C_MASTER_NUM                                                                                                             \
-    0 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
+#define I2C_MASTER_NUM  0 // I2C master i2c port number
 
 #define WRITE_BIT I2C_MASTER_WRITE
 #define READ_BIT I2C_MASTER_READ
@@ -46,7 +45,6 @@ static esp_err_t smb_read_byte(uint8_t command, uint8_t *data)
     i2c_master_write_byte(cmd, TPS53647_I2CADDR << 1 | READ_BIT, ACK_CHECK);
     i2c_master_read_byte(cmd, data, NACK_VALUE);
     i2c_master_stop(cmd);
-    i2c_set_timeout(I2C_MASTER_NUM, 20);
     err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
     i2c_cmd_link_delete(cmd);
 
@@ -104,7 +102,6 @@ static esp_err_t smb_read_word(uint8_t command, uint16_t *result)
     i2c_master_read(cmd, &data[0], 1, ACK_VALUE);
     i2c_master_read_byte(cmd, &data[1], NACK_VALUE);
     i2c_master_stop(cmd);
-    i2c_set_timeout(I2C_MASTER_NUM, 20);
     err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, SMBUS_DEFAULT_TIMEOUT);
     i2c_cmd_link_delete(cmd);
 
@@ -147,7 +144,7 @@ uint8_t volt_to_vid(float volts)
         ESP_LOGI(TAG, "ERR - vout register value out of range %d", register_value);
         return 0;
     }
-    ESP_LOGI(TAG, "volt_to_vid: %.3f -> 0x%04x", volts, register_value);
+    ESP_LOGD(TAG, "volt_to_vid: %.3f -> 0x%04x", volts, register_value);
     return register_value;
 }
 
@@ -158,7 +155,7 @@ float vid_to_volt(uint8_t register_value)
     }
 
     float volts = (register_value - 1) * 0.005 + HW_MIN_VOLTAGE;
-    ESP_LOGI(TAG, "vid_to_volt: 0x%04x -> %.3f", register_value, volts);
+    ESP_LOGD(TAG, "vid_to_volt: 0x%04x -> %.3f", register_value, volts);
     return volts;
 }
 
@@ -361,25 +358,20 @@ int TPS53647_init(void)
     // 2 phase operation
     smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
 
-    ESP_LOGI(TAG, "---Writing new config values to TPS53647---");
     /* set up the ON_OFF_CONFIG */
-    ESP_LOGI(TAG, "Setting ON_OFF_CONFIG");
     smb_write_byte(PMBUS_ON_OFF_CONFIG, TPS53647_INIT_ON_OFF_CONFIG);
 
     /* Switch frequency, 500kHz */
-    ESP_LOGI(TAG, "Setting FREQUENCY");
     smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20);
 
     // 2 phase operation
     smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
 
     /* temperature */
-    ESP_LOGI(TAG, "Setting TEMPERATURE");
     smb_write_word(PMBUS_OT_WARN_LIMIT, int_2_slinear11(TPS53647_INIT_OT_WARN_LIMIT));
     smb_write_word(PMBUS_OT_FAULT_LIMIT, int_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
 
     /* iout current */
-    ESP_LOGI(TAG, "Setting IOUT");
     smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_WARN_LIMIT));
     smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_FAULT_LIMIT));
 
@@ -388,32 +380,25 @@ int TPS53647_init(void)
     // smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
     //   smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(1.15));//TPS53647_INIT_VOUT_COMMAND));
 
-    /* Show temperature */
-    ESP_LOGI(TAG, "--------------------------------");
-    ESP_LOGI(TAG, "Temp: %d", TPS53647_get_temperature());
-
     /* Show voltage settings */
-    TPS53647_show_voltage_settings();
-
-    ESP_LOGI(TAG, "-----------VOLTAGE/CURRENT---------------------");
-    /* Get voltage input (SLINEAR11) */
-    ESP_LOGI(TAG, "VIn: %.3f", TPS53647_get_vin());
-    /* Get output current (SLINEAR11) */
-    ESP_LOGI(TAG, "IOut: %.3f", TPS53647_get_iout());
-    /* Get voltage output (VID) */
-    ESP_LOGI(TAG, "VOut: %.3f", TPS53647_get_vout());
-    /*
-        // Create the task
-        xTaskCreate(TPS53647_monitoring_task,       // Task function
-                    "TPS53647_monitoring_task",     // Name of the task (for debugging)
-                    2048,                // Stack size for the task
-                    NULL,                // Parameter passed to the task
-                    1,                   // Priority of the task
-                    NULL);               // Task handle (optional)
-    */
+    //TPS53647_show_voltage_settings();
     is_initialized = true;
 
     return 0;
+}
+
+static void TPS53647_power_enable()
+{
+    gpio_pad_select_gpio(TPS53647_EN_PIN);
+    gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(TPS53647_EN_PIN, 1);
+}
+
+static void TPS53647_power_disable()
+{
+    gpio_pad_select_gpio(TPS53647_EN_PIN);
+    gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(TPS53647_EN_PIN, 0);
 }
 
 int TPS53647_get_temperature(void)
@@ -552,7 +537,7 @@ void TPS53647_set_vout(float volts)
     if (volts == 0) {
         /* turn off output */
         //smb_write_byte(PMBUS_OPERATION, OPERATION_OFF);
-        power_management_turn_off();
+        TPS53647_power_disable();
         return;
     }
 
@@ -563,7 +548,7 @@ void TPS53647_set_vout(float volts)
     }
 
     //    smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
-    power_management_turn_on();
+    TPS53647_power_enable();
 
     /* set output voltage */
     smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(volts));

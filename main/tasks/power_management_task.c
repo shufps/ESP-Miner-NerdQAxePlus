@@ -51,20 +51,6 @@ static double automatic_fan_speed(float chip_temp, GlobalState *GLOBAL_STATE)
     return result;
 }
 
-void power_management_turn_on()
-{
-    if (!overheated) {
-        gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-        gpio_set_level(GPIO_NUM_10, 1);
-    }
-}
-
-void power_management_turn_off()
-{
-    gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_10, 0);
-}
-
 void POWER_MANAGEMENT_task(void *pvParameters)
 {
     GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
@@ -75,13 +61,6 @@ void POWER_MANAGEMENT_task(void *pvParameters)
     power_management->frequency_multiplier = 1;
 
     uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
-
-    switch (GLOBAL_STATE->device_model) {
-    case DEVICE_NERDQAXE_PLUS:
-        power_management_turn_on();
-        break;
-    default:
-    }
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
@@ -139,7 +118,8 @@ void POWER_MANAGEMENT_task(void *pvParameters)
                     (power_management->chip_temp_avg > overheat_temp || power_management->vr_temp > overheat_temp)) {
                     // over temperature
                     overheated = module->overheated = true;
-                    power_management_turn_off();
+                    // disables the buck
+                    VCORE_set_voltage(0.0, GLOBAL_STATE);
                 }
                 break;
             default:

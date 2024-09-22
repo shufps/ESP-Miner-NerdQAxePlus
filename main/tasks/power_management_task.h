@@ -18,7 +18,5 @@ typedef struct
 
 void POWER_MANAGEMENT_task(void *pvParameters);
 
-void power_management_turn_on();
-void power_management_turn_off();
 
 #endif
