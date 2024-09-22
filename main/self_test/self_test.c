@@ -51,7 +51,8 @@ static bool core_voltage_pass(GlobalState *GLOBAL_STATE)
 
 void self_test(void *pvParameters)
 {
-
+    // TODO cleanup
+#if 0
     // Initialize display
     display_init();
     display_log_message("Self test initiated...");
@@ -65,14 +66,6 @@ void self_test(void *pvParameters)
 
         GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[i] = NULL;
         GLOBAL_STATE->valid_jobs[i] = 0;
-    }
-
-    switch (GLOBAL_STATE->device_model) {
-    case DEVICE_NERDQAXE_PLUS:
-        // turn ASIC on
-        power_management_turn_on();
-        break;
-    default:
     }
 
     // Init I2C
@@ -187,4 +180,5 @@ void self_test(void *pvParameters)
     display_msg("           PASS", GLOBAL_STATE);
     display_log_message("Test result: OK PASS");
     nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);
+#endif
 }
