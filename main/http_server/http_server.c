@@ -441,10 +441,10 @@ static esp_err_t GET_swarm(httpd_req_t *req)
 
     char *swarm_config = nvs_config_get_string(NVS_CONFIG_SWARM, "[]");
     httpd_resp_sendstr(req, swarm_config);
+    free(swarm_config);
     return ESP_OK;
 }
 
-/* Simple handler for getting system handler */
 /* Simple handler for getting system handler */
 static esp_err_t GET_system_info(httpd_req_t *req)
 {
@@ -821,7 +821,7 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
     return ESP_OK;
 }
 
-void log_to_queue(const char * format, va_list args)
+static void log_to_queue(const char * format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -831,7 +831,7 @@ void log_to_queue(const char * format, va_list args)
     va_end(args_copy);
 
     // Allocate the buffer dynamically
-    char *log_buffer = (char *) malloc(needed_size);
+    char * log_buffer = (char *) calloc(needed_size + 2, sizeof(char));  // +2 for potential \n and \0
     if (log_buffer == NULL) {
         return;
     }
@@ -859,7 +859,7 @@ void log_to_queue(const char * format, va_list args)
 	}
 }
 
-void send_log_to_websocket(char *message)
+static void send_log_to_websocket(char *message)
 {
     // Prepare the WebSocket frame
     httpd_ws_frame_t ws_pkt;
@@ -869,15 +869,11 @@ void send_log_to_websocket(char *message)
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
     // Ensure server and fd are valid
-    if (server == NULL || fd < 0) {
-        // Handle invalid server or socket descriptor
-        free(log_buffer);
-        return;
-    }
-
-    // Send the WebSocket frame asynchronously
-    if (httpd_ws_send_frame_async(server, fd, &ws_pkt) != ESP_OK) {
-        esp_log_set_vprintf(vprintf);
+    if (server != NULL && fd >= 0) {
+        // Send the WebSocket frame asynchronously
+        if (httpd_ws_send_frame_async(server, fd, &ws_pkt) != ESP_OK) {
+            esp_log_set_vprintf(vprintf);
+        }
     }
 
     // Free the allocated buffer
@@ -913,7 +909,7 @@ static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
     return ESP_OK;
 }
 
-void websocket_log_handler()
+static void websocket_log_handler()
 {
 	while (true)
 	{
