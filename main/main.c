@@ -47,14 +47,12 @@ void app_main(void)
         ESP_LOGI(TAG, "DEVICE: NerdQaxe+");
         GLOBAL_STATE.device_model = DEVICE_NERDQAXE_PLUS;
         GLOBAL_STATE.asic_count = 4;
-        GLOBAL_STATE.voltage_domain = 1;
     } else {
         ESP_LOGE(TAG, "Invalid DEVICE model");
         // maybe should return here to now execute anything with a faulty device parameter !
         // this stops crashes/reboots and allows dev testing without an asic
         GLOBAL_STATE.device_model = DEVICE_UNKNOWN;
         GLOBAL_STATE.asic_count = -1;
-        GLOBAL_STATE.voltage_domain = 1;
     }
 
     if (!history_init(GLOBAL_STATE.asic_count)) {
