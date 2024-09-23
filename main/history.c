@@ -22,6 +22,14 @@ static int num_asics = 0;
 static uint32_t *distribution = NULL;
 
 // timespans in ms
+static avg_t avg_1m = {.first_sample = 0,
+                        .last_sample = 0,
+                        .timespan = 60llu * 1000llu,
+                        .diffsum = 0,
+                        .avg = 0.0,
+                        .avg_gh = 0.0,
+                        .timestamp = 0,
+                        .preliminary = true};
 static avg_t avg_10m = {.first_sample = 0,
                         .last_sample = 0,
                         .timespan = 600llu * 1000llu,
@@ -75,6 +83,11 @@ inline float history_get_hashrate_1d_sample(int index)
 inline uint32_t history_get_share_sample(int index)
 {
     return psram->shares[WRAP(index)];
+}
+
+double history_get_current_1m()
+{
+    return avg_1m.avg_gh;
 }
 
 double history_get_current_10m()
@@ -208,10 +221,12 @@ void history_push_share(uint32_t diff, uint64_t timestamp, int asic_nr)
     psram->timestamps[WRAP(psram->num_samples)] = timestamp;
     psram->num_samples++;
 
+    update_avg(&avg_1m);
     update_avg(&avg_10m);
     update_avg(&avg_1h);
     update_avg(&avg_1d);
 
+    psram->hashrate_1m[WRAP(psram->num_samples - 1)] = avg_1m.avg_gh;
     psram->hashrate_10m[WRAP(psram->num_samples - 1)] = avg_10m.avg_gh;
     psram->hashrate_1h[WRAP(psram->num_samples - 1)] = avg_1h.avg_gh;
     psram->hashrate_1d[WRAP(psram->num_samples - 1)] = avg_1d.avg_gh;
@@ -222,11 +237,12 @@ void history_push_share(uint32_t diff, uint64_t timestamp, int asic_nr)
 
     history_unlock();
 
+    char preliminary_1m = (avg_1m.preliminary) ? '*' : ' ';
     char preliminary_10m = (avg_10m.preliminary) ? '*' : ' ';
     char preliminary_1h = (avg_1h.preliminary) ? '*' : ' ';
     char preliminary_1d = (avg_1d.preliminary) ? '*' : ' ';
 
-    ESP_LOGI(TAG, "%llu hashrate: 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", timestamp, avg_10m.avg_gh, preliminary_10m, avg_1h.avg_gh,
+    ESP_LOGI(TAG, "hashrate: 1m:%.3fGH%c 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", avg_1m.avg_gh, preliminary_1m, avg_10m.avg_gh, preliminary_10m, avg_1h.avg_gh,
              preliminary_1h, avg_1d.avg_gh, preliminary_1d);
 
     log_distribution();

@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "mining.h"
+#include <pthread.h>
 
 #define MAX_ASIC_JOBS 128
 
@@ -13,6 +14,8 @@ typedef struct
     // it also may return a previous nonce under some circumstances
     // so we keep a list of jobs indexed by the job id
     bm_job *active_jobs[MAX_ASIC_JOBS];
+    uint8_t valid_jobs[MAX_ASIC_JOBS];
+    pthread_mutex_t valid_jobs_lock;
 } AsicTaskModule;
 
 #endif

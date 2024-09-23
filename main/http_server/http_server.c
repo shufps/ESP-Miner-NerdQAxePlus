@@ -13,7 +13,7 @@
 #include "global_state.h"
 #include "nvs_config.h"
 #include "recovery_page.h"
-#include "vcore.h"
+//#include "vcore.h"
 #include <fcntl.h>
 #include <string.h>
 #include <sys/param.h>
@@ -31,6 +31,7 @@
 #include "lwip/sys.h"
 
 #include "history.h"
+#include "boards/board.h"
 
 #ifdef DEBUG_MEMORY_LOGGING
 #include "leak_tracker.h"
@@ -42,7 +43,6 @@
 
 static const char *TAG = "http_server";
 
-static GlobalState *GLOBAL_STATE;
 static httpd_handle_t server = NULL;
 QueueHandle_t log_queue = NULL;
 
@@ -478,41 +478,31 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     char *board_version = nvs_config_get_string(NVS_CONFIG_BOARD_VERSION, "unknown");
 
     cJSON *root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "power", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.power);
-    cJSON_AddNumberToObject(root, "voltage", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.voltage);
-    cJSON_AddNumberToObject(root, "current", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.current);
-    cJSON_AddNumberToObject(root, "temp", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.chip_temp_avg);
-    cJSON_AddNumberToObject(root, "vrTemp", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.vr_temp);
+    cJSON_AddNumberToObject(root, "power", POWER_MANAGEMENT_MODULE.power);
+    cJSON_AddNumberToObject(root, "voltage", POWER_MANAGEMENT_MODULE.voltage);
+    cJSON_AddNumberToObject(root, "current", POWER_MANAGEMENT_MODULE.current);
+    cJSON_AddNumberToObject(root, "temp", POWER_MANAGEMENT_MODULE.chip_temp_avg);
+    cJSON_AddNumberToObject(root, "vrTemp", POWER_MANAGEMENT_MODULE.vr_temp);
     cJSON_AddNumberToObject(root, "hashRateTimestamp", history_get_current_timestamp());
     cJSON_AddNumberToObject(root, "hashRate_10m", history_get_current_10m());
     cJSON_AddNumberToObject(root, "hashRate_1h", history_get_current_1h());
     cJSON_AddNumberToObject(root, "hashRate_1d", history_get_current_1d());
-    cJSON_AddStringToObject(root, "bestDiff", GLOBAL_STATE->SYSTEM_MODULE.best_diff_string);
-    cJSON_AddStringToObject(root, "bestSessionDiff", GLOBAL_STATE->SYSTEM_MODULE.best_session_diff_string);
+    cJSON_AddStringToObject(root, "bestDiff", SYSTEM_MODULE.best_diff_string);
+    cJSON_AddStringToObject(root, "bestSessionDiff", SYSTEM_MODULE.best_session_diff_string);
 
     cJSON_AddNumberToObject(root, "freeHeap", esp_get_free_heap_size());
     cJSON_AddNumberToObject(root, "coreVoltage", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
-    cJSON_AddNumberToObject(root, "coreVoltageActual", VCORE_get_voltage_mv(GLOBAL_STATE));
+    cJSON_AddNumberToObject(root, "coreVoltageActual", board_get_voltage_mv());
     cJSON_AddNumberToObject(root, "frequency", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
     cJSON_AddStringToObject(root, "ssid", ssid);
     cJSON_AddStringToObject(root, "hostname", hostname);
-    cJSON_AddStringToObject(root, "wifiStatus", GLOBAL_STATE->SYSTEM_MODULE.wifi_status);
-    cJSON_AddNumberToObject(root, "sharesAccepted", GLOBAL_STATE->SYSTEM_MODULE.shares_accepted);
-    cJSON_AddNumberToObject(root, "sharesRejected", GLOBAL_STATE->SYSTEM_MODULE.shares_rejected);
-    cJSON_AddNumberToObject(root, "uptimeSeconds", (esp_timer_get_time() - GLOBAL_STATE->SYSTEM_MODULE.start_time) / 1000000);
-    cJSON_AddNumberToObject(root, "asicCount", GLOBAL_STATE->asic_count);
-    uint16_t small_core_count = 0;
-    switch (GLOBAL_STATE->asic_model) {
-    case ASIC_BM1368:
-        small_core_count = BM1368_SMALL_CORE_COUNT;
-        break;
-    case ASIC_UNKNOWN:
-    default:
-        small_core_count = -1;
-        break;
-    }
-    cJSON_AddNumberToObject(root, "smallCoreCount", small_core_count);
-    cJSON_AddStringToObject(root, "ASICModel", GLOBAL_STATE->asic_model_str);
+    cJSON_AddStringToObject(root, "wifiStatus", SYSTEM_MODULE.wifi_status);
+    cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.shares_accepted);
+    cJSON_AddNumberToObject(root, "sharesRejected", SYSTEM_MODULE.shares_rejected);
+    cJSON_AddNumberToObject(root, "uptimeSeconds", (esp_timer_get_time() - SYSTEM_MODULE.start_time) / 1000000);
+    cJSON_AddNumberToObject(root, "asicCount", board_get_asic_count());
+    cJSON_AddNumberToObject(root, "smallCoreCount", 0);
+    cJSON_AddStringToObject(root, "ASICModel", board_get_asic_model());
     cJSON_AddStringToObject(root, "stratumURL", stratumURL);
     cJSON_AddNumberToObject(root, "stratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT));
     cJSON_AddStringToObject(root, "stratumUser", stratumUser);
@@ -525,8 +515,8 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "autoscreenoff", nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0));
     cJSON_AddNumberToObject(root, "invertfanpolarity", nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
     cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1));
-    cJSON_AddNumberToObject(root, "fanspeed", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_perc);
-    cJSON_AddNumberToObject(root, "fanrpm", GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_rpm);
+    cJSON_AddNumberToObject(root, "fanspeed", POWER_MANAGEMENT_MODULE.fan_perc);
+    cJSON_AddNumberToObject(root, "fanrpm", POWER_MANAGEMENT_MODULE.fan_rpm);
 
     // If start_timestamp is provided, include history data
     if (history_requested) {
@@ -936,7 +926,6 @@ esp_err_t start_rest_server(void * pvParameters)
 {
     configure_cjson_for_psram();
 
-    GLOBAL_STATE = (GlobalState *) pvParameters;
     const char *base_path = "";
 
     bool enter_recovery = false;

@@ -7,7 +7,6 @@
 #include "rom/gpio.h"
 
 #define CRC5_MASK 0x1F
-#define BM1368_INITIAL_DIFFICULTY 256
 
 #define BM1368_SERIALTX_DEBUG false
 #define BM1368_SERIALRX_DEBUG false
@@ -42,6 +41,6 @@ void BM1368_set_job_difficulty_mask(int);
 int BM1368_set_max_baud(void);
 int BM1368_set_default_baud(void);
 bool BM1368_send_hash_frequency(float frequency);
-void BM1368_proccess_work(task_result *result;);
+bool BM1368_proccess_work(task_result *result);
 
 #endif /* BM1368_H_ */

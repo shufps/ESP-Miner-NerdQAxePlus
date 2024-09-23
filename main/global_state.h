@@ -1,11 +1,11 @@
 #ifndef GLOBAL_STATE_H_
 #define GLOBAL_STATE_H_
 
-#include "asic_task.h"
 #include "bm1368.h"
 #include "common.h"
-#include "power_management_task.h"
-#include "serial.h"
+#include "tasks/asic_task.h"
+#include "tasks/power_management_task.h"
+//#include "serial.h"
 #include "stratum_api.h"
 #include <pthread.h>
 #include <stdbool.h>
@@ -17,29 +17,7 @@
 
 #define MAX_ASIC_JOBS 128
 
-#define OVERHEAT_DEFAULT        70
-
-typedef enum
-{
-    DEVICE_UNKNOWN = -1,
-    DEVICE_NERDQAXE_PLUS,
-} DeviceModel;
-
-typedef enum
-{
-    ASIC_UNKNOWN = -1,
-    ASIC_BM1368,
-} AsicModel;
-
-typedef struct
-{
-    uint8_t (*init_fn)(uint64_t, uint16_t);
-    void (*receive_result_fn)(task_result *result);
-    int (*set_max_baud_fn)(void);
-    void (*set_difficulty_mask_fn)(int);
-    uint8_t (*send_work_fn)(uint32_t jobid, bm_job *next_bm_job);
-    bool (*send_hash_frequency_fn)(float frequency);
-} AsicFunctions;
+#define OVERHEAT_DEFAULT 70
 
 typedef struct
 {
@@ -55,7 +33,7 @@ typedef struct
     char best_session_diff_string[DIFF_STRING_SIZE];
     bool FOUND_BLOCK;
     bool startup_done;
-    char ssid[32];
+    char ssid[33]; // +1 zero terminator
     char wifi_status[20];
     char *pool_url;
     uint16_t pool_port;
@@ -67,27 +45,8 @@ typedef struct
     uint32_t lastClockSync;
 } SystemModule;
 
-typedef struct
-{
-    DeviceModel device_model;
-    char *device_model_str;
-    int board_version;
-    AsicModel asic_model;
-    char *asic_model_str;
-    uint16_t asic_count;
-    AsicFunctions ASIC_functions;
-    double asic_job_frequency_ms;
-    uint32_t initial_ASIC_difficulty;
-
-    SystemModule SYSTEM_MODULE;
-    AsicTaskModule ASIC_TASK_MODULE;
-    PowerManagementModule POWER_MANAGEMENT_MODULE;
-
-    uint8_t valid_jobs[MAX_ASIC_JOBS];
-    pthread_mutex_t valid_jobs_lock;
-
-    int sock;
-
-} GlobalState;
+extern volatile SystemModule SYSTEM_MODULE;
+extern volatile AsicTaskModule ASIC_TASK_MODULE;
+extern volatile PowerManagementModule POWER_MANAGEMENT_MODULE;
 
 #endif /* GLOBAL_STATE_H_ */

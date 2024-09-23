@@ -488,15 +488,15 @@ void display_updateTime(SystemModule *module)
     lv_label_set_text(ui_lbTime, strData); // Update label
 }
 
-void display_updateCurrentSettings(GlobalState *GLOBAL_STATE)
+void display_updateCurrentSettings()
 {
     char strData[20];
     if (ui_SettingsScreen == NULL)
         return;
 
-    lv_label_set_text(ui_lbPoolSet, GLOBAL_STATE->SYSTEM_MODULE.pool_url); // Update label
+    lv_label_set_text(ui_lbPoolSet, SYSTEM_MODULE.pool_url); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", GLOBAL_STATE->SYSTEM_MODULE.pool_port);
+    snprintf(strData, sizeof(strData), "%d", SYSTEM_MODULE.pool_port);
     lv_label_set_text(ui_lbPortSet, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
@@ -527,7 +527,7 @@ void display_updateBTCprice(void)
     lv_label_set_text(ui_lblBTCPrice, price_str); // Update label
 }
 
-void display_updateGlobalState(GlobalState *GLOBAL_STATE)
+void display_updateGlobalState()
 {
     char strData[20];
 
@@ -536,29 +536,26 @@ void display_updateGlobalState(GlobalState *GLOBAL_STATE)
     if (ui_SettingsScreen == NULL)
         return;
 
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
-    PowerManagementModule *power_management = &GLOBAL_STATE->POWER_MANAGEMENT_MODULE;
-
     // snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp);
-    snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp_avg);
+    snprintf(strData, sizeof(strData), "%.0f", POWER_MANAGEMENT_MODULE.chip_temp_avg);
     lv_label_set_text(ui_lbTemp, strData);       // Update label
     lv_label_set_text(ui_lblTempPrice, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", power_management->fan_rpm);
+    snprintf(strData, sizeof(strData), "%d", POWER_MANAGEMENT_MODULE.fan_rpm);
     lv_label_set_text(ui_lbRPM, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%.3fW", power_management->power);
+    snprintf(strData, sizeof(strData), "%.3fW", POWER_MANAGEMENT_MODULE.power);
     lv_label_set_text(ui_lbPower, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%imA", (int) power_management->current);
+    snprintf(strData, sizeof(strData), "%imA", (int) POWER_MANAGEMENT_MODULE.current);
     lv_label_set_text(ui_lbIntensidad, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%imV", (int) power_management->voltage);
+    snprintf(strData, sizeof(strData), "%imV", (int) POWER_MANAGEMENT_MODULE.voltage);
     lv_label_set_text(ui_lbVinput, strData); // Update label
 
-    display_updateTime(module);
-    display_updateShares(module);
-    display_updateHashrate(module, GLOBAL_STATE->POWER_MANAGEMENT_MODULE.power);
+    display_updateTime(&SYSTEM_MODULE);
+    display_updateShares(&SYSTEM_MODULE);
+    display_updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.power);
     display_updateBTCprice();
 
     uint16_t vcore = (int) (TPS53647_get_vout() * 1000.0f);

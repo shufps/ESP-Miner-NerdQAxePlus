@@ -96,8 +96,7 @@ static void forever()
 
 void influx_task(void *pvParameters)
 {
-    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
+    SystemModule *module = &SYSTEM_MODULE;
 
     int influxEnable = nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE);
 

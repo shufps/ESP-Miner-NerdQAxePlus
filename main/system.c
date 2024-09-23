@@ -7,7 +7,7 @@
 #include "connect.h"
 #include "i2c_master.h"
 #include "nvs_config.h"
-#include "vcore.h"
+//#include "vcore.h"
 
 #include "driver/gpio.h"
 #include "esp_app_desc.h"
@@ -32,6 +32,7 @@
 #include "history.h"
 
 #include "displays/displayDriver.h"
+#include "boards/board.h"
 
 static const char *TAG = "SystemModule";
 
@@ -42,9 +43,9 @@ static esp_netif_ip_info_t ip_info;
 
 QueueHandle_t user_input_queue;
 
-static void _init_system(GlobalState * GLOBAL_STATE)
+static void _init_system()
 {
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
+    SystemModule *module = &SYSTEM_MODULE;
 
     module->current_hashrate_10m = 0.0;
     module->screen_page = 0;
@@ -78,59 +79,42 @@ static void _init_system(GlobalState * GLOBAL_STATE)
     // set the wifi_status to blank
     memset(module->wifi_status, 0, 20);
 
-    // Init I2C
-    ESP_ERROR_CHECK(i2c_master_init());
-    ESP_LOGI(TAG, "I2C initialized successfully");
-
-    VCORE_init(nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE), GLOBAL_STATE);
-
-    switch (GLOBAL_STATE->device_model) {
-    case DEVICE_NERDQAXE_PLUS:
-        EMC2302_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
-        break;
-    default:
-    }
-
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-
     // Display TTGO-TdisplayS3
     display_init();
 
     netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 }
 
-static void _update_hashrate(GlobalState *GLOBAL_STATE)
+static void _update_hashrate()
 {}
 
-static void _update_shares(GlobalState *GLOBAL_STATE)
+static void _update_shares()
 {}
 
-static void _update_best_diff(GlobalState *GLOBAL_STATE)
+static void _update_best_diff()
 {}
 
-static void _clear_display(GlobalState *GLOBAL_STATE)
+static void _clear_display()
 {}
 
-static void _update_system_info(GlobalState *GLOBAL_STATE)
+static void _update_system_info()
 {}
 
-static void _update_esp32_info(GlobalState *GLOBAL_STATE)
+static void _update_esp32_info()
 {}
 
-static void _init_connection(GlobalState *GLOBAL_STATE)
+static void _init_connection()
 {}
 
-static void _update_connection(GlobalState *GLOBAL_STATE)
+static void _update_connection()
 {
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
-
-    display_UpdateWifiStatus(module->wifi_status);
+    display_UpdateWifiStatus(SYSTEM_MODULE.wifi_status);
 }
 
-static void _update_system_performance(GlobalState *GLOBAL_STATE)
+static void _update_system_performance()
 {}
 
-static void show_ap_information(const char *error, GlobalState *GLOBAL_STATE)
+static void show_ap_information(const char *error)
 {
     char ap_ssid[13];
     generate_ssid(ap_ssid);
@@ -149,9 +133,9 @@ static double _calculate_network_difficulty(uint32_t nBits)
     return difficulty;
 }
 
-static void _check_for_best_diff(GlobalState *GLOBAL_STATE, double diff, uint8_t job_id)
+static void _check_for_best_diff(double diff, uint8_t job_id)
 {
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
+    SystemModule *module = &SYSTEM_MODULE;
 
     if ((uint64_t) diff > module->best_session_nonce_diff) {
         module->best_session_nonce_diff = (uint64_t) diff;
@@ -168,7 +152,7 @@ static void _check_for_best_diff(GlobalState *GLOBAL_STATE, double diff, uint8_t
     // make the best_nonce_diff into a string
     _suffix_string((uint64_t) diff, module->best_diff_string, DIFF_STRING_SIZE, 0);
 
-    double network_diff = _calculate_network_difficulty(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->target);
+    double network_diff = _calculate_network_difficulty(ASIC_TASK_MODULE.active_jobs[job_id]->target);
     if (diff > network_diff) {
         module->FOUND_BLOCK = true;
         ESP_LOGI(TAG, "FOUND BLOCK!!!!!!!!!!!!!!!!!!!!!! %f > %f", diff, network_diff);
@@ -285,22 +269,17 @@ void showLastResetReason()
 
 void SYSTEM_task(void *pvParameters)
 {
-    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
 
-    _init_system(GLOBAL_STATE);
+    SystemModule *module = &SYSTEM_MODULE;
+
+    _init_system();
     user_input_queue = xQueueCreate(10, sizeof(char[10])); // Create a queue to handle user input events
 
-    _clear_display(GLOBAL_STATE);
-    _init_connection(GLOBAL_STATE);
+    _clear_display();
+    _init_connection();
 
     char input_event[10];
     ESP_LOGI(TAG, "SYSTEM_task started");
-
-    while (GLOBAL_STATE->ASIC_functions.init_fn == NULL) {
-        display_log_message("ERROR > ASIC MODEL INVALID");
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
 
     // At this point connection was done
 
@@ -310,10 +289,10 @@ void SYSTEM_task(void *pvParameters)
         result = esp_wifi_get_mode(&wifi_mode);
         if (result == ESP_OK && (wifi_mode == WIFI_MODE_APSTA || wifi_mode == WIFI_MODE_AP) &&
             strcmp(module->wifi_status, "Failed to connect") == 0) {
-            show_ap_information(NULL, GLOBAL_STATE);
+            show_ap_information(NULL);
             vTaskDelay(5000 / portTICK_PERIOD_MS);
         } else {
-            _update_connection(GLOBAL_STATE);
+            _update_connection();
         }
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
@@ -324,7 +303,7 @@ void SYSTEM_task(void *pvParameters)
     char ip_address_str[IP4ADDR_STRLEN_MAX];
     esp_ip4addr_ntoa(&ip_info.ip, ip_address_str, IP4ADDR_STRLEN_MAX);
     display_updateIpAddress(ip_address_str);
-    display_updateCurrentSettings(GLOBAL_STATE);
+    display_updateCurrentSettings();
 
     uint8_t countCycle = 10;
     bool shows_overlay = false;
@@ -336,35 +315,35 @@ void SYSTEM_task(void *pvParameters)
         }
 
         // Display TTGO-TDISPLAYS3
-        // display_updateTime(&GLOBAL_STATE->SYSTEM_MODULE);
-        display_updateGlobalState(GLOBAL_STATE);
+        // display_updateTime(&SYSTEM_MODULE);
+        display_updateGlobalState();
         display_RefreshScreen();
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
 
-void SYSTEM_notify_accepted_share(GlobalState *GLOBAL_STATE)
+void SYSTEM_notify_accepted_share()
 {
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
+    SystemModule *module = &SYSTEM_MODULE;
 
     module->shares_accepted++;
-    _update_shares(GLOBAL_STATE);
+    _update_shares();
 }
-void SYSTEM_notify_rejected_share(GlobalState *GLOBAL_STATE)
+void SYSTEM_notify_rejected_share()
 {
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
+    SystemModule *module = &SYSTEM_MODULE;
 
     module->shares_rejected++;
-    _update_shares(GLOBAL_STATE);
+    _update_shares();
 }
 
-void SYSTEM_notify_mining_started(GlobalState *GLOBAL_STATE)
+void SYSTEM_notify_mining_started()
 {}
 
-void SYSTEM_notify_new_ntime(GlobalState *GLOBAL_STATE, uint32_t ntime)
+void SYSTEM_notify_new_ntime(uint32_t ntime)
 {
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
+    SystemModule *module = &SYSTEM_MODULE;
 
     // Hourly clock sync
     if (module->lastClockSync + (60 * 60) > ntime) {
@@ -378,14 +357,14 @@ void SYSTEM_notify_new_ntime(GlobalState *GLOBAL_STATE, uint32_t ntime)
     settimeofday(&tv, NULL);
 }
 
-void SYSTEM_check_for_best_diff(GlobalState *GLOBAL_STATE, double found_diff, uint8_t job_id)
+void SYSTEM_check_for_best_diff(double found_diff, uint8_t job_id)
 {
-    _check_for_best_diff(GLOBAL_STATE, found_diff, job_id);
+    _check_for_best_diff( found_diff, job_id);
 }
 
-void SYSTEM_notify_found_nonce(GlobalState *GLOBAL_STATE, double pool_diff, int asic_nr)
+void SYSTEM_notify_found_nonce(double pool_diff, int asic_nr)
 {
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
+    SystemModule *module = &SYSTEM_MODULE;
 
     if (!module->lastClockSync) {
         ESP_LOGW(TAG, "clock not (yet) synchronized");
@@ -404,5 +383,5 @@ void SYSTEM_notify_found_nonce(GlobalState *GLOBAL_STATE, double pool_diff, int 
 
     module->current_hashrate_10m = history_get_current_10m();
 
-    _update_hashrate(GLOBAL_STATE);
+    _update_hashrate();
 }

@@ -1,5 +1,6 @@
 #include "bm1368.h"
 
+#include <endian.h>
 #include "crc.h"
 #include "serial.h"
 #include "utils.h"
@@ -14,6 +15,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stddef.h>
 
 #ifdef DEBUG_MEMORY_LOGGING
 #include "leak_tracker.h"
@@ -31,6 +34,11 @@
 #define CMD_WRITE 0x01
 #define CMD_READ 0x02
 #define CMD_INACTIVE 0x03
+
+#define CMD_WRITE_SINGLE (TYPE_CMD | GROUP_SINGLE | CMD_WRITE)
+#define CMD_WRITE_ALL    (TYPE_CMD | GROUP_ALL | CMD_WRITE)
+#define CMD_READ_ALL    (TYPE_CMD | GROUP_ALL | CMD_READ)
+
 
 #define RESPONSE_CMD 0x00
 #define RESPONSE_JOB 0x80
@@ -55,11 +63,9 @@ typedef struct __attribute__((__packed__))
     uint8_t job_id;
     uint16_t version;
     uint8_t crc;
-} asic_result;
+} asic_result_t;
 
 static const char *TAG = "bm1368Module";
-
-static uint8_t asic_response_buffer[CHUNK_SIZE];
 
 static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x68, 0x00, 0x00};
 
@@ -103,27 +109,25 @@ static void _send_BM1368(uint8_t header, uint8_t *data, uint8_t data_len, bool d
     SERIAL_send(buf, total_length, debug);
 }
 
-static void _send_simple(uint8_t *data, uint8_t total_length)
-{
-    SERIAL_send(data, total_length, BM1368_SERIALTX_DEBUG);
+static void _send6(uint8_t header, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5) {
+    uint8_t buf[6] = {b0, b1, b2, b3, b4, b5};
+    _send_BM1368(header, buf, sizeof(buf), BM1368_SERIALTX_DEBUG);
+}
+
+static void _send2(uint8_t header, uint8_t b0, uint8_t b1) {
+    uint8_t buf[6] = {b0, b1};
+    _send_BM1368(header, buf, sizeof(buf), BM1368_SERIALTX_DEBUG);
 }
 
 static void _send_chain_inactive(void)
 {
-
-    unsigned char read_address[2] = {0x00, 0x00};
-    // send serial data
-    _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_INACTIVE), read_address, 2, BM1368_SERIALTX_DEBUG);
+    _send2(TYPE_CMD | GROUP_ALL | CMD_INACTIVE, 0x00, 0x00);
 }
 
 static void _set_chip_address(uint8_t chipAddr)
 {
-
-    unsigned char read_address[2] = {chipAddr, 0x00};
-    // send serial data
-    _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_SETADDRESS), read_address, 2, BM1368_SERIALTX_DEBUG);
+    _send2(TYPE_CMD | GROUP_SINGLE | CMD_SETADDRESS, chipAddr, 0x00);
 }
-
 
 
 // Function to set the hash frequency
@@ -174,7 +178,7 @@ bool send_hash_frequency(float target_freq) {
     freqbuf[4] = best_refdiv;
     freqbuf[5] = (((best_postdiv1 - 1) & 0xf) << 4) | ((best_postdiv2 - 1) & 0xf);
 
-    _send_BM1368(TYPE_CMD | GROUP_ALL | CMD_WRITE, freqbuf, sizeof(freqbuf), BM1368_SERIALTX_DEBUG);
+    _send_BM1368(CMD_WRITE_ALL, freqbuf, sizeof(freqbuf), BM1368_SERIALTX_DEBUG);
     //ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
 
     ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)", target_freq, best_newf);
@@ -232,52 +236,53 @@ bool BM1368_send_hash_frequency(float target_freq) {
     return do_frequency_transition(target_freq);
 }
 
+static int _count_asics() {
+
+    // read register 00 on all chips (should respond AA 55 13 68 00 00 00 00 00 00 0F)
+    _send2(CMD_READ_ALL, 0x00, 0x00);
+
+    uint8_t buf[11];
+    int chip_counter = 0;
+    while (SERIAL_rx(buf, sizeof(buf), 1000) > 0) {
+        if (!strncmp((char *) chip_id, (char *) buf, sizeof(chip_id))) {
+            chip_counter++;
+            ESP_LOGI(TAG, "found asic #%d", chip_counter);
+        } else {
+            ESP_LOGE(TAG, "unexpected response ... ignoring ...");
+            ESP_LOG_BUFFER_HEX(TAG, buf, sizeof(buf));
+        }
+    }
+    return chip_counter;
+}
+
+
+
 static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
 {
 
     // enable and set version rolling mask to 0xFFFF
-    unsigned char init0[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF, 0x1C};
-    _send_simple(init0, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
     // enable and set version rolling mask to 0xFFFF (again)
-    unsigned char init1[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF, 0x1C};
-    _send_simple(init1, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
     // enable and set version rolling mask to 0xFFFF (again)
-    unsigned char init2[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF, 0x1C};
-    _send_simple(init2, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
-    // read register 00 on all chips (should respond AA 55 13 68 00 00 00 00 00 00 0F)
-    unsigned char init3[7] = {0x55, 0xAA, 0x52, 0x05, 0x00, 0x00, 0x0A};
-    _send_simple(init3, 7);
+    // enable and set version rolling mask to 0xFFFF (again)
+    _send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
-    int chip_counter = 0;
-    while (true) {
-        if (SERIAL_rx(asic_response_buffer, 11, 1000) > 0) {
-            if (!strncmp((char *) chip_id, (char *) asic_response_buffer, sizeof(chip_id))) {
-                chip_counter++;
-                ESP_LOGI(TAG, "found asic #%d", chip_counter);
-            } else {
-                ESP_LOGE(TAG, "unexpected response ... ignoring ...");
-                ESP_LOG_BUFFER_HEX(TAG, asic_response_buffer, 11);
-            }
-        } else {
-            break;
-        }
-    }
+    int chip_counter = _count_asics();
     ESP_LOGI(TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
 
     // enable and set version rolling mask to 0xFFFF (again)
-    unsigned char init4[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF, 0x1C};
-    _send_simple(init4, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
     // Reg_A8
-    unsigned char init5[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0xA8, 0x00, 0x07, 0x00, 0x00, 0x03};
-    _send_simple(init5, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0xA8, 0x00, 0x07, 0x00, 0x00);
 
     // Misc Control
-    unsigned char init6[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x18, 0xFF, 0x0F, 0xC1, 0x00, 0x00};
-    _send_simple(init6, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0x18, 0xFF, 0x0F, 0xC1, 0x00);
 
     // chain inactive
     _send_chain_inactive();
@@ -288,51 +293,43 @@ static uint8_t _send_init(uint64_t frequency, uint16_t asic_count)
     }
 
     // Core Register Control
-    unsigned char init9[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x3C, 0x80, 0x00, 0x8B, 0x00, 0x12};
-    _send_simple(init9, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0x3C, 0x80, 0x00, 0x8B, 0x00);
 
     // Core Register Control
-    unsigned char init10[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x3C, 0x80, 0x00, 0x80, 0x18, 0x1F};
-    _send_simple(init10, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0x3C, 0x80, 0x00, 0x80, 0x18);
 
     BM1368_set_job_difficulty_mask(BM1368_INITIAL_DIFFICULTY);
 
     // Analog Mux Control
-    unsigned char init12[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x54, 0x00, 0x00, 0x00, 0x03, 0x1D};
-    _send_simple(init12, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0x54, 0x00, 0x00, 0x00, 0x03);
 
     // Set the IO Driver Strength on chip 00
-    unsigned char init13[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x58, 0x02, 0x11, 0x11, 0x11, 0x06};
-    _send_simple(init13, 11);
+    _send6(CMD_WRITE_ALL, 0x00, 0x58, 0x02, 0x11, 0x11, 0x11);
 
     for (uint8_t i = 0; i < chip_counter; i++) {
         // Reg_A8
-        unsigned char set_a8_register[6] = {i * 2, 0xA8, 0x00, 0x07, 0x01, 0xF0};
-        _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_a8_register, 6, BM1368_SERIALTX_DEBUG);
+        _send6(CMD_WRITE_SINGLE, i * 2, 0xA8, 0x00, 0x07, 0x01, 0xF0);
         // Misc Control
-        unsigned char set_18_register[6] = {i * 2, 0x18, 0xF0, 0x00, 0xC1, 0x00};
-        _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_18_register, 6, BM1368_SERIALTX_DEBUG);
+        _send6(CMD_WRITE_SINGLE, i * 2, 0x18, 0xF0, 0x00, 0xC1, 0x00);
         // Core Register Control
-        unsigned char set_3c_register_first[6] = {i * 2, 0x3C, 0x80, 0x00, 0x8B, 0x00};
-        _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_first, 6, BM1368_SERIALTX_DEBUG);
+        _send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x8B, 0x00);
         // Core Register Control
-        unsigned char set_3c_register_second[6] = {i * 2, 0x3C, 0x80, 0x00, 0x80, 0x18};
-        _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_second, 6, BM1368_SERIALTX_DEBUG);
+        _send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x80, 0x18);
         // Core Register Control
-        unsigned char set_3c_register_third[6] = {i * 2, 0x3C, 0x80, 0x00, 0x82, 0xAA};
-        _send_BM1368((TYPE_CMD | GROUP_SINGLE | CMD_WRITE), set_3c_register_third, 6, BM1368_SERIALTX_DEBUG);
+        _send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x82, 0xAA);
     }
 
     do_frequency_transition(frequency);
 
     // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
 
-    // unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x11, 0x5A}; //S19k Pro Default
-    // unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x14, 0x46}; //S19XP-Luxos Default
-    // unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x15, 0x1C}; //S19XP-Stock Default
-    unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x00, 0x15, 0xA4}; // S21-Stock Default
-    // unsigned char set_10_hash_counting[6] = {0x00, 0x10, 0x00, 0x0F, 0x00, 0x00}; //supposedly the "full" 32bit nonce range
-    _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_WRITE), set_10_hash_counting, 6, BM1368_SERIALTX_DEBUG);
+    // _send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x11, 0x5A); //S19k Pro Default
+    // _send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x14, 0x46); //S19XP-Luxos Default
+    // _send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0x1C); //S19XP-Stock Default
+    // _send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x0F, 0x00, 0x00); //supposedly the "full" 32bit nonce range
+    _send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0xA4); // S21-Stock Default
+
+    _send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
     return chip_counter;
 }
@@ -354,17 +351,12 @@ static void _reset(void)
 
 static void _send_read_address(void)
 {
-
-    unsigned char read_address[2] = {0x00, 0x00};
-    // send serial data
-    _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_READ), read_address, 2, BM1368_SERIALTX_DEBUG);
+    _send2(TYPE_CMD | GROUP_ALL | CMD_READ, 0x00, 0x00);
 }
 
 uint8_t BM1368_init(uint64_t frequency, uint16_t asic_count)
 {
     ESP_LOGI(TAG, "Initializing BM1368");
-
-    memset(asic_response_buffer, 0, 1024);
 
     // esp_rom_gpio_pad_select_gpio(BM1368_RST_PIN);
     gpio_pad_select_gpio(BM1368_RST_PIN);
@@ -380,19 +372,9 @@ uint8_t BM1368_init(uint64_t frequency, uint16_t asic_count)
     return _send_init(frequency, asic_count);
 }
 
-// Baud formula = 25M/((denominator+1)*8)
-// The denominator is 5 bits found in the misc_control (bits 9-13)
-int BM1368_set_default_baud(void)
-{
-    // default divider of 26 (11010) for 115,749
-    unsigned char baudrate[9] = {0x00, MISC_CONTROL, 0x00, 0x00, 0b01111010, 0b00110001}; // baudrate - misc_control
-    _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_WRITE), baudrate, 6, BM1368_SERIALTX_DEBUG);
-    return 115749;
-}
-
 int BM1368_set_max_baud(void)
 {
-    return 115200;
+    return 115749;
 /*
     /// return 115749;
 
@@ -430,7 +412,7 @@ void BM1368_set_job_difficulty_mask(int difficulty)
 
     ESP_LOGI(TAG, "Setting ASIC difficulty mask to %d", difficulty);
 
-    _send_BM1368((TYPE_CMD | GROUP_ALL | CMD_WRITE), job_difficulty_mask, 6, BM1368_SERIALTX_DEBUG);
+    _send_BM1368((CMD_WRITE_ALL), job_difficulty_mask, 6, BM1368_SERIALTX_DEBUG);
 }
 
 uint8_t BM1368_send_work(uint32_t job_id, bm_job *next_bm_job)
@@ -454,27 +436,27 @@ uint8_t BM1368_send_work(uint32_t job_id, bm_job *next_bm_job)
     return job.job_id;
 }
 
-asic_result *BM1368_receive_work(void)
+static bool _receive_work(asic_result_t *result)
 {
     // wait for a response, wait time is pretty arbitrary
-    int received = SERIAL_rx(asic_response_buffer, 11, 60000);
+    int received = SERIAL_rx((uint8_t*) result, 11, 60000);
 
     if (received < 0) {
         ESP_LOGI(TAG, "Error in serial RX");
-        return NULL;
+        return false;
     } else if (received == 0) {
         // Didn't find a solution, restart and try again
-        return NULL;
+        return false;
     }
 
-    if (received != 11 || asic_response_buffer[0] != 0xAA || asic_response_buffer[1] != 0x55) {
+    if (result->preamble[0] != 0xAA || result->preamble[1] != 0x55) {
         ESP_LOGE(TAG, "Serial RX invalid %i", received);
-        ESP_LOG_BUFFER_HEX(TAG, asic_response_buffer, received);
+        ESP_LOG_BUFFER_HEX(TAG, (uint8_t*) result, received);
         SERIAL_clear_buffer();
-        return NULL;
+        return false;
     }
 
-    return (asic_result *) asic_response_buffer;
+    return true;
 }
 
 static uint16_t reverse_uint16(uint16_t num)
@@ -482,22 +464,31 @@ static uint16_t reverse_uint16(uint16_t num)
     return (num >> 8) | (num << 8);
 }
 
-void BM1368_proccess_work(task_result *result)
+bool BM1368_proccess_work(task_result *result)
 {
-    asic_result *asic_result = BM1368_receive_work();
-
-    if (asic_result == NULL) {
-        return;
+    asic_result_t asic_result;
+    if (!_receive_work(&asic_result)) {
+        return false;
     }
 
-    uint8_t job_id = (asic_result->job_id & 0xf0) >> 1;
+    // if this matches we can assume it's not a nonce but a response from a read request
+    if ((asic_result.midstate_num == 0) && !(asic_result.nonce & 0x7f) && !(asic_result.version)) {
+        result->data = __bswap32(asic_result.nonce);
+        result->reg = asic_result.job_id;
+        result->is_reg_resp = 1;
+        return true;
+    }
 
-    uint32_t rolled_version = (reverse_uint16(asic_result->version) << 13); // shift the 16 bit value left 13
+    uint8_t job_id = (asic_result.job_id & 0xf0) >> 1;
 
-    int asic_nr = (asic_result->nonce & 0x0000fc00) >> 10;
+    uint32_t rolled_version = (reverse_uint16(asic_result.version) << 13); // shift the 16 bit value left 13
+
+    int asic_nr = (asic_result.nonce & 0x0000fc00) >> 10;
 
     result->job_id = job_id;
     result->asic_nr = asic_nr;
-    result->nonce = asic_result->nonce;
+    result->nonce = asic_result.nonce;
     result->rolled_version = rolled_version;
+    result->is_reg_resp = 0;
+    return true;
 }

@@ -9,10 +9,13 @@
 
 #include <pthread.h>
 #include <sys/time.h>
+#include "boards/board.h"
 
 #ifdef DEBUG_MEMORY_LOGGING
 #include "leak_tracker.h"
 #endif
+
+#include "boards/nerdqaxeplus.h"
 
 static const char *TAG = "create_jobs_task";
 
@@ -28,6 +31,9 @@ static int extranonce_2_len = 0;
 
 static uint32_t stratum_difficulty = 8192;
 static uint32_t version_mask = 0;
+
+#define min(a,b) ((a<b)?(a):(b))
+#define max(a,b) ((a>b)?(a):(b))
 
 static void create_job_timer(TimerHandle_t xTimer)
 {
@@ -103,14 +109,12 @@ void create_job_mining_notify(mining_notify *notifiy)
 
 void *create_jobs_task(void *pvParameters)
 {
-    GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
-
-    ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", GLOBAL_STATE->asic_job_frequency_ms);
-    SYSTEM_notify_mining_started(GLOBAL_STATE);
+    ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board_get_asic_job_frequency_ms());
+    SYSTEM_notify_mining_started();
     ESP_LOGI(TAG, "ASIC Ready!");
 
     // Create the timer
-    TimerHandle_t job_timer = xTimerCreate(TAG, pdMS_TO_TICKS(GLOBAL_STATE->asic_job_frequency_ms), pdTRUE, NULL, create_job_timer);
+    TimerHandle_t job_timer = xTimerCreate(TAG, pdMS_TO_TICKS(board_get_asic_job_frequency_ms()), pdTRUE, NULL, create_job_timer);
 
     if (job_timer == NULL) {
         ESP_LOGE(TAG, "Failed to create timer");
@@ -126,7 +130,7 @@ void *create_jobs_task(void *pvParameters)
     // initialize notify
     memset(&current_job, 0, sizeof(mining_notify));
 
-    uint32_t last_pool_diff = 0;
+    uint32_t last_asic_diff = 0;
     uint32_t last_ntime = 0;
     uint64_t last_submit_time = 0;
     uint32_t extranonce_2 = 0;
@@ -170,13 +174,16 @@ void *create_jobs_task(void *pvParameters)
         next_job->extranonce2 = strdup(extranonce_2_str);
         next_job->pool_diff = stratum_difficulty;
 
+        // clamp stratum difficulty
+        next_job->asic_diff = max(min(stratum_difficulty, ASIC_MAX_DIFFICULTY), ASIC_MIN_DIFFICULTY);
+
         pthread_mutex_unlock(&current_stratum_job_mutex);
 
-        if (next_job->pool_diff != last_pool_diff) {
-            ESP_LOGI(TAG, "New pool difficulty %lu", next_job->pool_diff);
-            last_pool_diff = next_job->pool_diff;
+        if (next_job->asic_diff != last_asic_diff) {
+            ESP_LOGI(TAG, "New ASIC difficulty %lu", next_job->asic_diff);
+            last_asic_diff = next_job->asic_diff;
 
-            (*GLOBAL_STATE->ASIC_functions.set_difficulty_mask_fn)(next_job->pool_diff);
+            board_asic_set_job_difficulty_mask(next_job->asic_diff);
         }
 
         uint64_t current_time = esp_timer_get_time();
@@ -185,20 +192,20 @@ void *create_jobs_task(void *pvParameters)
         }
         last_submit_time = current_time;
 
-        int asic_job_id = (*GLOBAL_STATE->ASIC_functions.send_work_fn)(extranonce_2, next_job);
+        int asic_job_id = board_asic_send_work(extranonce_2, next_job);
 
         ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
 
         // save job
-        pthread_mutex_lock(&GLOBAL_STATE->valid_jobs_lock);
+        pthread_mutex_lock(&ASIC_TASK_MODULE.valid_jobs_lock);
         // if a slot was used before free it
-        if (GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id] != NULL) {
-            free_bm_job(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id]);
+        if (ASIC_TASK_MODULE.active_jobs[asic_job_id] != NULL) {
+            free_bm_job(ASIC_TASK_MODULE.active_jobs[asic_job_id]);
         }
         // save job into slot and set valid_job flag
-        GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[asic_job_id] = next_job;
-        GLOBAL_STATE->valid_jobs[asic_job_id] = 1;
-        pthread_mutex_unlock(&GLOBAL_STATE->valid_jobs_lock);
+        ASIC_TASK_MODULE.active_jobs[asic_job_id] = next_job;
+        ASIC_TASK_MODULE.valid_jobs[asic_job_id] = 1;
+        pthread_mutex_unlock(&ASIC_TASK_MODULE.valid_jobs_lock);
 
         extranonce_2++;
     }

@@ -1,15 +1,15 @@
 idf_component_register(
 SRCS
-    "EMC2302.c"
 
     "i2c_master.c"
 
     "main.c"
     "nvs_config.c"
     "system.c"
-    "TMP1075.c"
-    "TPS53647.c"
-    "vcore.c"
+    "boards/nerdqaxeplus.c"
+    "boards/drivers/EMC2302.c"
+    "boards/drivers/TMP1075.c"
+    "boards/drivers/TPS53647.c"
     "leak_tracker.c"
     "history.c"
 
@@ -49,6 +49,8 @@ INCLUDE_DIRS
     "http_server"
     "displays"
     "displays/images"
+    "boards"
+    "boards/drivers"
     "../components/connect/include"
     "../components/dns_server/include"
     "../components/bm1397/include"

@@ -12,25 +12,21 @@
 #include "displays/displayDriver.h"
 #include "string.h"
 #include "utils.h"
-#include "vcore.h"
+#include "boards/board.h"
 
 static const char *TAG = "self_test";
 
-static void display_msg(char *msg, GlobalState *GLOBAL_STATE)
+static void display_msg(char *msg)
 {
-    SystemModule *module = &GLOBAL_STATE->SYSTEM_MODULE;
+    SystemModule *module = &SYSTEM_MODULE;
     ESP_LOGI(TAG, "%s", msg);
 }
 
-static bool fan_sense_pass(GlobalState *GLOBAL_STATE)
+static bool fan_sense_pass()
 {
     uint16_t fan_speed = 0;
-    switch (GLOBAL_STATE->device_model) {
-    case DEVICE_NERDQAXE_PLUS:
-        EMC2302_get_fan_speed(&fan_speed);
-        break;
-    default:
-    }
+    board_get_fan_speed(&fan_speed);
+
     ESP_LOGI(TAG, "fanSpeed: %d", fan_speed);
     if (fan_speed > 1000) {
         return true;
@@ -38,9 +34,9 @@ static bool fan_sense_pass(GlobalState *GLOBAL_STATE)
     return false;
 }
 
-static bool core_voltage_pass(GlobalState *GLOBAL_STATE)
+static bool core_voltage_pass()
 {
-    uint16_t core_voltage = VCORE_get_voltage_mv(GLOBAL_STATE);
+    uint16_t core_voltage = board_get_voltage_mv();
     ESP_LOGI(TAG, "Voltage: %u", core_voltage);
 
     if (core_voltage > 1100 && core_voltage < 1300) {
@@ -75,12 +71,7 @@ void self_test(void *pvParameters)
     VCORE_init(GLOBAL_STATE);
     VCORE_set_voltage(nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE) / 1000.0, GLOBAL_STATE);
 
-    switch (GLOBAL_STATE->device_model) {
-    case DEVICE_NERDQAXE_PLUS:
-        EMC2302_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
-        EMC2302_set_fan_speed(1);
-        break;
-    default:
+
     }
 
     SERIAL_init();

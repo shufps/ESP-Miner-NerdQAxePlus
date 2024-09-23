@@ -1,5 +1,13 @@
 #pragma once
 
+#include "common.h"
+#include "bm1368.h"
+
+#define ASIC_MIN_DIFFICULTY 256
+#define ASIC_MAX_DIFFICULTY 1024
+
+#define BM1368_INITIAL_DIFFICULTY ASIC_MAX_DIFFICULTY
+
 #define TPS53647_EN_PIN GPIO_NUM_10
 #define BM1368_RST_PIN GPIO_NUM_1
 #define LDO_EN_PIN GPIO_NUM_13

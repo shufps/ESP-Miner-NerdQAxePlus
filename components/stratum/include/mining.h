@@ -15,7 +15,13 @@ typedef struct
     uint32_t target; // aka difficulty, aka nbits
     uint32_t starting_nonce;
 
+    // real stratum pool difficulty
     uint32_t pool_diff;
+
+    // effective asic difficulty
+    // is limited to [ASIC_MIN_DIFFICULTY...ASIC_MAX_DIFFICULTY]
+    uint32_t asic_diff;
+
     char *jobid;
     char *extranonce2;
 } bm_job;

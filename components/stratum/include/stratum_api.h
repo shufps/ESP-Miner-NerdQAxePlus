@@ -67,7 +67,7 @@ void STRATUM_V1_initialize_buffer();
 
 char *STRATUM_V1_receive_jsonrpc_line(int sockfd);
 
-int STRATUM_V1_subscribe(int socket, char *model);
+int STRATUM_V1_subscribe(int socket, const char* device, const char* asic);
 
 void STRATUM_V1_parse(StratumApiV1Message *message, const char *stratum_json);
 
