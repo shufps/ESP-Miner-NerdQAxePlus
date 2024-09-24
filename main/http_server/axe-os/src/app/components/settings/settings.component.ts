@@ -71,9 +71,9 @@ export class SettingsComponent {
             Validators.max(65353)
           ]],
           stratumUser: [info.stratumUser, [Validators.required]],
-          stratumPassword: ['password', [Validators.required]],
+          stratumPassword: ['*****', [Validators.required]],
           ssid: [info.ssid, [Validators.required]],
-          wifiPass: ['password'],
+          wifiPass: ['*****'],
           coreVoltage: [info.coreVoltage, [Validators.required]],
           frequency: [info.frequency, [Validators.required]],
           autofanspeed: [info.autofanspeed == 1, [Validators.required]],
@@ -118,10 +118,10 @@ export class SettingsComponent {
     form.autofanspeed = form.autofanspeed == true ? 1 : 0;
     form.autoscreenoff = form.autoscreenoff == true ? 1 : 0;
 
-    if (form.wifiPass === 'password') {
+    if (form.wifiPass === '*****') {
       delete form.wifiPass;
     }
-    if (form.stratumPassword === 'password') {
+    if (form.stratumPassword === '*****') {
       delete form.stratumPassword;
     }
 
