@@ -1,5 +1,5 @@
-#include "ui.h"
 #include "ui_helpers.h"
+#include "ui.h"
 
 #include "displayDriver.h"
 #include "esp_log.h"

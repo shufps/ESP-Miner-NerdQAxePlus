@@ -1,21 +1,17 @@
+#include <limits.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <string.h>
+
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
-#include "global_state.h"
 #include "mining.h"
-#include "string.h"
+
+#include "global_state.h"
+
 #include "system.h"
-#include <limits.h>
-
-#include <pthread.h>
-#include <sys/time.h>
 #include "boards/board.h"
-
-#ifdef DEBUG_MEMORY_LOGGING
-#include "leak_tracker.h"
-#endif
-
-#include "boards/nerdqaxeplus.h"
 
 static const char *TAG = "create_jobs_task";
 
@@ -109,12 +105,12 @@ void create_job_mining_notify(mining_notify *notifiy)
 
 void *create_jobs_task(void *pvParameters)
 {
-    ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board_get_asic_job_frequency_ms());
+    ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board.get_asic_job_frequency_ms());
     SYSTEM_notify_mining_started();
     ESP_LOGI(TAG, "ASIC Ready!");
 
     // Create the timer
-    TimerHandle_t job_timer = xTimerCreate(TAG, pdMS_TO_TICKS(board_get_asic_job_frequency_ms()), pdTRUE, NULL, create_job_timer);
+    TimerHandle_t job_timer = xTimerCreate(TAG, pdMS_TO_TICKS(board.get_asic_job_frequency_ms()), pdTRUE, NULL, create_job_timer);
 
     if (job_timer == NULL) {
         ESP_LOGE(TAG, "Failed to create timer");
@@ -183,7 +179,7 @@ void *create_jobs_task(void *pvParameters)
             ESP_LOGI(TAG, "New ASIC difficulty %lu", next_job->asic_diff);
             last_asic_diff = next_job->asic_diff;
 
-            board_asic_set_job_difficulty_mask(next_job->asic_diff);
+            board.asic_set_job_difficulty_mask(next_job->asic_diff);
         }
 
         uint64_t current_time = esp_timer_get_time();
@@ -192,7 +188,7 @@ void *create_jobs_task(void *pvParameters)
         }
         last_submit_time = current_time;
 
-        int asic_job_id = board_asic_send_work(extranonce_2, next_job);
+        int asic_job_id = board.asic_send_work(extranonce_2, next_job);
 
         ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
 

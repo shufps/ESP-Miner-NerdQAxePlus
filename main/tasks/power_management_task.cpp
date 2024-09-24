@@ -1,14 +1,16 @@
+#include <math.h>
+#include <string.h>
+
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "global_state.h"
-#include "math.h"
-#include "mining.h"
-#include "nvs_config.h"
-#include "serial.h"
-#include <string.h>
 
+#include "mining.h"
+
+#include "serial.h"
+#include "global_state.h"
+#include "nvs_config.h"
 #include "influx_task.h"
 #include "boards/board.h"
 
@@ -39,7 +41,7 @@ static double automatic_fan_speed(float chip_temp)
 
     float perc = (float) result / 100;
     POWER_MANAGEMENT_MODULE.fan_perc = perc;
-    board_set_fan_speed(perc);
+    board.set_fan_speed(perc);
     return result;
 }
 
@@ -63,35 +65,35 @@ void POWER_MANAGEMENT_task(void *pvParameters)
 
         if (core_voltage != last_core_voltage) {
             ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
-            board_set_voltage((double) core_voltage / 1000.0);
+            board.set_voltage((double) core_voltage / 1000.0);
             last_core_voltage = core_voltage;
         }
 
         if (asic_frequency != last_asic_frequency) {
             ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
             // if PLL setting was found save it in the struct
-            if (board_asic_send_hash_frequency((float) asic_frequency)) {
+            if (board.asic_send_hash_frequency((float) asic_frequency)) {
                 power_management->frequency_value = (float) asic_frequency;
             }
             last_asic_frequency = asic_frequency;
         }
 
-        float vin = board_get_vin();
-        float iin = board_get_iin();
-        float pin = board_get_pin();
-        float pout = board_get_pout();
-        float vout = board_get_vout();
-        float iout = board_get_iout();
+        float vin = board.get_vin();
+        float iin = board.get_iin();
+        float pin = board.get_pin();
+        float pout = board.get_pout();
+        float vout = board.get_vout();
+        float iout = board.get_iout();
 
         influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
         power_management->voltage = vin * 1000.0;
         power_management->current = iin * 1000.0;
         power_management->power = pin;
-        board_get_fan_speed(&power_management->fan_rpm);
+        board.get_fan_speed(&power_management->fan_rpm);
 
-        power_management->chip_temp_avg = board_read_temperature(0);
-        power_management->vr_temp = board_read_temperature(1);
+        power_management->chip_temp_avg = board.read_temperature(0);
+        power_management->vr_temp = board.read_temperature(1);
         influx_task_set_temperature(power_management->chip_temp_avg, power_management->vr_temp);
 
         if (overheat_temp &&
@@ -99,7 +101,7 @@ void POWER_MANAGEMENT_task(void *pvParameters)
             // over temperature
             overheated = module->overheated = true;
             // disables the buck
-            board_set_voltage(0.0);
+            board.set_voltage(0.0);
         }
 
         if (auto_fan_speed == 1) {
@@ -107,7 +109,7 @@ void POWER_MANAGEMENT_task(void *pvParameters)
         } else {
             float fs = (float) nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100);
             power_management->fan_perc = fs;
-            board_set_fan_speed((float) fs / 100);
+            board.set_fan_speed((float) fs / 100);
         }
 
         vTaskDelay(POLL_RATE / portTICK_PERIOD_MS);

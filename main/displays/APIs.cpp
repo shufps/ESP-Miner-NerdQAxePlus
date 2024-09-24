@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
 static char tag[] = "APIsHelper";
 static char *response_buffer = NULL; // Buffer para acumular la respuesta completa
 static int response_length = 0;      // Longitud actual del buffer
@@ -22,10 +24,10 @@ static unsigned int bitcoin_price = 0; // Establece esta variable globalmente
 esp_err_t http_event_handler(esp_http_client_event_t *evt)
 {
     switch (evt->event_id) {
-    case HTTP_EVENT_ON_DATA:
+    case HTTP_EVENT_ON_DATA: {
         if (!esp_http_client_is_chunked_response(evt->client)) {
             // Aumentar el buffer con nuevos datos
-            char *new_buffer = realloc(response_buffer, response_length + evt->data_len + 1);
+            char *new_buffer = (char*) realloc(response_buffer, response_length + evt->data_len + 1);
             if (new_buffer == NULL) {
                 ESP_LOGE(tag, "Failed to allocate memory for response buffer");
                 return ESP_ERR_NO_MEM;
@@ -36,7 +38,8 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
             response_buffer[response_length] = '\0'; // Asegurarse de que el buffer es una cadena válida
         }
         break;
-    case HTTP_EVENT_ON_FINISH:
+    }
+    case HTTP_EVENT_ON_FINISH: {
         // Intentar parsear el JSON completo al final de la transmisión
         // ESP_LOGI(tag, "Final JSON received: %s", response_buffer);
         cJSON *json = cJSON_Parse(response_buffer);
@@ -61,6 +64,7 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
         response_buffer = NULL;
         response_length = 0;
         break;
+    }
     default:
         break;
     }

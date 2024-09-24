@@ -1,9 +1,12 @@
-#include "esp_log.h"
-#include "nvs_config.h"
-#include "serial.h"
-#include "system.h"
-#include "utils.h"
 #include <string.h>
+
+#include "esp_log.h"
+
+#include "serial.h"
+#include "utils.h"
+#include "global_state.h"
+#include "nvs_config.h"
+#include "system.h"
 #include "boards/board.h"
 
 static const char *TAG = "asic_result";
@@ -33,7 +36,7 @@ void ASIC_result_task(void *pvParameters)
         task_result asic_result;
 
         // get the result
-        if (!board_asic_proccess_work(&asic_result)) {
+        if (!board.asic_proccess_work(&asic_result)) {
             continue;
         }
 

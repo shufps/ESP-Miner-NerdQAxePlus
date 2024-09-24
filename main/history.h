@@ -1,5 +1,6 @@
-#include "esp_psram.h"
 #pragma once
+
+#include "esp_psram.h"
 
 // 128k samples should be enough^^
 // must be power of two

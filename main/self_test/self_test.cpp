@@ -1,17 +1,14 @@
-#include "EMC2302.h"
+#include <string.h>
+
 #include "esp_log.h"
+#include "nvs_flash.h"
+#include "displays/displayDriver.h"
+#include "utils.h"
+
+#include "EMC2302.h"
 #include "global_state.h"
 #include "i2c_master.h"
 #include "nvs_config.h"
-#include "nvs_flash.h"
-
-#ifdef DISPLAY_OLED
-#include "oled.h"
-#endif
-
-#include "displays/displayDriver.h"
-#include "string.h"
-#include "utils.h"
 #include "boards/board.h"
 
 static const char *TAG = "self_test";
@@ -25,7 +22,7 @@ static void display_msg(char *msg)
 static bool fan_sense_pass()
 {
     uint16_t fan_speed = 0;
-    board_get_fan_speed(&fan_speed);
+    board.get_fan_speed(&fan_speed);
 
     ESP_LOGI(TAG, "fanSpeed: %d", fan_speed);
     if (fan_speed > 1000) {
@@ -36,7 +33,7 @@ static bool fan_sense_pass()
 
 static bool core_voltage_pass()
 {
-    uint16_t core_voltage = board_get_voltage_mv();
+    uint16_t core_voltage = board.get_voltage_mv();
     ESP_LOGI(TAG, "Voltage: %u", core_voltage);
 
     if (core_voltage > 1100 && core_voltage < 1300) {

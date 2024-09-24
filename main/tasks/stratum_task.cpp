@@ -1,15 +1,16 @@
+#include <time.h>
+
+#include <esp_sntp.h>
 #include "esp_log.h"
-// #include "addr_from_stdin.h"
-#include "connect.h"
 #include "esp_wifi.h"
-#include "global_state.h"
 #include "lwip/dns.h"
+
+#include "connect.h"
+
+#include "global_state.h"
 #include "nvs_config.h"
 #include "stratum_task.h"
 #include "system.h"
-#include <esp_sntp.h>
-#include <time.h>
-
 #include "create_jobs_task.h"
 #include "boards/board.h"
 
@@ -57,7 +58,7 @@ bool is_wifi_connected()
     }
 }
 
-int is_socket_connected(int socket);
+extern "C" int is_socket_connected(int socket);
 
 void cleanQueue()
 {
@@ -170,7 +171,7 @@ void stratum_task(void *pvParameters)
 
             ///// Start Stratum Action
             // mining.subscribe - ID: 1
-            STRATUM_V1_subscribe(stratum_sock, board_get_device_model(), board_get_asic_model());
+            STRATUM_V1_subscribe(stratum_sock, board.get_device_model(), board.get_asic_model());
 
             // mining.configure - ID: 2
             STRATUM_V1_configure_version_rolling(stratum_sock);

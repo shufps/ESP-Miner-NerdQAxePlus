@@ -1,7 +1,8 @@
-#include "esp_log.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+
+#include "esp_log.h"
 
 #include "EMC2302.h"
 

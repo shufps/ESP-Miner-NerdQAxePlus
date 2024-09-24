@@ -59,13 +59,13 @@ void _ui_arc_increment(lv_obj_t * target, int val)
 void _ui_bar_increment(lv_obj_t * target, int val, int anm)
 {
     int old = lv_bar_get_value(target);
-    lv_bar_set_value(target, old + val, anm);
+    lv_bar_set_value(target, old + val, (lv_anim_enable_t) anm);
 }
 
 void _ui_slider_increment(lv_obj_t * target, int val, int anm)
 {
     int old = lv_slider_get_value(target);
-    lv_slider_set_value(target, old + val, anm);
+    lv_slider_set_value(target, old + val, (lv_anim_enable_t) anm);
     lv_event_send(target, LV_EVENT_VALUE_CHANGED, 0);
 }
 

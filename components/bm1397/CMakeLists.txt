@@ -1,9 +1,10 @@
 idf_component_register(
 SRCS
-    "bm1368.c"
-    "serial.c"
-    "crc.c"
-    "common.c"
+    "asic.cpp"
+    "bm1368.cpp"
+    "serial.cpp"
+    "crc.cpp"
+    "common.cpp"
 
 INCLUDE_DIRS
     "include"

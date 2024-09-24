@@ -5,6 +5,7 @@
 #include "driver/gpio.h"
 #include "mining.h"
 #include "rom/gpio.h"
+#include "asic.h"
 
 #define CRC5_MASK 0x1F
 
@@ -16,31 +17,17 @@
 static const uint64_t BM1368_CORE_COUNT = 80;
 static const uint64_t BM1368_SMALL_CORE_COUNT = 1276;
 
-typedef struct
-{
-    float frequency;
-} bm1368Module;
+class BM1368 : public Asic {
+protected:
+    virtual const uint8_t* get_chip_id();
 
-typedef struct __attribute__((__packed__))
-{
-    uint8_t job_id;
-    uint8_t num_midstates;
-    uint8_t starting_nonce[4];
-    uint8_t nbits[4];
-    uint8_t ntime[4];
-    uint8_t merkle_root[32];
-    uint8_t prev_block_hash[32];
-    uint8_t version[4];
-} BM1368_job;
+    virtual uint8_t job_to_asic_id(uint8_t job_id);
+    virtual uint8_t asic_to_job_id(uint8_t asic_id);
 
-uint8_t BM1368_init(uint64_t frequency, uint16_t asic_count);
-
-uint8_t BM1368_send_init(void);
-uint8_t BM1368_send_work(uint32_t job_id, bm_job *next_bm_job);
-void BM1368_set_job_difficulty_mask(int);
-int BM1368_set_max_baud(void);
-int BM1368_set_default_baud(void);
-bool BM1368_send_hash_frequency(float frequency);
-bool BM1368_proccess_work(task_result *result);
+public:
+    BM1368();
+    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty);
+    virtual int set_max_baud(void);
+};
 
 #endif /* BM1368_H_ */

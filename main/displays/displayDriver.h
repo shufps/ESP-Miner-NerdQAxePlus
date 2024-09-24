@@ -6,7 +6,7 @@
 #define DISPLAYDRIVER_H_
 
 #include "../global_state.h"
-#include "../system.h"
+//#include "../system.h"
 
 /* INCLUDES ------------------------------------------------------------------*/
 
@@ -17,29 +17,29 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Inicializa el GPIO para el botón
-#define PIN_BUTTON_1 14
-#define PIN_BUTTON_2 0
+#define PIN_BUTTON_1 (gpio_num_t) 14
+#define PIN_BUTTON_2 (gpio_num_t) 0
 
 #define TDISPLAYS3_LCD_PIXEL_CLOCK_HZ (6528000) // 170 (h) * 320 (w) * 2 (sizeof(lv_color_t)) * 60 (max fps)
 #define TDISPLAYS3_LCD_BK_LIGHT_ON_LEVEL 1
 #define TDISPLAYS3_LCD_BK_LIGHT_OFF_LEVEL !TDISPLAYS3_LCD_BK_LIGHT_ON_LEVEL
 
-#define TDISPLAYS3_PIN_NUM_DATA0 39
-#define TDISPLAYS3_PIN_NUM_DATA1 40
-#define TDISPLAYS3_PIN_NUM_DATA2 41
-#define TDISPLAYS3_PIN_NUM_DATA3 42
-#define TDISPLAYS3_PIN_NUM_DATA4 45
-#define TDISPLAYS3_PIN_NUM_DATA5 46
-#define TDISPLAYS3_PIN_NUM_DATA6 47
-#define TDISPLAYS3_PIN_NUM_DATA7 48
+#define TDISPLAYS3_PIN_NUM_DATA0 (gpio_num_t) 39
+#define TDISPLAYS3_PIN_NUM_DATA1 (gpio_num_t) 40
+#define TDISPLAYS3_PIN_NUM_DATA2 (gpio_num_t) 41
+#define TDISPLAYS3_PIN_NUM_DATA3 (gpio_num_t) 42
+#define TDISPLAYS3_PIN_NUM_DATA4 (gpio_num_t) 45
+#define TDISPLAYS3_PIN_NUM_DATA5 (gpio_num_t) 46
+#define TDISPLAYS3_PIN_NUM_DATA6 (gpio_num_t) 47
+#define TDISPLAYS3_PIN_NUM_DATA7 (gpio_num_t) 48
 
 #define TDISPLAYS3_PIN_RD GPIO_NUM_9
-#define TDISPLAYS3_PIN_PWR 15
+#define TDISPLAYS3_PIN_PWR (gpio_num_t) 15
 #define TDISPLAYS3_PIN_NUM_PCLK GPIO_NUM_8 // LCD_WR
-#define TDISPLAYS3_PIN_NUM_CS 6
-#define TDISPLAYS3_PIN_NUM_DC 7
-#define TDISPLAYS3_PIN_NUM_RST 5
-#define TDISPLAYS3_PIN_NUM_BK_LIGHT 38
+#define TDISPLAYS3_PIN_NUM_CS (gpio_num_t) 6
+#define TDISPLAYS3_PIN_NUM_DC (gpio_num_t) 7
+#define TDISPLAYS3_PIN_NUM_RST (gpio_num_t) 5
+#define TDISPLAYS3_PIN_NUM_BK_LIGHT (gpio_num_t) 38
 
 // The pixel number in horizontal and vertical
 #define TDISPLAYS3_LCD_H_RES 320

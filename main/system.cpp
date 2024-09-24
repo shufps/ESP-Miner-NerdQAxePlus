@@ -1,21 +1,3 @@
-#include "system.h"
-
-#include "esp_log.h"
-
-#include "EMC2302.h"
-#include "TMP1075.h"
-#include "connect.h"
-#include "i2c_master.h"
-#include "nvs_config.h"
-//#include "vcore.h"
-
-#include "driver/gpio.h"
-#include "esp_app_desc.h"
-#include "esp_netif.h"
-#include "esp_timer.h"
-#include "esp_wifi.h"
-#include "lwip/inet.h"
-
 #include <inttypes.h>
 #include <math.h>
 #include <stdint.h>
@@ -23,15 +5,24 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include "esp_log.h"
 #include "driver/gpio.h"
+#include "esp_app_desc.h"
+#include "esp_netif.h"
+#include "esp_timer.h"
+#include "esp_wifi.h"
+#include "lwip/inet.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
-
-#include "influx_task.h"
-#include "history.h"
+#include "connect.h"
 
 #include "displays/displayDriver.h"
+#include "system.h"
+#include "i2c_master.h"
+#include "nvs_config.h"
+#include "influx_task.h"
+#include "history.h"
 #include "boards/board.h"
 
 static const char *TAG = "SystemModule";

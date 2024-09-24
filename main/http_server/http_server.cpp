@@ -1,4 +1,8 @@
-#include "http_server.h"
+
+#include <fcntl.h>
+#include <string.h>
+#include <sys/param.h>
+
 #include "cJSON.h"
 #include "esp_chip_info.h"
 #include "esp_http_server.h"
@@ -7,22 +11,14 @@
 #include "esp_spiffs.h"
 #include "esp_timer.h"
 #include "esp_vfs.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-#include "freertos/task.h"
-#include "global_state.h"
-#include "nvs_config.h"
-#include "recovery_page.h"
-//#include "vcore.h"
-#include <fcntl.h>
-#include <string.h>
-#include <sys/param.h>
-
-#include "dns_server.h"
 #include "esp_mac.h"
 #include "esp_netif.h"
 #include "esp_ota_ops.h"
 #include "esp_wifi.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
+#include "dns_server.h"
 #include "lwip/err.h"
 #include "lwip/inet.h"
 #include "lwip/lwip_napt.h"
@@ -30,16 +26,19 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 
+#include "global_state.h"
+#include "nvs_config.h"
+#include "recovery_page.h"
+#include "http_server.h"
+
 #include "history.h"
 #include "boards/board.h"
-
-#ifdef DEBUG_MEMORY_LOGGING
-#include "leak_tracker.h"
-#endif
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
 #pragma GCC diagnostic error "-Wmissing-prototypes"
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
 
 static const char *TAG = "http_server";
 
@@ -492,7 +491,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
 
     cJSON_AddNumberToObject(root, "freeHeap", esp_get_free_heap_size());
     cJSON_AddNumberToObject(root, "coreVoltage", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
-    cJSON_AddNumberToObject(root, "coreVoltageActual", board_get_voltage_mv());
+    cJSON_AddNumberToObject(root, "coreVoltageActual", board.get_voltage_mv());
     cJSON_AddNumberToObject(root, "frequency", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
     cJSON_AddStringToObject(root, "ssid", ssid);
     cJSON_AddStringToObject(root, "hostname", hostname);
@@ -500,9 +499,9 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.shares_accepted);
     cJSON_AddNumberToObject(root, "sharesRejected", SYSTEM_MODULE.shares_rejected);
     cJSON_AddNumberToObject(root, "uptimeSeconds", (esp_timer_get_time() - SYSTEM_MODULE.start_time) / 1000000);
-    cJSON_AddNumberToObject(root, "asicCount", board_get_asic_count());
+    cJSON_AddNumberToObject(root, "asicCount", board.get_asic_count());
     cJSON_AddNumberToObject(root, "smallCoreCount", 0);
-    cJSON_AddStringToObject(root, "ASICModel", board_get_asic_model());
+    cJSON_AddStringToObject(root, "ASICModel", board.get_asic_model());
     cJSON_AddStringToObject(root, "stratumURL", stratumURL);
     cJSON_AddNumberToObject(root, "stratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT));
     cJSON_AddStringToObject(root, "stratumUser", stratumUser);
@@ -533,7 +532,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
 
     const char *sys_info = cJSON_Print(root);
     httpd_resp_sendstr(req, sys_info);
-    free(sys_info);
+    free((void*) sys_info);
     cJSON_Delete(root);
     return ESP_OK;
 }
@@ -811,7 +810,7 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
     return ESP_OK;
 }
 
-static void log_to_queue(const char * format, va_list args)
+static int log_to_queue(const char * format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -823,7 +822,7 @@ static void log_to_queue(const char * format, va_list args)
     // Allocate the buffer dynamically
     char * log_buffer = (char *) calloc(needed_size + 2, sizeof(char));  // +2 for potential \n and \0
     if (log_buffer == NULL) {
-        return;
+        return 0;
     }
 
     // Format the string into the allocated buffer
@@ -847,6 +846,7 @@ static void log_to_queue(const char * format, va_list args)
 			free((void*)log_buffer);
 		}
 	}
+    return 0;
 }
 
 static void send_log_to_websocket(char *message)
@@ -899,7 +899,7 @@ static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
     return ESP_OK;
 }
 
-static void websocket_log_handler()
+static void websocket_log_handler(void* param)
 {
 	while (true)
 	{
@@ -935,9 +935,17 @@ esp_err_t start_rest_server(void * pvParameters)
         enter_recovery = true;
     }
 
-    REST_CHECK(base_path, "wrong base path", err);
-    rest_server_context_t *rest_context = calloc(1, sizeof(rest_server_context_t));
-    REST_CHECK(rest_context, "No memory for rest context", err);
+    if (!base_path) {
+        ESP_LOGE(TAG, "wrong base path");
+        return ESP_FAIL;
+    }
+
+    rest_server_context_t *rest_context = (rest_server_context_t*) calloc(1, sizeof(rest_server_context_t));
+    if (!rest_context) {
+        ESP_LOGE(TAG, "No memory for rest context");
+        return ESP_FAIL;
+    }
+
     strlcpy(rest_context->base_path, base_path, sizeof(rest_context->base_path));
 
     log_queue = xQueueCreate(MESSAGE_QUEUE_SIZE, sizeof(char*));
@@ -947,7 +955,11 @@ esp_err_t start_rest_server(void * pvParameters)
     config.max_uri_handlers = 20;
 
     ESP_LOGI(TAG, "Starting HTTP Server");
-    REST_CHECK(httpd_start(&server, &config) == ESP_OK, "Start server failed", err_start);
+    if (httpd_start(&server, &config) != ESP_OK) {
+        ESP_LOGE(TAG, "Start server failed");
+        free(rest_context);
+        return ESP_FAIL;
+    }
 
     httpd_uri_t recovery_explicit_get_uri = {
         .uri = "/recovery", .method = HTTP_GET, .handler = rest_recovery_handler, .user_ctx = rest_context};
@@ -1040,8 +1052,4 @@ esp_err_t start_rest_server(void * pvParameters)
     start_dns_server(&dns_config);
 
     return ESP_OK;
-err_start:
-    free(rest_context);
-err:
-    return ESP_FAIL;
 }

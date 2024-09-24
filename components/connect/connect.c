@@ -13,7 +13,8 @@
 #include <string.h>
 
 #include "connect.h"
-#include "main.h"
+
+void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count);
 
 #if CONFIG_ESP_WPA3_SAE_PWE_HUNT_AND_PECK
 #define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HUNT_AND_PECK

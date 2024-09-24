@@ -5,10 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef DEBUG_MEMORY_LOGGING
-#include "leak_tracker.h"
-#endif
-
 void free_bm_job(bm_job *job)
 {
     free(job->jobid);

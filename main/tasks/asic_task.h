@@ -1,10 +1,10 @@
-#ifndef ASIC_TASK_H_
-#define ASIC_TASK_H_
+#pragma once
+
+#include <pthread.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "mining.h"
-#include <pthread.h>
 
 #define MAX_ASIC_JOBS 128
 
@@ -18,4 +18,3 @@ typedef struct
     pthread_mutex_t valid_jobs_lock;
 } AsicTaskModule;
 
-#endif

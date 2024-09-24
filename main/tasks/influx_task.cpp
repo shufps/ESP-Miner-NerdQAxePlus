@@ -1,10 +1,11 @@
+#include <pthread.h>
+
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
 #include "global_state.h"
 #include "nvs_config.h"
-#include <pthread.h>
-
 #include "influx_task.h"
 
 static const char *TAG = "influx_task";

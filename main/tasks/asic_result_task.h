@@ -1,6 +1,3 @@
-#ifndef ASIC_result_TASK_H_
-#define ASIC_result_TASK_H_
-
+#pragma once
 void ASIC_result_task(void *pvParameters);
 
-#endif

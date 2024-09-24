@@ -1,6 +1,3 @@
-#ifndef USER_INPUT_TASK_H_
-#define USER_INPUT_TASK_H_
+#pragma once
 
 void USER_INPUT_task(void *pvParameters);
-
-#endif

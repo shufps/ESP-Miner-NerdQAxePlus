@@ -1,11 +1,15 @@
 #pragma once
 
-#include "nerdqaxeplus.h"
+#include "bm1368.h"
+#include "common.h"
+#include "nvs_config.h"
 
-typedef struct {
-    const char* device_model;
+class Board {
+  protected:
+
+    const char *device_model;
     int version;
-    const char* asic_model;
+    const char *asic_model;
     int asic_count;
     float asic_job_frequency_ms;
     float asic_frequency;
@@ -13,44 +17,41 @@ typedef struct {
     uint32_t asic_initial_difficulty;
     bool fan_invert_polarity;
     float fan_perc;
-} board_t;
 
-bool board_init();
+    virtual Asic* get_asics() = 0;
+  public:
+    Board();
 
-void board_load_settings();
+    virtual bool init() = 0;
 
-const char *board_get_device_model();
+    void load_settings();
+    const char *get_device_model();
+    int get_version();
+    const char *get_asic_model();
+    int get_asic_count();
+    double get_asic_job_frequency_ms();
+    uint32_t get_initial_ASIC_difficulty();
 
-int board_get_version();
+    // abstract common methos
+    virtual bool set_voltage(float core_voltage) = 0;
+    virtual uint16_t get_voltage_mv() = 0;
 
-const char *board_get_asic_model();
+    virtual void set_fan_speed(float perc) = 0;
+    virtual void get_fan_speed(uint16_t *rpm) = 0;
 
-int board_get_asic_count();
+    virtual float read_temperature(int index) = 0;
 
-double board_get_asic_job_frequency_ms();
+    virtual float get_vin() = 0;
+    virtual float get_iin() = 0;
+    virtual float get_pin() = 0;
+    virtual float get_vout() = 0;
+    virtual float get_iout() = 0;
+    virtual float get_pout() = 0;
 
-uint32_t board_get_initial_ASIC_difficulty();
+    bool asic_proccess_work(task_result *result);
+    int asic_set_max_baud(void);
+    void asic_set_job_difficulty_mask(uint32_t mask);
+    uint8_t asic_send_work(uint32_t job_id, bm_job *next_bm_job);
+    bool asic_send_hash_frequency(float frequency);
+};
 
-void board_LDO_enable();
-void board_LDO_disable();
-bool board_set_voltage(float core_voltage);
-uint16_t board_get_voltage_mv();
-
-void board_set_fan_speed(float perc);
-void board_get_fan_speed(uint16_t* rpm);
-
-float board_read_temperature(int index);
-
-float board_get_vin();
-float board_get_iin();
-float board_get_pin();
-float board_get_vout();
-float board_get_iout();
-float board_get_pout();
-
-uint8_t board_asic_init(uint64_t frequency);
-bool board_asic_proccess_work(task_result *result);
-int board_asic_set_max_baud(void);
-void board_asic_set_job_difficulty_mask(uint32_t mask);
-uint8_t board_asic_send_work(uint32_t job_id, bm_job *next_bm_job);
-bool board_asic_send_hash_frequency(float frequency);

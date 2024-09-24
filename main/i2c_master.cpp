@@ -11,7 +11,7 @@
  */
 esp_err_t i2c_master_init(void)
 {
-    int i2c_master_port = I2C_MASTER_NUM;
+    i2c_port_t i2c_master_port = (i2c_port_t) I2C_MASTER_NUM;
 
     i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
@@ -19,7 +19,9 @@ esp_err_t i2c_master_init(void)
         .scl_io_num = I2C_MASTER_SCL_IO,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+        .master = {
+            .clk_speed = I2C_MASTER_FREQ_HZ
+        }
     };
 
     i2c_param_config(i2c_master_port, &conf);
@@ -64,7 +66,7 @@ esp_err_t i2c_master_register_write_byte(uint8_t device_address, uint8_t reg_add
 esp_err_t i2c_master_register_write_word(uint8_t device_address, uint8_t reg_addr, uint16_t data)
 {
     int ret;
-    uint8_t write_buf[3] = {reg_addr, (data >> 8) & 0xFF, data & 0xFF};
+    uint8_t write_buf[3] = {reg_addr, (uint8_t) ((data >> 8) & 0xFF), (uint8_t) (data & 0xFF)};
 
     ret = i2c_master_write_to_device(I2C_MASTER_NUM, device_address, write_buf, sizeof(write_buf),
                                      I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);

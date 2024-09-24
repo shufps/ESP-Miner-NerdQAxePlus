@@ -1,5 +1,8 @@
-#ifndef STRATUM_UTILS_H
-#define STRATUM_UTILS_H
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stddef.h>
 #include <stdint.h>
@@ -33,4 +36,6 @@ void prettyHex(unsigned char *buf, int len);
 
 uint32_t flip32(uint32_t val);
 
-#endif // STRATUM_UTILS_H
+#ifdef __cplusplus
+}
+#endif

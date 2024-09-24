@@ -13,10 +13,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef DEBUG_MEMORY_LOGGING
-#include "leak_tracker.h"
-#endif
-
 #define BUFFER_SIZE 1024
 static const char *TAG = "stratum_api";
 

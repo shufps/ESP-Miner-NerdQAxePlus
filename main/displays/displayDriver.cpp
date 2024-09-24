@@ -1,6 +1,9 @@
+#include <inttypes.h>
+#include <stdio.h>
 
 #include "APIs.h"
-#include "TPS53647.h"
+#include "lv_conf.h"
+
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_lcd_panel_io.h"
@@ -11,20 +14,15 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "lv_conf.h"
-#include "nvs_config.h"
-#include <inttypes.h>
-#include <stdio.h>
-//#include "../system.h"
-//#include "lvgl.h"
 
-#include "displayDriver.h"
 #include "ui.h"
 #include "ui_helpers.h"
 
-#ifdef DEBUG_MEMORY_LOGGING
-#include "leak_tracker.h"
-#endif
+#include "TPS53647.h"
+#include "nvs_config.h"
+#include "displayDriver.h"
+
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
 static const char *TAG = "TDisplayS3";
 static bool animations_enabled = false;
@@ -314,7 +312,7 @@ lv_obj_t *initTDisplayS3(void)
     static lv_disp_drv_t disp_drv;      // contains callback functions
     // GPIO configuration
     ESP_LOGI(TAG, "Turn off LCD backlight");
-    gpio_config_t bk_gpio_config = {.mode = GPIO_MODE_OUTPUT, .pin_bit_mask = 1ULL << TDISPLAYS3_PIN_NUM_BK_LIGHT};
+    gpio_config_t bk_gpio_config = {.pin_bit_mask = 1ULL << TDISPLAYS3_PIN_NUM_BK_LIGHT, .mode = GPIO_MODE_OUTPUT};
     ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
 
     gpio_pad_select_gpio(TDISPLAYS3_PIN_NUM_BK_LIGHT);
@@ -324,7 +322,7 @@ lv_obj_t *initTDisplayS3(void)
     // esp_rom_gpio_pad_select_gpio(TDISPLAYS3_PIN_RD);
     // esp_rom_gpio_pad_select_gpio(TDISPLAYS3_PIN_PWR);
 
-    gpio_set_direction(TDISPLAYS3_PIN_RD, TDISPLAYS3_PIN_NUM_BK_LIGHT);
+    gpio_set_direction(TDISPLAYS3_PIN_NUM_BK_LIGHT, GPIO_MODE_OUTPUT);
     gpio_set_direction(TDISPLAYS3_PIN_RD, GPIO_MODE_OUTPUT);
     gpio_set_direction(TDISPLAYS3_PIN_PWR, GPIO_MODE_OUTPUT);
 
@@ -357,17 +355,17 @@ lv_obj_t *initTDisplayS3(void)
         .cs_gpio_num = TDISPLAYS3_PIN_NUM_CS,
         .pclk_hz = TDISPLAYS3_LCD_PIXEL_CLOCK_HZ,
         .trans_queue_depth = 20,
+        .on_color_trans_done = example_notify_lvgl_flush_ready,
+        .user_ctx = &disp_drv,
+        .lcd_cmd_bits = TDISPLAYS3_LCD_CMD_BITS,
+        .lcd_param_bits = TDISPLAYS3_LCD_PARAM_BITS,
         .dc_levels =
             {
                 .dc_idle_level = 0,
                 .dc_cmd_level = 0,
                 .dc_dummy_level = 0,
                 .dc_data_level = 1,
-            },
-        .on_color_trans_done = example_notify_lvgl_flush_ready,
-        .user_ctx = &disp_drv,
-        .lcd_cmd_bits = TDISPLAYS3_LCD_CMD_BITS,
-        .lcd_param_bits = TDISPLAYS3_LCD_PARAM_BITS,
+            }
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(i80_bus, &io_config, &io_handle));
 
@@ -407,7 +405,7 @@ lv_obj_t *initTDisplayS3(void)
     lv_init();
     // alloc draw buffers used by LVGL
     // it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized
-    lv_color_t *buf1 = heap_caps_malloc(LVGL_LCD_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
+    lv_color_t *buf1 = (lv_color_t*) heap_caps_malloc(LVGL_LCD_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
     assert(buf1);
     //    lv_color_t *buf2 = heap_caps_malloc(LVGL_LCD_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA );
     //    assert(buf2);

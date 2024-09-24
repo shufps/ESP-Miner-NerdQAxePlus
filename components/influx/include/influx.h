@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <pthread.h>
 
 typedef struct
@@ -45,3 +49,7 @@ void influx_write(Influx *influx);
 bool load_last_values(Influx *influx);
 bool bucket_exists(Influx *influx);
 bool influx_ping(Influx *influx);
+
+#ifdef __cplusplus
+}
+#endif

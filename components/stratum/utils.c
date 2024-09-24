@@ -5,10 +5,6 @@
 
 #include "mbedtls/sha256.h"
 
-#ifdef DEBUG_MEMORY_LOGGING
-#include "leak_tracker.h"
-#endif
-
 #ifndef bswap_16
 #define bswap_16(a) ((((uint16_t) (a) << 8) & 0xff00) | (((uint16_t) (a) >> 8) & 0xff))
 #endif

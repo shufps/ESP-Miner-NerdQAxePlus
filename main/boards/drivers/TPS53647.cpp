@@ -1,28 +1,30 @@
-
-#include "driver/i2c.h"
-#include "esp_log.h"
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "esp_log.h"
+#include "driver/i2c.h"
 #include "rom/gpio.h"
 #include "driver/gpio.h"
 
 #define TPS53647
+#define TPS53647_EN_PIN GPIO_NUM_10
 
 #include "TPS53647.h"
 #include "pmbus_commands.h"
 #include "boards/nerdqaxeplus.h"
 
-#define I2C_MASTER_NUM  0 // I2C master i2c port number
+#define I2C_MASTER_NUM ((i2c_port_t) 0)
 
 #define WRITE_BIT I2C_MASTER_WRITE
 #define READ_BIT I2C_MASTER_READ
 #define ACK_CHECK true
-#define NO_ACK_CHECK false
-#define ACK_VALUE 0x0
-#define NACK_VALUE 0x1
+#define ACK_VALUE ((i2c_ack_type_t) 0x0)
+#define NACK_VALUE ((i2c_ack_type_t) 0x1)
 #define MAX_BLOCK_LEN 32
+
+
 
 #define SMBUS_DEFAULT_TIMEOUT (1000 / portTICK_PERIOD_MS)
 

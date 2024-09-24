@@ -3,28 +3,28 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include "esp_netif.h"
 
-// #include "protocol_examples_common.h"
+#include "serial.h"
+#include "system.h"
+#include "global_state.h"
 #include "main.h"
-
 #include "asic_result_task.h"
 #include "asic_task.h"
 #include "create_jobs_task.h"
-#include "esp_netif.h"
-#include "http_server.h"
-#include "influx_task.h"
 #include "nvs_config.h"
-#include "serial.h"
 #include "stratum_task.h"
-#include "system.h"
 #include "user_input_task.h"
 #include "history.h"
 #include "boards/board.h"
+#include "http_server.h"
+#include "influx_task.h"
 
-volatile SystemModule SYSTEM_MODULE;
-volatile AsicTaskModule ASIC_TASK_MODULE;
-volatile PowerManagementModule POWER_MANAGEMENT_MODULE;
+SystemModule SYSTEM_MODULE;
+AsicTaskModule ASIC_TASK_MODULE;
+PowerManagementModule POWER_MANAGEMENT_MODULE;
 
+NerdQaxePlus board;
 
 static const char *TAG = "bitaxe";
 // static const double NONCE_SPACE = 4294967296.0; //  2^32
@@ -70,7 +70,7 @@ static void setup_wifi() {
     free(hostname);
 }
 
-void app_main(void)
+extern "C" void app_main(void)
 {
     ESP_LOGI(TAG, "Welcome to the bitaxe - hack the planet!");
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -83,13 +83,13 @@ void app_main(void)
     size_t total_psram = esp_psram_get_size();
     ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));
 
-    if (!history_init(board_get_asic_count())) {
+    if (!history_init(board.get_asic_count())) {
         ESP_LOGE(TAG, "History couldn't be initialized");
         return;
     }
 
-    ESP_LOGI(TAG, "Found Device Model: %s", board_get_device_model());
-    ESP_LOGI(TAG, "Found Board Version: %d", board_get_version());
+    ESP_LOGI(TAG, "Found Device Model: %s", board.get_device_model());
+    ESP_LOGI(TAG, "Found Board Version: %d", board.get_version());
 
     uint64_t best_diff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
     uint16_t should_self_test = nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0);
@@ -111,10 +111,10 @@ void app_main(void)
     const char *username = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL);
     if (username) {
         wifi_softap_off();
-        board_load_settings();
+        board.load_settings();
 
-        if (!board_init()) {
-            ESP_LOGE(TAG, "error initializing board %s", board_get_device_model());
+        if (!board.init()) {
+            ESP_LOGE(TAG, "error initializing board %s", board.get_device_model());
         }
 
         pthread_mutex_init(&ASIC_TASK_MODULE.valid_jobs_lock, NULL);

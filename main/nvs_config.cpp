@@ -1,7 +1,8 @@
-#include "nvs_config.h"
+#include <string.h>
+
 #include "esp_log.h"
 #include "nvs.h"
-#include <string.h>
+#include "nvs_config.h"
 
 #define NVS_CONFIG_NAMESPACE "main"
 
@@ -24,7 +25,7 @@ char * nvs_config_get_string(const char * key, const char * default_value)
         return strdup(default_value);
     }
 
-    char * out = malloc(size);
+    char * out = (char*) malloc(size);
     err = nvs_get_str(handle, key, out, &size);
 
     if (err != ESP_OK) {

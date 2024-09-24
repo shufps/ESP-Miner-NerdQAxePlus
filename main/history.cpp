@@ -1,13 +1,14 @@
+#include <math.h>
+#include <pthread.h>
+#include <stdint.h>
+
 #include "esp_log.h"
 #include "esp_timer.h" // Include esp_timer for esp_timer_get_time
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
-#include "global_state.h"
-#include <math.h>
-#include <pthread.h>
-#include <stdint.h>
 
+#include "global_state.h"
 #include "history.h"
 
 #pragma GCC diagnostic error "-Wall"
@@ -60,27 +61,27 @@ psram_t *psram = 0;
 // define for wrapped access of psram
 #define WRAP(a) ((a) & (HISTORY_MAX_SAMPLES - 1))
 
-inline uint64_t history_get_timestamp_sample(int index)
+uint64_t history_get_timestamp_sample(int index)
 {
     return psram->timestamps[WRAP(index)];
 }
 
-inline float history_get_hashrate_10m_sample(int index)
+float history_get_hashrate_10m_sample(int index)
 {
     return psram->hashrate_10m[WRAP(index)];
 }
 
-inline float history_get_hashrate_1h_sample(int index)
+float history_get_hashrate_1h_sample(int index)
 {
     return psram->hashrate_1h[WRAP(index)];
 }
 
-inline float history_get_hashrate_1d_sample(int index)
+float history_get_hashrate_1d_sample(int index)
 {
     return psram->hashrate_1d[WRAP(index)];
 }
 
-inline uint32_t history_get_share_sample(int index)
+uint32_t history_get_share_sample(int index)
 {
     return psram->shares[WRAP(index)];
 }

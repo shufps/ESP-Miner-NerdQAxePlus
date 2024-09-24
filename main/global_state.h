@@ -1,15 +1,18 @@
-#ifndef GLOBAL_STATE_H_
-#define GLOBAL_STATE_H_
+#pragma once
+
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "stratum_api.h"
 
 #include "bm1368.h"
 #include "common.h"
 #include "tasks/asic_task.h"
 #include "tasks/power_management_task.h"
-//#include "serial.h"
-#include "stratum_api.h"
-#include <pthread.h>
-#include <stdbool.h>
-#include <stdint.h>
+
+#include "boards/nerdqaxeplus.h"
+
 
 #define STRATUM_USER CONFIG_STRATUM_USER
 
@@ -45,8 +48,10 @@ typedef struct
     uint32_t lastClockSync;
 } SystemModule;
 
-extern volatile SystemModule SYSTEM_MODULE;
-extern volatile AsicTaskModule ASIC_TASK_MODULE;
-extern volatile PowerManagementModule POWER_MANAGEMENT_MODULE;
+extern SystemModule SYSTEM_MODULE;
+extern AsicTaskModule ASIC_TASK_MODULE;
+extern PowerManagementModule POWER_MANAGEMENT_MODULE;
 
-#endif /* GLOBAL_STATE_H_ */
+
+extern NerdQaxePlus board;
+

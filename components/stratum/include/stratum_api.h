@@ -1,5 +1,8 @@
-#ifndef STRATUM_API_H
-#define STRATUM_API_H
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "cJSON.h"
 #include <stdbool.h>
@@ -82,4 +85,6 @@ int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty);
 void STRATUM_V1_submit_share(int socket, const char *username, const char *jobid, const char *extranonce_2, const uint32_t ntime,
                              const uint32_t nonce, const uint32_t version);
 
-#endif // STRATUM_API_H
+#ifdef __cplusplus
+}
+#endif

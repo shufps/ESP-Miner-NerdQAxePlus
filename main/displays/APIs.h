@@ -1,5 +1,4 @@
-#ifndef APIS_H
-#define APIS_H
+#pragma once
 
 // Time update period
 #define UPDATE_PERIOD_h 5
@@ -9,4 +8,4 @@
 
 unsigned int getBTCprice(void);
 
-#endif // APIS_H
+
