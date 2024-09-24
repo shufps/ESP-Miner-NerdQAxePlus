@@ -118,6 +118,9 @@ export class SettingsComponent {
     form.autofanspeed = form.autofanspeed == true ? 1 : 0;
     form.autoscreenoff = form.autoscreenoff == true ? 1 : 0;
 
+    // Allow an empty wifi password
+    form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
+
     if (form.wifiPass === '*****') {
       delete form.wifiPass;
     }
