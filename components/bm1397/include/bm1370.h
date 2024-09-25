@@ -4,18 +4,14 @@
 #include "driver/gpio.h"
 #include "mining.h"
 #include "rom/gpio.h"
-#include "asic.h"
+#include "bm1368.h"
 
-class BM1368 : public Asic {
+class BM1370 : public BM1368 {
 protected:
     virtual const uint8_t* get_chip_id();
 
-    virtual uint8_t job_to_asic_id(uint8_t job_id);
-    virtual uint8_t asic_to_job_id(uint8_t asic_id);
-
 public:
-    BM1368();
+    BM1370();
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty);
-    virtual int set_max_baud(void);
 };
 

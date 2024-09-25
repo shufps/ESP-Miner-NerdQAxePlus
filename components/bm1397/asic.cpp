@@ -11,8 +11,7 @@
 #include "crc.h"
 
 
-#define ASIC_SERIALTX_DEBUG false
-#define ASIC_DEBUG_WORK false
+
 
 typedef struct __attribute__((__packed__))
 {

@@ -3,6 +3,13 @@
 #include "common.h"
 #include "mining.h"
 
+#define CRC5_MASK 0x1F
+
+#define ASIC_SERIALTX_DEBUG false
+#define ASIC_SERIALRX_DEBUG false
+#define ASIC_DEBUG_WORK false
+#define ASIC_DEBUG_JOBS false
+
 #define TYPE_JOB 0x20
 #define TYPE_CMD 0x40
 
