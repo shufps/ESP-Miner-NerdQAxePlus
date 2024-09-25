@@ -15,7 +15,7 @@ static const char *TAG = "self_test";
 
 static void display_msg(char *msg)
 {
-    SystemModule *module = &SYSTEM_MODULE;
+    // todo show on screen
     ESP_LOGI(TAG, "%s", msg);
 }
 

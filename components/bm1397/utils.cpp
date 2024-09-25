@@ -30,8 +30,8 @@ uint32_t swab32(uint32_t v)
 // takes 80 bytes and flips every 4 bytes
 void flip80bytes(void *dest_p, const void *src_p)
 {
-    uint32_t *dest = dest_p;
-    const uint32_t *src = src_p;
+    uint32_t *dest = (uint32_t*) dest_p;
+    const uint32_t *src = (const uint32_t*) src_p;
     int i;
 
     for (i = 0; i < 20; i++)
@@ -40,8 +40,8 @@ void flip80bytes(void *dest_p, const void *src_p)
 
 void flip64bytes(void *dest_p, const void *src_p)
 {
-    uint32_t *dest = dest_p;
-    const uint32_t *src = src_p;
+    uint32_t *dest = (uint32_t*) dest_p;
+    const uint32_t *src = (const uint32_t*) src_p;
     int i;
 
     for (i = 0; i < 16; i++)
@@ -50,8 +50,8 @@ void flip64bytes(void *dest_p, const void *src_p)
 
 void flip32bytes(void *dest_p, const void *src_p)
 {
-    uint32_t *dest = dest_p;
-    const uint32_t *src = src_p;
+    uint32_t *dest = (uint32_t*) dest_p;
+    const uint32_t *src = (const uint32_t*) src_p;
     int i;
 
     for (i = 0; i < 8; i++)
@@ -265,4 +265,30 @@ uint32_t flip32(uint32_t val)
     ret |= (val & 0xFF0000) >> 8;
     ret |= (val & 0xFF000000) >> 24;
     return ret;
+}
+
+unsigned char _reverse_bits(unsigned char num)
+{
+    unsigned char reversed = 0;
+    int i;
+
+    for (i = 0; i < 8; i++) {
+        reversed <<= 1;      // Left shift the reversed variable by 1
+        reversed |= num & 1; // Use bitwise OR to set the rightmost bit of reversed to the current bit of num
+        num >>= 1;           // Right shift num by 1 to get the next bit
+    }
+
+    return reversed;
+}
+
+int _largest_power_of_two(int num)
+{
+    int power = 0;
+
+    while (num > 1) {
+        num = num >> 1;
+        power++;
+    }
+
+    return 1 << power;
 }

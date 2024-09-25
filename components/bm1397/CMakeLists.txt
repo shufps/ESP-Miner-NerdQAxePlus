@@ -5,7 +5,8 @@ SRCS
     "bm1370.cpp"
     "serial.cpp"
     "crc.cpp"
-    "common.cpp"
+    "utils.cpp"
+    "mining.cpp"
 
 INCLUDE_DIRS
     "include"

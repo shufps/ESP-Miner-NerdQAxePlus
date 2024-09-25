@@ -50,10 +50,10 @@ void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout
     pthread_mutex_unlock(&influxdb->lock);
 }
 
-static void influx_task_fetch_from_system_module(SystemModule *module)
+static void influx_task_fetch_from_system_module(System *module)
 {
     // fetch best difficulty
-    float best_diff = module->best_session_nonce_diff;
+    float best_diff = module->getBestSessionNonceDiff();
 
     influxdb->stats.best_difficulty = best_diff;
 
@@ -62,24 +62,24 @@ static void influx_task_fetch_from_system_module(SystemModule *module)
     }
 
     // fetch hashrate
-    influxdb->stats.hashing_speed = module->current_hashrate_10m;
+    influxdb->stats.hashing_speed = module->getCurrentHashrate10m();
 
     // accepted
-    influxdb->stats.accepted = module->shares_accepted;
+    influxdb->stats.accepted = module->getSharesAccepted();
 
     // rejected
-    influxdb->stats.not_accepted = module->shares_rejected;
+    influxdb->stats.not_accepted = module->getSharesRejected();
 
     // pool errors
-    influxdb->stats.pool_errors = module->pool_errors;
+    influxdb->stats.pool_errors = module->getPoolErrors();
 
     // pool difficulty
-    influxdb->stats.difficulty = module->pool_difficulty;
+    influxdb->stats.difficulty = module->getPoolDifficulty();
 
     // found block
     // firmware sets the flag but never removes it
     // so detect the "edge"
-    bool found = module->FOUND_BLOCK;
+    bool found = module->isFoundBlock();
     if (found && !last_block_found) {
         influxdb->stats.blocks_found++;
         influxdb->stats.total_blocks_found++;
@@ -97,7 +97,7 @@ static void forever()
 
 void influx_task(void *pvParameters)
 {
-    SystemModule *module = &SYSTEM_MODULE;
+    System *module = &SYSTEM_MODULE;
 
     int influxEnable = nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE);
 
@@ -153,7 +153,7 @@ void influx_task(void *pvParameters)
 
     // start submitting new data
     ESP_LOGI(TAG, "waiting for clock sync ...");
-    while (!module->lastClockSync) {
+    while (!module->getLastClockSync()) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     ESP_LOGI(TAG, "waiting for clock sync ... done");

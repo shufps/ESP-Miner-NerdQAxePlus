@@ -1,3 +1,4 @@
+#include "global_state.h"
 #include "ui_helpers.h"
 #include "ui.h"
 

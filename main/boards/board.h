@@ -1,7 +1,7 @@
 #pragma once
 
+#include "asic.h"
 #include "bm1368.h"
-#include "common.h"
 #include "nvs_config.h"
 
 class Board {

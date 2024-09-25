@@ -13,6 +13,7 @@
 #include "system.h"
 #include "create_jobs_task.h"
 #include "boards/board.h"
+#include "asic_jobs.h"
 
 #define PORT CONFIG_STRATUM_PORT
 #define STRATUM_URL CONFIG_STRATUM_URL
@@ -63,12 +64,7 @@ extern "C" int is_socket_connected(int socket);
 void cleanQueue()
 {
     ESP_LOGI(TAG, "Clean Jobs: clearing queue");
-
-    pthread_mutex_lock(&ASIC_TASK_MODULE.valid_jobs_lock);
-    for (int i = 0; i < 128; i = i + 4) {
-        ASIC_TASK_MODULE.valid_jobs[i] = 0;
-    }
-    pthread_mutex_unlock(&ASIC_TASK_MODULE.valid_jobs_lock);
+    asicJobs.cleanJobs();
 }
 
 void stratum_task(void *pvParameters)
@@ -80,8 +76,8 @@ void stratum_task(void *pvParameters)
     int retry_attempts = 0;
     int delay_ms = BASE_DELAY_MS;
 
-    char *stratum_url = SYSTEM_MODULE.pool_url;
-    uint16_t port = SYSTEM_MODULE.pool_port;
+    const char *stratum_url = SYSTEM_MODULE.getPoolUrl();
+    uint16_t port = SYSTEM_MODULE.getPoolPort();
 
     while (1) {
         // clear flags used by the dns callback, dns_found_cb()
@@ -202,7 +198,7 @@ void stratum_task(void *pvParameters)
                 free(line);
 
                 if (stratum_api_v1_message.method == MINING_NOTIFY) {
-                    SYSTEM_notify_new_ntime(stratum_api_v1_message.mining_notification->ntime);
+                    SYSTEM_MODULE.notifyNewNtime(stratum_api_v1_message.mining_notification->ntime);
 
                     // abandon work clears the asic job list
                     if (stratum_api_v1_message.should_abandon_work) {
@@ -213,7 +209,7 @@ void stratum_task(void *pvParameters)
                     // free notify
                     STRATUM_V1_free_mining_notify(stratum_api_v1_message.mining_notification);
                 } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
-                    SYSTEM_MODULE.pool_difficulty = stratum_api_v1_message.new_difficulty;
+                    SYSTEM_MODULE.setPoolDifficulty(stratum_api_v1_message.new_difficulty);
                     if (create_job_set_difficulty(stratum_api_v1_message.new_difficulty)) {
                         ESP_LOGI(TAG, "Set stratum difficulty: %ld", stratum_api_v1_message.new_difficulty);
                     }
@@ -231,10 +227,10 @@ void stratum_task(void *pvParameters)
                 } else if (stratum_api_v1_message.method == STRATUM_RESULT) {
                     if (stratum_api_v1_message.response_success) {
                         ESP_LOGI(TAG, "message result accepted");
-                        SYSTEM_notify_accepted_share();
+                        SYSTEM_MODULE.notifyAcceptedShare();
                     } else {
                         ESP_LOGW(TAG, "message result rejected");
-                        SYSTEM_notify_rejected_share();
+                        SYSTEM_MODULE.notifyRejectedShare();
                     }
                 } else if (stratum_api_v1_message.method == STRATUM_RESULT_SETUP) {
                     if (stratum_api_v1_message.response_success) {
@@ -246,7 +242,7 @@ void stratum_task(void *pvParameters)
             }
 
             // track pool errors
-            SYSTEM_MODULE.pool_errors++;
+            SYSTEM_MODULE.incPoolErrors();
 
             // shutdown and reconnect
             ESP_LOGE(TAG, "Shutdown socket ...");

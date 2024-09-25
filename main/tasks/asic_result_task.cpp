@@ -13,19 +13,7 @@ static const char *TAG = "asic_result";
 
 extern int stratum_sock;
 
-bm_job *clone_bm_job(bm_job *src)
-{
-    bm_job *dst = (bm_job *) malloc(sizeof(bm_job));
 
-    // copy all
-    memcpy(dst, src, sizeof(bm_job));
-
-    // copy strings
-    dst->extranonce2 = strdup(src->extranonce2);
-    dst->jobid = strdup(src->jobid);
-
-    return dst;
-}
 
 void ASIC_result_task(void *pvParameters)
 {
@@ -47,17 +35,11 @@ void ASIC_result_task(void *pvParameters)
 
         uint8_t asic_job_id = asic_result.job_id;
 
-        // check if we have a job with this job id
-        pthread_mutex_lock(&ASIC_TASK_MODULE.valid_jobs_lock);
-        if (ASIC_TASK_MODULE.valid_jobs[asic_job_id] == 0) {
+        bm_job *job = asicJobs.getClone(asic_job_id);
+        if (!job) {
             ESP_LOGI(TAG, "Invalid job id found, 0x%02X", asic_job_id);
-            pthread_mutex_unlock(&ASIC_TASK_MODULE.valid_jobs_lock);
             continue;
         }
-        // we create a clone because we would lock during verification and stratum submit
-        // what is potentially bad
-        bm_job *job = clone_bm_job(ASIC_TASK_MODULE.active_jobs[asic_job_id]);
-        pthread_mutex_unlock(&ASIC_TASK_MODULE.valid_jobs_lock);
 
         // now we have the original job and can `or` the version
         asic_result.rolled_version |= job->version;
@@ -75,10 +57,10 @@ void ASIC_result_task(void *pvParameters)
         }
 
         if (nonce_diff > job->asic_diff) {
-            SYSTEM_notify_found_nonce((double) job->asic_diff, asic_result.asic_nr);
+            SYSTEM_MODULE.notifyFoundNonce((double) job->asic_diff, asic_result.asic_nr);
         }
 
-        SYSTEM_check_for_best_diff(nonce_diff, asic_job_id);
+        SYSTEM_MODULE.checkForBestDiff(nonce_diff, job->target);
 
         free_bm_job(job);
     }

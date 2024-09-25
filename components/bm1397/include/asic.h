@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common.h"
 #include "mining.h"
 
 #define CRC5_MASK 0x1F
@@ -42,6 +41,27 @@
 #define FAST_UART_CONFIGURATION 0x28
 #define TICKET_MASK 0x14
 #define MISC_CONTROL 0x18
+
+typedef struct
+{
+    uint8_t job_id;
+    uint32_t nonce;
+    uint32_t rolled_version;
+    int asic_nr;
+    uint32_t data;
+    uint8_t reg;
+    uint8_t is_reg_resp;
+} task_result;
+
+typedef struct __attribute__((__packed__))
+{
+    uint8_t preamble[2];
+    uint32_t nonce;
+    uint8_t midstate_num;
+    uint8_t job_id;
+    uint16_t version;
+    uint8_t crc;
+} asic_result_t;
 
 class Asic {
 protected:

@@ -17,7 +17,8 @@
 
 #include "ui.h"
 #include "ui_helpers.h"
-
+#include "global_state.h"
+#include "system.h"
 #include "TPS53647.h"
 #include "nvs_config.h"
 #include "displayDriver.h"
@@ -25,172 +26,148 @@
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
 static const char *TAG = "TDisplayS3";
-static bool animations_enabled = false;
-static bool Button1Pressed_Flag = false;
-static bool Button2Pressed_Flag = false;
-static int64_t last_keypress_time = 0;
-static bool DisplayIsOn = true;
-static int screenStatus = STATE_ONINIT;
-static int NextScreen = 0;
-char portalWifiName[30];
-
-static void example_increase_lvgl_tick(void *arg);
-static bool example_notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata,
-                                            void *user_ctx);
-static void example_lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map);
-static void main_creatSysteTasks(void);
-static void lvglTimerTask(void *param);
 
 void show_overheat_warning_overlay();
 
-static bool example_notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata,
-                                            void *user_ctx)
-{
-    lv_disp_drv_t *disp_driver = (lv_disp_drv_t *) user_ctx;
-    lv_disp_flush_ready(disp_driver);
+Display::Display() {
+    m_animationsEnabled = false;
+    m_button1PressedFlag = false;
+    m_button2PressedFlag = false;
+    m_lastKeypressTime = 0;
+    m_displayIsOn = true;
+    m_screenStatus = STATE_ONINIT;
+    m_nextScreen = 0;
+    m_countdownActive = false;
+    m_countdownStartTime = 0;
+    m_btcPrice = 0;
+}
+
+bool Display::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
+                                   void* userCtx) {
+    lv_disp_drv_t* dispDriver = (lv_disp_drv_t*)userCtx;
+    lv_disp_flush_ready(dispDriver);
     return false;
 }
 
-static void example_lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
-{
-    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+void Display::lvglFlushCallback(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* colorMap) {
+    esp_lcd_panel_handle_t panelHandle = (esp_lcd_panel_handle_t)drv->user_data;
     int offsetx1 = area->x1;
     int offsetx2 = area->x2;
     int offsety1 = area->y1;
     int offsety2 = area->y2;
-    // copy a buffer's content to a specific area of the display
-    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
+    // Copy buffer content to the display
+    esp_lcd_panel_draw_bitmap(panelHandle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, colorMap);
 }
 
-/************ TURN ON/OFF DISPLAY FUCNTIONS  *************/
-void display_turn_off(void)
-{
-    // Power off Backlight
+/************ DISPLAY TURN ON/OFF FUNCTIONS *************/
+void Display::displayTurnOff(void) {
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_OFF_LEVEL);
-    // Power off display power
     gpio_set_level(TDISPLAYS3_PIN_PWR, false);
     ESP_LOGI(TAG, "Screen off");
-    DisplayIsOn = false;
+    m_displayIsOn = false;
 }
 
-void display_turn_on(void)
-{
-    // Power on display power
+void Display::displayTurnOn(void) {
     gpio_set_level(TDISPLAYS3_PIN_PWR, true);
-    // Power on Backlight
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_ON_LEVEL);
     ESP_LOGI(TAG, "Screen on");
-    DisplayIsOn = true;
+    m_displayIsOn = true;
 }
 
-/************ AUTOTURN OFF DISPLAY FUCNTIONS  *************/
-lv_obj_t *countdown_label;
-static bool countdown_active = false;
-static int64_t countdown_start_time = 0;
+/************ AUTO TURN OFF DISPLAY FUNCTIONS *************/
+void Display::startCountdown(void) {
+    m_countdownActive = true;
+    m_countdownStartTime = esp_timer_get_time();
 
-void start_countdown(void)
-{
-    countdown_active = true;
-    countdown_start_time = esp_timer_get_time();
+    if (m_countdownLabel == NULL) {
+        lv_obj_t* currentScreen = lv_scr_act();
+        lv_obj_t* blackBox = lv_obj_create(currentScreen);
+        lv_obj_set_size(blackBox, 200, 100);
+        lv_obj_set_style_bg_color(blackBox, lv_color_black(), LV_PART_MAIN);
+        lv_obj_set_style_border_width(blackBox, 0, LV_PART_MAIN);
+        lv_obj_align(blackBox, LV_ALIGN_CENTER, 0, 0);
 
-    // Crear el recuadro negro y el rótulo si aún no existen
-    if (countdown_label == NULL) {
-        lv_obj_t *current_screen = lv_scr_act();
-        lv_obj_t *black_box = lv_obj_create(current_screen);
-        lv_obj_set_size(black_box, 200, 100);
-        lv_obj_set_style_bg_color(black_box, lv_color_black(), LV_PART_MAIN);
-        lv_obj_set_style_border_width(black_box, 0, LV_PART_MAIN);
-        lv_obj_align(black_box, LV_ALIGN_CENTER, 0, 0);
-
-        countdown_label = lv_label_create(black_box);
-        lv_label_set_text(countdown_label, "Turning screen off...");
-        lv_obj_set_style_text_color(countdown_label, lv_color_white(), LV_PART_MAIN);
-        lv_obj_center(countdown_label);
+        m_countdownLabel = lv_label_create(blackBox);
+        lv_label_set_text(m_countdownLabel, "Turning screen off...");
+        lv_obj_set_style_text_color(m_countdownLabel, lv_color_white(), LV_PART_MAIN);
+        lv_obj_center(m_countdownLabel);
     }
 }
 
-void display_hide_countdown(void)
-{
-    if (countdown_label) {
-        lv_obj_del(lv_obj_get_parent(countdown_label));
-        countdown_label = NULL;
+void Display::displayHideCountdown(void) {
+    if (m_countdownLabel) {
+        lv_obj_del(lv_obj_get_parent(m_countdownLabel));
+        m_countdownLabel = NULL;
     }
 }
 
-void checkAutoTurnOffScreen(void)
-{
-
-    if (DisplayIsOn == false)
+void Display::checkAutoTurnOffScreen(void) {
+    if (!m_displayIsOn)
         return;
 
-    int64_t current_time = esp_timer_get_time();
+    int64_t currentTime = esp_timer_get_time();
 
-    // Verificar si han pasado más de 2 minutos (120000000 microsegundos) desde la última pulsación de tecla
-    if ((current_time - last_keypress_time) > 30000000) {
-        if (!countdown_active) {
-            start_countdown();
+    if ((currentTime - m_lastKeypressTime) > 30000000) {  // 30 seconds timeout
+        if (!m_countdownActive) {
+            startCountdown();
         }
 
-        // Calcular el tiempo transcurrido desde que comenzó la cuenta regresiva
-        int64_t elapsed_time = (current_time - countdown_start_time) / 1000000; // Convertir microsegundos a segundos
+        int64_t elapsedTime = (currentTime - m_countdownStartTime) / 1000000;  // Convert to seconds
 
-        // Turn off screen after 5 seconds of telling it
-        if (elapsed_time > 5) {
-            display_hide_countdown();
-            display_turn_off();
-            countdown_active = false;
+        if (elapsedTime > 5) {
+            displayHideCountdown();
+            displayTurnOff();
+            m_countdownActive = false;
         }
 
     } else {
-        // Si se ha detectado actividad, cancelar la cuenta regresiva
-        if (countdown_active) {
-            display_hide_countdown();
-            countdown_active = false;
+        if (m_countdownActive) {
+            displayHideCountdown();
+            m_countdownActive = false;
         }
     }
 }
 
-static void increase_lvgl_tick()
-{
-    /* Tell LVGL how many milliseconds has elapsed */
+void Display::increaseLvglTick() {
     lv_tick_inc(TDISPLAYS3_LVGL_TICK_PERIOD_MS);
 }
 
-// Refresh screen values (for manual operations)
-void display_RefreshScreen()
-{
-    lv_timer_handler();   // Maneja las tareas pendientes de LVGL
-    increase_lvgl_tick(); // Incrementa el tick según el periodo que definías antes
+// Refresh screen values
+void Display::refreshScreen(void) {
+    lv_timer_handler();
+    increaseLvglTick();
 }
 
-void display_showOverheating()
-{
+void Display::showOverheating() {
     show_overheat_warning_overlay();
-    display_RefreshScreen();
+    refreshScreen();
 }
 
-void changeScreen(void)
-{ // * arg) {
-
-    if (screenStatus == SCREEN_MINING) {
-        enable_lvgl_animations(true); // AutoStops after loading the screen
+void Display::changeScreen(void) {
+    if (m_screenStatus == SCREEN_MINING) {
+        enableLvglAnimations(true);
         _ui_screen_change(ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
-        screenStatus = SCREEN_SETTINGS; // Actualiza la pantalla actual
-        ESP_LOGI("UI", "NewScreen Settings displayed");
-    } else if (screenStatus == SCREEN_SETTINGS) {
-        enable_lvgl_animations(true); // AutoStops after loading the screen
+        m_screenStatus = SCREEN_SETTINGS;
+        ESP_LOGI("UI", "New Screen Settings displayed");
+    } else if (m_screenStatus == SCREEN_SETTINGS) {
+        enableLvglAnimations(true);
         _ui_screen_change(ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
-        screenStatus = SCREEN_BTCPRICE; // Actualiza la pantalla actual
-        ESP_LOGI("UI", "NewScreen Mining displayed");
-    } else if (screenStatus == SCREEN_BTCPRICE) {
-        enable_lvgl_animations(true); // AutoStops after loading the screen
+        m_screenStatus = SCREEN_BTCPRICE;
+        ESP_LOGI("UI", "New Screen BTCprice displayed");
+    } else if (m_screenStatus == SCREEN_BTCPRICE) {
+        enableLvglAnimations(true);
         _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
-        screenStatus = SCREEN_MINING; // Actualiza la pantalla actual
-        ESP_LOGI("UI", "NewScreen BTCprice displayed");
+        m_screenStatus = SCREEN_MINING;
+        ESP_LOGI("UI", "New Screen Mining displayed");
     }
 }
 
-static void lvglTimerTask(void *param)
+void Display::lvglTimerTaskWrapper(void *param) {
+    Display *display = (Display*) param;
+    display->lvglTimerTask(NULL);
+}
+
+void Display::lvglTimerTask(void *param)
 {
     int64_t myLastTime = esp_timer_get_time();
     uint8_t autoOffEnabled = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0);
@@ -204,87 +181,87 @@ static void lvglTimerTask(void *param)
     while (1) {
 
         // Enabled when change screen animation is activated
-        if (animations_enabled) {
-            increase_lvgl_tick();
+        if (m_animationsEnabled) {
+            increaseLvglTick();
             lv_timer_handler();                 // Process pending LVGL tasks
             vTaskDelay(5 / portTICK_PERIOD_MS); // Delay during animations
             if (elapsed_Ani_cycles++ > 80) {
                 // After 1s aprox stop animations
-                animations_enabled = false;
+                m_animationsEnabled = false;
                 elapsed_Ani_cycles = 0;
             }
         } else {
-            if (Button1Pressed_Flag) {
-                Button1Pressed_Flag = false;
-                last_keypress_time = esp_timer_get_time();
-                if (!DisplayIsOn)
-                    display_turn_on();
+            if (m_button1PressedFlag) {
+                m_button1PressedFlag = false;
+                m_lastKeypressTime = esp_timer_get_time();
+                if (!m_displayIsOn)
+                    displayTurnOn();
                 changeScreen();
             }
             vTaskDelay(200 / portTICK_PERIOD_MS); // Delay waiting animation trigger
         }
-        if (Button2Pressed_Flag) {
-            Button2Pressed_Flag = false;
-            last_keypress_time = esp_timer_get_time();
-            if (DisplayIsOn)
-                display_turn_off();
+        if (m_button2PressedFlag) {
+            m_button2PressedFlag = false;
+            m_lastKeypressTime = esp_timer_get_time();
+            if (m_displayIsOn)
+                displayTurnOff();
             else
-                display_turn_on();
+                displayTurnOn();
         }
 
         // Check if screen need to be turned off
         if (autoOffEnabled)
             checkAutoTurnOffScreen();
 
-        if ((screenStatus > STATE_INIT_OK))
+        if ((m_screenStatus > STATE_INIT_OK))
             continue; // Doesn't need to do the initial animation screens
 
         // Screen initial process
         int32_t elapsed = (esp_timer_get_time() - myLastTime) / 1000;
-        switch (screenStatus) {
+        switch (m_screenStatus) {
         case STATE_ONINIT: // First splash Screen
             if (elapsed > 3000) {
                 ESP_LOGI(TAG, "Changing Screen to SPLASH2");
                 if (ui_Splash2 == NULL)
                     ui_Splash2_screen_init();
-                enable_lvgl_animations(true);
+                enableLvglAnimations(true);
                 _ui_screen_change(ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
-                screenStatus = STATE_SPLASH1;
+                m_screenStatus = STATE_SPLASH1;
                 myLastTime = esp_timer_get_time();
             }
             break;
         case STATE_SPLASH1: // Second splash screen
             if (elapsed > 3000) {
                 // Init done, wait until on portal or mining is shown
-                screenStatus = STATE_INIT_OK;
+                m_screenStatus = STATE_INIT_OK;
                 ESP_LOGI(TAG, "Changing Screen to WAIT SELECTION");
                 lv_obj_clean(ui_Splash1);
                 ui_Splash1 = NULL;
             }
             break;
         case STATE_INIT_OK: // Show portal
-            if (NextScreen == SCREEN_PORTAL) {
+            if (m_nextScreen == SCREEN_PORTAL) {
                 ESP_LOGI(TAG, "Changing Screen to Show Portal");
-                screenStatus = SCREEN_PORTAL;
+                m_screenStatus = SCREEN_PORTAL;
                 if (ui_PortalScreen == NULL) {
                     ui_Portal_screen_init();
                 }
-                lv_label_set_text(ui_lbSSID, portalWifiName); // Actualiza el label
-                enable_lvgl_animations(true);
+                lv_label_set_text(ui_lbSSID, m_portalWifiName); // Actualiza el label
+                enableLvglAnimations(true);
                 _ui_screen_change(ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
                 lv_obj_clean(ui_Splash2);
                 ui_Splash2 = NULL;
-            } else if (NextScreen == SCREEN_MINING) {
+            } else if (m_nextScreen == SCREEN_MINING) {
                 // Show Mining screen
                 ESP_LOGI(TAG, "Changing Screen to Mining screen");
-                screenStatus = SCREEN_MINING;
+                m_screenStatus = SCREEN_MINING;
                 if (ui_MiningScreen == NULL)
                     ui_MiningScreen_screen_init();
                 if (ui_SettingsScreen == NULL)
                     ui_SettingsScreen_screen_init();
                 if (ui_BTCScreen == NULL)
                     ui_BTCScreen_screen_init();
-                enable_lvgl_animations(true);
+                enableLvglAnimations(true);
                 _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
                 lv_obj_clean(ui_Splash2);
                 ui_Splash2 = NULL;
@@ -295,18 +272,17 @@ static void lvglTimerTask(void *param)
 }
 
 // Función para activar las actualizaciones
-void enable_lvgl_animations(bool enable)
+void Display::enableLvglAnimations(bool enable)
 {
-    animations_enabled = enable;
+    m_animationsEnabled = enable;
 }
 
-static void main_creatSysteTasks(void)
+void Display::mainCreatSysteTasks(void)
 {
-
-    xTaskCreatePinnedToCore(lvglTimerTask, "lvgl Timer", 6000, NULL, 4, NULL, 1); // Antes 10000
+    xTaskCreatePinnedToCore(lvglTimerTaskWrapper, "lvgl Timer", 6000, (void*) this, 4, NULL, 1); // Antes 10000
 }
 
-lv_obj_t *initTDisplayS3(void)
+lv_obj_t *Display::initTDisplayS3(void)
 {
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
@@ -355,7 +331,7 @@ lv_obj_t *initTDisplayS3(void)
         .cs_gpio_num = TDISPLAYS3_PIN_NUM_CS,
         .pclk_hz = TDISPLAYS3_LCD_PIXEL_CLOCK_HZ,
         .trans_queue_depth = 20,
-        .on_color_trans_done = example_notify_lvgl_flush_ready,
+        .on_color_trans_done = notifyLvglFlushReady,
         .user_ctx = &disp_drv,
         .lcd_cmd_bits = TDISPLAYS3_LCD_CMD_BITS,
         .lcd_param_bits = TDISPLAYS3_LCD_PARAM_BITS,
@@ -416,7 +392,7 @@ lv_obj_t *initTDisplayS3(void)
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = TDISPLAYS3_LCD_H_RES;
     disp_drv.ver_res = TDISPLAYS3_LCD_V_RES;
-    disp_drv.flush_cb = example_lvgl_flush_cb;
+    disp_drv.flush_cb = lvglFlushCallback;
     disp_drv.draw_buf = &disp_buf;
     disp_drv.user_data = panel_handle;
     lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
@@ -426,7 +402,7 @@ lv_obj_t *initTDisplayS3(void)
     ESP_LOGI(TAG, "Install LVGL tick timer");
     // Tick interface for LVGL (using esp_timer to generate 2ms periodic event)
     /*const esp_timer_create_args_t lvgl_tick_timer_args = {
-        .callback = &example_increase_lvgl_tick,
+        .callback = &example_increaseLvglTick,
         .name = "lvgl_tick"
     };*/
     esp_timer_handle_t lvgl_tick_timer = NULL;
@@ -439,13 +415,13 @@ lv_obj_t *initTDisplayS3(void)
     return scr;
 }
 
-void display_updateHashrate(SystemModule *module, float power)
+void Display::updateHashrate(System *module, float power)
 {
     char strData[20];
 
-    float efficiency = power / (module->current_hashrate_10m / 1000.0);
+    float efficiency = power / (module->getCurrentHashrate10m() / 1000.0);
 
-    snprintf(strData, sizeof(strData), "%.1f", module->current_hashrate_10m);
+    snprintf(strData, sizeof(strData), "%.1f", module->getCurrentHashrate10m());
     lv_label_set_text(ui_lbHashrate, strData);    // Update hashrate
     lv_label_set_text(ui_lbHashrateSet, strData); // Update hashrate
     lv_label_set_text(ui_lblHashPrice, strData);  // Update hashrate
@@ -457,24 +433,24 @@ void display_updateHashrate(SystemModule *module, float power)
     lv_label_set_text(ui_lbPower, strData); // Actualiza el label
 }
 
-void display_updateShares(SystemModule *module)
+void Display::updateShares(System *module)
 {
     char strData[20];
 
-    snprintf(strData, sizeof(strData), "%lld/%lld", module->shares_accepted, module->shares_rejected);
+    snprintf(strData, sizeof(strData), "%lld/%lld", module->getSharesAccepted(), module->getSharesRejected());
     lv_label_set_text(ui_lbShares, strData); // Update shares
 
-    snprintf(strData, sizeof(strData), "%s", module->best_diff_string);
-    lv_label_set_text(ui_lbBestDifficulty, module->best_diff_string);    // Update Bestdifficulty
-    lv_label_set_text(ui_lbBestDifficultySet, module->best_diff_string); // Update Bestdifficulty
+    snprintf(strData, sizeof(strData), "%s", module->getBestDiffString());
+    lv_label_set_text(ui_lbBestDifficulty, module->getBestDiffString());    // Update Bestdifficulty
+    lv_label_set_text(ui_lbBestDifficultySet, module->getBestDiffString()); // Update Bestdifficulty
 }
-void display_updateTime(SystemModule *module)
+void Display::updateTime(System *module)
 {
     char strData[20];
 
     // Calculate the uptime in seconds
     // int64_t currentTimeTest = esp_timer_get_time() + (8 * 3600 * 1000000LL) + (1800 * 1000000LL);//(8 * 60 * 60 * 10000);
-    double uptime_in_seconds = (esp_timer_get_time() - module->start_time) / 1000000;
+    double uptime_in_seconds = (esp_timer_get_time() - module->getStartTime()) / 1000000;
     int uptime_in_days = uptime_in_seconds / (3600 * 24);
     int remaining_seconds = (int) uptime_in_seconds % (3600 * 24);
     int uptime_in_hours = remaining_seconds / 3600;
@@ -486,15 +462,15 @@ void display_updateTime(SystemModule *module)
     lv_label_set_text(ui_lbTime, strData); // Update label
 }
 
-void display_updateCurrentSettings()
+void Display::updateCurrentSettings()
 {
     char strData[20];
     if (ui_SettingsScreen == NULL)
         return;
 
-    lv_label_set_text(ui_lbPoolSet, SYSTEM_MODULE.pool_url); // Update label
+    lv_label_set_text(ui_lbPoolSet, SYSTEM_MODULE.getPoolUrl()); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", SYSTEM_MODULE.pool_port);
+    snprintf(strData, sizeof(strData), "%d", SYSTEM_MODULE.getPoolPort());
     lv_label_set_text(ui_lbPortSet, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
@@ -512,20 +488,20 @@ void display_updateCurrentSettings()
     }
 }
 
-unsigned int BTCprice = 0;
-void display_updateBTCprice(void)
+
+void Display::updateBTCprice(void)
 {
     char price_str[32];
 
-    if ((screenStatus != SCREEN_BTCPRICE) && (BTCprice != 0))
+    if ((m_screenStatus != SCREEN_BTCPRICE) && (m_btcPrice != 0))
         return;
 
-    BTCprice = getBTCprice();
-    snprintf(price_str, sizeof(price_str), "%u$", BTCprice);
+    m_btcPrice = getBTCprice();
+    snprintf(price_str, sizeof(price_str), "%u$", m_btcPrice);
     lv_label_set_text(ui_lblBTCPrice, price_str); // Update label
 }
 
-void display_updateGlobalState()
+void Display::updateGlobalState()
 {
     char strData[20];
 
@@ -551,17 +527,17 @@ void display_updateGlobalState()
     snprintf(strData, sizeof(strData), "%imV", (int) POWER_MANAGEMENT_MODULE.voltage);
     lv_label_set_text(ui_lbVinput, strData); // Update label
 
-    display_updateTime(&SYSTEM_MODULE);
-    display_updateShares(&SYSTEM_MODULE);
-    display_updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.power);
-    display_updateBTCprice();
+    updateTime(&SYSTEM_MODULE);
+    updateShares(&SYSTEM_MODULE);
+    updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.power);
+    updateBTCprice();
 
     uint16_t vcore = (int) (TPS53647_get_vout() * 1000.0f);
     snprintf(strData, sizeof(strData), "%umV", vcore);
     lv_label_set_text(ui_lbVcore, strData); // Update label
 }
 
-void display_updateIpAddress(char *ip_address_str)
+void Display::updateIpAddress(char *ip_address_str)
 {
     char strData[20];
 
@@ -575,17 +551,17 @@ void display_updateIpAddress(char *ip_address_str)
     lv_label_set_text(ui_lbIPSet, ip_address_str); // Update label
 }
 
-void display_log_message(const char *message)
+void Display::logMessage(const char *message)
 {
-    screenStatus = SCREEN_LOG;
+    m_screenStatus = SCREEN_LOG;
     if (ui_LogScreen == NULL)
         ui_LogScreen_init();
     lv_label_set_text(ui_LogLabel, message);
-    enable_lvgl_animations(true);
+    enableLvglAnimations(true);
     _ui_screen_change(ui_LogScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0);
 }
 
-void display_MiningScreen(void)
+void Display::miningScreen(void)
 {
     // Only called once at the beggining from system lib
     if (ui_MiningScreen == NULL)
@@ -594,35 +570,37 @@ void display_MiningScreen(void)
         ui_SettingsScreen_screen_init();
     if (ui_BTCScreen == NULL)
         ui_BTCScreen_screen_init();
-    NextScreen = SCREEN_MINING;
+    m_nextScreen = SCREEN_MINING;
 }
 
-void display_PortalScreen(const char *message)
+void Display::portalScreen(const char *message)
 {
-    NextScreen = SCREEN_PORTAL;
-    strcpy(portalWifiName, message);
+    m_nextScreen = SCREEN_PORTAL;
+    strcpy(m_portalWifiName, message);
 }
-void display_UpdateWifiStatus(const char *message)
+void Display::updateWifiStatus(const char *message)
 {
     if (ui_lbConnect != NULL)
         lv_label_set_text(ui_lbConnect, message); // Actualiza el label
-    display_RefreshScreen();
+    refreshScreen();
 }
 
 // ISR Handler para el DownButton (Change Screen)
-static void button1_isr_handler(void *arg)
+void Display::button1IsrHandler(void *arg)
 {
+    Display *display = (Display*) arg;
     // ESP_LOGI("UI", "Button pressed changing screen");
-    Button1Pressed_Flag = true;
+    display->m_button1PressedFlag = true;
 }
 
 // ISR Handler para el UpButton (Change Screen)
-static void button2_isr_handler(void *arg)
+void Display::button2IsrHandler(void *arg)
 {
-    Button2Pressed_Flag = true;
+    Display *display = (Display*) arg;
+    display->m_button2PressedFlag = true;
 }
 
-void buttons_init(void)
+void Display::buttonsInit(void)
 {
     gpio_pad_select_gpio(PIN_BUTTON_1);
     gpio_set_direction(PIN_BUTTON_1, GPIO_MODE_INPUT);
@@ -636,20 +614,20 @@ void buttons_init(void)
 
     // Habilita las interrupciones de GPIO
     gpio_install_isr_service(0);
-    gpio_isr_handler_add(PIN_BUTTON_1, button1_isr_handler, NULL);
-    gpio_isr_handler_add(PIN_BUTTON_2, button2_isr_handler, NULL);
+    gpio_isr_handler_add(PIN_BUTTON_1, button1IsrHandler, (void*) this);
+    gpio_isr_handler_add(PIN_BUTTON_2, button2IsrHandler, (void*) this);
 }
 
 /**
  * @brief Program starts from here
  *
  */
-void display_init(void)
+void Display::init(void)
 {
     ESP_LOGI("INFO", "Setting Up TDisplayS3 Screen");
 
     // Inicializa el GPIO para el botón
-    buttons_init();
+    buttonsInit();
 
     lv_obj_t *scr = initTDisplayS3();
 
@@ -657,6 +635,6 @@ void display_init(void)
     // manual_lvgl_update();
 
     // startUpdateScreenTask(); //Start screen update task
-    main_creatSysteTasks();
+    mainCreatSysteTasks();
 }
 /**************************  Useful Electronics  ****************END OF FILE***/

@@ -9,7 +9,7 @@
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "lwip/sockets.h"
-#include "utils.h"
+//#include "utils.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -24,6 +24,37 @@ static size_t json_rpc_buffer_size = 0;
 static int send_uid = 1;
 
 static void debug_stratum_tx(const char *);
+
+static uint8_t hex2val(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    } else if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    } else {
+        return 0;
+    }
+}
+
+static size_t hex2bin(const char *hex, uint8_t *bin, size_t bin_len)
+{
+    size_t len = 0;
+
+    while (*hex && len < bin_len) {
+        bin[len] = hex2val(*hex++) << 4;
+
+        if (!*hex) {
+            len++;
+            break;
+        }
+
+        bin[len++] |= hex2val(*hex++);
+    }
+
+    return len;
+}
 
 int is_socket_connected(int socket)
 {

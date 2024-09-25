@@ -6,11 +6,17 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "utils.h"
 #include "serial.h"
 #include "asic.h"
 #include "crc.h"
 
 
+typedef enum
+{
+    JOB_PACKET = 0,
+    CMD_PACKET = 1,
+} packet_type_t;
 
 
 typedef struct __attribute__((__packed__))

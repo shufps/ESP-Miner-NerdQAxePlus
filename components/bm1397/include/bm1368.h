@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common.h"
 #include "driver/gpio.h"
 #include "mining.h"
 #include "rom/gpio.h"

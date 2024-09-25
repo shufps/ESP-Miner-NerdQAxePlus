@@ -486,8 +486,8 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "hashRate_10m", history_get_current_10m());
     cJSON_AddNumberToObject(root, "hashRate_1h", history_get_current_1h());
     cJSON_AddNumberToObject(root, "hashRate_1d", history_get_current_1d());
-    cJSON_AddStringToObject(root, "bestDiff", SYSTEM_MODULE.best_diff_string);
-    cJSON_AddStringToObject(root, "bestSessionDiff", SYSTEM_MODULE.best_session_diff_string);
+    cJSON_AddStringToObject(root, "bestDiff", SYSTEM_MODULE.getBestDiffString());
+    cJSON_AddStringToObject(root, "bestSessionDiff", SYSTEM_MODULE.getBestSessionDiffString());
 
     cJSON_AddNumberToObject(root, "freeHeap", esp_get_free_heap_size());
     cJSON_AddNumberToObject(root, "coreVoltage", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
@@ -495,10 +495,10 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "frequency", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
     cJSON_AddStringToObject(root, "ssid", ssid);
     cJSON_AddStringToObject(root, "hostname", hostname);
-    cJSON_AddStringToObject(root, "wifiStatus", SYSTEM_MODULE.wifi_status);
-    cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.shares_accepted);
-    cJSON_AddNumberToObject(root, "sharesRejected", SYSTEM_MODULE.shares_rejected);
-    cJSON_AddNumberToObject(root, "uptimeSeconds", (esp_timer_get_time() - SYSTEM_MODULE.start_time) / 1000000);
+    cJSON_AddStringToObject(root, "wifiStatus", SYSTEM_MODULE.getWifiStatus());
+    cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.getSharesAccepted());
+    cJSON_AddNumberToObject(root, "sharesRejected", SYSTEM_MODULE.getSharesRejected());
+    cJSON_AddNumberToObject(root, "uptimeSeconds", (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000);
     cJSON_AddNumberToObject(root, "asicCount", board.get_asic_count());
     cJSON_AddNumberToObject(root, "smallCoreCount", 0);
     cJSON_AddStringToObject(root, "ASICModel", board.get_asic_model());

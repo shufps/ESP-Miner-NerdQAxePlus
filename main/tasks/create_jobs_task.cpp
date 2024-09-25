@@ -106,7 +106,7 @@ void create_job_mining_notify(mining_notify *notifiy)
 void *create_jobs_task(void *pvParameters)
 {
     ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board.get_asic_job_frequency_ms());
-    SYSTEM_notify_mining_started();
+    SYSTEM_MODULE.notifyMiningStarted();
     ESP_LOGI(TAG, "ASIC Ready!");
 
     // Create the timer
@@ -193,15 +193,7 @@ void *create_jobs_task(void *pvParameters)
         ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
 
         // save job
-        pthread_mutex_lock(&ASIC_TASK_MODULE.valid_jobs_lock);
-        // if a slot was used before free it
-        if (ASIC_TASK_MODULE.active_jobs[asic_job_id] != NULL) {
-            free_bm_job(ASIC_TASK_MODULE.active_jobs[asic_job_id]);
-        }
-        // save job into slot and set valid_job flag
-        ASIC_TASK_MODULE.active_jobs[asic_job_id] = next_job;
-        ASIC_TASK_MODULE.valid_jobs[asic_job_id] = 1;
-        pthread_mutex_unlock(&ASIC_TASK_MODULE.valid_jobs_lock);
+        asicJobs.storeJob(next_job, asic_job_id);
 
         extranonce_2++;
     }

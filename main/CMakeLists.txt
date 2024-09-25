@@ -1,8 +1,5 @@
 idf_component_register(
 SRCS
-
-    "i2c_master.cpp"
-
     "main.cpp"
     "nvs_config.cpp"
     "system.cpp"
@@ -12,6 +9,7 @@ SRCS
     "boards/drivers/EMC2302.cpp"
     "boards/drivers/TMP1075.cpp"
     "boards/drivers/TPS53647.cpp"
+    "boards/drivers/i2c_master.cpp"
     "history.cpp"
 
     "./http_server/http_server.cpp"
@@ -19,7 +17,6 @@ SRCS
     "./tasks/stratum_task.cpp"
     "./tasks/create_jobs_task.cpp"
     "./tasks/asic_result_task.cpp"
-    "./tasks/user_input_task.cpp"
     "./tasks/influx_task.cpp"
     "./tasks/power_management_task.cpp"
     "./displays/displayDriver.cpp"

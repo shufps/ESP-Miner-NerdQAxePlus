@@ -10,20 +10,19 @@
 #include "global_state.h"
 #include "main.h"
 #include "asic_result_task.h"
-#include "asic_task.h"
+#include "asic_jobs.h"
 #include "create_jobs_task.h"
 #include "nvs_config.h"
 #include "stratum_task.h"
-#include "user_input_task.h"
 #include "history.h"
 #include "boards/board.h"
 #include "http_server.h"
 #include "influx_task.h"
 
-SystemModule SYSTEM_MODULE;
-AsicTaskModule ASIC_TASK_MODULE;
+System SYSTEM_MODULE;
 PowerManagementModule POWER_MANAGEMENT_MODULE;
 
+AsicJobs asicJobs;
 NerdQaxePlus board;
 
 static const char *TAG = "bitaxe";
@@ -36,7 +35,7 @@ static void setup_wifi() {
     char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, HOSTNAME);
 
     // copy the wifi ssid to the global state
-    strncpy(SYSTEM_MODULE.ssid, wifi_ssid, sizeof(SYSTEM_MODULE.ssid));
+    SYSTEM_MODULE.setSsid(wifi_ssid);
 
     // init and connect to wifi
     wifi_init(wifi_ssid, wifi_pass, hostname);
@@ -45,11 +44,11 @@ static void setup_wifi() {
 
     if (result_bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to SSID: %s", wifi_ssid);
-        strncpy(SYSTEM_MODULE.wifi_status, "Connected!", 20);
+        SYSTEM_MODULE.setWifiStatus("Connected!");
     } else if (result_bits & WIFI_FAIL_BIT) {
         ESP_LOGE(TAG, "Failed to connect to SSID: %s", wifi_ssid);
 
-        strncpy(SYSTEM_MODULE.wifi_status, "Failed to connect", 20);
+        SYSTEM_MODULE.setWifiStatus("Failed to connect");
         // User might be trying to configure with AP, just chill here
         ESP_LOGI(TAG, "Finished, waiting for user input.");
         while (1) {
@@ -57,7 +56,7 @@ static void setup_wifi() {
         }
     } else {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
-        strncpy(SYSTEM_MODULE.wifi_status, "unexpected error", 20);
+        SYSTEM_MODULE.setWifiStatus("unexpected error");
         // User might be trying to configure with AP, just chill here
         ESP_LOGI(TAG, "Finished, waiting for user input.");
         while (1) {
@@ -98,14 +97,12 @@ extern "C" void app_main(void)
         vTaskDelay(60 * 60 * 1000 / portTICK_PERIOD_MS);
     }
 
-    xTaskCreate(SYSTEM_task, "SYSTEM_task", 4096, NULL, 3, NULL);
+    xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
 
     setup_wifi();
 
     // set the startup_done flag
-    SYSTEM_MODULE.startup_done = true;
-
-    xTaskCreate(USER_INPUT_task, "user input", 8192, NULL, 5, NULL);
+    SYSTEM_MODULE.setStartupDone();
 
     // if a username is configured we assume we have a valid configuration and disable the AP
     const char *username = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL);
@@ -115,12 +112,6 @@ extern "C" void app_main(void)
 
         if (!board.init()) {
             ESP_LOGE(TAG, "error initializing board %s", board.get_device_model());
-        }
-
-        pthread_mutex_init(&ASIC_TASK_MODULE.valid_jobs_lock, NULL);
-        for (int i = 0; i < MAX_ASIC_JOBS; i++) {
-            ASIC_TASK_MODULE.active_jobs[i] = NULL;
-            ASIC_TASK_MODULE.valid_jobs[i] = 0;
         }
 
         xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, NULL, 10, NULL);
@@ -134,10 +125,12 @@ extern "C" void app_main(void)
 void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
 {
     if (status == WIFI_RETRYING) {
-        snprintf(SYSTEM_MODULE.wifi_status, 20, "Retrying: %d", retry_count);
+        char buf[20];
+        snprintf(buf, sizeof(buf), "Retrying: %d", retry_count);
+        SYSTEM_MODULE.setWifiStatus(buf);
         return;
     } else if (status == WIFI_CONNECT_FAILED) {
-        snprintf(SYSTEM_MODULE.wifi_status, 20, "Connect Failed!");
+        SYSTEM_MODULE.setWifiStatus("Connect Failed!");
         return;
     }
 }

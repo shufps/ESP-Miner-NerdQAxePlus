@@ -36,6 +36,10 @@ void prettyHex(unsigned char *buf, int len);
 
 uint32_t flip32(uint32_t val);
 
+unsigned char _reverse_bits(unsigned char num);
+
+int _largest_power_of_two(int num);
+
 #ifdef __cplusplus
 }
 #endif

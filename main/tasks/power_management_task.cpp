@@ -19,8 +19,6 @@
 
 static const char *TAG = "power_management";
 
-static bool overheated = false;
-
 // Set the fan speed between 20% min and 100% max based on chip temperature as input.
 // The fan speed increases from 20% to 100% proportionally to the temperature increase from 50 and THROTTLE_TEMP
 static double automatic_fan_speed(float chip_temp)
@@ -48,7 +46,6 @@ static double automatic_fan_speed(float chip_temp)
 void POWER_MANAGEMENT_task(void *pvParameters)
 {
     PowerManagementModule *power_management = &POWER_MANAGEMENT_MODULE;
-    SystemModule *module = &SYSTEM_MODULE;
 
     power_management->frequency_multiplier = 1;
 
@@ -99,7 +96,7 @@ void POWER_MANAGEMENT_task(void *pvParameters)
         if (overheat_temp &&
             (power_management->chip_temp_avg > overheat_temp || power_management->vr_temp > overheat_temp)) {
             // over temperature
-            overheated = module->overheated = true;
+            SYSTEM_MODULE.setOverheated(true);
             // disables the buck
             board.set_voltage(0.0);
         }
