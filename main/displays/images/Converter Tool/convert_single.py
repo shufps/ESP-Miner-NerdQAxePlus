@@ -2,7 +2,7 @@ import sys
 import os
 from PIL import Image
 
-def convert_to_16bit(image_path, output_c_file):
+def convert_to_16bit(theme, image_path, screen):
     # Check if the input file exists
     if not os.path.isfile(image_path):
         print(f"Error: The file '{image_path}' does not exist.")
@@ -12,12 +12,8 @@ def convert_to_16bit(image_path, output_c_file):
     base_name = os.path.basename(image_path).replace('.png', '')
 
     # Process the output path and file name
-    output_c_file = os.path.normpath(output_c_file)  # Normalize the path
-    output_dir = os.path.dirname(output_c_file)
+    output_c_file = os.path.normpath(f"ui_img_{screen}_png.c")  # Normalize the path
 
-    if not os.path.isdir(output_dir):
-        print(f"Error: The directory '{output_dir}' does not exist.")
-        return
 
     # Open the image
     image = Image.open(image_path)
@@ -33,19 +29,19 @@ def convert_to_16bit(image_path, output_c_file):
     # Image dimensions
     width, height = image.size
 
-    # Create the array name from the output file path
-    relative_path_part = os.path.splitext(os.path.basename(output_c_file))[0]
+    var_name = f"{theme}_{screen}" if theme else f"{screen}"
 
     with open(output_c_file, 'w') as f:
         # Write the header
-        f.write('#include "ui.h"\n\n')
+        #f.write('#include "ui.h"\n\n')
+        f.write('#include "lvgl.h"\n\n')
         f.write('#ifndef LV_ATTRIBUTE_MEM_ALIGN\n')
         f.write('    #define LV_ATTRIBUTE_MEM_ALIGN\n')
         f.write('#endif\n\n')
 
         # Write image data comment
         f.write(f'// IMAGE DATA: {os.path.basename(image_path)}\n')
-        f.write(f'const LV_ATTRIBUTE_MEM_ALIGN uint8_t {relative_path_part}_data[] = {{\n')
+        f.write(f'const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_{var_name}_png_data[] = {{\n')
 
         # Process the image pixels
         pixel_data = []
@@ -91,23 +87,27 @@ def convert_to_16bit(image_path, output_c_file):
         color_format = "LV_IMG_CF_TRUE_COLOR_ALPHA" if use_alpha else "LV_IMG_CF_TRUE_COLOR"
 
         # Write the lv_img_dsc_t struct
-        f.write(f'const lv_img_dsc_t {relative_path_part} = {{\n')
+        f.write(f'const lv_img_dsc_t ui_img_{var_name}_png = {{\n')
         f.write(f'    .header.always_zero = 0,\n')
         f.write(f'    .header.w = {width},\n')
         f.write(f'    .header.h = {height},\n')
-        f.write(f'    .data_size = sizeof({relative_path_part}_data),\n')
+        f.write(f'    .data_size = sizeof(ui_img_{var_name}_png_data),\n')
         f.write(f'    .header.cf = {color_format},\n')
-        f.write(f'    .data = {relative_path_part}_data\n')
+        f.write(f'    .data = ui_img_{var_name}_png_data\n')
         f.write('};\n')
 
     print(f"Conversion complete! Output saved to: {output_c_file}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python convert_to_16bit.py <input_image.png> <output_file.c>")
-    else:
+    if len(sys.argv) < 3:
+        print("Usage: python convert_to_16bit.py [<theme>] <input_image.png> <screen>")
+    elif sys.argv == 3:
+        theme = None
         input_image = sys.argv[1]
-        output_file = sys.argv[2]
-
-        # Convert the image and save to the specified output file
-        convert_to_16bit(input_image, output_file)
+        screen = sys.argv[2]
+    elif sys.argv == 4:
+        theme = sys.argv[1]
+        input_image = sys.argv[2]
+        screen = sys.argv[3]
+    # Convert the image and save to the specified output file
+    convert_to_16bit(theme, input_image, screen)

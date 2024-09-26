@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include "lwip/sys.h"
 #include <arpa/inet.h>
 #include <lwip/netdb.h>
@@ -33,3 +38,8 @@ void wifi_softap_off(void);
 void wifi_init(const char *wifi_ssid, const char *wifi_pass, const char *hostname);
 EventBits_t wifi_connect(void);
 void generate_ssid(char *ssid);
+
+#ifdef __cplusplus
+}
+#endif
+

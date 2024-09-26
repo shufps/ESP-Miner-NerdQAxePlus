@@ -9,13 +9,9 @@
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "lwip/sockets.h"
-#include "utils.h"
+//#include "utils.h"
 #include <stdio.h>
 #include <string.h>
-
-#ifdef DEBUG_MEMORY_LOGGING
-#include "leak_tracker.h"
-#endif
 
 #define BUFFER_SIZE 1024
 static const char *TAG = "stratum_api";
@@ -28,6 +24,37 @@ static size_t json_rpc_buffer_size = 0;
 static int send_uid = 1;
 
 static void debug_stratum_tx(const char *);
+
+static uint8_t hex2val(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    } else if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    } else {
+        return 0;
+    }
+}
+
+static size_t hex2bin(const char *hex, uint8_t *bin, size_t bin_len)
+{
+    size_t len = 0;
+
+    while (*hex && len < bin_len) {
+        bin[len] = hex2val(*hex++) << 4;
+
+        if (!*hex) {
+            len++;
+            break;
+        }
+
+        bin[len++] |= hex2val(*hex++);
+    }
+
+    return len;
+}
 
 int is_socket_connected(int socket)
 {
@@ -353,14 +380,14 @@ int _parse_stratum_subscribe_result_message(const char *result_json_str, char **
     return 0;
 }
 
-int STRATUM_V1_subscribe(int socket, char *model)
+int STRATUM_V1_subscribe(int socket, const char* device, const char* asic)
 {
     // Subscribe
     char subscribe_msg[BUFFER_SIZE];
     const esp_app_desc_t *app_desc = esp_ota_get_app_description();
     const char *version = app_desc->version;
-    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"NerdQaxe+/%s/%s\"]}\n", send_uid++, model,
-            version);
+    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"%s/%s/%s\"]}\n", send_uid++,
+            device, asic, version);
     debug_stratum_tx(subscribe_msg);
     write(socket, subscribe_msg, strlen(subscribe_msg));
 

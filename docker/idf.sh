@@ -3,5 +3,4 @@
 rpath="$( dirname "$( readlink -f "$0" )" )"
 cd $rpath
 
-#docker run --rm -it -v /dev:/dev --privileged -v "$rpath/..":/home/builder/project esp-idf-builder /bin/bash -c "idf.py \"$@\""
-docker run --rm -it -v /dev:/dev --privileged -v "$rpath/..":/home/builder/project esp-idf-builder idf.py $@
+docker run --rm -it -v /dev:/dev --privileged  -e BOARD="${BOARD:-NERDQAXEPLUS}" -v "$rpath/..":/home/builder/project esp-idf-builder idf.py $@ 

@@ -1,6 +1,4 @@
-#ifndef STRATUM_TASK_H_
-#define STRATUM_TASK_H_
+#pragma once
 
 void stratum_task(void *pvParameters);
 
-#endif

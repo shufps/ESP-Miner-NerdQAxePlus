@@ -1,4 +1,4 @@
-#include "ui.h"
+#include "lvgl.h"
 
 #ifndef UI_FONT_OPENSANSBOLD24
 #define UI_FONT_OPENSANSBOLD24 1
