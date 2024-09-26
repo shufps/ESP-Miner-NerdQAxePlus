@@ -18,6 +18,7 @@ extern int stratum_sock;
 void ASIC_result_task(void *pvParameters)
 {
     Board* board = SYSTEM_MODULE.getBoard();
+    Asic* asics = board->getAsics();
 
     char *user = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, STRATUM_USER);
 
@@ -26,7 +27,7 @@ void ASIC_result_task(void *pvParameters)
         task_result asic_result;
 
         // get the result
-        if (!board->asic_proccess_work(&asic_result)) {
+        if (!asics->processWork(&asic_result)) {
             continue;
         }
 

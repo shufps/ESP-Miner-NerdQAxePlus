@@ -4,11 +4,6 @@
 #include "bm1368.h"
 #include "board.h"
 
-#define ASIC_MIN_DIFFICULTY 256
-#define ASIC_MAX_DIFFICULTY 1024
-
-#define BM1368_INITIAL_DIFFICULTY ASIC_MAX_DIFFICULTY
-
 class NerdQaxePlus : public Board {
   protected:
     int num_tps_phases;
@@ -18,7 +13,6 @@ class NerdQaxePlus : public Board {
 
     BM1368 asics;
 
-    virtual Asic* get_asics();
   public:
     NerdQaxePlus();
 
@@ -39,4 +33,6 @@ class NerdQaxePlus : public Board {
     virtual float get_vout();
     virtual float get_iout();
     virtual float get_pout();
+
+    virtual Asic* getAsics() { return &asics; }
 };

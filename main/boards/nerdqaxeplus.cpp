@@ -26,10 +26,12 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     asic_job_frequency_ms = 1500;
     asic_frequency = 490.0;
     asic_voltage = 1.20;
-    asic_initial_difficulty = BM1368_INITIAL_DIFFICULTY;
     fan_invert_polarity = false;
     fan_perc = 100;
     num_tps_phases = 2;
+
+    asic_max_difficulty = 1024;
+    asic_min_difficulty = 256;
 
     theme = new Theme();
     theme->ui_img_btcscreen = &ui_img_nerdqaxeplus_btcscreen_png;
@@ -38,10 +40,6 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     theme->ui_img_portalscreen = &ui_img_nerdqaxeplus_portalscreen_png;
     theme->ui_img_settingscreen = &ui_img_nerdqaxeplus_settingsscreen_png;
     theme->ui_img_splashscreen = &ui_img_nerdqaxeplus_splashscreen2_png;
-}
-
-Asic* NerdQaxePlus::get_asics() {
-    return &asics;
 }
 
 bool NerdQaxePlus::init()
@@ -96,11 +94,11 @@ bool NerdQaxePlus::init()
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     SERIAL_clear_buffer();
-    if (!asics.init(asic_frequency, asic_count, BM1368_INITIAL_DIFFICULTY)) {
+    if (!asics.init(asic_frequency, asic_count, asic_max_difficulty)) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;
     }
-    SERIAL_set_baud(asic_set_max_baud());
+    SERIAL_set_baud(asics.set_max_baud());
     SERIAL_clear_buffer();
 
     vTaskDelay(500 / portTICK_PERIOD_MS);

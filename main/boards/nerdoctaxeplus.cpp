@@ -8,6 +8,9 @@ NerdOctaxePlus::NerdOctaxePlus() : NerdQaxePlus() {
     asic_count = 8;
     num_tps_phases = 3;
 
+    asic_min_difficulty = 512;
+    asic_max_difficulty = 2048;
+
     theme = new Theme();
     theme->ui_img_btcscreen = &ui_img_nerdoctaxeplus_btcscreen_png;
     theme->ui_img_initscreen = &ui_img_nerdoctaxeplus_initscreen2_png;

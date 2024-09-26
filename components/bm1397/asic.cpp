@@ -298,7 +298,7 @@ bool Asic::receive_work(asic_result_t *result)
 }
 
 
-bool Asic::proccess_work(task_result *result)
+bool Asic::processWork(task_result *result)
 {
     asic_result_t asic_result;
     if (!receive_work(&asic_result)) {

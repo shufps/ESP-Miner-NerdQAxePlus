@@ -106,6 +106,7 @@ void create_job_mining_notify(mining_notify *notifiy)
 void *create_jobs_task(void *pvParameters)
 {
     Board *board = SYSTEM_MODULE.getBoard();
+    Asic* asics = board->getAsics();
 
     ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board->get_asic_job_frequency_ms());
     SYSTEM_MODULE.notifyMiningStarted();
@@ -173,7 +174,7 @@ void *create_jobs_task(void *pvParameters)
         next_job->pool_diff = stratum_difficulty;
 
         // clamp stratum difficulty
-        next_job->asic_diff = max(min(stratum_difficulty, ASIC_MAX_DIFFICULTY), ASIC_MIN_DIFFICULTY);
+        next_job->asic_diff = max(min(stratum_difficulty, board->getAsicMaxDifficulty()), board->getAsicMinDifficulty());
 
         pthread_mutex_unlock(&current_stratum_job_mutex);
 
@@ -181,7 +182,7 @@ void *create_jobs_task(void *pvParameters)
             ESP_LOGI(TAG, "New ASIC difficulty %lu", next_job->asic_diff);
             last_asic_diff = next_job->asic_diff;
 
-            board->asic_set_job_difficulty_mask(next_job->asic_diff);
+            asics->set_job_difficulty_mask(next_job->asic_diff);
         }
 
         uint64_t current_time = esp_timer_get_time();
@@ -190,7 +191,7 @@ void *create_jobs_task(void *pvParameters)
         }
         last_submit_time = current_time;
 
-        int asic_job_id = board->asic_send_work(extranonce_2, next_job);
+        int asic_job_id = asics->send_work(extranonce_2, next_job);
 
         ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
 

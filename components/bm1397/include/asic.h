@@ -87,10 +87,11 @@ protected:
 public:
     Asic();
     uint8_t send_work(uint32_t job_id, bm_job *next_bm_job);
-    bool proccess_work(task_result *result);
+    bool processWork(task_result *result);
     void set_job_difficulty_mask(int difficulty);
     bool set_hash_frequency(float frequency);
     virtual void requestChipTemp() = 0;
+    virtual uint16_t getSmallCoreCount() = 0;
 
     // asic models specific
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty) = 0;

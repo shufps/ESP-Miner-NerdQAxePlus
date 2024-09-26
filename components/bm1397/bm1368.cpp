@@ -18,6 +18,8 @@
 #include "serial.h"
 #include "utils.h"
 
+static const uint64_t BM1368_CORE_COUNT = 80;
+static const uint64_t BM1368_SMALL_CORE_COUNT = 1276;
 
 static const char *TAG = "bm1368Module";
 
@@ -140,3 +142,6 @@ uint8_t BM1368::asic_to_job_id(uint8_t asic_id) {
     return (asic_id & 0xf0) >> 1;
 }
 
+uint16_t BM1368::getSmallCoreCount() {
+    return BM1368_SMALL_CORE_COUNT;
+}

@@ -23,6 +23,9 @@ static const char *TAG = "bm1370Module";
 
 static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x70, 0x00, 0x00};
 
+static const uint64_t BM1370_CORE_COUNT = 128;
+static const uint64_t BM1370_SMALL_CORE_COUNT = 2040;
+
 BM1370::BM1370() : BM1368() {
     // NOP
 }
@@ -129,4 +132,8 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
 void BM1370::requestChipTemp() {
     // NOP
+}
+
+uint16_t BM1370::getSmallCoreCount() {
+    return BM1370_SMALL_CORE_COUNT;
 }

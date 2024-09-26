@@ -13,5 +13,6 @@ public:
     BM1370();
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty);
     virtual void requestChipTemp();
+    virtual uint16_t getSmallCoreCount();
 };
 

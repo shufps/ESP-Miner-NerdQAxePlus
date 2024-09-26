@@ -5,6 +5,7 @@
 #include "bm1368.h"
 #include "nvs_config.h"
 
+// TODO move this somewhere into the UI code
 class Theme {
   protected:
     const lv_img_dsc_t *ui_img_btcscreen;
@@ -46,19 +47,27 @@ class Theme {
 
 class Board {
   protected:
+    // general board information
     const char *device_model;
     int version;
     const char *asic_model;
     int asic_count;
+
+    // asic settings
     float asic_job_frequency_ms;
     float asic_frequency;
     float asic_voltage;
-    uint32_t asic_initial_difficulty;
+
+    // asic difficulty settings
+    uint32_t asic_min_difficulty;
+    uint32_t asic_max_difficulty;
+
+    // fans
     bool fan_invert_polarity;
     float fan_perc;
-    Theme *theme;
 
-    virtual Asic *get_asics() = 0;
+    // display theme
+    Theme *theme;
 
   public:
     Board();
@@ -89,15 +98,19 @@ class Board {
     virtual float get_iout() = 0;
     virtual float get_pout() = 0;
 
-    bool asic_proccess_work(task_result *result);
-    int asic_set_max_baud(void);
-    void asic_set_job_difficulty_mask(uint32_t mask);
-    uint8_t asic_send_work(uint32_t job_id, bm_job *next_bm_job);
-    bool asic_send_hash_frequency(float frequency);
-    void asicRequestChipTemp();
+    virtual Asic *getAsics() = 0;
 
     Theme *getTheme()
     {
         return theme;
-    }
+    };
+
+    uint32_t getAsicMaxDifficulty()
+    {
+        return asic_max_difficulty;
+    };
+    uint32_t getAsicMinDifficulty()
+    {
+        return asic_min_difficulty;
+    };
 };

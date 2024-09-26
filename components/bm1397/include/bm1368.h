@@ -17,5 +17,6 @@ public:
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty);
     virtual int set_max_baud(void);
     virtual void requestChipTemp();
+    virtual uint16_t getSmallCoreCount();
 };
 

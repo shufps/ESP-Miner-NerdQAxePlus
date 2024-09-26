@@ -47,6 +47,7 @@ void POWER_MANAGEMENT_task(void *pvParameters)
 {
     PowerManagementModule *power_management = &POWER_MANAGEMENT_MODULE;
     Board* board = SYSTEM_MODULE.getBoard();
+    Asic* asics = board->getAsics();
 
     power_management->frequency_multiplier = 1;
 
@@ -71,7 +72,7 @@ void POWER_MANAGEMENT_task(void *pvParameters)
         if (asic_frequency != last_asic_frequency) {
             ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
             // if PLL setting was found save it in the struct
-            if (board->asic_send_hash_frequency((float) asic_frequency)) {
+            if (asics->set_hash_frequency((float) asic_frequency)) {
                 power_management->frequency_value = (float) asic_frequency;
             }
             last_asic_frequency = asic_frequency;
@@ -79,7 +80,7 @@ void POWER_MANAGEMENT_task(void *pvParameters)
 
         // request chip temps all 15s
         if (esp_timer_get_time() - last_temp_request > 15000000llu) {
-            board->asicRequestChipTemp();
+            asics->requestChipTemp();
             last_temp_request = esp_timer_get_time();
         }
 
