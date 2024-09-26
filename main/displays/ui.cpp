@@ -506,9 +506,9 @@ void UI::init(Board* m_board)
     this->m_theme = m_board->getTheme();
 
     lv_disp_t *dispp = lv_disp_get_default();
-    lv_m_theme_t *m_theme =
-        lv_m_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
-    lv_disp_set_m_theme(dispp, m_theme);
+    lv_theme_t *m_theme =
+        lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
+    lv_disp_set_theme(dispp, m_theme);
     if (ui_Splash1 == NULL)
         splash1ScreenInit();
     // ui_Splash2_screen_init();
