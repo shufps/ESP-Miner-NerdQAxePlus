@@ -90,6 +90,7 @@ public:
     bool proccess_work(task_result *result);
     void set_job_difficulty_mask(int difficulty);
     bool set_hash_frequency(float frequency);
+    virtual void requestChipTemp() = 0;
 
     // asic models specific
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty) = 0;

@@ -29,6 +29,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     asic_initial_difficulty = BM1368_INITIAL_DIFFICULTY;
     fan_invert_polarity = false;
     fan_perc = 100;
+    num_tps_phases = 2;
 
     theme = new Theme();
     theme->ui_img_btcscreen = &ui_img_nerdqaxeplus_btcscreen_png;
@@ -82,7 +83,7 @@ bool NerdQaxePlus::init()
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     // init buck and enable output
-    TPS53647_init();
+    TPS53647_init(num_tps_phases);
     set_voltage(asic_voltage / 1000.0);
 
     // wait 500ms

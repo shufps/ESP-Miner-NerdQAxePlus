@@ -123,6 +123,14 @@ int BM1368::set_max_baud(void)
 */
 }
 
+void BM1368::requestChipTemp() {
+    send2(CMD_READ_ALL, 0x00, 0xB4);
+    send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x80, 0x00, 0x00, 0x00);
+    send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x00, 0x02, 0x00, 0x00);
+    send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x01, 0x02, 0x00, 0x00);
+    send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x10, 0x02, 0x00, 0x00);
+}
+
 uint8_t BM1368::job_to_asic_id(uint8_t job_id) {
     // job-IDs: 00, 18, 30, 48, 60, 78, 10, 28, 40, 58, 70, 08, 20, 38, 50, 68
     return (job_id * 24) & 0x7f;

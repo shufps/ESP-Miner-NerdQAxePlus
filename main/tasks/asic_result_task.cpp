@@ -31,6 +31,19 @@ void ASIC_result_task(void *pvParameters)
         }
 
         if (asic_result.is_reg_resp) {
+            switch (asic_result.reg) {
+                case 0xb4: {
+                    if (asic_result.data & 0x80000000) {
+                        float ftemp = (float) (asic_result.data & 0x0000ffff) * 0.171342f - 299.5144f;;
+                        ESP_LOGI(TAG, "asic %d temp: %.3f", (int) asic_result.asic_nr, ftemp);
+                    }
+                    break;
+                }
+                default: {
+                    // NOP
+                    break;
+                }
+            }
             // TODO evaluate response
             continue;
         }

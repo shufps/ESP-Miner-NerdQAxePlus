@@ -94,6 +94,7 @@ class Board {
     void asic_set_job_difficulty_mask(uint32_t mask);
     uint8_t asic_send_work(uint32_t job_id, bm_job *next_bm_job);
     bool asic_send_hash_frequency(float frequency);
+    void asicRequestChipTemp();
 
     Theme *getTheme()
     {

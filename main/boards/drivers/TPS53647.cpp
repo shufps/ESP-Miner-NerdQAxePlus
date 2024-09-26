@@ -132,6 +132,15 @@ static esp_err_t smb_write_word(uint8_t command, uint16_t data)
     return err;
 }
 
+void set_phases(int num_phases) {
+    if (num_phases < 1 || num_phases > 6) {
+        ESP_LOGW(TAG, "number of phases our of range: %d", num_phases);
+        return;
+    }
+    ESP_LOGI(TAG, "setting %d phases", num_phases);
+    smb_write_byte(PMBUS_MFR_SPECIFIC_20, (uint8_t) (num_phases - 1));
+}
+
 uint8_t volt_to_vid(float volts)
 {
     if (volts == 0.0f) {
@@ -319,7 +328,7 @@ void TPS53647_status()
 /*--- Public TPS53647 functions ---*/
 
 // Set up the TPS53647 regulator and turn it on
-int TPS53647_init(void)
+int TPS53647_init(int num_phases)
 {
     uint8_t u8_value;
 
@@ -357,8 +366,7 @@ int TPS53647_init(void)
     // Slew Rate 0.68mV/us
     smb_write_byte(PMBUS_MFR_SPECIFIC_13, 0x89); // default value
 
-    // 2 phase operation
-    smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
+    set_phases(num_phases);
 
     /* set up the ON_OFF_CONFIG */
     smb_write_byte(PMBUS_ON_OFF_CONFIG, TPS53647_INIT_ON_OFF_CONFIG);
@@ -366,8 +374,7 @@ int TPS53647_init(void)
     /* Switch frequency, 500kHz */
     smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20);
 
-    // 2 phase operation
-    smb_write_byte(PMBUS_MFR_SPECIFIC_20, 0x01);
+    set_phases(num_phases);
 
     /* temperature */
     smb_write_word(PMBUS_OT_WARN_LIMIT, int_2_slinear11(TPS53647_INIT_OT_WARN_LIMIT));

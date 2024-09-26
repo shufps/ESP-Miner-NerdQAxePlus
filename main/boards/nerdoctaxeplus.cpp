@@ -6,6 +6,7 @@ static const char* TAG="nerdoctaxe+";
 NerdOctaxePlus::NerdOctaxePlus() : NerdQaxePlus() {
     device_model = "NerdOCTAXE+";
     asic_count = 8;
+    num_tps_phases = 3;
 
     theme = new Theme();
     theme->ui_img_btcscreen = &ui_img_nerdoctaxeplus_btcscreen_png;

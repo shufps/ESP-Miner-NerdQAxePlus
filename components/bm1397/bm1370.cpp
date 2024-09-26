@@ -126,3 +126,7 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     return chip_counter;
 }
+
+void BM1370::requestChipTemp() {
+    // NOP
+}

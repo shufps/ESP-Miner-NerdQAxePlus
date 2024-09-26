@@ -306,10 +306,11 @@ bool Asic::proccess_work(task_result *result)
     }
 
     // if this matches we can assume it's not a nonce but a response from a read request
-    if ((asic_result.midstate_num == 0) && !(asic_result.nonce & 0x7f) && !(asic_result.version)) {
+    if (/*(asic_result.midstate_num == 0) &&*/ !(asic_result.nonce & 0x7f) && !(asic_result.version)) {
         result->data = __bswap32(asic_result.nonce);
         result->reg = asic_result.job_id;
         result->is_reg_resp = 1;
+        result->asic_nr = asic_result.midstate_num >> 1;
         return true;
     }
 

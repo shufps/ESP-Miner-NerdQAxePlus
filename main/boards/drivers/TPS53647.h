@@ -29,11 +29,20 @@
 #define TPS53647_INIT_VOUT_MIN 0.25 // 1.0
 #define TPS53647_INIT_VOUT_MAX 1.4
 
+#ifdef NERDQAXEPLUS
 #define TPS43647_INIT_IMAX 60 /* A (int) */
-
 /* iout current */
-#define TPS53647_INIT_IOUT_OC_WARN_LIMIT 45.00    /* A */
+#define TPS53647_INIT_IOUT_OC_WARN_LIMIT 50.00    /* A */
 #define TPS53647_INIT_IOUT_OC_FAULT_LIMIT 55.00   /* A */
+#endif
+
+#ifdef NERDOCTAXEPLUS
+#define TPS43647_INIT_IMAX 90 /* A (int) */
+/* iout current */
+#define TPS53647_INIT_IOUT_OC_WARN_LIMIT 80.00    /* A */
+#define TPS53647_INIT_IOUT_OC_FAULT_LIMIT 85.00   /* A */
+#endif
+
 #define TPS53647_INIT_IOUT_OC_FAULT_RESPONSE 0xC0 /* shut down, no retries */
 
 /* temperature */
@@ -43,7 +52,7 @@
 #define TPS53647_INIT_OT_FAULT_RESPONSE 0xFF /* wait for cooling, and retry */
 
 /* public functions */
-int TPS53647_init(void);
+int TPS53647_init(int num_phases);
 int TPS53647_get_frequency(void);
 void TPS53647_set_frequency(int);
 int TPS53647_get_temperature(void);

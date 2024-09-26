@@ -70,3 +70,7 @@ uint8_t Board::asic_send_work(uint32_t job_id, bm_job *next_bm_job) {
 bool Board::asic_send_hash_frequency(float frequency) {
     return this->get_asics()->set_hash_frequency(frequency);
 }
+
+void Board::asicRequestChipTemp() {
+    this->get_asics()->requestChipTemp();
+}

@@ -11,6 +11,8 @@
 
 class NerdQaxePlus : public Board {
   protected:
+    int num_tps_phases;
+
     void LDO_enable();
     void LDO_disable();
 
