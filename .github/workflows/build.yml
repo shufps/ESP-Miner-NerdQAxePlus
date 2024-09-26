@@ -49,8 +49,8 @@ jobs:
 
     - name: Rename Build Artifacts
       run: |
-        cp build/esp-miner.bin build/esp-miner-${{ matrix.board }}.bin
-        cp build/www.bin build/www-${{ matrix.board }}.bin
+        sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.board }}.bin
+        sudo mv build/www.bin build/www-${{ matrix.board }}.bin
 
     - name: Upload to Existing Release
       uses: softprops/action-gh-release@v1
