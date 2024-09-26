@@ -66,7 +66,7 @@ void ui_Splash1_screen_init(void)
     lv_obj_clear_flag(ui_Splash1, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_imgSplash1 = lv_img_create(ui_Splash1);
-    lv_img_set_src(ui_imgSplash1, &ui_img_initscreen2_png);
+    lv_img_set_src(ui_imgSplash1, board.getInitScreen());
     lv_obj_set_width(ui_imgSplash1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_imgSplash1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_imgSplash1, LV_ALIGN_CENTER);
@@ -76,7 +76,7 @@ void ui_Splash1_screen_init(void)
     // lv_obj_add_event_cb(ui_Splash1, ui_event_Splash1, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(&ui_img_splashscreen2_png);
+    lv_img_cache_invalidate_src(board.getSplashScreen());
 }
 
 void ui_Splash2_screen_init(void)
@@ -85,7 +85,7 @@ void ui_Splash2_screen_init(void)
     lv_obj_clear_flag(ui_Splash2, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image1 = lv_img_create(ui_Splash2);
-    lv_img_set_src(ui_Image1, &ui_img_splashscreen2_png);
+    lv_img_set_src(ui_Image1, board.getSplashScreen());
     lv_obj_set_width(ui_Image1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image1, LV_ALIGN_CENTER);
@@ -107,7 +107,7 @@ void ui_Splash2_screen_init(void)
     // lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(&ui_img_initscreen2_png);
+    lv_img_cache_invalidate_src(board.getInitScreen());
 }
 
 void ui_Portal_screen_init(void)
@@ -116,7 +116,7 @@ void ui_Portal_screen_init(void)
     lv_obj_clear_flag(ui_PortalScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image1 = lv_img_create(ui_PortalScreen);
-    lv_img_set_src(ui_Image1, &ui_img_portalscreen_png);
+    lv_img_set_src(ui_Image1, board.getPortalScreen());
     lv_obj_set_width(ui_Image1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image1, LV_ALIGN_CENTER);
@@ -138,7 +138,7 @@ void ui_Portal_screen_init(void)
     // lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(&ui_img_initscreen2_png);
+    lv_img_cache_invalidate_src(board.getInitScreen());
 }
 
 void ui_MiningScreen_screen_init(void)
@@ -147,7 +147,7 @@ void ui_MiningScreen_screen_init(void)
     lv_obj_clear_flag(ui_MiningScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image2 = lv_img_create(ui_MiningScreen);
-    lv_img_set_src(ui_Image2, &ui_img_miningscreen2_png);
+    lv_img_set_src(ui_Image2, board.getMiningScreen());
     lv_obj_set_width(ui_Image2, LV_SIZE_CONTENT);  /// 320
     lv_obj_set_height(ui_Image2, LV_SIZE_CONTENT); /// 170
     lv_obj_set_align(ui_Image2, LV_ALIGN_CENTER);
@@ -306,7 +306,7 @@ void ui_SettingsScreen_screen_init(void)
     lv_obj_clear_flag(ui_SettingsScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image4 = lv_img_create(ui_SettingsScreen);
-    lv_img_set_src(ui_Image4, &ui_img_settingsscreen_png);
+    lv_img_set_src(ui_Image4, board.getSettingsScreen());
     lv_obj_set_width(ui_Image4, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image4, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image4, LV_ALIGN_CENTER);
@@ -450,7 +450,7 @@ void ui_BTCScreen_screen_init(void)
     lv_obj_set_style_bg_opa(ui_BTCScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_ImgBTCscreen = lv_img_create(ui_BTCScreen);
-    lv_img_set_src(ui_ImgBTCscreen, &ui_img_btcscreen_png);
+    lv_img_set_src(ui_ImgBTCscreen, board.getBtcScreen());
     lv_obj_set_width(ui_ImgBTCscreen, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_ImgBTCscreen, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_ImgBTCscreen, LV_ALIGN_CENTER);

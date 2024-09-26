@@ -4,8 +4,8 @@
     #define LV_ATTRIBUTE_MEM_ALIGN
 #endif
 
-// IMAGE DATA: BTCScreen.png
-const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_btcscreen_png_data[] = {
+// IMAGE DATA: btcscreen.png
+const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_nerdqaxeplus_btcscreen_png_data[] = {
     0x21, 0x04, 0xFF, 0x21, 0x04, 0xFE, 0x21, 0x04, 0xFF, 0x21, 0x04, 0xFF, 0x21, 0x04, 0xFE, 0x21, 
     0x04, 0xFE, 0x21, 0x04, 0xFF, 0x21, 0x04, 0xFF, 0x21, 0x04, 0xFF, 0x18, 0xE3, 0xFF, 0x21, 0x04, 
     0xFF, 0x18, 0xE3, 0xFF, 0x18, 0xE3, 0xFE, 0x18, 0xE3, 0xFE, 0x18, 0xE3, 0xFE, 0x18, 0xE3, 0xFF, 
@@ -10209,11 +10209,11 @@ const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_btcscreen_png_data[] = {
 
 };
 
-const lv_img_dsc_t ui_img_btcscreen_png = {
+const lv_img_dsc_t ui_img_nerdqaxeplus_btcscreen_png = {
     .header.always_zero = 0,
     .header.w = 320,
     .header.h = 170,
-    .data_size = sizeof(ui_img_btcscreen_png_data),
+    .data_size = sizeof(ui_img_nerdqaxeplus_btcscreen_png_data),
     .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
-    .data = ui_img_btcscreen_png_data
+    .data = ui_img_nerdqaxeplus_btcscreen_png_data
 };

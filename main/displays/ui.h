@@ -49,13 +49,7 @@ extern "C"
     extern lv_obj_t *ui_lblHashPrice;
     extern lv_obj_t *ui_lblTempPrice;
 
-    LV_IMG_DECLARE(ui_img_initscreen2_png);    // assets\InitScreen2.png
-    LV_IMG_DECLARE(ui_img_splashscreen2_png);  // assets\SplashScreen2.png
-    LV_IMG_DECLARE(ui_img_miningscreen2_png);  // assets\MiningScreen2.png
-    LV_IMG_DECLARE(ui_img_portalscreen_png);   // assets\PortalScreen.png
-    LV_IMG_DECLARE(ui_img_settingsscreen_png); // assets\SettingsScreen.png
-    LV_IMG_DECLARE(ui_img_btcscreen_png);      // assets\BTCScreen.png
-    LV_IMG_DECLARE(ui_img_overheat_png);      // assets\BTCScreen.png
+    LV_IMG_DECLARE(ui_img_overheat_png);      // overheating screen
 
 #define LV_FONT_CUSTOM_DECLARE
     LV_FONT_DECLARE(ui_font_DigitalNumbers16);

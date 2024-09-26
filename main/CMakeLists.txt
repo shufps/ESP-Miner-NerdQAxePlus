@@ -30,12 +30,7 @@ SRCS
     "./displays/images/ui_font_OpenSansBold14.c"
     "./displays/images/ui_font_OpenSansBold24.c"
     "./displays/images/ui_font_OpenSansBold45.c"
-    "./displays/images/ui_img_initscreen2_png.c"
-    "./displays/images/ui_img_miningscreen2_png.c"
-    "./displays/images/ui_img_settingsscreen_png.c"
-    "./displays/images/ui_img_splashscreen2_png.c"
-    "./displays/images/ui_img_portalscreen_png.c"
-    "./displays/images/ui_img_btcscreen_png.c"
+    "./displays/images/themes/themes.c"
     "./displays/images/ui_img_overheat_png.c"
 
 

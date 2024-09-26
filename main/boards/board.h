@@ -3,9 +3,16 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "nvs_config.h"
+#include "../displays/images/themes/themes.h"
 
 class Board {
   protected:
+    const lv_img_dsc_t  *ui_img_btcscreen;
+    const lv_img_dsc_t  *ui_img_initscreen;
+    const lv_img_dsc_t  *ui_img_miningscreen;
+    const lv_img_dsc_t  *ui_img_portalscreen;
+    const lv_img_dsc_t  *ui_img_settingscreen;
+    const lv_img_dsc_t  *ui_img_splashscreen;
 
     const char *device_model;
     int version;
@@ -53,5 +60,12 @@ class Board {
     void asic_set_job_difficulty_mask(uint32_t mask);
     uint8_t asic_send_work(uint32_t job_id, bm_job *next_bm_job);
     bool asic_send_hash_frequency(float frequency);
+
+    const lv_img_dsc_t* getBtcScreen() { return ui_img_btcscreen; };
+    const lv_img_dsc_t* getInitScreen() { return ui_img_initscreen; };
+    const lv_img_dsc_t* getMiningScreen() { return ui_img_miningscreen; };
+    const lv_img_dsc_t* getPortalScreen() { return ui_img_portalscreen; };
+    const lv_img_dsc_t* getSettingsScreen() { return ui_img_settingscreen; };
+    const lv_img_dsc_t* getSplashScreen() { return ui_img_splashscreen; };
 };
 

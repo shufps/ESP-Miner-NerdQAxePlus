@@ -29,6 +29,13 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     this->asic_initial_difficulty = BM1368_INITIAL_DIFFICULTY;
     this->fan_invert_polarity = false;
     this->fan_perc = 100;
+
+    this->ui_img_btcscreen = &ui_img_nerdqaxeplus_btcscreen_png;
+    this->ui_img_initscreen = &ui_img_nerdqaxeplus_initscreen2_png;
+    this->ui_img_miningscreen = &ui_img_nerdqaxeplus_miningscreen2_png;
+    this->ui_img_portalscreen = &ui_img_nerdqaxeplus_portalscreen_png;
+    this->ui_img_settingscreen = &ui_img_nerdqaxeplus_settingsscreen_png;
+    this->ui_img_splashscreen = &ui_img_nerdqaxeplus_splashscreen2_png;
 }
 
 Asic* NerdQaxePlus::get_asics() {
