@@ -476,6 +476,8 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     char *stratumUser = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
     char *board_version = nvs_config_get_string(NVS_CONFIG_BOARD_VERSION, "unknown");
 
+    Board* board = SYSTEM_MODULE.getBoard();
+
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "power", POWER_MANAGEMENT_MODULE.power);
     cJSON_AddNumberToObject(root, "voltage", POWER_MANAGEMENT_MODULE.voltage);
@@ -491,7 +493,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
 
     cJSON_AddNumberToObject(root, "freeHeap", esp_get_free_heap_size());
     cJSON_AddNumberToObject(root, "coreVoltage", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
-    cJSON_AddNumberToObject(root, "coreVoltageActual", board.get_voltage_mv());
+    cJSON_AddNumberToObject(root, "coreVoltageActual", board->get_voltage_mv());
     cJSON_AddNumberToObject(root, "frequency", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
     cJSON_AddStringToObject(root, "ssid", ssid);
     cJSON_AddStringToObject(root, "hostname", hostname);
@@ -499,9 +501,9 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.getSharesAccepted());
     cJSON_AddNumberToObject(root, "sharesRejected", SYSTEM_MODULE.getSharesRejected());
     cJSON_AddNumberToObject(root, "uptimeSeconds", (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000);
-    cJSON_AddNumberToObject(root, "asicCount", board.get_asic_count());
+    cJSON_AddNumberToObject(root, "asicCount", board->get_asic_count());
     cJSON_AddNumberToObject(root, "smallCoreCount", 0);
-    cJSON_AddStringToObject(root, "ASICModel", board.get_asic_model());
+    cJSON_AddStringToObject(root, "ASICModel", board->get_asic_model());
     cJSON_AddStringToObject(root, "stratumURL", stratumURL);
     cJSON_AddNumberToObject(root, "stratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT));
     cJSON_AddStringToObject(root, "stratumUser", stratumUser);

@@ -6,67 +6,23 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
-///////////////////// VARIABLES ////////////////////
 
-lv_obj_t *ui_Splash1;
-lv_obj_t *ui_Splash2;
-lv_obj_t *ui_PortalScreen;
-lv_obj_t *ui_MiningScreen;
-lv_obj_t *ui_SettingsScreen;
-lv_obj_t *ui_lbSSID;
-lv_obj_t *ui_imgSplash1;
-lv_obj_t *ui_Image1;
-lv_obj_t *ui_lbConnect;
-lv_obj_t *ui_Image2;
-lv_obj_t *ui_lbVinput;
-lv_obj_t *ui_lbVcore;
-lv_obj_t *ui_lbIntensidad;
-lv_obj_t *ui_lbPower;
-lv_obj_t *ui_lbEficiency;
-lv_obj_t *ui_lbTemp;
-lv_obj_t *ui_lbTime;
-lv_obj_t *ui_lbIP;
-lv_obj_t *ui_lbBestDifficulty;
-lv_obj_t *ui_lbBestDifficultySet;
-lv_obj_t *ui_lbHashrate;
-lv_obj_t *ui_lbRPM;
-lv_obj_t *ui_lbASIC;
-lv_obj_t *ui_Image4;
-lv_obj_t *ui_lbIPSet;
-lv_obj_t *ui_lbVcoreSet;
-lv_obj_t *ui_lbFreqSet;
-lv_obj_t *ui_lbFanSet;
-lv_obj_t *ui_lbPoolSet;
-lv_obj_t *ui_lbHashrateSet;
-lv_obj_t *ui_lbShares;
-lv_obj_t *ui_lbPortSet;
-lv_obj_t *ui_LogScreen;
-lv_obj_t *ui_LogLabel;
-lv_obj_t *ui_BTCScreen;
-lv_obj_t *ui_ImgBTCscreen;
-lv_obj_t *ui_lblBTCPrice;
-lv_obj_t *ui_lblPriceInc;
-lv_obj_t *ui_lblHashPrice;
-lv_obj_t *ui_lblTempPrice;
+UI::UI() {
+    m_last_screen_change_time = 0;
+}
 
 ///////////////////// FUNCTIONS ////////////////////
 
-int64_t last_screen_change_time = 0;
-void ui_SettingsScreen_screen_init(void);
-void ui_MiningScreen_screen_init(void);
-void ui_Portal_screen_init(void);
-void ui_Splash2_screen_init(void);
-void ui_Splash1_screen_init(void);
 
 ///////////////////// SCREENS ////////////////////
 
-void ui_Splash1_screen_init(void)
+void UI::splash1ScreenInit(void)
 {
     ui_Splash1 = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_Splash1, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_imgSplash1 = lv_img_create(ui_Splash1);
-    lv_img_set_src(ui_imgSplash1, board.getInitScreen());
+    lv_img_set_src(ui_imgSplash1, m_theme->getInitScreen());
     lv_obj_set_width(ui_imgSplash1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_imgSplash1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_imgSplash1, LV_ALIGN_CENTER);
@@ -76,16 +32,16 @@ void ui_Splash1_screen_init(void)
     // lv_obj_add_event_cb(ui_Splash1, ui_event_Splash1, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(board.getSplashScreen());
+    lv_img_cache_invalidate_src(m_theme->getSplashScreen());
 }
 
-void ui_Splash2_screen_init(void)
+void UI::splash2ScreenInit(void)
 {
     ui_Splash2 = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_Splash2, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image1 = lv_img_create(ui_Splash2);
-    lv_img_set_src(ui_Image1, board.getSplashScreen());
+    lv_img_set_src(ui_Image1, m_theme->getSplashScreen());
     lv_obj_set_width(ui_Image1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image1, LV_ALIGN_CENTER);
@@ -107,16 +63,16 @@ void ui_Splash2_screen_init(void)
     // lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(board.getInitScreen());
+    lv_img_cache_invalidate_src(m_theme->getInitScreen());
 }
 
-void ui_Portal_screen_init(void)
+void UI::portalScreenInit(void)
 {
     ui_PortalScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_PortalScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image1 = lv_img_create(ui_PortalScreen);
-    lv_img_set_src(ui_Image1, board.getPortalScreen());
+    lv_img_set_src(ui_Image1, m_theme->getPortalScreen());
     lv_obj_set_width(ui_Image1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image1, LV_ALIGN_CENTER);
@@ -138,16 +94,16 @@ void ui_Portal_screen_init(void)
     // lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(board.getInitScreen());
+    lv_img_cache_invalidate_src(m_theme->getInitScreen());
 }
 
-void ui_MiningScreen_screen_init(void)
+void UI::miningScreenInit(void)
 {
     ui_MiningScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_MiningScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image2 = lv_img_create(ui_MiningScreen);
-    lv_img_set_src(ui_Image2, board.getMiningScreen());
+    lv_img_set_src(ui_Image2, m_theme->getMiningScreen());
     lv_obj_set_width(ui_Image2, LV_SIZE_CONTENT);  /// 320
     lv_obj_set_height(ui_Image2, LV_SIZE_CONTENT); /// 170
     lv_obj_set_align(ui_Image2, LV_ALIGN_CENTER);
@@ -292,7 +248,7 @@ void ui_MiningScreen_screen_init(void)
     lv_obj_set_x(ui_lbASIC, 111);
     lv_obj_set_y(ui_lbASIC, -66);
     lv_obj_set_align(ui_lbASIC, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_lbASIC, board.get_asic_model());
+    lv_label_set_text(ui_lbASIC, m_board->get_asic_model());
     lv_obj_set_style_text_color(ui_lbASIC, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbASIC, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbASIC, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -300,13 +256,13 @@ void ui_MiningScreen_screen_init(void)
 
     // lv_obj_add_event_cb(ui_MiningScreen, ui_event_MiningScreen, LV_EVENT_ALL, NULL);
 }
-void ui_SettingsScreen_screen_init(void)
+void UI::settingsScreenInit(void)
 {
     ui_SettingsScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_SettingsScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image4 = lv_img_create(ui_SettingsScreen);
-    lv_img_set_src(ui_Image4, board.getSettingsScreen());
+    lv_img_set_src(ui_Image4, m_theme->getSettingsScreen());
     lv_obj_set_width(ui_Image4, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image4, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image4, LV_ALIGN_CENTER);
@@ -422,7 +378,7 @@ void ui_SettingsScreen_screen_init(void)
     lv_obj_set_style_text_font(ui_lbPortSet, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 }
 
-void ui_LogScreen_init(void)
+void UI::logScreenInit(void)
 {
     ui_LogScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_LogScreen, LV_OBJ_FLAG_SCROLLABLE);
@@ -442,7 +398,7 @@ void ui_LogScreen_init(void)
     lv_obj_align(ui_LogLabel, LV_ALIGN_TOP_LEFT, 0, 0);
 }
 
-void ui_BTCScreen_screen_init(void)
+void UI::bTCScreenInit(void)
 {
     ui_BTCScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_BTCScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
@@ -450,7 +406,7 @@ void ui_BTCScreen_screen_init(void)
     lv_obj_set_style_bg_opa(ui_BTCScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_ImgBTCscreen = lv_img_create(ui_BTCScreen);
-    lv_img_set_src(ui_ImgBTCscreen, board.getBtcScreen());
+    lv_img_set_src(ui_ImgBTCscreen, m_theme->getBtcScreen());
     lv_obj_set_width(ui_ImgBTCscreen, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_ImgBTCscreen, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_ImgBTCscreen, LV_ALIGN_CENTER);
@@ -506,7 +462,7 @@ void ui_BTCScreen_screen_init(void)
 
 
 // Function to show the overlay with the overheating image
-void show_overheat_warning_overlay()
+void UI::showOverheatWarningOverlay()
 {
     // Get the currently active screen
     lv_obj_t *current_screen = lv_scr_act();
@@ -536,8 +492,7 @@ void show_overheat_warning_overlay()
     lv_obj_clear_flag(overlay_image, LV_OBJ_FLAG_SCROLLABLE);
 }
 
-// Optional function to remove the overlay
-void hide_overheat_warning_overlay(lv_obj_t *overlay_container)
+void UI::hideOverheatWarningOverlay(lv_obj_t *overlay_container)
 {
     if (overlay_container != NULL) {
         lv_obj_del(overlay_container);
@@ -545,15 +500,17 @@ void hide_overheat_warning_overlay(lv_obj_t *overlay_container)
     }
 }
 
-
-void ui_init(void)
+void UI::init(Board* m_board)
 {
+    this->m_board = m_board;
+    this->m_theme = m_board->getTheme();
+
     lv_disp_t *dispp = lv_disp_get_default();
-    lv_theme_t *theme =
-        lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
-    lv_disp_set_theme(dispp, theme);
+    lv_m_theme_t *m_theme =
+        lv_m_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
+    lv_disp_set_m_theme(dispp, m_theme);
     if (ui_Splash1 == NULL)
-        ui_Splash1_screen_init();
+        splash1ScreenInit();
     // ui_Splash2_screen_init();
     // ui_Portal_screen_init();
     // ui_MiningScreen_screen_init();

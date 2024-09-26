@@ -27,9 +27,7 @@
 
 static const char *TAG = "TDisplayS3";
 
-void show_overheat_warning_overlay();
-
-Display::Display() {
+DisplayDriver::DisplayDriver() {
     m_animationsEnabled = false;
     m_button1PressedFlag = false;
     m_button2PressedFlag = false;
@@ -42,14 +40,14 @@ Display::Display() {
     m_btcPrice = 0;
 }
 
-bool Display::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
+bool DisplayDriver::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
                                    void* userCtx) {
     lv_disp_drv_t* dispDriver = (lv_disp_drv_t*)userCtx;
     lv_disp_flush_ready(dispDriver);
     return false;
 }
 
-void Display::lvglFlushCallback(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* colorMap) {
+void DisplayDriver::lvglFlushCallback(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* colorMap) {
     esp_lcd_panel_handle_t panelHandle = (esp_lcd_panel_handle_t)drv->user_data;
     int offsetx1 = area->x1;
     int offsetx2 = area->x2;
@@ -60,14 +58,14 @@ void Display::lvglFlushCallback(lv_disp_drv_t* drv, const lv_area_t* area, lv_co
 }
 
 /************ DISPLAY TURN ON/OFF FUNCTIONS *************/
-void Display::displayTurnOff(void) {
+void DisplayDriver::displayTurnOff(void) {
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_OFF_LEVEL);
     gpio_set_level(TDISPLAYS3_PIN_PWR, false);
     ESP_LOGI(TAG, "Screen off");
     m_displayIsOn = false;
 }
 
-void Display::displayTurnOn(void) {
+void DisplayDriver::displayTurnOn(void) {
     gpio_set_level(TDISPLAYS3_PIN_PWR, true);
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_ON_LEVEL);
     ESP_LOGI(TAG, "Screen on");
@@ -75,7 +73,7 @@ void Display::displayTurnOn(void) {
 }
 
 /************ AUTO TURN OFF DISPLAY FUNCTIONS *************/
-void Display::startCountdown(void) {
+void DisplayDriver::startCountdown(void) {
     m_countdownActive = true;
     m_countdownStartTime = esp_timer_get_time();
 
@@ -94,14 +92,14 @@ void Display::startCountdown(void) {
     }
 }
 
-void Display::displayHideCountdown(void) {
+void DisplayDriver::displayHideCountdown(void) {
     if (m_countdownLabel) {
         lv_obj_del(lv_obj_get_parent(m_countdownLabel));
         m_countdownLabel = NULL;
     }
 }
 
-void Display::checkAutoTurnOffScreen(void) {
+void DisplayDriver::checkAutoTurnOffScreen(void) {
     if (!m_displayIsOn)
         return;
 
@@ -128,46 +126,46 @@ void Display::checkAutoTurnOffScreen(void) {
     }
 }
 
-void Display::increaseLvglTick() {
+void DisplayDriver::increaseLvglTick() {
     lv_tick_inc(TDISPLAYS3_LVGL_TICK_PERIOD_MS);
 }
 
 // Refresh screen values
-void Display::refreshScreen(void) {
+void DisplayDriver::refreshScreen(void) {
     lv_timer_handler();
     increaseLvglTick();
 }
 
-void Display::showOverheating() {
-    show_overheat_warning_overlay();
+void DisplayDriver::showOverheating() {
+    m_ui->showOverheatWarningOverlay();
     refreshScreen();
 }
 
-void Display::changeScreen(void) {
+void DisplayDriver::changeScreen(void) {
     if (m_screenStatus == SCREEN_MINING) {
         enableLvglAnimations(true);
-        _ui_screen_change(ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        _ui_screen_change(m_ui->ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         m_screenStatus = SCREEN_SETTINGS;
         ESP_LOGI("UI", "New Screen Settings displayed");
     } else if (m_screenStatus == SCREEN_SETTINGS) {
         enableLvglAnimations(true);
-        _ui_screen_change(ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        _ui_screen_change(m_ui->ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         m_screenStatus = SCREEN_BTCPRICE;
         ESP_LOGI("UI", "New Screen BTCprice displayed");
     } else if (m_screenStatus == SCREEN_BTCPRICE) {
         enableLvglAnimations(true);
-        _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
+        _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
         m_screenStatus = SCREEN_MINING;
         ESP_LOGI("UI", "New Screen Mining displayed");
     }
 }
 
-void Display::lvglTimerTaskWrapper(void *param) {
-    Display *display = (Display*) param;
+void DisplayDriver::lvglTimerTaskWrapper(void *param) {
+    DisplayDriver *display = (DisplayDriver*) param;
     display->lvglTimerTask(NULL);
 }
 
-void Display::lvglTimerTask(void *param)
+void DisplayDriver::lvglTimerTask(void *param)
 {
     int64_t myLastTime = esp_timer_get_time();
     uint8_t autoOffEnabled = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0);
@@ -222,10 +220,10 @@ void Display::lvglTimerTask(void *param)
         case STATE_ONINIT: // First splash Screen
             if (elapsed > 3000) {
                 ESP_LOGI(TAG, "Changing Screen to SPLASH2");
-                if (ui_Splash2 == NULL)
-                    ui_Splash2_screen_init();
+                if (m_ui->ui_Splash2 == NULL)
+                    m_ui->splash2ScreenInit();
                 enableLvglAnimations(true);
-                _ui_screen_change(ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+                _ui_screen_change(m_ui->ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
                 m_screenStatus = STATE_SPLASH1;
                 myLastTime = esp_timer_get_time();
             }
@@ -235,36 +233,36 @@ void Display::lvglTimerTask(void *param)
                 // Init done, wait until on portal or mining is shown
                 m_screenStatus = STATE_INIT_OK;
                 ESP_LOGI(TAG, "Changing Screen to WAIT SELECTION");
-                lv_obj_clean(ui_Splash1);
-                ui_Splash1 = NULL;
+                lv_obj_clean(m_ui->ui_Splash1);
+                m_ui->ui_Splash1 = NULL;
             }
             break;
         case STATE_INIT_OK: // Show portal
             if (m_nextScreen == SCREEN_PORTAL) {
                 ESP_LOGI(TAG, "Changing Screen to Show Portal");
                 m_screenStatus = SCREEN_PORTAL;
-                if (ui_PortalScreen == NULL) {
-                    ui_Portal_screen_init();
+                if (m_ui->ui_PortalScreen == NULL) {
+                    m_ui->portalScreenInit();
                 }
-                lv_label_set_text(ui_lbSSID, m_portalWifiName); // Actualiza el label
+                lv_label_set_text(m_ui->ui_lbSSID, m_portalWifiName); // Actualiza el label
                 enableLvglAnimations(true);
-                _ui_screen_change(ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
-                lv_obj_clean(ui_Splash2);
-                ui_Splash2 = NULL;
+                _ui_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+                lv_obj_clean(m_ui->ui_Splash2);
+                m_ui->ui_Splash2 = NULL;
             } else if (m_nextScreen == SCREEN_MINING) {
                 // Show Mining screen
                 ESP_LOGI(TAG, "Changing Screen to Mining screen");
                 m_screenStatus = SCREEN_MINING;
-                if (ui_MiningScreen == NULL)
-                    ui_MiningScreen_screen_init();
-                if (ui_SettingsScreen == NULL)
-                    ui_SettingsScreen_screen_init();
-                if (ui_BTCScreen == NULL)
-                    ui_BTCScreen_screen_init();
+                if (m_ui->ui_MiningScreen == NULL)
+                    m_ui->miningScreenInit();
+                if (m_ui->ui_SettingsScreen == NULL)
+                    m_ui->settingsScreenInit();
+                if (m_ui->ui_BTCScreen == NULL)
+                    m_ui->bTCScreenInit();
                 enableLvglAnimations(true);
-                _ui_screen_change(ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
-                lv_obj_clean(ui_Splash2);
-                ui_Splash2 = NULL;
+                _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+                lv_obj_clean(m_ui->ui_Splash2);
+                m_ui->ui_Splash2 = NULL;
             }
             break;
         }
@@ -272,17 +270,17 @@ void Display::lvglTimerTask(void *param)
 }
 
 // Función para activar las actualizaciones
-void Display::enableLvglAnimations(bool enable)
+void DisplayDriver::enableLvglAnimations(bool enable)
 {
     m_animationsEnabled = enable;
 }
 
-void Display::mainCreatSysteTasks(void)
+void DisplayDriver::mainCreatSysteTasks(void)
 {
     xTaskCreatePinnedToCore(lvglTimerTaskWrapper, "lvgl Timer", 6000, (void*) this, 4, NULL, 1); // Antes 10000
 }
 
-lv_obj_t *Display::initTDisplayS3(void)
+lv_obj_t *DisplayDriver::initTDisplayS3(void)
 {
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
@@ -415,36 +413,36 @@ lv_obj_t *Display::initTDisplayS3(void)
     return scr;
 }
 
-void Display::updateHashrate(System *module, float power)
+void DisplayDriver::updateHashrate(System *module, float power)
 {
     char strData[20];
 
     float efficiency = power / (module->getCurrentHashrate10m() / 1000.0);
 
     snprintf(strData, sizeof(strData), "%.1f", module->getCurrentHashrate10m());
-    lv_label_set_text(ui_lbHashrate, strData);    // Update hashrate
-    lv_label_set_text(ui_lbHashrateSet, strData); // Update hashrate
-    lv_label_set_text(ui_lblHashPrice, strData);  // Update hashrate
+    lv_label_set_text(m_ui->ui_lbHashrate, strData);    // Update hashrate
+    lv_label_set_text(m_ui->ui_lbHashrateSet, strData); // Update hashrate
+    lv_label_set_text(m_ui->ui_lblHashPrice, strData);  // Update hashrate
 
     snprintf(strData, sizeof(strData), "%.1f", efficiency);
-    lv_label_set_text(ui_lbEficiency, strData); // Update eficiency label
+    lv_label_set_text(m_ui->ui_lbEficiency, strData); // Update eficiency label
 
     snprintf(strData, sizeof(strData), "%.3fW", power);
-    lv_label_set_text(ui_lbPower, strData); // Actualiza el label
+    lv_label_set_text(m_ui->ui_lbPower, strData); // Actualiza el label
 }
 
-void Display::updateShares(System *module)
+void DisplayDriver::updateShares(System *module)
 {
     char strData[20];
 
     snprintf(strData, sizeof(strData), "%lld/%lld", module->getSharesAccepted(), module->getSharesRejected());
-    lv_label_set_text(ui_lbShares, strData); // Update shares
+    lv_label_set_text(m_ui->ui_lbShares, strData); // Update shares
 
     snprintf(strData, sizeof(strData), "%s", module->getBestDiffString());
-    lv_label_set_text(ui_lbBestDifficulty, module->getBestDiffString());    // Update Bestdifficulty
-    lv_label_set_text(ui_lbBestDifficultySet, module->getBestDiffString()); // Update Bestdifficulty
+    lv_label_set_text(m_ui->ui_lbBestDifficulty, module->getBestDiffString());    // Update Bestdifficulty
+    lv_label_set_text(m_ui->ui_lbBestDifficultySet, module->getBestDiffString()); // Update Bestdifficulty
 }
-void Display::updateTime(System *module)
+void DisplayDriver::updateTime(System *module)
 {
     char strData[20];
 
@@ -459,37 +457,37 @@ void Display::updateTime(System *module)
     int current_seconds = remaining_seconds % 60;
 
     snprintf(strData, sizeof(strData), "%dd %ih %im %is", uptime_in_days, uptime_in_hours, uptime_in_minutes, current_seconds);
-    lv_label_set_text(ui_lbTime, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbTime, strData); // Update label
 }
 
-void Display::updateCurrentSettings()
+void DisplayDriver::updateCurrentSettings()
 {
     char strData[20];
-    if (ui_SettingsScreen == NULL)
+    if (m_ui->ui_SettingsScreen == NULL)
         return;
 
-    lv_label_set_text(ui_lbPoolSet, SYSTEM_MODULE.getPoolUrl()); // Update label
+    lv_label_set_text(m_ui->ui_lbPoolSet, SYSTEM_MODULE.getPoolUrl()); // Update label
 
     snprintf(strData, sizeof(strData), "%d", SYSTEM_MODULE.getPoolPort());
-    lv_label_set_text(ui_lbPortSet, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
-    lv_label_set_text(ui_lbFreqSet, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbFreqSet, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
-    lv_label_set_text(ui_lbVcoreSet, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbVcoreSet, strData); // Update label
 
     uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
     if (auto_fan_speed == 1)
-        lv_label_set_text(ui_lbFanSet, "AUTO"); // Update label
+        lv_label_set_text(m_ui->ui_lbFanSet, "AUTO"); // Update label
     else {
         snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100));
-        lv_label_set_text(ui_lbFanSet, strData); // Update label
+        lv_label_set_text(m_ui->ui_lbFanSet, strData); // Update label
     }
 }
 
 
-void Display::updateBTCprice(void)
+void DisplayDriver::updateBTCprice(void)
 {
     char price_str[32];
 
@@ -498,34 +496,34 @@ void Display::updateBTCprice(void)
 
     m_btcPrice = getBTCprice();
     snprintf(price_str, sizeof(price_str), "%u$", m_btcPrice);
-    lv_label_set_text(ui_lblBTCPrice, price_str); // Update label
+    lv_label_set_text(m_ui->ui_lblBTCPrice, price_str); // Update label
 }
 
-void Display::updateGlobalState()
+void DisplayDriver::updateGlobalState()
 {
     char strData[20];
 
-    if (ui_MiningScreen == NULL)
+    if (m_ui->ui_MiningScreen == NULL)
         return;
-    if (ui_SettingsScreen == NULL)
+    if (m_ui->ui_SettingsScreen == NULL)
         return;
 
     // snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp);
     snprintf(strData, sizeof(strData), "%.0f", POWER_MANAGEMENT_MODULE.chip_temp_avg);
-    lv_label_set_text(ui_lbTemp, strData);       // Update label
-    lv_label_set_text(ui_lblTempPrice, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbTemp, strData);       // Update label
+    lv_label_set_text(m_ui->ui_lblTempPrice, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", POWER_MANAGEMENT_MODULE.fan_rpm);
-    lv_label_set_text(ui_lbRPM, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbRPM, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%.3fW", POWER_MANAGEMENT_MODULE.power);
-    lv_label_set_text(ui_lbPower, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbPower, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%imA", (int) POWER_MANAGEMENT_MODULE.current);
-    lv_label_set_text(ui_lbIntensidad, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbIntensidad, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%imV", (int) POWER_MANAGEMENT_MODULE.voltage);
-    lv_label_set_text(ui_lbVinput, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbVinput, strData); // Update label
 
     updateTime(&SYSTEM_MODULE);
     updateShares(&SYSTEM_MODULE);
@@ -534,73 +532,73 @@ void Display::updateGlobalState()
 
     uint16_t vcore = (int) (TPS53647_get_vout() * 1000.0f);
     snprintf(strData, sizeof(strData), "%umV", vcore);
-    lv_label_set_text(ui_lbVcore, strData); // Update label
+    lv_label_set_text(m_ui->ui_lbVcore, strData); // Update label
 }
 
-void Display::updateIpAddress(char *ip_address_str)
+void DisplayDriver::updateIpAddress(char *ip_address_str)
 {
     char strData[20];
 
-    if (ui_MiningScreen == NULL)
+    if (m_ui->ui_MiningScreen == NULL)
         return;
-    if (ui_SettingsScreen == NULL)
+    if (m_ui->ui_SettingsScreen == NULL)
         return;
 
     snprintf(strData, sizeof(strData), "%s", ip_address_str);
-    lv_label_set_text(ui_lbIP, ip_address_str);    // Update label
-    lv_label_set_text(ui_lbIPSet, ip_address_str); // Update label
+    lv_label_set_text(m_ui->ui_lbIP, ip_address_str);    // Update label
+    lv_label_set_text(m_ui->ui_lbIPSet, ip_address_str); // Update label
 }
 
-void Display::logMessage(const char *message)
+void DisplayDriver::logMessage(const char *message)
 {
     m_screenStatus = SCREEN_LOG;
-    if (ui_LogScreen == NULL)
-        ui_LogScreen_init();
-    lv_label_set_text(ui_LogLabel, message);
+    if (m_ui->ui_LogScreen == NULL)
+        m_ui->logScreenInit();
+    lv_label_set_text(m_ui->ui_LogLabel, message);
     enableLvglAnimations(true);
-    _ui_screen_change(ui_LogScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0);
+    _ui_screen_change(m_ui->ui_LogScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0);
 }
 
-void Display::miningScreen(void)
+void DisplayDriver::miningScreen(void)
 {
     // Only called once at the beggining from system lib
-    if (ui_MiningScreen == NULL)
-        ui_MiningScreen_screen_init();
-    if (ui_SettingsScreen == NULL)
-        ui_SettingsScreen_screen_init();
-    if (ui_BTCScreen == NULL)
-        ui_BTCScreen_screen_init();
+    if (m_ui->ui_MiningScreen == NULL)
+        m_ui->miningScreenInit();
+    if (m_ui->ui_SettingsScreen == NULL)
+        m_ui->settingsScreenInit();
+    if (m_ui->ui_BTCScreen == NULL)
+        m_ui->bTCScreenInit();
     m_nextScreen = SCREEN_MINING;
 }
 
-void Display::portalScreen(const char *message)
+void DisplayDriver::portalScreen(const char *message)
 {
     m_nextScreen = SCREEN_PORTAL;
     strcpy(m_portalWifiName, message);
 }
-void Display::updateWifiStatus(const char *message)
+void DisplayDriver::updateWifiStatus(const char *message)
 {
-    if (ui_lbConnect != NULL)
-        lv_label_set_text(ui_lbConnect, message); // Actualiza el label
+    if (m_ui->ui_lbConnect != NULL)
+        lv_label_set_text(m_ui->ui_lbConnect, message); // Actualiza el label
     refreshScreen();
 }
 
 // ISR Handler para el DownButton (Change Screen)
-void Display::button1IsrHandler(void *arg)
+void DisplayDriver::button1IsrHandler(void *arg)
 {
-    Display *display = (Display*) arg;
+    DisplayDriver *display = (DisplayDriver*) arg;
     // ESP_LOGI("UI", "Button pressed changing screen");
     display->m_button1PressedFlag = true;
 }
 
 // ISR Handler para el UpButton (Change Screen)
-void Display::button2IsrHandler(void *arg)
+void DisplayDriver::button2IsrHandler(void *arg)
 {
-    Display *display = (Display*) arg;
+    DisplayDriver *display = (DisplayDriver*) arg;
     display->m_button2PressedFlag = true;
 }
 
-void Display::buttonsInit(void)
+void DisplayDriver::buttonsInit(void)
 {
     gpio_pad_select_gpio(PIN_BUTTON_1);
     gpio_set_direction(PIN_BUTTON_1, GPIO_MODE_INPUT);
@@ -622,7 +620,7 @@ void Display::buttonsInit(void)
  * @brief Program starts from here
  *
  */
-void Display::init(void)
+void DisplayDriver::init(Board* board)
 {
     ESP_LOGI("INFO", "Setting Up TDisplayS3 Screen");
 
@@ -631,7 +629,8 @@ void Display::init(void)
 
     lv_obj_t *scr = initTDisplayS3();
 
-    ui_init();
+    m_ui = new UI();
+    m_ui->init(board);
     // manual_lvgl_update();
 
     // startUpdateScreenTask(); //Start screen update task

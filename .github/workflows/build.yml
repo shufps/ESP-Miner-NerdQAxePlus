@@ -6,6 +6,9 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        board: [NERDQAXEPLUS, NERDOCTAXEPLUS]
 
     steps:
     - name: Checkout repository
@@ -17,7 +20,7 @@ jobs:
         git fetch --tags  # Ensure all tags are fetched
 
         version=$(git describe --tags --abbrev=0) || { echo "no tag found!"; exit 1; }
-        
+
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
         echo "VERSION_TAG=${version}"
 
@@ -26,11 +29,11 @@ jobs:
         # Run the Docker container to build the project
         docker run --rm --user root -v $PWD:/home/builder/project \
         shufps/esp-idf-builder:0.0.1 idf.py set-target esp32s3
-        
+
     - name: Compile Binaries
       run: |
-        # Run the Docker container to build the project
-        docker run --rm --user root -v $PWD:/home/builder/project \
+        # Run the Docker container to build the project with BOARD environment variable
+        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
         shufps/esp-idf-builder:0.0.1 idf.py build
 
     - name: Merge Binaries
@@ -42,12 +45,20 @@ jobs:
         0x10000 build/esp-miner.bin \
         0x410000 build/www.bin \
         0xf10000 build/ota_data_initial.bin \
-        -o esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin
+        -o esp-miner-factory-${{ matrix.board }}-${{ env.VERSION_TAG }}.bin
+
+    - name: Rename Build Artifacts
+      run: |
+        mv build/esp-miner.bin build/esp-miner-${{ matrix.board }}.bin
+        mv build/www.bin build/www-${{ matrix.board }}.bin
 
     - name: Upload to Existing Release
       uses: softprops/action-gh-release@v1
       with:
-        files: esp-miner-factory-nerdqaxe-${{ env.VERSION_TAG }}.bin, ./build/esp-miner.bin, ./build/www.bin
+        files: |
+          esp-miner-factory-${{ matrix.board }}-${{ env.VERSION_TAG }}.bin
+          build/esp-miner-${{ matrix.board }}.bin
+          build/www-${{ matrix.board }}.bin
         tag_name: ${{ env.VERSION_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
       env:

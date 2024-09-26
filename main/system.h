@@ -6,6 +6,7 @@
 #include "displays/displayDriver.h"
 #include "esp_netif.h"
 #include "freertos/queue.h"
+#include "boards/board.h"
 
 // Configuration and constants
 #define STRATUM_USER CONFIG_STRATUM_USER
@@ -59,7 +60,10 @@ class System {
     QueueHandle_t m_userInputQueue; // Queue for managing user input events
 
     // display
-    Display m_display;
+    DisplayDriver *m_display;
+
+    // board
+    Board *m_board;
 
     // Internal helper methods for system management
     void initSystem();                                 // Initialize system components
@@ -188,5 +192,13 @@ class System {
     void setStartupDone()
     {
         m_startupDone = true;
+    }
+
+    void setBoard(Board* board) {
+        m_board = board;
+    }
+
+    Board* getBoard() {
+        return m_board;
     }
 };

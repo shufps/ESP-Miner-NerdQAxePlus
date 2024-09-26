@@ -18,5 +18,4 @@ extern System SYSTEM_MODULE;
 extern PowerManagementModule POWER_MANAGEMENT_MODULE;
 
 extern AsicJobs asicJobs;
-extern NerdQaxePlus board;
 

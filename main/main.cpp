@@ -16,6 +16,8 @@
 #include "stratum_task.h"
 #include "history.h"
 #include "boards/board.h"
+#include "boards/nerdqaxeplus.h"
+#include "boards/nerdoctaxeplus.h"
 #include "http_server.h"
 #include "influx_task.h"
 
@@ -23,7 +25,6 @@ System SYSTEM_MODULE;
 PowerManagementModule POWER_MANAGEMENT_MODULE;
 
 AsicJobs asicJobs;
-NerdQaxePlus board;
 
 static const char *TAG = "bitaxe";
 // static const double NONCE_SPACE = 4294967296.0; //  2^32
@@ -79,16 +80,25 @@ extern "C" void app_main(void)
         return;
     }
 
+#ifdef NERDQAXEPLUS
+    Board* board = new NerdQaxePlus();
+#endif
+#ifdef NERDOCTAXEPLUS
+    Board* board = new NerdOctaxePlus();
+#endif
+
+    SYSTEM_MODULE.setBoard(board);
+
     size_t total_psram = esp_psram_get_size();
     ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));
 
-    if (!history_init(board.get_asic_count())) {
+    if (!history_init(board->get_asic_count())) {
         ESP_LOGE(TAG, "History couldn't be initialized");
         return;
     }
 
-    ESP_LOGI(TAG, "Found Device Model: %s", board.get_device_model());
-    ESP_LOGI(TAG, "Found Board Version: %d", board.get_version());
+    ESP_LOGI(TAG, "Found Device Model: %s", board->get_device_model());
+    ESP_LOGI(TAG, "Found Board Version: %d", board->get_version());
 
     uint64_t best_diff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
     uint16_t should_self_test = nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0);
@@ -108,10 +118,10 @@ extern "C" void app_main(void)
     const char *username = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL);
     if (username) {
         wifi_softap_off();
-        board.load_settings();
+        board->load_settings();
 
-        if (!board.init()) {
-            ESP_LOGE(TAG, "error initializing board %s", board.get_device_model());
+        if (!board->init()) {
+            ESP_LOGE(TAG, "error initializing board %s", board->get_device_model());
         }
 
         xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, NULL, 10, NULL);

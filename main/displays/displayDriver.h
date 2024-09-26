@@ -5,6 +5,7 @@
 #include "esp_lcd_panel_io.h"
 #include "ui.h"
 #include "ui_helpers.h"
+#include "../boards/board.h"
 
 /* INCLUDES ------------------------------------------------------------------*/
 
@@ -64,7 +65,7 @@
 /* CLASS DECLARATION -----------------------------------------------------*/
 class System;
 
-class Display {
+class DisplayDriver {
 protected:
     bool m_animationsEnabled;              // Flag for enabling animations
     bool m_button1PressedFlag;             // Flag indicating button 1 is pressed
@@ -80,6 +81,8 @@ protected:
     int64_t m_countdownStartTime = 0;      // Start time for the countdown
 
     unsigned int m_btcPrice;               // Current Bitcoin price
+
+    UI *m_ui;
 
     // Helper methods for LVGL handling
     static bool notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata, void* userCtx);
@@ -117,10 +120,10 @@ protected:
 
 public:
     // Constructor
-    Display();
+    DisplayDriver();
 
     // Public methods
-    void init();                           // Initialize the display system
+    void init(Board* board);                           // Initialize the display system
     void updateHashrate(System* module, float power);  // Update the hashrate display
     void updateShares(System* module);     // Update the shares information on the display
     void updateTime(System* module);       // Update the time display

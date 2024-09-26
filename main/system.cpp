@@ -66,7 +66,8 @@ void System::initSystem() {
     memset(m_wifiStatus, 0, 20);
 
     // Initialize the display
-    m_display.init();
+    m_display = new DisplayDriver();
+    m_display->init(m_board);
 
     m_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 }
@@ -80,7 +81,7 @@ void System::updateEsp32Info() {}
 void System::initConnection() {}
 
 void System::updateConnection() {
-    m_display.updateWifiStatus(m_wifiStatus);
+    m_display->updateWifiStatus(m_wifiStatus);
 }
 
 void System::updateSystemPerformance() {}
@@ -88,7 +89,7 @@ void System::updateSystemPerformance() {}
 void System::showApInformation(const char* error) {
     char apSsid[13];
     generate_ssid(apSsid);
-    m_display.portalScreen(apSsid);
+    m_display->portalScreen(apSsid);
 }
 
 double System::calculateNetworkDifficulty(uint32_t nBits) {
@@ -222,23 +223,23 @@ void System::task() {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
-    m_display.miningScreen();
+    m_display->miningScreen();
     esp_netif_get_ip_info(m_netif, &m_ipInfo);
     char ipAddressStr[IP4ADDR_STRLEN_MAX];
     esp_ip4addr_ntoa(&m_ipInfo.ip, ipAddressStr, IP4ADDR_STRLEN_MAX);
-    m_display.updateIpAddress(ipAddressStr);
-    m_display.updateCurrentSettings();
+    m_display->updateIpAddress(ipAddressStr);
+    m_display->updateCurrentSettings();
 
     uint8_t countCycle = 10;
     bool showsOverlay = false;
     while (1) {
         if (m_overheated && !showsOverlay) {
-            m_display.showOverheating();
+            m_display->showOverheating();
             showsOverlay = true;
         }
 
-        m_display.updateGlobalState();
-        m_display.refreshScreen();
+        m_display->updateGlobalState();
+        m_display->refreshScreen();
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
