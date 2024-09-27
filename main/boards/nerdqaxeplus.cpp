@@ -33,13 +33,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicMaxDifficulty = 1024;
     m_asicMinDifficulty = 256;
 
-    m_theme = new Theme();
-    m_theme->ui_img_btcscreen = &ui_img_nerdqaxeplus_btcscreen_png;
-    m_theme->ui_img_initscreen = &ui_img_nerdqaxeplus_initscreen2_png;
-    m_theme->ui_img_miningscreen = &ui_img_nerdqaxeplus_miningscreen2_png;
-    m_theme->ui_img_portalscreen = &ui_img_nerdqaxeplus_portalscreen_png;
-    m_theme->ui_img_settingscreen = &ui_img_nerdqaxeplus_settingsscreen_png;
-    m_theme->ui_img_splashscreen = &ui_img_nerdqaxeplus_splashscreen2_png;
+    m_theme = new ThemeNerdqaxeplus();
 }
 
 bool NerdQaxePlus::init()

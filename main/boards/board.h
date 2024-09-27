@@ -5,46 +5,6 @@
 #include "bm1368.h"
 #include "nvs_config.h"
 
-// TODO move this somewhere into the UI code
-class Theme {
-  protected:
-    const lv_img_dsc_t *ui_img_btcscreen;
-    const lv_img_dsc_t *ui_img_initscreen;
-    const lv_img_dsc_t *ui_img_miningscreen;
-    const lv_img_dsc_t *ui_img_portalscreen;
-    const lv_img_dsc_t *ui_img_settingscreen;
-    const lv_img_dsc_t *ui_img_splashscreen;
-
-  public:
-    friend class NerdOctaxePlus;
-    friend class NerdQaxePlus;
-
-    const lv_img_dsc_t *getBtcScreen()
-    {
-        return ui_img_btcscreen;
-    };
-    const lv_img_dsc_t *getInitScreen()
-    {
-        return ui_img_initscreen;
-    };
-    const lv_img_dsc_t *getMiningScreen()
-    {
-        return ui_img_miningscreen;
-    };
-    const lv_img_dsc_t *getPortalScreen()
-    {
-        return ui_img_portalscreen;
-    };
-    const lv_img_dsc_t *getSettingsScreen()
-    {
-        return ui_img_settingscreen;
-    };
-    const lv_img_dsc_t *getSplashScreen()
-    {
-        return ui_img_splashscreen;
-    };
-};
-
 class Board {
   protected:
     // general board information
