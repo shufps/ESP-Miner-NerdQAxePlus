@@ -58,6 +58,8 @@ class Board {
     virtual float getIout() = 0;
     virtual float getPout() = 0;
 
+    virtual void requestBuckTelemtry() = 0;
+
     virtual Asic *getAsics() = 0;
 
     Theme *getTheme()

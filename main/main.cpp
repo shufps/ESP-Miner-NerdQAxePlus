@@ -74,7 +74,7 @@ static void setup_wifi() {
 }
 
 // Function to configure the Task Watchdog Timer (TWDT)
-void initWatchdog() {
+void initWatchdog(TaskHandle_t task) {
     // Initialize the Task Watchdog Timer configuration
     esp_task_wdt_config_t wdt_config = {
         .timeout_ms = STRATUM_WATCHDOG_TIMEOUT_SECONDS * 1000,  // Convert seconds to milliseconds
@@ -89,18 +89,19 @@ void initWatchdog() {
     }
 
     // Add current task to the watchdog
-    esp_task_wdt_add(NULL);  // Add the current task to be monitored
+    esp_task_wdt_add(task);  
 }
 
 extern "C" void app_main(void)
 {
+    // it could trigger a reset right away after reboot
+    esp_task_wdt_deinit();
+
     ESP_LOGI(TAG, "Welcome to the bitaxe - hack the planet!");
     ESP_ERROR_CHECK(nvs_flash_init());
 
     // shows and saves last reset reason
     SYSTEM_MODULE.showLastResetReason();
-
-    initWatchdog();
 
     if (!esp_psram_is_initialized()) {
         ESP_LOGE(TAG, "PSRAM is not available");
@@ -152,10 +153,16 @@ extern "C" void app_main(void)
         }
 
         xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, NULL, 10, NULL);
-        xTaskCreate(stratum_task, "stratum admin", 8192, NULL, 5, NULL);
+
+        TaskHandle_t stratum_task_handle;
+
+        xTaskCreate(stratum_task, "stratum admin", 8192, NULL, 5, &stratum_task_handle);
+
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
+
+        initWatchdog(stratum_task_handle);
     }
 }
 

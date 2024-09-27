@@ -231,14 +231,12 @@ void stratum_task(void *pvParameters)
                     if (stratum_api_v1_message.response_success) {
                         ESP_LOGI(TAG, "message result accepted");
                         SYSTEM_MODULE.notifyAcceptedShare();
-                        // reset the watchdog because we received a result
-                        esp_task_wdt_reset();
                     } else {
                         ESP_LOGW(TAG, "message result rejected");
                         SYSTEM_MODULE.notifyRejectedShare();
-                        // reset the watchdog because we received a result
-                        esp_task_wdt_reset();
                     }
+                    // reset the watchdog because we received a result
+                    esp_task_wdt_reset();
                 } else if (stratum_api_v1_message.method == STRATUM_RESULT_SETUP) {
                     if (stratum_api_v1_message.response_success) {
                         ESP_LOGI(TAG, "setup message accepted");

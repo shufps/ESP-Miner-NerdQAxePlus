@@ -33,6 +33,7 @@ class NerdQaxePlus : public Board {
     virtual float getVout();
     virtual float getIout();
     virtual float getPout();
+    virtual void requestBuckTelemtry();
 
     virtual Asic* getAsics() { return &asics; }
 };
