@@ -49,6 +49,8 @@ class System {
     int m_poolErrors;  // Count of errors related to the mining pool
     bool m_overheated; // Flag to indicate if the system is overheated
 
+    const char* m_lastResetReason;
+
     // Clock synchronization
     uint32_t m_lastClockSync; // Last clock synchronization timestamp
 
@@ -79,7 +81,6 @@ class System {
     void showApInformation(const char *error);         // Show Access Point (AP) information with optional error message
     double calculateNetworkDifficulty(uint32_t nBits); // Calculate network difficulty based on pool difficulty
     void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
-    void showLastResetReason();                                                // Display the last reset reason for the system
 
   public:
     System();
@@ -200,5 +201,11 @@ class System {
 
     Board* getBoard() {
         return m_board;
+    }
+
+    void showLastResetReason();
+
+    const char* getLastResetReason() {
+        return m_lastResetReason;
     }
 };

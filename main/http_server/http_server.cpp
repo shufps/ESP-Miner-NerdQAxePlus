@@ -518,7 +518,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1));
     cJSON_AddNumberToObject(root, "fanspeed", POWER_MANAGEMENT_MODULE.fan_perc);
     cJSON_AddNumberToObject(root, "fanrpm", POWER_MANAGEMENT_MODULE.fan_rpm);
-
+    cJSON_AddStringToObject(root, "lastResetReason", SYSTEM_MODULE.getLastResetReason());
     // If start_timestamp is provided, include history data
     if (history_requested) {
         uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour after start_timestamp
