@@ -11,10 +11,6 @@
 
 static const char *TAG = "asic_result";
 
-extern int stratum_sock;
-
-
-
 void ASIC_result_task(void *pvParameters)
 {
     Board* board = SYSTEM_MODULE.getBoard();
@@ -45,7 +41,6 @@ void ASIC_result_task(void *pvParameters)
                     break;
                 }
             }
-            // TODO evaluate response
             continue;
         }
 
@@ -68,7 +63,7 @@ void ASIC_result_task(void *pvParameters)
                  asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce, nonce_diff, job->asic_diff);
 
         if (nonce_diff > job->pool_diff) {
-            STRATUM_V1_submit_share(stratum_sock, user, job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
+            STRATUM_V1_submit_share(STRATUM_TASK.getStratumSock(), user, job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
                                     asic_result.rolled_version ^ job->version);
         }
 

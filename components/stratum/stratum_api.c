@@ -429,7 +429,7 @@ void STRATUM_V1_submit_share(int socket, const char *username, const char *jobid
     char submit_msg[BUFFER_SIZE];
 
     if (!is_socket_connected(socket)) {
-        ESP_LOGI(TAG, "Socket not connected. Cannot send message.\n");
+        ESP_LOGI(TAG, "Socket not connected. Cannot send message.");
         return;
     }
 
