@@ -101,13 +101,14 @@ def convert_to_16bit(theme, image_path, screen):
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage: python convert_to_16bit.py [<theme>] <input_image.png> <screen>")
-    elif sys.argv == 3:
+    elif len(sys.argv) == 3:
         theme = None
         input_image = sys.argv[1]
         screen = sys.argv[2]
-    elif sys.argv == 4:
+    elif len(sys.argv) == 4:
         theme = sys.argv[1]
         input_image = sys.argv[2]
         screen = sys.argv[3]
     # Convert the image and save to the specified output file
+    print(f"theme: {theme}, input_image: {input_image}, screen: {screen}")
     convert_to_16bit(theme, input_image, screen)
