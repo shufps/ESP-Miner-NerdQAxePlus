@@ -155,4 +155,10 @@ export class EditComponent implements OnInit {
       });
   }
 
+  showStratumPassword: boolean = false;
+
+  toggleStratumPasswordVisibility() {
+    this.showStratumPassword = !this.showStratumPassword;
+  }
+
 }
