@@ -5,7 +5,7 @@
 #endif
 
 // IMAGE DATA: miningscreen2.png
-const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_nerdqaxeplus_miningscreen2_png_data[] = {
+const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_NerdQaxePlus_miningscreen2_png_data[] = {
     0xDE, 0xFB, 0xFF, 0xDE, 0xFB, 0xFF, 0xDE, 0xFB, 0xFF, 0xDE, 0xFB, 0xFF, 0xDE, 0xFB, 0xFF, 0xDE, 
     0xFB, 0xFF, 0xDE, 0xFB, 0xFF, 0xDE, 0xFB, 0xFF, 0xDE, 0xFB, 0xFF, 0xC6, 0x38, 0xFF, 0x29, 0x65, 
     0xFF, 0x10, 0x82, 0xFF, 0x10, 0x82, 0xFF, 0x10, 0x82, 0xFF, 0x10, 0x82, 0xFF, 0x10, 0x82, 0xFF, 
@@ -10209,11 +10209,11 @@ const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_nerdqaxeplus_miningscreen2_png_data[
 
 };
 
-const lv_img_dsc_t ui_img_nerdqaxeplus_miningscreen2_png = {
+const lv_img_dsc_t ui_img_NerdQaxePlus_miningscreen2_png = {
     .header.always_zero = 0,
     .header.w = 320,
     .header.h = 170,
-    .data_size = sizeof(ui_img_nerdqaxeplus_miningscreen2_png_data),
+    .data_size = sizeof(ui_img_NerdQaxePlus_miningscreen2_png_data),
     .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
-    .data = ui_img_nerdqaxeplus_miningscreen2_png_data
+    .data = ui_img_NerdQaxePlus_miningscreen2_png_data
 };

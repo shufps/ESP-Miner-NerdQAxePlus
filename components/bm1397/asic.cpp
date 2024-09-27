@@ -34,10 +34,10 @@ typedef struct __attribute__((__packed__))
 const static char* TAG = "asic";
 
 Asic::Asic() {
-    current_frequency = 56.25;
+    m_current_frequency = 56.25;
 }
 
-uint16_t Asic::reverse_uint16(uint16_t num)
+uint16_t Asic::reverseUint16(uint16_t num)
 {
     return (num >> 8) | (num << 8);
 }
@@ -85,24 +85,24 @@ void Asic::send2(uint8_t header, uint8_t b0, uint8_t b1) {
     send(header, buf, sizeof(buf), ASIC_SERIALTX_DEBUG);
 }
 
-void Asic::send_chain_inactive(void)
+void Asic::sendChainInactive(void)
 {
     send2(TYPE_CMD | GROUP_ALL | CMD_INACTIVE, 0x00, 0x00);
 }
 
-void Asic::set_chip_address(uint8_t chipAddr)
+void Asic::setChipAddress(uint8_t chipAddr)
 {
     send2(TYPE_CMD | GROUP_SINGLE | CMD_SETADDRESS, chipAddr, 0x00);
 }
 
-void Asic::send_read_address(void)
+void Asic::sendReadAddress(void)
 {
     send2(TYPE_CMD | GROUP_ALL | CMD_READ, 0x00, 0x00);
 }
 
 // Function to set the hash frequency
 // gives the same PLL settings as the S21 dumps
-bool Asic::send_hash_frequency(float target_freq) {
+bool Asic::sendHashFrequency(float target_freq) {
     float max_diff = 0.001;
     uint8_t freqbuf[6] = {0x00, 0x08, 0x40, 0xA0, 0x02, 0x41};
     int postdiv_min = 255;
@@ -152,14 +152,14 @@ bool Asic::send_hash_frequency(float target_freq) {
     //ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
 
     ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)", target_freq, best_newf);
-    current_frequency = target_freq;
+    m_current_frequency = target_freq;
     return true;
 }
 
 // Function to perform frequency transition up or down
-bool Asic::do_frequency_transition(float target_frequency) {
+bool Asic::doFrequencyTransition(float target_frequency) {
     float step = 6.25;
-    float current = current_frequency;
+    float current = m_current_frequency;
     float target = target_frequency;
 
     // Determine the direction of the transition
@@ -175,7 +175,7 @@ bool Asic::do_frequency_transition(float target_frequency) {
             next_dividable = floor(current / step) * step;
         }
         current = next_dividable;
-        if (!send_hash_frequency(current)) {
+        if (!sendHashFrequency(current)) {
             printf("ERROR: Failed to set frequency to %.2f MHz\n", current);
             return false;
         }
@@ -186,7 +186,7 @@ bool Asic::do_frequency_transition(float target_frequency) {
     while ((direction > 0 && current < target) || (direction < 0 && current > target)) {
         float next_step = fmin(fabs(direction), fabs(target - current));
         current += direction > 0 ? next_step : -next_step;
-        if (!send_hash_frequency(current)) {
+        if (!sendHashFrequency(current)) {
             printf("ERROR: Failed to set frequency to %.2f MHz\n", current);
             return false;
         }
@@ -194,7 +194,7 @@ bool Asic::do_frequency_transition(float target_frequency) {
     }
 
     // Set the exact target frequency to finalize
-    if (!send_hash_frequency(target)) {
+    if (!sendHashFrequency(target)) {
         printf("ERROR: Failed to set frequency to %.2f MHz\n", target);
         return false;
     }
@@ -209,7 +209,7 @@ int Asic::count_asics() {
     uint8_t buf[11];
     int chip_counter = 0;
     while (SERIAL_rx(buf, sizeof(buf), 1000) > 0) {
-        if (!strncmp((char *) get_chip_id(), (char *) buf, 6)) {
+        if (!strncmp((char *) getChipId(), (char *) buf, 6)) {
             chip_counter++;
             ESP_LOGI(TAG, "found asic #%d", chip_counter);
         } else {
@@ -220,7 +220,7 @@ int Asic::count_asics() {
     return chip_counter;
 }
 
-void Asic::set_job_difficulty_mask(int difficulty)
+void Asic::setJobDifficultyMask(int difficulty)
 {
     // Default mask of 256 diff
     unsigned char job_difficulty_mask[9] = {0x00, TICKET_MASK, 0b00000000, 0b00000000, 0b00000000, 0b11111111};
@@ -249,16 +249,16 @@ void Asic::set_job_difficulty_mask(int difficulty)
 }
 
 // can ramp up and down in 6.25MHz steps
-bool Asic::set_hash_frequency(float target_freq) {
-    return do_frequency_transition(target_freq);
+bool Asic::setAsicFrequency(float target_freq) {
+    return doFrequencyTransition(target_freq);
 }
 
 
-uint8_t Asic::send_work(uint32_t job_id, bm_job *next_bm_job)
+uint8_t Asic::sendWork(uint32_t job_id, bm_job *next_bm_job)
 {
     BM1368_job job;
 
-    job.job_id = job_to_asic_id(job_id);
+    job.job_id = jobToAsicId(job_id);
 
     job.num_midstates = 0x01;
     memcpy(&job.starting_nonce, &next_bm_job->starting_nonce, 4);
@@ -274,7 +274,7 @@ uint8_t Asic::send_work(uint32_t job_id, bm_job *next_bm_job)
     return job.job_id;
 }
 
-bool Asic::receive_work(asic_result_t *result)
+bool Asic::receiveWork(asic_result_t *result)
 {
     // wait for a response, wait time is pretty arbitrary
     int received = SERIAL_rx((uint8_t*) result, 11, 60000);
@@ -301,7 +301,7 @@ bool Asic::receive_work(asic_result_t *result)
 bool Asic::processWork(task_result *result)
 {
     asic_result_t asic_result;
-    if (!receive_work(&asic_result)) {
+    if (!receiveWork(&asic_result)) {
         return false;
     }
 
@@ -314,9 +314,9 @@ bool Asic::processWork(task_result *result)
         return true;
     }
 
-    uint8_t job_id = asic_to_job_id(asic_result.job_id);
+    uint8_t job_id = asicToJobId(asic_result.job_id);
 
-    uint32_t rolled_version = (reverse_uint16(asic_result.version) << 13); // shift the 16 bit value left 13
+    uint32_t rolled_version = (reverseUint16(asic_result.version) << 13); // shift the 16 bit value left 13
 
     int asic_nr = (asic_result.nonce & 0x0000fc00) >> 10;
 

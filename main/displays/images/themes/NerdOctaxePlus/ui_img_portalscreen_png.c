@@ -5,7 +5,7 @@
 #endif
 
 // IMAGE DATA: portalscreen.png
-const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_nerdoctaxeplus_portalscreen_png_data[] = {
+const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_NerdOctaxePlus_portalscreen_png_data[] = {
     0x00, 0x20, 0xFF, 0x00, 0x20, 0xFF, 0x00, 0x20, 0xFF, 0x00, 0x20, 0xFF, 0x00, 0x20, 0xFF, 0x08, 
     0x41, 0xFF, 0x08, 0x41, 0xFF, 0x08, 0x41, 0xFF, 0x08, 0x41, 0xFF, 0x08, 0x41, 0xFF, 0x08, 0x41, 
     0xFF, 0x08, 0x41, 0xFF, 0x08, 0x41, 0xFF, 0x08, 0x41, 0xFF, 0x08, 0x41, 0xFF, 0x08, 0x41, 0xFF, 
@@ -10180,11 +10180,11 @@ const LV_ATTRIBUTE_MEM_ALIGN uint8_t ui_img_nerdoctaxeplus_portalscreen_png_data
     0xE6, 0xFF, 0x24, 0xE6, 0xFF, 0x24, 0xE6, 0xFF, 0x24, 0xE6, 0xFF, 
 };
 
-const lv_img_dsc_t ui_img_nerdoctaxeplus_portalscreen_png = {
+const lv_img_dsc_t ui_img_NerdOctaxePlus_portalscreen_png = {
     .header.always_zero = 0,
     .header.w = 321,
     .header.h = 169,
-    .data_size = sizeof(ui_img_nerdoctaxeplus_portalscreen_png_data),
+    .data_size = sizeof(ui_img_NerdOctaxePlus_portalscreen_png_data),
     .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
-    .data = ui_img_nerdoctaxeplus_portalscreen_png_data
+    .data = ui_img_NerdOctaxePlus_portalscreen_png_data
 };

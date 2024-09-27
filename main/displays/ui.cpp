@@ -22,7 +22,7 @@ void UI::splash1ScreenInit(void)
     lv_obj_clear_flag(ui_Splash1, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_imgSplash1 = lv_img_create(ui_Splash1);
-    lv_img_set_src(ui_imgSplash1, m_theme->getInitScreen());
+    lv_img_set_src(ui_imgSplash1, m_theme->getInitscreen2());
     lv_obj_set_width(ui_imgSplash1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_imgSplash1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_imgSplash1, LV_ALIGN_CENTER);
@@ -32,7 +32,7 @@ void UI::splash1ScreenInit(void)
     // lv_obj_add_event_cb(ui_Splash1, ui_event_Splash1, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(m_theme->getSplashScreen());
+    lv_img_cache_invalidate_src(m_theme->getSplashscreen2());
 }
 
 void UI::splash2ScreenInit(void)
@@ -41,7 +41,7 @@ void UI::splash2ScreenInit(void)
     lv_obj_clear_flag(ui_Splash2, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image1 = lv_img_create(ui_Splash2);
-    lv_img_set_src(ui_Image1, m_theme->getSplashScreen());
+    lv_img_set_src(ui_Image1, m_theme->getSplashscreen2());
     lv_obj_set_width(ui_Image1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image1, LV_ALIGN_CENTER);
@@ -63,7 +63,7 @@ void UI::splash2ScreenInit(void)
     // lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(m_theme->getInitScreen());
+    lv_img_cache_invalidate_src(m_theme->getInitscreen2());
 }
 
 void UI::portalScreenInit(void)
@@ -72,7 +72,7 @@ void UI::portalScreenInit(void)
     lv_obj_clear_flag(ui_PortalScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image1 = lv_img_create(ui_PortalScreen);
-    lv_img_set_src(ui_Image1, m_theme->getPortalScreen());
+    lv_img_set_src(ui_Image1, m_theme->getPortalscreen());
     lv_obj_set_width(ui_Image1, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image1, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image1, LV_ALIGN_CENTER);
@@ -94,7 +94,7 @@ void UI::portalScreenInit(void)
     // lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
     // Liberar memoria de imágenes no utilizadas
-    lv_img_cache_invalidate_src(m_theme->getInitScreen());
+    lv_img_cache_invalidate_src(m_theme->getInitscreen2());
 }
 
 void UI::miningScreenInit(void)
@@ -103,7 +103,7 @@ void UI::miningScreenInit(void)
     lv_obj_clear_flag(ui_MiningScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image2 = lv_img_create(ui_MiningScreen);
-    lv_img_set_src(ui_Image2, m_theme->getMiningScreen());
+    lv_img_set_src(ui_Image2, m_theme->getMiningscreen2());
     lv_obj_set_width(ui_Image2, LV_SIZE_CONTENT);  /// 320
     lv_obj_set_height(ui_Image2, LV_SIZE_CONTENT); /// 170
     lv_obj_set_align(ui_Image2, LV_ALIGN_CENTER);
@@ -248,7 +248,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_x(ui_lbASIC, 111);
     lv_obj_set_y(ui_lbASIC, -66);
     lv_obj_set_align(ui_lbASIC, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_lbASIC, m_board->get_asic_model());
+    lv_label_set_text(ui_lbASIC, m_board->getAsicModel());
     lv_obj_set_style_text_color(ui_lbASIC, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbASIC, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbASIC, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -262,7 +262,7 @@ void UI::settingsScreenInit(void)
     lv_obj_clear_flag(ui_SettingsScreen, LV_OBJ_FLAG_SCROLLABLE); /// Flags
 
     ui_Image4 = lv_img_create(ui_SettingsScreen);
-    lv_img_set_src(ui_Image4, m_theme->getSettingsScreen());
+    lv_img_set_src(ui_Image4, m_theme->getSettingsscreen());
     lv_obj_set_width(ui_Image4, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_Image4, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_Image4, LV_ALIGN_CENTER);
@@ -406,7 +406,7 @@ void UI::bTCScreenInit(void)
     lv_obj_set_style_bg_opa(ui_BTCScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_ImgBTCscreen = lv_img_create(ui_BTCScreen);
-    lv_img_set_src(ui_ImgBTCscreen, m_theme->getBtcScreen());
+    lv_img_set_src(ui_ImgBTCscreen, m_theme->getBtcscreen());
     lv_obj_set_width(ui_ImgBTCscreen, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_ImgBTCscreen, LV_SIZE_CONTENT); /// 1
     lv_obj_set_align(ui_ImgBTCscreen, LV_ALIGN_CENTER);
@@ -500,10 +500,10 @@ void UI::hideOverheatWarningOverlay(lv_obj_t *overlay_container)
     }
 }
 
-void UI::init(Board* m_board)
+void UI::init(Board* board)
 {
-    this->m_board = m_board;
-    this->m_theme = m_board->getTheme();
+    m_board = board;
+    m_theme = board->getTheme();
 
     lv_disp_t *dispp = lv_disp_get_default();
     lv_theme_t *m_theme =

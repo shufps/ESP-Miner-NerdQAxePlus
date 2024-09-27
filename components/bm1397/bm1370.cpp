@@ -30,7 +30,7 @@ BM1370::BM1370() : BM1368() {
     // NOP
 }
 
-const uint8_t* BM1370::get_chip_id() {
+const uint8_t* BM1370::getChipId() {
     return (uint8_t*) chip_id;
 }
 
@@ -64,11 +64,11 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     send6(CMD_WRITE_ALL, 0x00, 0x18, 0xF0, 0x00, 0xC1, 0x00);
 
     // chain inactive
-    send_chain_inactive();
+    sendChainInactive();
 
     // set chip address
     for (uint8_t i = 0; i < chip_counter; i++) {
-        set_chip_address(i * 2);
+        setChipAddress(i * 2);
     }
 
     // Core Register Control
@@ -78,7 +78,7 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     //send6(CMD_WRITE_ALL, 0x00, 0x3C, 0x80, 0x00, 0x80, 0x18);
     send6(CMD_WRITE_ALL, 0x00, 0x3C, 0x80, 0x00, 0x80, 0x0C);
 
-    set_job_difficulty_mask(difficulty);
+    setJobDifficultyMask(difficulty);
 
     // Set the IO Driver Strength on chip 00
     send6(CMD_WRITE_ALL, 0x00, 0x58, 0x00, 0x01, 0x11, 0x11);
@@ -114,7 +114,7 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     // Core Register Control
     send6(CMD_WRITE_ALL, 0x00, 0x3C, 0x80, 0x00, 0x8D, 0xEE);
 
-    do_frequency_transition(frequency);
+    doFrequencyTransition(frequency);
 
     // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
 

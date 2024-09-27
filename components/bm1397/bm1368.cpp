@@ -29,7 +29,7 @@ BM1368::BM1368() : Asic() {
     // NOP
 }
 
-const uint8_t* BM1368::get_chip_id() {
+const uint8_t* BM1368::getChipId() {
     return (uint8_t*) chip_id;
 }
 
@@ -62,11 +62,11 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     send6(CMD_WRITE_ALL, 0x00, 0x18, 0xFF, 0x0F, 0xC1, 0x00);
 
     // chain inactive
-    send_chain_inactive();
+    sendChainInactive();
 
     // set chip address
     for (uint8_t i = 0; i < chip_counter; i++) {
-        set_chip_address(i * 2);
+        setChipAddress(i * 2);
     }
 
     // Core Register Control
@@ -75,7 +75,7 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     // Core Register Control
     send6(CMD_WRITE_ALL, 0x00, 0x3C, 0x80, 0x00, 0x80, 0x18);
 
-    set_job_difficulty_mask(difficulty);
+    setJobDifficultyMask(difficulty);
 
     // Analog Mux Control
     send6(CMD_WRITE_ALL, 0x00, 0x54, 0x00, 0x00, 0x00, 0x03);
@@ -96,7 +96,7 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
         send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x82, 0xAA);
     }
 
-    do_frequency_transition(frequency);
+    doFrequencyTransition(frequency);
 
     // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
 
@@ -111,7 +111,7 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     return chip_counter;
 }
 
-int BM1368::set_max_baud(void)
+int BM1368::setMaxBaud(void)
 {
     return 115749;
 /*
@@ -133,12 +133,12 @@ void BM1368::requestChipTemp() {
     send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x10, 0x02, 0x00, 0x00);
 }
 
-uint8_t BM1368::job_to_asic_id(uint8_t job_id) {
+uint8_t BM1368::jobToAsicId(uint8_t job_id) {
     // job-IDs: 00, 18, 30, 48, 60, 78, 10, 28, 40, 58, 70, 08, 20, 38, 50, 68
     return (job_id * 24) & 0x7f;
 }
 
-uint8_t BM1368::asic_to_job_id(uint8_t asic_id) {
+uint8_t BM1368::asicToJobId(uint8_t asic_id) {
     return (asic_id & 0xf0) >> 1;
 }
 
