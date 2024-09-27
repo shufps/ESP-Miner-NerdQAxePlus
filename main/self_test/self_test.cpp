@@ -22,7 +22,7 @@ static void display_msg(char *msg)
 static bool fan_sense_pass(Board *board)
 {
     uint16_t fan_speed = 0;
-    board->get_fan_speed(&fan_speed);
+    board->getFanSpeed(&fan_speed);
 
     ESP_LOGI(TAG, "fanSpeed: %d", fan_speed);
     if (fan_speed > 1000) {
@@ -33,7 +33,7 @@ static bool fan_sense_pass(Board *board)
 
 static bool core_voltage_pass(Board *board)
 {
-    uint16_t core_voltage = board->get_voltage_mv();
+    uint16_t core_voltage = board->getVoltageMv();
     ESP_LOGI(TAG, "Voltage: %u", core_voltage);
 
     if (core_voltage > 1100 && core_voltage < 1300) {

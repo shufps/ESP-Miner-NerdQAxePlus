@@ -248,7 +248,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_x(ui_lbASIC, 111);
     lv_obj_set_y(ui_lbASIC, -66);
     lv_obj_set_align(ui_lbASIC, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_lbASIC, m_board->get_asic_model());
+    lv_label_set_text(ui_lbASIC, m_board->getAsicModel());
     lv_obj_set_style_text_color(ui_lbASIC, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbASIC, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbASIC, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -500,10 +500,10 @@ void UI::hideOverheatWarningOverlay(lv_obj_t *overlay_container)
     }
 }
 
-void UI::init(Board* m_board)
+void UI::init(Board* board)
 {
-    this->m_board = m_board;
-    this->m_theme = m_board->getTheme();
+    m_board = board;
+    m_theme = board->getTheme();
 
     lv_disp_t *dispp = lv_disp_get_default();
     lv_theme_t *m_theme =

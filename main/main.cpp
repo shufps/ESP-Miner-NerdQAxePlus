@@ -92,13 +92,13 @@ extern "C" void app_main(void)
     size_t total_psram = esp_psram_get_size();
     ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));
 
-    if (!history_init(board->get_asic_count())) {
+    if (!history_init(board->getAsicCount())) {
         ESP_LOGE(TAG, "History couldn't be initialized");
         return;
     }
 
-    ESP_LOGI(TAG, "Found Device Model: %s", board->get_device_model());
-    ESP_LOGI(TAG, "Found Board Version: %d", board->get_version());
+    ESP_LOGI(TAG, "Found Device Model: %s", board->getDeviceModel());
+    ESP_LOGI(TAG, "Found Board Version: %d", board->getVersion());
 
     uint64_t best_diff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
     uint16_t should_self_test = nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0);
@@ -118,10 +118,10 @@ extern "C" void app_main(void)
     const char *username = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL);
     if (username) {
         wifi_softap_off();
-        board->load_settings();
+        board->loadSettings();
 
         if (!board->init()) {
-            ESP_LOGE(TAG, "error initializing board %s", board->get_device_model());
+            ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
         }
 
         xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, NULL, 10, NULL);

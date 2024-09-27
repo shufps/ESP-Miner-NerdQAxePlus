@@ -19,27 +19,27 @@
 static const char* TAG="nerdqaxe+";
 
 NerdQaxePlus::NerdQaxePlus() : Board() {
-    device_model = "NerdQAxe+";
-    version = 501;
-    asic_model = "BM1368";
-    asic_count = 4;
-    asic_job_frequency_ms = 1500;
-    asic_frequency = 490.0;
-    asic_voltage = 1.20;
-    fan_invert_polarity = false;
-    fan_perc = 100;
-    num_tps_phases = 2;
+    m_deviceModel = "NerdQAxe+";
+    m_version = 501;
+    m_asicModel = "BM1368";
+    m_asicCount = 4;
+    m_asicJobIntervalMs = 1500;
+    m_asicFrequency = 490.0;
+    m_asicVoltage = 1.20;
+    m_fanInvertPolarity = false;
+    m_fanPerc = 100;
+    m_numPhases = 2;
 
-    asic_max_difficulty = 1024;
-    asic_min_difficulty = 256;
+    m_asicMaxDifficulty = 1024;
+    m_asicMinDifficulty = 256;
 
-    theme = new Theme();
-    theme->ui_img_btcscreen = &ui_img_nerdqaxeplus_btcscreen_png;
-    theme->ui_img_initscreen = &ui_img_nerdqaxeplus_initscreen2_png;
-    theme->ui_img_miningscreen = &ui_img_nerdqaxeplus_miningscreen2_png;
-    theme->ui_img_portalscreen = &ui_img_nerdqaxeplus_portalscreen_png;
-    theme->ui_img_settingscreen = &ui_img_nerdqaxeplus_settingsscreen_png;
-    theme->ui_img_splashscreen = &ui_img_nerdqaxeplus_splashscreen2_png;
+    m_theme = new Theme();
+    m_theme->ui_img_btcscreen = &ui_img_nerdqaxeplus_btcscreen_png;
+    m_theme->ui_img_initscreen = &ui_img_nerdqaxeplus_initscreen2_png;
+    m_theme->ui_img_miningscreen = &ui_img_nerdqaxeplus_miningscreen2_png;
+    m_theme->ui_img_portalscreen = &ui_img_nerdqaxeplus_portalscreen_png;
+    m_theme->ui_img_settingscreen = &ui_img_nerdqaxeplus_settingsscreen_png;
+    m_theme->ui_img_splashscreen = &ui_img_nerdqaxeplus_splashscreen2_png;
 }
 
 bool NerdQaxePlus::init()
@@ -50,8 +50,8 @@ bool NerdQaxePlus::init()
     ESP_ERROR_CHECK(i2c_master_init());
     ESP_LOGI(TAG, "I2C initialized successfully");
 
-    EMC2302_init(fan_invert_polarity);
-    set_fan_speed(fan_perc);
+    EMC2302_init(m_fanInvertPolarity);
+    setFanSpeed(m_fanPerc);
 
     // configure gpios
     gpio_pad_select_gpio(TPS53647_EN_PIN);
@@ -63,7 +63,7 @@ bool NerdQaxePlus::init()
     gpio_set_direction(BM1368_RST_PIN, GPIO_MODE_OUTPUT);
 
     // disable buck (disables EN pin)
-    set_voltage(0.0);
+    setVoltage(0.0);
 
     // disable LDO
     LDO_disable();
@@ -81,8 +81,8 @@ bool NerdQaxePlus::init()
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     // init buck and enable output
-    TPS53647_init(num_tps_phases);
-    set_voltage(asic_voltage / 1000.0);
+    TPS53647_init(m_numPhases);
+    setVoltage(m_asicVoltage / 1000.0);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -94,11 +94,11 @@ bool NerdQaxePlus::init()
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     SERIAL_clear_buffer();
-    if (!asics.init(asic_frequency, asic_count, asic_max_difficulty)) {
+    if (!asics.init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty)) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;
     }
-    SERIAL_set_baud(asics.set_max_baud());
+    SERIAL_set_baud(asics.setMaxBaud());
     SERIAL_clear_buffer();
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -117,51 +117,51 @@ void NerdQaxePlus::LDO_disable()
     gpio_set_level(LDO_EN_PIN, 0);
 }
 
-bool NerdQaxePlus::set_voltage(float core_voltage)
+bool NerdQaxePlus::setVoltage(float core_voltage)
 {
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
     TPS53647_set_vout(core_voltage);
     return true;
 }
 
-uint16_t NerdQaxePlus::get_voltage_mv()
+uint16_t NerdQaxePlus::getVoltageMv()
 {
     return TPS53647_get_vout() * 1000.0f;
 }
 
-void NerdQaxePlus::set_fan_speed(float perc) {
+void NerdQaxePlus::setFanSpeed(float perc) {
     EMC2302_set_fan_speed(perc);
 }
 
-void NerdQaxePlus::get_fan_speed(uint16_t* rpm) {
+void NerdQaxePlus::getFanSpeed(uint16_t* rpm) {
     EMC2302_get_fan_speed(rpm);
 }
 
-float NerdQaxePlus::read_temperature(int index) {
+float NerdQaxePlus::readTemperature(int index) {
     return TMP1075_read_temperature(index);
 }
 
-float NerdQaxePlus::get_vin() {
+float NerdQaxePlus::getVin() {
     return TPS53647_get_vin();
 }
 
-float NerdQaxePlus::get_iin() {
+float NerdQaxePlus::getIin() {
     return TPS53647_get_iin();
 }
 
-float NerdQaxePlus::get_pin() {
+float NerdQaxePlus::getPin() {
     return TPS53647_get_pin();
 }
 
-float NerdQaxePlus::get_vout() {
+float NerdQaxePlus::getVout() {
     return TPS53647_get_vout();
 }
 
-float NerdQaxePlus::get_iout() {
+float NerdQaxePlus::getIout() {
     return TPS53647_get_iout();
 }
 
-float NerdQaxePlus::get_pout() {
+float NerdQaxePlus::getPout() {
     return TPS53647_get_pout();
 }
 

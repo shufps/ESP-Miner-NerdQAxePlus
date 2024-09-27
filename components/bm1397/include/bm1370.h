@@ -7,7 +7,7 @@
 
 class BM1370 : public BM1368 {
 protected:
-    virtual const uint8_t* get_chip_id();
+    virtual const uint8_t* getChipId();
 
 public:
     BM1370();

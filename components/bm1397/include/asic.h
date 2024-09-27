@@ -65,35 +65,35 @@ typedef struct __attribute__((__packed__))
 
 class Asic {
 protected:
-    float current_frequency;
+    float m_current_frequency;
 
     void send(uint8_t header, uint8_t *data, uint8_t data_len, bool debug);
     void send2(uint8_t header, uint8_t b0, uint8_t b1);
     void send6(uint8_t header, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5);
     int count_asics();
-    bool send_hash_frequency(float target_freq);
-    bool do_frequency_transition(float target_frequency);
-    void set_chip_address(uint8_t chipAddr);
-    void send_read_address(void);
-    void send_chain_inactive(void);
-    uint16_t reverse_uint16(uint16_t num);
-    bool receive_work(asic_result_t *result);
+    bool sendHashFrequency(float target_freq);
+    bool doFrequencyTransition(float target_frequency);
+    void setChipAddress(uint8_t chipAddr);
+    void sendReadAddress(void);
+    void sendChainInactive(void);
+    uint16_t reverseUint16(uint16_t num);
+    bool receiveWork(asic_result_t *result);
 
     // asic model specific
-    virtual const uint8_t* get_chip_id() = 0;
-    virtual uint8_t job_to_asic_id(uint8_t job_id) = 0;
-    virtual uint8_t asic_to_job_id(uint8_t asic_id) = 0;
+    virtual const uint8_t* getChipId() = 0;
+    virtual uint8_t jobToAsicId(uint8_t job_id) = 0;
+    virtual uint8_t asicToJobId(uint8_t asic_id) = 0;
 
 public:
     Asic();
-    uint8_t send_work(uint32_t job_id, bm_job *next_bm_job);
+    uint8_t sendWork(uint32_t job_id, bm_job *next_bm_job);
     bool processWork(task_result *result);
-    void set_job_difficulty_mask(int difficulty);
-    bool set_hash_frequency(float frequency);
+    void setJobDifficultyMask(int difficulty);
+    bool setAsicFrequency(float frequency);
     virtual void requestChipTemp() = 0;
     virtual uint16_t getSmallCoreCount() = 0;
 
     // asic models specific
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty) = 0;
-    virtual int set_max_baud(void) = 0;
+    virtual int setMaxBaud(void) = 0;
 };

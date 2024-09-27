@@ -108,12 +108,12 @@ void *create_jobs_task(void *pvParameters)
     Board *board = SYSTEM_MODULE.getBoard();
     Asic* asics = board->getAsics();
 
-    ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board->get_asic_job_frequency_ms());
+    ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board->getAsicJobIntervalMs());
     SYSTEM_MODULE.notifyMiningStarted();
     ESP_LOGI(TAG, "ASIC Ready!");
 
     // Create the timer
-    TimerHandle_t job_timer = xTimerCreate(TAG, pdMS_TO_TICKS(board->get_asic_job_frequency_ms()), pdTRUE, NULL, create_job_timer);
+    TimerHandle_t job_timer = xTimerCreate(TAG, pdMS_TO_TICKS(board->getAsicJobIntervalMs()), pdTRUE, NULL, create_job_timer);
 
     if (job_timer == NULL) {
         ESP_LOGE(TAG, "Failed to create timer");
@@ -182,7 +182,7 @@ void *create_jobs_task(void *pvParameters)
             ESP_LOGI(TAG, "New ASIC difficulty %lu", next_job->asic_diff);
             last_asic_diff = next_job->asic_diff;
 
-            asics->set_job_difficulty_mask(next_job->asic_diff);
+            asics->setJobDifficultyMask(next_job->asic_diff);
         }
 
         uint64_t current_time = esp_timer_get_time();
@@ -191,7 +191,7 @@ void *create_jobs_task(void *pvParameters)
         }
         last_submit_time = current_time;
 
-        int asic_job_id = asics->send_work(extranonce_2, next_job);
+        int asic_job_id = asics->sendWork(extranonce_2, next_job);
 
         ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
 

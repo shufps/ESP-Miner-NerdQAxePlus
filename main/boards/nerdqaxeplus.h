@@ -6,7 +6,7 @@
 
 class NerdQaxePlus : public Board {
   protected:
-    int num_tps_phases;
+    int m_numPhases;
 
     void LDO_enable();
     void LDO_disable();
@@ -19,20 +19,20 @@ class NerdQaxePlus : public Board {
     virtual bool init();
 
 // abstract common methos
-    virtual bool set_voltage(float core_voltage);
-    virtual uint16_t get_voltage_mv();
+    virtual bool setVoltage(float core_voltage);
+    virtual uint16_t getVoltageMv();
 
-    virtual void set_fan_speed(float perc);
-    virtual void get_fan_speed(uint16_t *rpm);
+    virtual void setFanSpeed(float perc);
+    virtual void getFanSpeed(uint16_t *rpm);
 
-    virtual float read_temperature(int index);
+    virtual float readTemperature(int index);
 
-    virtual float get_vin();
-    virtual float get_iin();
-    virtual float get_pin();
-    virtual float get_vout();
-    virtual float get_iout();
-    virtual float get_pout();
+    virtual float getVin();
+    virtual float getIin();
+    virtual float getPin();
+    virtual float getVout();
+    virtual float getIout();
+    virtual float getPout();
 
     virtual Asic* getAsics() { return &asics; }
 };
