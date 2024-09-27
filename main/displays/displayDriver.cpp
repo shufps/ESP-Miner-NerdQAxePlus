@@ -233,7 +233,9 @@ void DisplayDriver::lvglTimerTask(void *param)
                 // Init done, wait until on portal or mining is shown
                 m_screenStatus = STATE_INIT_OK;
                 ESP_LOGI(TAG, "Changing Screen to WAIT SELECTION");
-                lv_obj_clean(m_ui->ui_Splash1);
+                if (m_ui->ui_Splash1) {
+                    lv_obj_clean(m_ui->ui_Splash1);
+                }
                 m_ui->ui_Splash1 = NULL;
             }
             break;
@@ -247,7 +249,9 @@ void DisplayDriver::lvglTimerTask(void *param)
                 lv_label_set_text(m_ui->ui_lbSSID, m_portalWifiName); // Actualiza el label
                 enableLvglAnimations(true);
                 _ui_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
-                lv_obj_clean(m_ui->ui_Splash2);
+                if (m_ui->ui_Splash2) {
+                    lv_obj_clean(m_ui->ui_Splash2);
+                }
                 m_ui->ui_Splash2 = NULL;
             } else if (m_nextScreen == SCREEN_MINING) {
                 // Show Mining screen
@@ -261,7 +265,9 @@ void DisplayDriver::lvglTimerTask(void *param)
                     m_ui->bTCScreenInit();
                 enableLvglAnimations(true);
                 _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
-                lv_obj_clean(m_ui->ui_Splash2);
+                if (m_ui->ui_Splash2) {
+                    lv_obj_clean(m_ui->ui_Splash2);
+                }
                 m_ui->ui_Splash2 = NULL;
             }
             break;
