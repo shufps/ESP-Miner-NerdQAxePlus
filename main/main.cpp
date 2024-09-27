@@ -27,6 +27,8 @@
 System SYSTEM_MODULE;
 PowerManagementModule POWER_MANAGEMENT_MODULE;
 
+StratumTask STRATUM_TASK;
+
 AsicJobs asicJobs;
 
 static const char *TAG = "bitaxe";
@@ -89,7 +91,7 @@ void initWatchdog(TaskHandle_t task) {
     }
 
     // Add current task to the watchdog
-    esp_task_wdt_add(task);  
+    esp_task_wdt_add(task);
 }
 
 extern "C" void app_main(void)
@@ -156,7 +158,7 @@ extern "C" void app_main(void)
 
         TaskHandle_t stratum_task_handle;
 
-        xTaskCreate(stratum_task, "stratum admin", 8192, NULL, 5, &stratum_task_handle);
+        xTaskCreate(STRATUM_TASK.taskWrapper, "stratum admin", 8192, (void*) &STRATUM_TASK, 5, &stratum_task_handle);
 
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
