@@ -22,9 +22,11 @@
 #define CMD_READ 0x02
 #define CMD_INACTIVE 0x03
 
-#define CMD_WRITE_SINGLE (TYPE_CMD | GROUP_SINGLE | CMD_WRITE)
-#define CMD_WRITE_ALL    (TYPE_CMD | GROUP_ALL | CMD_WRITE)
-#define CMD_READ_ALL    (TYPE_CMD | GROUP_ALL | CMD_READ)
+#define CMD_WRITE_SINGLE (TYPE_CMD | GROUP_SINGLE | CMD_WRITE) // 0x41
+#define CMD_WRITE_ALL (TYPE_CMD | GROUP_ALL | CMD_WRITE)       // 0x51
+#define CMD_READ_ALL (TYPE_CMD | GROUP_ALL | CMD_READ)         // 0x52
+#define CMD_READ_SINGLE (TYPE_CMD | GROUP_SINGLE | CMD_READ)   // 0x42
+#define CMD_INACTIVE_ALL (TYPE_CMD | GROUP_ALL | CMD_INACTIVE) // 0x53
 
 
 #define RESPONSE_CMD 0x00
@@ -64,7 +66,7 @@ typedef struct __attribute__((__packed__))
 } asic_result_t;
 
 class Asic {
-protected:
+  protected:
     float m_current_frequency;
 
     void send(uint8_t header, uint8_t *data, uint8_t data_len, bool debug);
@@ -80,11 +82,11 @@ protected:
     bool receiveWork(asic_result_t *result);
 
     // asic model specific
-    virtual const uint8_t* getChipId() = 0;
+    virtual const uint8_t *getChipId() = 0;
     virtual uint8_t jobToAsicId(uint8_t job_id) = 0;
     virtual uint8_t asicToJobId(uint8_t asic_id) = 0;
 
-public:
+  public:
     Asic();
     uint8_t sendWork(uint32_t job_id, bm_job *next_bm_job);
     bool processWork(task_result *result);

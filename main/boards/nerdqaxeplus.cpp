@@ -62,8 +62,8 @@ bool NerdQaxePlus::init()
     // disable LDO
     LDO_disable();
 
-    // set reset high
-    gpio_set_level(BM1368_RST_PIN, 1);
+    // set reset low
+    gpio_set_level(BM1368_RST_PIN, 0);
 
     // wait 250ms
     vTaskDelay(250 / portTICK_PERIOD_MS);
@@ -76,7 +76,9 @@ bool NerdQaxePlus::init()
 
     // init buck and enable output
     TPS53647_init(m_numPhases);
-    setVoltage(m_asicVoltage / 1000.0);
+
+    // give the asics a slight but-kick
+    setVoltage(1.25);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -85,7 +87,7 @@ bool NerdQaxePlus::init()
     gpio_set_level(BM1368_RST_PIN, 1);
 
     // delay for 100ms
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(250 / portTICK_PERIOD_MS);
 
     SERIAL_clear_buffer();
     if (!asics.init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty)) {
@@ -96,6 +98,10 @@ bool NerdQaxePlus::init()
     SERIAL_clear_buffer();
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    // set final output voltage
+    setVoltage(m_asicVoltage / 1000.0);
+
     return true;
 }
 
