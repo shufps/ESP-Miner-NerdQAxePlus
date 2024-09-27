@@ -303,26 +303,22 @@ static uint16_t float_2_slinear11(float value)
 
 void TPS53647_status()
 {
-    uint8_t u8;
-    uint16_t u16;
+    uint8_t status_byte;
+    uint16_t status_word;
+    uint8_t status_vout;
+    uint8_t status_iout;
+    uint8_t status_input;
+    uint8_t status_mfr_specific;
 
-    smb_read_byte(PMBUS_STATUS_BYTE, &u8);
-    ESP_LOGI(TAG, "status byte: 0x%02x", u8);
+    smb_read_byte(PMBUS_STATUS_BYTE, &status_byte);
+    smb_read_word(PMBUS_STATUS_WORD, &status_word);
+    smb_read_byte(PMBUS_STATUS_VOUT, &status_vout);
+    smb_read_byte(PMBUS_STATUS_IOUT, &status_iout);
+    smb_read_byte(PMBUS_STATUS_INPUT, &status_input);
+    smb_read_byte(PMBUS_STATUS_MFR_SPECIFIC, &status_mfr_specific);
 
-    smb_read_word(PMBUS_STATUS_WORD, &u16);
-    ESP_LOGI(TAG, "status word: 0x%04x", u16);
-
-    smb_read_byte(PMBUS_STATUS_VOUT, &u8);
-    ESP_LOGI(TAG, "status vout: 0x%02x", u8);
-
-    smb_read_byte(PMBUS_STATUS_IOUT, &u8);
-    ESP_LOGI(TAG, "status iout: 0x%02x", u8);
-
-    smb_read_byte(PMBUS_STATUS_INPUT, &u8);
-    ESP_LOGI(TAG, "status input: 0x%02x", u8);
-
-    smb_read_byte(PMBUS_STATUS_MFR_SPECIFIC, &u8);
-    ESP_LOGI(TAG, "status mfr specific: 0x%02x", u8);
+    ESP_LOGI(TAG, "bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x", status_byte,
+        status_word, status_vout, status_iout, status_input, status_mfr_specific);
 }
 
 /*--- Public TPS53647 functions ---*/

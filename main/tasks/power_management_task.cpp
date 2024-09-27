@@ -78,9 +78,10 @@ void POWER_MANAGEMENT_task(void *pvParameters)
             last_asic_frequency = asic_frequency;
         }
 
-        // request chip temps all 15s
+        // request chip temps and buck telemetry all 15s
         if (esp_timer_get_time() - last_temp_request > 15000000llu) {
             asics->requestChipTemp();
+            board->requestBuckTelemtry();
             last_temp_request = esp_timer_get_time();
         }
 

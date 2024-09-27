@@ -99,6 +99,10 @@ bool NerdQaxePlus::init()
     return true;
 }
 
+void NerdQaxePlus::requestBuckTelemtry() {
+    TPS53647_status();
+}
+
 void NerdQaxePlus::LDO_enable()
 {
     ESP_LOGI(TAG, "Enabled LDOs");
