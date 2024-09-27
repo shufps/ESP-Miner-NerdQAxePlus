@@ -179,22 +179,21 @@ void System::suffixString(uint64_t val, char* buf, size_t bufSize, int sigDigits
 
 void System::showLastResetReason() {
     esp_reset_reason_t reason = esp_reset_reason();
-    const char* reasonStr;
     switch (reason) {
-        case ESP_RST_UNKNOWN: reasonStr = "Unknown"; break;
-        case ESP_RST_POWERON: reasonStr = "Power on reset"; break;
-        case ESP_RST_EXT: reasonStr = "External reset"; break;
-        case ESP_RST_SW: reasonStr = "Software reset"; break;
-        case ESP_RST_PANIC: reasonStr = "Software panic reset"; break;
-        case ESP_RST_INT_WDT: reasonStr = "Interrupt watchdog reset"; break;
-        case ESP_RST_TASK_WDT: reasonStr = "Task watchdog reset"; break;
-        case ESP_RST_WDT: reasonStr = "Other watchdog reset"; break;
-        case ESP_RST_DEEPSLEEP: reasonStr = "Exiting deep sleep"; break;
-        case ESP_RST_BROWNOUT: reasonStr = "Brownout reset"; break;
-        case ESP_RST_SDIO: reasonStr = "SDIO reset"; break;
-        default: reasonStr = "Not specified"; break;
+        case ESP_RST_UNKNOWN: m_lastResetReason = "Unknown"; break;
+        case ESP_RST_POWERON: m_lastResetReason = "Power on reset"; break;
+        case ESP_RST_EXT: m_lastResetReason = "External reset"; break;
+        case ESP_RST_SW: m_lastResetReason = "Software reset"; break;
+        case ESP_RST_PANIC: m_lastResetReason = "Software panic reset"; break;
+        case ESP_RST_INT_WDT: m_lastResetReason = "Interrupt watchdog reset"; break;
+        case ESP_RST_TASK_WDT: m_lastResetReason = "Task watchdog reset"; break;
+        case ESP_RST_WDT: m_lastResetReason = "Other watchdog reset"; break;
+        case ESP_RST_DEEPSLEEP: m_lastResetReason = "Exiting deep sleep"; break;
+        case ESP_RST_BROWNOUT: m_lastResetReason = "Brownout reset"; break;
+        case ESP_RST_SDIO: m_lastResetReason = "SDIO reset"; break;
+        default: m_lastResetReason = "Not specified"; break;
     }
-    ESP_LOGI(TAG, "Reset reason: %s", reasonStr);
+    ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason);
 }
 
 void System::taskWrapper(void* pvParameters) {

@@ -46,6 +46,7 @@ const defaultInfo: ISystemInfo = {
   fanspeed: 100,
   fanrpm: 0,
   autoscreenoff: 0,
+  lastResetReason: "Unknown",
 
   boardtemp1: 30,
   boardtemp2: 40,

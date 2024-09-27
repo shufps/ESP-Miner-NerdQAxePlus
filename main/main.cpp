@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
+#include "esp_task_wdt.h"
 
 #include "serial.h"
 #include "system.h"
@@ -20,6 +21,8 @@
 #include "boards/nerdoctaxeplus.h"
 #include "http_server.h"
 #include "influx_task.h"
+
+#define STRATUM_WATCHDOG_TIMEOUT_SECONDS    3600
 
 System SYSTEM_MODULE;
 PowerManagementModule POWER_MANAGEMENT_MODULE;
@@ -70,10 +73,34 @@ static void setup_wifi() {
     free(hostname);
 }
 
+// Function to configure the Task Watchdog Timer (TWDT)
+void initWatchdog() {
+    // Initialize the Task Watchdog Timer configuration
+    esp_task_wdt_config_t wdt_config = {
+        .timeout_ms = STRATUM_WATCHDOG_TIMEOUT_SECONDS * 1000,  // Convert seconds to milliseconds
+        .idle_core_mask = 0,     // No specific core
+        .trigger_panic = true    // Enable panic on timeout
+    };
+
+    // Initialize the Task Watchdog Timer with the configuration
+    esp_err_t result = esp_task_wdt_init(&wdt_config);
+    if (result != ESP_OK) {
+        printf("Failed to initialize watchdog: %d\n", result);
+    }
+
+    // Add current task to the watchdog
+    esp_task_wdt_add(NULL);  // Add the current task to be monitored
+}
+
 extern "C" void app_main(void)
 {
     ESP_LOGI(TAG, "Welcome to the bitaxe - hack the planet!");
     ESP_ERROR_CHECK(nvs_flash_init());
+
+    // shows and saves last reset reason
+    SYSTEM_MODULE.showLastResetReason();
+
+    initWatchdog();
 
     if (!esp_psram_is_initialized()) {
         ESP_LOGE(TAG, "PSRAM is not available");
