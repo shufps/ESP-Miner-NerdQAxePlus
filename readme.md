@@ -7,7 +7,7 @@
 | Required Platform | >= ESP-IDF v5.3.X       |
 | ----------------- | --------------------- |
 
-This is a forked version from the NerdAxe miner that was modified for using on the NerdQAxe+.
+This is a forked version from the NerdAxe miner that was modified for using on the [NerdQAxe+](https://github.com/shufps/qaxe).
 
 Credits to the devs:
 - BitAxe devs on OSMU: @skot/ESP-Miner, @ben and @jhonny
@@ -158,6 +158,8 @@ pip install --upgrade bitaxetool
 ```
 
 ## Grafana Monitoring
+
+<img src="https://github.com/user-attachments/assets/3c485428-5e48-4761-9717-bd88579a747d" width="600px">
 
 The NerdQaxe+ firmware supports Influx and the repository provides an installation with Grafana dashboard that can be started with a few bash commands: https://github.com/shufps/ESP-Miner-NerdQAxePlus/tree/master/monitoring
 
