@@ -515,25 +515,25 @@ void DisplayDriver::updateGlobalState()
         return;
 
     // snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp);
-    snprintf(strData, sizeof(strData), "%.0f", POWER_MANAGEMENT_MODULE.chip_temp_avg);
+    snprintf(strData, sizeof(strData), "%.0f", POWER_MANAGEMENT_MODULE.getAvgChipTemp());
     lv_label_set_text(m_ui->ui_lbTemp, strData);       // Update label
     lv_label_set_text(m_ui->ui_lblTempPrice, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", POWER_MANAGEMENT_MODULE.fan_rpm);
+    snprintf(strData, sizeof(strData), "%d", POWER_MANAGEMENT_MODULE.getFanRPM());
     lv_label_set_text(m_ui->ui_lbRPM, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%.3fW", POWER_MANAGEMENT_MODULE.power);
+    snprintf(strData, sizeof(strData), "%.3fW", POWER_MANAGEMENT_MODULE.getPower());
     lv_label_set_text(m_ui->ui_lbPower, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%imA", (int) POWER_MANAGEMENT_MODULE.current);
+    snprintf(strData, sizeof(strData), "%imA", (int) POWER_MANAGEMENT_MODULE.getCurrent());
     lv_label_set_text(m_ui->ui_lbIntensidad, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%imV", (int) POWER_MANAGEMENT_MODULE.voltage);
+    snprintf(strData, sizeof(strData), "%imV", (int) POWER_MANAGEMENT_MODULE.getVoltage());
     lv_label_set_text(m_ui->ui_lbVinput, strData); // Update label
 
     updateTime(&SYSTEM_MODULE);
     updateShares(&SYSTEM_MODULE);
-    updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.power);
+    updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.getPower());
     updateBTCprice();
 
     uint16_t vcore = (int) (TPS53647_get_vout() * 1000.0f);

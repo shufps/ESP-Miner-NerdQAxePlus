@@ -34,28 +34,41 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicMinDifficulty = 256;
 
     m_theme = new ThemeNerdqaxeplus();
+
+    m_asics = new BM1368();
 }
 
-bool NerdQaxePlus::init()
+bool NerdQaxePlus::initBoard()
 {
     SERIAL_init();
 
     // Init I2C
-    ESP_ERROR_CHECK(i2c_master_init());
-    ESP_LOGI(TAG, "I2C initialized successfully");
+    if (i2c_master_init() != ESP_OK) {
+        ESP_LOGE(TAG, "I2C initializing failed");
+        return false;
+    }
 
     EMC2302_init(m_fanInvertPolarity);
     setFanSpeed(m_fanPerc);
 
     // configure gpios
     gpio_pad_select_gpio(TPS53647_EN_PIN);
-    gpio_pad_select_gpio(LDO_EN_PIN);
-    gpio_pad_select_gpio(BM1368_RST_PIN);
-
     gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(LDO_EN_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(BM1368_RST_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(TPS53647_EN_PIN, 0);
 
+    gpio_pad_select_gpio(LDO_EN_PIN);
+    gpio_set_direction(LDO_EN_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(LDO_EN_PIN, 0);
+
+    gpio_pad_select_gpio(BM1368_RST_PIN);
+    gpio_set_direction(BM1368_RST_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(BM1368_RST_PIN, 0);
+
+    return true;
+}
+
+bool NerdQaxePlus::initAsics()
+{
     // disable buck (disables EN pin)
     setVoltage(0.0);
 
@@ -88,16 +101,19 @@ bool NerdQaxePlus::init()
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     SERIAL_clear_buffer();
-    if (!asics.init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty)) {
+    if (!m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty)) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;
     }
-    SERIAL_set_baud(asics.setMaxBaud());
+    SERIAL_set_baud(m_asics->setMaxBaud());
     SERIAL_clear_buffer();
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    m_isInitialized = true;
     return true;
 }
+
 
 void NerdQaxePlus::requestBuckTelemtry() {
     TPS53647_status();

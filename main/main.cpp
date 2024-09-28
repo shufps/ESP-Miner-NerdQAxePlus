@@ -2,31 +2,31 @@
 
 #include "esp_event.h"
 #include "esp_log.h"
-#include "nvs_flash.h"
 #include "esp_netif.h"
 #include "esp_task_wdt.h"
+#include "nvs_flash.h"
 
-#include "serial.h"
-#include "system.h"
-#include "global_state.h"
-#include "main.h"
-#include "asic_result_task.h"
 #include "asic_jobs.h"
-#include "create_jobs_task.h"
-#include "nvs_config.h"
-#include "stratum_task.h"
-#include "history.h"
+#include "asic_result_task.h"
 #include "boards/board.h"
-#include "boards/nerdqaxeplus.h"
 #include "boards/nerdoctaxeplus.h"
+#include "boards/nerdqaxeplus.h"
+#include "create_jobs_task.h"
+#include "global_state.h"
+#include "history.h"
 #include "http_server.h"
 #include "influx_task.h"
+#include "main.h"
+#include "nvs_config.h"
+#include "serial.h"
+#include "stratum_task.h"
+#include "system.h"
 
-#define STRATUM_WATCHDOG_TIMEOUT_SECONDS    3600
+#define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
 System SYSTEM_MODULE;
-PowerManagementModule POWER_MANAGEMENT_MODULE;
 
+PowerManagementTask POWER_MANAGEMENT_MODULE;
 StratumTask STRATUM_TASK;
 
 AsicJobs asicJobs;
@@ -34,7 +34,8 @@ AsicJobs asicJobs;
 static const char *TAG = "bitaxe";
 // static const double NONCE_SPACE = 4294967296.0; //  2^32
 
-static void setup_wifi() {
+static void setup_wifi()
+{
     // pull the wifi credentials and hostname out of NVS
     char *wifi_ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, WIFI_SSID);
     char *wifi_pass = nvs_config_get_string(NVS_CONFIG_WIFI_PASS, WIFI_PASS);
@@ -76,12 +77,13 @@ static void setup_wifi() {
 }
 
 // Function to configure the Task Watchdog Timer (TWDT)
-void initWatchdog(TaskHandle_t task) {
+void initWatchdog(TaskHandle_t task)
+{
     // Initialize the Task Watchdog Timer configuration
     esp_task_wdt_config_t wdt_config = {
-        .timeout_ms = STRATUM_WATCHDOG_TIMEOUT_SECONDS * 1000,  // Convert seconds to milliseconds
-        .idle_core_mask = 0,     // No specific core
-        .trigger_panic = true    // Enable panic on timeout
+        .timeout_ms = STRATUM_WATCHDOG_TIMEOUT_SECONDS * 1000, // Convert seconds to milliseconds
+        .idle_core_mask = 0,                                   // No specific core
+        .trigger_panic = true                                  // Enable panic on timeout
     };
 
     // Initialize the Task Watchdog Timer with the configuration
@@ -111,11 +113,15 @@ extern "C" void app_main(void)
     }
 
 #ifdef NERDQAXEPLUS
-    Board* board = new NerdQaxePlus();
+    Board *board = new NerdQaxePlus();
 #endif
 #ifdef NERDOCTAXEPLUS
-    Board* board = new NerdOctaxePlus();
+    Board *board = new NerdOctaxePlus();
 #endif
+
+    // initialize everything non-asic-specific like
+    // fan and serial and load settings from nvs
+    board->initBoard();
 
     SYSTEM_MODULE.setBoard(board);
 
@@ -138,6 +144,7 @@ extern "C" void app_main(void)
     }
 
     xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
+    xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
 
     setup_wifi();
 
@@ -150,15 +157,13 @@ extern "C" void app_main(void)
         wifi_softap_off();
         board->loadSettings();
 
-        if (!board->init()) {
+        if (!board->initAsics()) {
             ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
         }
 
-        xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, NULL, 10, NULL);
-
         TaskHandle_t stratum_task_handle;
 
-        xTaskCreate(STRATUM_TASK.taskWrapper, "stratum admin", 8192, (void*) &STRATUM_TASK, 5, &stratum_task_handle);
+        xTaskCreate(STRATUM_TASK.taskWrapper, "stratum admin", 8192, (void *) &STRATUM_TASK, 5, &stratum_task_handle);
 
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
@@ -170,13 +175,20 @@ extern "C" void app_main(void)
 
 void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
 {
-    if (status == WIFI_RETRYING) {
+    switch (status) {
+    case WIFI_CONNECTED: {
+        SYSTEM_MODULE.setWifiStatus("Connected!");
+        break;
+    }
+    case WIFI_RETRYING: {
         char buf[20];
         snprintf(buf, sizeof(buf), "Retrying: %d", retry_count);
         SYSTEM_MODULE.setWifiStatus(buf);
-        return;
-    } else if (status == WIFI_CONNECT_FAILED) {
+        break;
+    }
+    case WIFI_CONNECT_FAILED: {
         SYSTEM_MODULE.setWifiStatus("Connect Failed!");
-        return;
+        break;
+    }
     }
 }

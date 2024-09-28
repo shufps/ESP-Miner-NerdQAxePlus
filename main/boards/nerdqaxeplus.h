@@ -11,12 +11,11 @@ class NerdQaxePlus : public Board {
     void LDO_enable();
     void LDO_disable();
 
-    BM1368 asics;
-
   public:
     NerdQaxePlus();
 
-    virtual bool init();
+    virtual bool initBoard();
+    virtual bool initAsics();
 
 // abstract common methos
     virtual bool setVoltage(float core_voltage);
@@ -34,6 +33,4 @@ class NerdQaxePlus : public Board {
     virtual float getIout();
     virtual float getPout();
     virtual void requestBuckTelemtry();
-
-    virtual Asic* getAsics() { return &asics; }
 };

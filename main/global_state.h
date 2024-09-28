@@ -16,7 +16,7 @@
 #include "system.h"
 
 extern System SYSTEM_MODULE;
-extern PowerManagementModule POWER_MANAGEMENT_MODULE;
+extern PowerManagementTask POWER_MANAGEMENT_MODULE;
 extern StratumTask STRATUM_TASK;
 
 extern AsicJobs asicJobs;

@@ -19,9 +19,13 @@
 
 static const char *TAG = "power_management";
 
+PowerManagementTask::PowerManagementTask() {
+    // NOP
+}
+
 // Set the fan speed between 20% min and 100% max based on chip temperature as input.
 // The fan speed increases from 20% to 100% proportionally to the temperature increase from 50 and THROTTLE_TEMP
-static double automatic_fan_speed(Board* board, float chip_temp)
+double PowerManagementTask::automaticFanSpeed(Board* board, float chip_temp)
 {
     double result = 0.0;
     double min_temp = 45.0;
@@ -38,27 +42,32 @@ static double automatic_fan_speed(Board* board, float chip_temp)
     }
 
     float perc = (float) result / 100;
-    POWER_MANAGEMENT_MODULE.fan_perc = perc;
+    m_fanPerc = perc;
     board->setFanSpeed(perc);
     return result;
 }
 
-void POWER_MANAGEMENT_task(void *pvParameters)
-{
-    PowerManagementModule *power_management = &POWER_MANAGEMENT_MODULE;
-    Board* board = SYSTEM_MODULE.getBoard();
-    Asic* asics = board->getAsics();
+void PowerManagementTask::taskWrapper(void *pvParameters) {
+    PowerManagementTask* powerManagementTask = (PowerManagementTask*) pvParameters;
+    powerManagementTask->task();
+}
 
-    power_management->frequency_multiplier = 1;
+void PowerManagementTask::task()
+{
+    Board* board = SYSTEM_MODULE.getBoard();
+
 
     uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
     uint16_t last_core_voltage = 0.0;
-    uint16_t last_asic_frequency = power_management->frequency_value;
+    uint16_t last_asic_frequency = 0;
     uint64_t last_temp_request = esp_timer_get_time();
     while (1) {
+        // the asics are initialized after this task starts
+        Asic* asics = board->getAsics();
+
         uint16_t core_voltage = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
         uint16_t asic_frequency = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
         uint16_t overheat_temp = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, OVERHEAT_DEFAULT);
@@ -71,16 +80,17 @@ void POWER_MANAGEMENT_task(void *pvParameters)
 
         if (asic_frequency != last_asic_frequency) {
             ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
-            // if PLL setting was found save it in the struct
-            if (asics->setAsicFrequency((float) asic_frequency)) {
-                power_management->frequency_value = (float) asic_frequency;
+            if (asics && !asics->setAsicFrequency((float) asic_frequency)) {
+                ESP_LOGE(TAG, "pll setting not found for %uMHz", asic_frequency);
             }
             last_asic_frequency = asic_frequency;
         }
 
         // request chip temps and buck telemetry all 15s
         if (esp_timer_get_time() - last_temp_request > 15000000llu) {
-            asics->requestChipTemp();
+            if (asics) {
+                asics->requestChipTemp();
+            }
             board->requestBuckTelemtry();
             last_temp_request = esp_timer_get_time();
         }
@@ -94,17 +104,17 @@ void POWER_MANAGEMENT_task(void *pvParameters)
 
         influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
-        power_management->voltage = vin * 1000.0;
-        power_management->current = iin * 1000.0;
-        power_management->power = pin;
-        board->getFanSpeed(&power_management->fan_rpm);
+        m_voltage = vin * 1000.0;
+        m_current = iin * 1000.0;
+        m_power = pin;
+        board->getFanSpeed(&m_fanRPM);
 
-        power_management->chip_temp_avg = board->readTemperature(0);
-        power_management->vr_temp = board->readTemperature(1);
-        influx_task_set_temperature(power_management->chip_temp_avg, power_management->vr_temp);
+        m_chipTempAvg = board->readTemperature(0);
+        m_vrTemp = board->readTemperature(1);
+        influx_task_set_temperature(m_chipTempAvg, m_vrTemp);
 
         if (overheat_temp &&
-            (power_management->chip_temp_avg > overheat_temp || power_management->vr_temp > overheat_temp)) {
+            (m_chipTempAvg > overheat_temp || m_vrTemp > overheat_temp)) {
             // over temperature
             SYSTEM_MODULE.setOverheated(true);
             // disables the buck
@@ -112,10 +122,10 @@ void POWER_MANAGEMENT_task(void *pvParameters)
         }
 
         if (auto_fan_speed == 1) {
-            power_management->fan_perc = (float) automatic_fan_speed(board, power_management->chip_temp_avg);
+            m_fanPerc = (float) automaticFanSpeed(board, m_chipTempAvg);
         } else {
             float fs = (float) nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100);
-            power_management->fan_perc = fs;
+            m_fanPerc = fs;
             board->setFanSpeed((float) fs / 100);
         }
 

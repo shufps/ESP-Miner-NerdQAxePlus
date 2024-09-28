@@ -479,11 +479,11 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     Board* board = SYSTEM_MODULE.getBoard();
 
     cJSON *root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "power", POWER_MANAGEMENT_MODULE.power);
-    cJSON_AddNumberToObject(root, "voltage", POWER_MANAGEMENT_MODULE.voltage);
-    cJSON_AddNumberToObject(root, "current", POWER_MANAGEMENT_MODULE.current);
-    cJSON_AddNumberToObject(root, "temp", POWER_MANAGEMENT_MODULE.chip_temp_avg);
-    cJSON_AddNumberToObject(root, "vrTemp", POWER_MANAGEMENT_MODULE.vr_temp);
+    cJSON_AddNumberToObject(root, "power", POWER_MANAGEMENT_MODULE.getPower());
+    cJSON_AddNumberToObject(root, "voltage", POWER_MANAGEMENT_MODULE.getVoltage());
+    cJSON_AddNumberToObject(root, "current", POWER_MANAGEMENT_MODULE.getCurrent());
+    cJSON_AddNumberToObject(root, "temp", POWER_MANAGEMENT_MODULE.getAvgChipTemp());
+    cJSON_AddNumberToObject(root, "vrTemp", POWER_MANAGEMENT_MODULE.getVrTemp());
     cJSON_AddNumberToObject(root, "hashRateTimestamp", history_get_current_timestamp());
     cJSON_AddNumberToObject(root, "hashRate_10m", history_get_current_10m());
     cJSON_AddNumberToObject(root, "hashRate_1h", history_get_current_1h());
@@ -516,8 +516,8 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "autoscreenoff", nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0));
     cJSON_AddNumberToObject(root, "invertfanpolarity", nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
     cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1));
-    cJSON_AddNumberToObject(root, "fanspeed", POWER_MANAGEMENT_MODULE.fan_perc);
-    cJSON_AddNumberToObject(root, "fanrpm", POWER_MANAGEMENT_MODULE.fan_rpm);
+    cJSON_AddNumberToObject(root, "fanspeed", POWER_MANAGEMENT_MODULE.getFanPerc());
+    cJSON_AddNumberToObject(root, "fanrpm", POWER_MANAGEMENT_MODULE.getFanRPM());
     cJSON_AddStringToObject(root, "lastResetReason", SYSTEM_MODULE.getLastResetReason());
     // If start_timestamp is provided, include history data
     if (history_requested) {

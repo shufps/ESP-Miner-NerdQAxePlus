@@ -29,10 +29,15 @@ class Board {
     // display m_theme
     Theme *m_theme;
 
+    Asic *m_asics;
+
+    bool m_isInitialized = false;
+
   public:
     Board();
 
-    virtual bool init() = 0;
+    virtual bool initBoard() = 0;
+    virtual bool initAsics() = 0;
 
     void loadSettings();
     const char *getDeviceModel();
@@ -60,8 +65,6 @@ class Board {
 
     virtual void requestBuckTelemtry() = 0;
 
-    virtual Asic *getAsics() = 0;
-
     Theme *getTheme()
     {
         return m_theme;
@@ -75,4 +78,14 @@ class Board {
     {
         return m_asicMinDifficulty;
     };
+
+    bool isInitialized()
+    {
+        return m_isInitialized;
+    };
+
+    virtual Asic *getAsics()
+    {
+        return m_isInitialized ? m_asics : nullptr;
+    }
 };
