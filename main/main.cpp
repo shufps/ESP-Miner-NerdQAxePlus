@@ -190,5 +190,11 @@ void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
         SYSTEM_MODULE.setWifiStatus("Connect Failed!");
         break;
     }
+    case WIFI_DISCONNECTED:
+    case WIFI_CONNECTING:
+    case WIFI_DISCONNECTING: {
+        // NOP
+        break;
+    }
     }
 }
