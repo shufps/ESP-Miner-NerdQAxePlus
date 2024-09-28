@@ -1,0 +1,35 @@
+version: '3.3'
+
+services:
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    volumes:
+      - ./data/influxdb:/var/lib/influxdb2
+    ports:
+      #- "127.0.0.1:8086:8086/tcp"
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=influx
+      - DOCKER_INFLUXDB_INIT_PASSWORD=f37fh783hf8hq
+      - DOCKER_INFLUXDB_INIT_ORG=nerdqaxeplus
+      - DOCKER_INFLUXDB_INIT_BUCKET=nerdqaxeplus
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=f37fh783hf8hq
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      - influxdb
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./assets/:/etc/grafana/provisioning/
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=foobar
+    restart: unless-stopped
+
