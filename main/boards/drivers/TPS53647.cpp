@@ -346,14 +346,11 @@ int TPS53647_init(int num_phases)
 
     /* set ON_OFF config, make sure the buck is switched off */
     smb_write_byte(PMBUS_ON_OFF_CONFIG, ON_OFF_CONFIG);
-    // smb_write_byte(PMBUS_OPERATION, OPERATION_OFF);
 
     // Switch frequency, 500kHz
     smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20); // default value
 
     // set maximum current
-    // with 100k on the IMON pin  the device should report the correct current
-    // via PMBUS_READ_IOUT
     smb_write_byte(PMBUS_MFR_SPECIFIC_10, TPS43647_INIT_IMAX);
 
     // operation mode
@@ -380,13 +377,6 @@ int TPS53647_init(int num_phases)
     smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_WARN_LIMIT));
     smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11(TPS53647_INIT_IOUT_OC_FAULT_LIMIT));
 
-    /* vout voltage */
-    // smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(0.75));//TPS53647_INIT_VOUT_COMMAND));
-    // smb_write_byte(PMBUS_OPERATION, OPERATION_ON);
-    //   smb_write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(1.15));//TPS53647_INIT_VOUT_COMMAND));
-
-    /* Show voltage settings */
-    //TPS53647_show_voltage_settings();
     is_initialized = true;
 
     return 0;
