@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: influxdb
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    jsonData:
+      version: Flux
+      organization: piaxe
+      defaultBucket: piaxe
+      tlsSkipVerify: true
+    secureJsonData:
+      token: f37fh783hf8hq    
+    uid: f79a7dc2-e573-47cc-a345-892d52f5f3d5
