@@ -4,27 +4,55 @@
 
 | Supported Targets | ESP32-S3              |
 | ----------------- | --------------------- |
-| Old Platform      | ~~ESP-IDF v4.4.6~~        |
-| ----------------- | --------------------- |
-| Required Platform | >= ESP-IDF v5.2.X       | Update!
+| Required Platform | >= ESP-IDF v5.3.X       |
 | ----------------- | --------------------- |
 
-This is a forked version from the NerdAxe miner that was modified for using on the NerdQaxe+.
+This is a forked version from the NerdAxe miner that was modified for using on the NerdQAxe+.
 
-Both are using ESP-miner as its base - the original firmware of Bitaxe project developed by @skot/ESP-Miner, @ben and @jhonny.
-The current fork supports LVGL library with an UI that works with 8bit parallel screen over `TTGO-TdiplayS3` board.
-
+Credits to the devs:
+- BitAxe devs on OSMU: @skot/ESP-Miner, @ben and @jhonny
+- NerdAxe dev @BitMaker
 
 
 ## How to flash/update firmware
 
+The newest releases are always here:
+
+https://github.com/shufps/ESP-Miner-NerdQAxePlus/releases
+
+#### Clone repository and prepare config
+
+First you need to clone the repository and create a local copy of the config file:
+
+```bash
+# clone repository
+git clone https://github.com/shufps/ESP-Miner-NerdQAxePlus
+
+# change into the cloned repository
+cd ESP-Miner-NerdQAxePlus
+
+# copy the example config
+cp config.cvs.example config.cvs
+```
+
+Then you can edit the fields like `stratumurl` and so on.
+
+Please note that this fields will be removed soon because they are not used anymore:
+
+- `devicemodel`
+- `boardversion`
+- `asicmodel`
+
 
 #### Bitaxetool
 
-The bitaxetool is a convenient way of just flashing the NerdQaxe+ with the factory binary and the `config.csv` config file.
+After the changes on the `config.cvs` files are done, you use the `bitaxetool` to flash factory binary and the config onto the device.
+
+To switch it into bootload mode, reset the device with presset `boot` button.
 
 ```
-bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-nerdqaxe+.bin
+bitaxetool --config ./config.cvs --firmware esp-miner-factory-NERDQAXEPLUS-v1.0.10.bin
+
 ```
 
 
@@ -49,7 +77,7 @@ There are several scripts in the `docker` directory but what is most flexible is
 ./docker/idf-shell.sh
 ```
 
-You will get a new terminal that supports tools like:
+You will get a new terminal that provides tools like:
 - `idf.py`
 - `bitaxetool`
 - `esptool.py`
@@ -66,7 +94,7 @@ The default `builder` user has `uid:gid = 1000:1000` (like the main user on *bun
 (no `idf-shell.sh` version)
 
 ```bash
-./docker/bitaxetool.sh --config config.cvs --firmware esp-miner-factory-nerdqaxe+.bin -p /dev/ttyACM0
+./docker/bitaxetool.sh --config config.cvs --firmware esp-miner-factory-NERDQAXEPLUS-v1.0.10.bin -p /dev/ttyACM0
 ```
 
 ##### 3.2. Compiling & Flashing using BitAxe tool
@@ -129,31 +157,13 @@ Install bitaxetool from pip. pip is included with Python 3.4 but if you need to 
 pip install --upgrade bitaxetool
 ```
 
-## Preconfiguration
+## Grafana Monitoring
 
-Starting with v2.0.0, the ESP-Miner firmware requires some basic manufacturing data to be flashed in the NVS partition.
+The NerdQaxe+ firmware supports Influx and the repository provides an installation with Grafana dashboard that can be started with a few bash commands: https://github.com/shufps/ESP-Miner-NerdQAxePlus/tree/master/monitoring
 
-1. Download the esp-miner-factory-v2.0.3.bin file from the release tab.
-   Click [here](https://github.com/skot/ESP-Miner/releases) for the release tab
-
-2. Copy `config.cvs.example` to `config.cvs` and modify `asicfrequency`, `asicvoltage`, `asicmodel`, `devicemodel`, and `boardversion`
-
-The following are recommendations but it is necessary that you do have all values in your `config.cvs`file to flash properly.
-
-- recommended values for the NerdAxe 1366 (ultra)
-
-  ```
-  key,type,encoding,value
-  main,namespace,,
-  asicfrequency,data,u16,490
-  asicvoltage,data,u16,1200
-  asicmodel,data,string,BM1368
-  devicemodel,data,string,nerdqaxe_plus
-  boardversion,data,string,500
-  ```
 
 ## API
-Nerdaxe uses same bitaxe API funcitons.
+Nerdaxe uses the same bitaxe API functions.
 
 For more details take a look at `main/http_server/http_server.c`.
 
