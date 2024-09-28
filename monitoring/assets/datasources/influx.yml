@@ -7,8 +7,8 @@ datasources:
     url: http://influxdb:8086
     jsonData:
       version: Flux
-      organization: piaxe
-      defaultBucket: piaxe
+      organization: nerdqaxeplus
+      defaultBucket: nerdqaxeplus
       tlsSkipVerify: true
     secureJsonData:
       token: f37fh783hf8hq    
