@@ -477,6 +477,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     char *board_version = nvs_config_get_string(NVS_CONFIG_BOARD_VERSION, "unknown");
 
     Board* board = SYSTEM_MODULE.getBoard();
+    History* history = SYSTEM_MODULE.getHistory();
 
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "power", POWER_MANAGEMENT_MODULE.getPower());
@@ -484,10 +485,10 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "current", POWER_MANAGEMENT_MODULE.getCurrent());
     cJSON_AddNumberToObject(root, "temp", POWER_MANAGEMENT_MODULE.getAvgChipTemp());
     cJSON_AddNumberToObject(root, "vrTemp", POWER_MANAGEMENT_MODULE.getVrTemp());
-    cJSON_AddNumberToObject(root, "hashRateTimestamp", history_get_current_timestamp());
-    cJSON_AddNumberToObject(root, "hashRate_10m", history_get_current_10m());
-    cJSON_AddNumberToObject(root, "hashRate_1h", history_get_current_1h());
-    cJSON_AddNumberToObject(root, "hashRate_1d", history_get_current_1d());
+    cJSON_AddNumberToObject(root, "hashRateTimestamp", history->getCurrentTimestamp());
+    cJSON_AddNumberToObject(root, "hashRate_10m", history->getCurrentHashrate10m());
+    cJSON_AddNumberToObject(root, "hashRate_1h", history->getCurrentHashrate1h());
+    cJSON_AddNumberToObject(root, "hashRate_1d", history->getCurrentHashrate1d());
     cJSON_AddStringToObject(root, "bestDiff", SYSTEM_MODULE.getBestDiffString());
     cJSON_AddStringToObject(root, "bestSessionDiff", SYSTEM_MODULE.getBestSessionDiffString());
 
@@ -579,16 +580,18 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
 
 static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp)
 {
-    // Ensure consistency
-    history_lock();
+    History *history = SYSTEM_MODULE.getHistory();
 
-    int start_index = history_search_nearest_timestamp(start_timestamp);
-    int end_index = history_search_nearest_timestamp(end_timestamp);
+    // Ensure consistency
+    history->lock();
+
+    int start_index = history->searchNearestTimestamp(start_timestamp);
+    int end_index = history->searchNearestTimestamp(end_timestamp);
     int num_samples = end_index - start_index + 1;
 
-    cJSON *history = cJSON_CreateObject();
+    cJSON *json_history = cJSON_CreateObject();
 
-    if (!is_history_available() || start_index == -1 || end_index == -1 || num_samples <= 0 || (end_index < start_index)) {
+    if (!history->isAvailable() || start_index == -1 || end_index == -1 || num_samples <= 0 || (end_index < start_index)) {
         ESP_LOGW(TAG, "Invalid history indices or history not (yet) available");
         // If the data is invalid, return an empty object
         num_samples = 0;
@@ -600,27 +603,27 @@ static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp)
     cJSON *json_timestamps = cJSON_CreateArray();
 
     for (int i = start_index; i < start_index + num_samples; i++) {
-        uint64_t sample_timestamp = history_get_timestamp_sample(i);
+        uint64_t sample_timestamp = history->getTimestampSample(i);
 
         if (sample_timestamp < start_timestamp) {
             continue;
         }
 
-        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int)(history_get_hashrate_10m_sample(i) * 100.0)));
-        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int)(history_get_hashrate_1h_sample(i) * 100.0)));
-        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int)(history_get_hashrate_1d_sample(i) * 100.0)));
+        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int)(history->getHashrate10mSample(i) * 100.0)));
+        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int)(history->getHashrate1hSample(i) * 100.0)));
+        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int)(history->getHashrate1dSample(i) * 100.0)));
         cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(sample_timestamp - start_timestamp));
     }
 
-    cJSON_AddItemToObject(history, "hashrate_10m", json_hashrate_10m);
-    cJSON_AddItemToObject(history, "hashrate_1h", json_hashrate_1h);
-    cJSON_AddItemToObject(history, "hashrate_1d", json_hashrate_1d);
-    cJSON_AddItemToObject(history, "timestamps", json_timestamps);
-    cJSON_AddNumberToObject(history, "timestampBase", start_timestamp);
+    cJSON_AddItemToObject(json_history, "hashrate_10m", json_hashrate_10m);
+    cJSON_AddItemToObject(json_history, "hashrate_1h", json_hashrate_1h);
+    cJSON_AddItemToObject(json_history, "hashrate_1d", json_hashrate_1d);
+    cJSON_AddItemToObject(json_history, "timestamps", json_timestamps);
+    cJSON_AddNumberToObject(json_history, "timestampBase", start_timestamp);
 
-    history_unlock();
+    history->unlock();
 
-    return history;
+    return json_history;
 }
 
 
@@ -634,20 +637,22 @@ static esp_err_t GET_history_len(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    History* history = SYSTEM_MODULE.getHistory();
+
     // ensure consistency
-    history_lock();
+    history->lock();
 
     uint64_t first_timestamp = 0;
     uint64_t last_timestamp = 0;
     int num_samples = 0;
 
-    if (!is_history_available()) {
+    if (!history->isAvailable()) {
         ESP_LOGW(TAG, "history is not available");
     } else {
-        history_get_timestamps(&first_timestamp, &last_timestamp, &num_samples);
+        history->getTimestamps(&first_timestamp, &last_timestamp, &num_samples);
     }
 
-    history_unlock();
+    history->unlock();
 
     cJSON *root = cJSON_CreateObject();
     cJSON_AddItemToObjectCS(root, "firstTimestamp", cJSON_CreateNumber(first_timestamp));

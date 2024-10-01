@@ -11,6 +11,7 @@
 #include "boards/board.h"
 #include "boards/nerdoctaxeplus.h"
 #include "boards/nerdqaxeplus.h"
+#include "boards/nerdqaxeplus2.h"
 #include "create_jobs_task.h"
 #include "global_state.h"
 #include "history.h"
@@ -107,13 +108,11 @@ extern "C" void app_main(void)
     // shows and saves last reset reason
     SYSTEM_MODULE.showLastResetReason();
 
-    if (!esp_psram_is_initialized()) {
-        ESP_LOGE(TAG, "PSRAM is not available");
-        return;
-    }
-
 #ifdef NERDQAXEPLUS
     Board *board = new NerdQaxePlus();
+#endif
+#ifdef NERDQAXEPLUS2
+    Board *board = new NerdQaxePlus2();
 #endif
 #ifdef NERDOCTAXEPLUS
     Board *board = new NerdOctaxePlus();
@@ -127,12 +126,6 @@ extern "C" void app_main(void)
 
     size_t total_psram = esp_psram_get_size();
     ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));
-
-    if (!history_init(board->getAsicCount())) {
-        ESP_LOGE(TAG, "History couldn't be initialized");
-        return;
-    }
-
     ESP_LOGI(TAG, "Found Device Model: %s", board->getDeviceModel());
     ESP_LOGI(TAG, "Found Board Version: %d", board->getVersion());
 

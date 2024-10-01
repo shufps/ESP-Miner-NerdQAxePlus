@@ -6,54 +6,92 @@
 // must be power of two
 #define HISTORY_MAX_SAMPLES 0x20000
 
-typedef struct {
-    int first_sample;
-    int last_sample;
-    uint64_t timespan;
-    uint64_t diffsum;
-    double avg;
-    double avg_gh;
-    uint64_t timestamp;
-    bool preliminary;
-} avg_t;
+class History;
 
-typedef struct {
-    int num_samples;
-    uint32_t shares[HISTORY_MAX_SAMPLES]; // pool diff is always 32bit int
-    uint64_t timestamps[HISTORY_MAX_SAMPLES];   // in ms
-    float hashrate_1m[HISTORY_MAX_SAMPLES];
-    float hashrate_10m[HISTORY_MAX_SAMPLES];
-    float hashrate_1h[HISTORY_MAX_SAMPLES];
-    float hashrate_1d[HISTORY_MAX_SAMPLES];
-} psram_t;
+class NonceDistribution {
+  protected:
+    int m_numAsics;
+    uint32_t *m_distribution = nullptr;
 
-typedef struct {
-    float *hashrate_1m;
-    float *hashrate_10m;
-    float *hashrate_1h;
-    float *hashrate_1d;
-    uint64_t *timestamps;   // in ms
-} history_t;
+  public:
+    NonceDistribution();
+    void init(int numAsics);
+    void addShare(int asicNr);
+    void toLog();
+};
 
+class HistoryAvg {
+  protected:
+    int m_firstSample = 0;
+    int m_lastSample = 0;
+    uint64_t m_timespan = 0;
+    uint64_t m_diffSum = 0;
+    double m_avg = 0;
+    double m_avgGh = 0;
+    uint64_t m_timestamp = 0;
+    bool m_preliminary = true;
 
-void *stats_task(void *pvParameters);
+    History *m_history;
 
-bool history_init(int num_asics);
-void history_push_share(uint32_t diff, uint64_t timestamp, int asic_nr);
-int history_search_nearest_timestamp(uint64_t timestamp);
+  public:
+    HistoryAvg(History *history, uint64_t timespan);
 
-uint64_t history_get_timestamp_sample(int index);
-float history_get_hashrate_1m_sample(int index);
-float history_get_hashrate_10m_sample(int index);
-float history_get_hashrate_1h_sample(int index);
-float history_get_hashrate_1d_sample(int index);
-double history_get_current_1m(void);
-double history_get_current_10m(void);
-double history_get_current_1h(void);
-double history_get_current_1d(void);
-uint64_t history_get_current_timestamp(void);
-void history_lock(void);
-void history_unlock(void);
-bool is_history_available(void);
-void history_get_timestamps(uint64_t *first, uint64_t *last, int *num_samples);
+    float getGh()
+    {
+        return m_avgGh;
+    };
 
+    uint64_t getTimestamp()
+    {
+        return m_timestamp;
+    };
+
+    bool isPreliminary()
+    {
+        return m_preliminary;
+    };
+    void update();
+};
+
+class History {
+  protected:
+    int m_numSamples = 0;
+    uint32_t *m_shares = nullptr;
+    uint64_t *m_timestamps = nullptr;
+    float *m_hashrate10m = nullptr;
+    float *m_hashrate1h = nullptr;
+    float *m_hashrate1d = nullptr;
+
+    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    HistoryAvg m_avg10m;
+    HistoryAvg m_avg1h;
+    HistoryAvg m_avg1d;
+    NonceDistribution m_distribution;
+
+  public:
+    History();
+    bool init(int numAsics);
+    bool isAvailable();
+    void getTimestamps(uint64_t *first, uint64_t *last, int *num_samples);
+    void pushShare(uint32_t diff, uint64_t timestamp, int asic_nr);
+
+    void lock();
+    void unlock();
+
+    uint64_t getTimestampSample(int index);
+    float getHashrate10mSample(int index);
+    float getHashrate1hSample(int index);
+    float getHashrate1dSample(int index);
+    uint64_t getCurrentTimestamp(void);
+    double getCurrentHashrate10m();
+    double getCurrentHashrate1h();
+    double getCurrentHashrate1d();
+    uint32_t getShareSample(int index);
+    int searchNearestTimestamp(uint64_t timestamp);
+
+    int getNumSamples()
+    {
+        return m_numSamples;
+    };
+};
