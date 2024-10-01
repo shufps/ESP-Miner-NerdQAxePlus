@@ -26,6 +26,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicJobIntervalMs = 1500;
     m_asicFrequency = 490.0;
     m_asicVoltage = 1.20;
+    m_initVoltage = 1.25;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
     m_numPhases = 2;
@@ -91,7 +92,7 @@ bool NerdQaxePlus::initAsics()
     TPS53647_init(m_numPhases);
 
      // give the asics a slight but-kick
-    setVoltage(1.25);
+    setVoltage(m_initVoltage);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
