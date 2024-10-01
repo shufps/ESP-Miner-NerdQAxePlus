@@ -5,6 +5,7 @@ SRCS
     "system.cpp"
     "boards/board.cpp"
     "boards/nerdqaxeplus.cpp"
+    "boards/nerdqaxeplus2.cpp"
     "boards/nerdoctaxeplus.cpp"
     "boards/drivers/EMC2302.cpp"
     "boards/drivers/TMP1075.cpp"
