@@ -141,7 +141,7 @@ void *create_jobs_task(void *pvParameters)
 
         pthread_mutex_lock(&current_stratum_job_mutex);
 
-        if (!current_job.ntime) {
+        if (!current_job.ntime || !asics) {
             pthread_mutex_unlock(&current_stratum_job_mutex);
             continue;
         }

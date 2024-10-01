@@ -8,17 +8,7 @@ add_definitions(-DLV_LVGL_H_INCLUDE_SIMPLE)
 
 # Check if the environment variable BOARD is defined
 if(DEFINED ENV{BOARD})
-    # Store the value of BOARD in a CMake variable
-    set(BOARD_VALUE $ENV{BOARD})
-
-    # Check if the BOARD value matches "NERDQAXEPLUS"
-    if(BOARD_VALUE STREQUAL "NERDQAXEPLUS")
-        add_compile_definitions(NERDQAXEPLUS)
-    elseif(BOARD_VALUE STREQUAL "NERDOCTAXEPLUS")
-        add_compile_definitions(NERDOCTAXEPLUS)
-    else()
-        message(FATAL_ERROR "Unknown board type: ${BOARD_VALUE}")
-    endif()
+    add_compile_definitions($ENV{BOARD})
 else()
     message(FATAL_ERROR "Environment variable BOARD is not set")
 endif()

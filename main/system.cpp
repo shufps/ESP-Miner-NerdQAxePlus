@@ -70,6 +70,11 @@ void System::initSystem() {
     m_display->init(m_board);
 
     m_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+
+    m_history = new History();
+    if (!m_history->init(m_board->getAsicCount())) {
+        ESP_LOGE(TAG, "history couldn't be initialized!");
+    }
 }
 
 void System::updateHashrate() {}
@@ -278,8 +283,8 @@ void System::notifyFoundNonce(double poolDiff, int asicNr) {
     gettimeofday(&now, nullptr);
     uint64_t timestamp = (uint64_t)now.tv_sec * 1000llu + (uint64_t)now.tv_usec / 1000llu;
 
-    history_push_share(poolDiff, timestamp, asicNr);
+    m_history->pushShare(poolDiff, timestamp, asicNr);
 
-    m_currentHashrate10m = history_get_current_10m();
+    m_currentHashrate10m = m_history->getCurrentHashrate10m();
     updateHashrate();
 }

@@ -7,6 +7,7 @@
 #include "esp_netif.h"
 #include "freertos/queue.h"
 #include "boards/board.h"
+#include "history.h"
 
 // Configuration and constants
 #define STRATUM_USER CONFIG_STRATUM_USER
@@ -53,6 +54,8 @@ class System {
 
     // Clock synchronization
     uint32_t m_lastClockSync; // Last clock synchronization timestamp
+
+    History *m_history;
 
     // Network interface
     esp_netif_t *m_netif;         // ESP32 network interface structure
@@ -203,9 +206,14 @@ class System {
         return m_board;
     }
 
+    History* getHistory() {
+        return m_history;
+    }
+
     void showLastResetReason();
 
     const char* getLastResetReason() {
         return m_lastResetReason;
     }
+
 };
