@@ -7,8 +7,6 @@
 
 class NerdQaxePlus2 : public NerdQaxePlus {
   protected:
-    int m_numPhases;
-
     void LDO_enable();
     void LDO_disable();
 

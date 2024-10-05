@@ -81,7 +81,7 @@ void Asic::send6(uint8_t header, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3,
 }
 
 void Asic::send2(uint8_t header, uint8_t b0, uint8_t b1) {
-    uint8_t buf[6] = {b0, b1};
+    uint8_t buf[2] = {b0, b1};
     send(header, buf, sizeof(buf), ASIC_SERIALTX_DEBUG);
 }
 
@@ -209,6 +209,7 @@ int Asic::count_asics() {
     uint8_t buf[11];
     int chip_counter = 0;
     while (SERIAL_rx(buf, sizeof(buf), 1000) > 0) {
+//        ESP_LOG_BUFFER_HEX(TAG, buf, sizeof(buf));
         if (!strncmp((char *) getChipId(), (char *) buf, 6)) {
             chip_counter++;
             ESP_LOGI(TAG, "found asic #%d", chip_counter);

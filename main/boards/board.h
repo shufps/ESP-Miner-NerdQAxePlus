@@ -27,9 +27,9 @@ class Board {
     float m_fanPerc;
 
     // display m_theme
-    Theme *m_theme;
+    Theme *m_theme = nullptr;
 
-    Asic *m_asics;
+    Asic *m_asics = nullptr;
 
     bool m_isInitialized = false;
 

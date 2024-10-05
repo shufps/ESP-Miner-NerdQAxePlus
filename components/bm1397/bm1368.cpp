@@ -113,16 +113,10 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
 int BM1368::setMaxBaud(void)
 {
-    return 115749;
-/*
-
-    // divider of 0 for 3,125,000
+//    return 115749;
     ESP_LOGI(TAG, "Setting max baud of 1000000 ");
-
-    unsigned char init8[11] = {0x55, 0xAA, 0x51, 0x09, 0x00, 0x28, 0x11, 0x30, 0x02, 0x00, 0x03};
-    _send_simple(init8, 11);
+    send6(CMD_WRITE_ALL, 0x00, 0x28, 0x11, 0x30, 0x02, 0x00);
     return 1000000;
-*/
 }
 
 void BM1368::requestChipTemp() {

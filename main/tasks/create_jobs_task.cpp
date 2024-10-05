@@ -26,6 +26,7 @@ static char *extranonce_str = NULL;
 static int extranonce_2_len = 0;
 
 static uint32_t stratum_difficulty = 8192;
+static uint32_t active_stratum_difficulty = 8192;
 static uint32_t version_mask = 0;
 
 #define min(a,b) ((a<b)?(a):(b))
@@ -97,6 +98,10 @@ void create_job_mining_notify(mining_notify *notifiy)
     current_job.job_id = strdup(notifiy->job_id);
     current_job.coinbase_1 = strdup(notifiy->coinbase_1);
     current_job.coinbase_2 = strdup(notifiy->coinbase_2);
+
+    // set active difficulty with the mining.notify command
+    active_stratum_difficulty = stratum_difficulty;
+
     pthread_mutex_unlock(&current_stratum_job_mutex);
 
     trigger_job_creation();
@@ -171,10 +176,10 @@ void *create_jobs_task(void *pvParameters)
 
         next_job->jobid = strdup(current_job.job_id);
         next_job->extranonce2 = strdup(extranonce_2_str);
-        next_job->pool_diff = stratum_difficulty;
+        next_job->pool_diff = active_stratum_difficulty;
 
         // clamp stratum difficulty
-        next_job->asic_diff = max(min(stratum_difficulty, board->getAsicMaxDifficulty()), board->getAsicMinDifficulty());
+        next_job->asic_diff = max(min(active_stratum_difficulty, board->getAsicMaxDifficulty()), board->getAsicMinDifficulty());
 
         pthread_mutex_unlock(&current_stratum_job_mutex);
 

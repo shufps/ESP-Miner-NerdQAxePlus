@@ -11,5 +11,7 @@ NerdOctaxePlus::NerdOctaxePlus() : NerdQaxePlus() {
     m_asicMaxDifficulty = 2048;
     m_asicMinDifficulty = 512;
 
+#ifdef NERDOCTAXEPLUS
     m_theme = new ThemeNerdoctaxeplus();
+#endif
 }

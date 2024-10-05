@@ -17,6 +17,8 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_asicMaxDifficulty = 2048;
     m_asicMinDifficulty = 512;
 
+#ifdef NERDQAXEPLUS2
     m_theme = new ThemeNerdqaxeplus2();
+#endif
     m_asics = new BM1370();
 }
