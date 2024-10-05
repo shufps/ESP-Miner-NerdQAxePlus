@@ -47,6 +47,19 @@ export class EditComponent implements OnInit {
     { name: '1300', value: 1300 },
   ];
 
+  public BM1370DropdownFrequency = [
+    { name: '525 (eco)', value: 525 },
+    { name: '600 (default)', value: 600 },
+  ];
+
+  public BM1370CoreVoltage = [
+    { name: '1100', value: 1100 },
+    { name: '1150', value: 1150 },
+    { name: '1200 (default)', value: 1200 },
+    { name: '1250', value: 1250 },
+    { name: '1300', value: 1300 },
+  ];
+
   constructor(
     private fb: FormBuilder,
     private systemService: SystemService,
