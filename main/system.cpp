@@ -228,15 +228,21 @@ void System::task() {
     }
 
     m_display->miningScreen();
-    esp_netif_get_ip_info(m_netif, &m_ipInfo);
-    char ipAddressStr[IP4ADDR_STRLEN_MAX];
-    esp_ip4addr_ntoa(&m_ipInfo.ip, ipAddressStr, IP4ADDR_STRLEN_MAX);
-    m_display->updateIpAddress(ipAddressStr);
     m_display->updateCurrentSettings();
 
     uint8_t countCycle = 10;
     bool showsOverlay = false;
+    char ipAddressStr[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
+
     while (1) {
+        // Check if the IP address is still "0.0.0.0" and update if not valid
+        if (strcmp(ipAddressStr, "0.0.0.0") == 0) {
+            esp_netif_get_ip_info(m_netif, &m_ipInfo);
+            esp_ip4addr_ntoa(&m_ipInfo.ip, ipAddressStr, IP4ADDR_STRLEN_MAX);
+            ESP_LOGI(TAG, "ip address: %s", ipAddressStr);
+            m_display->updateIpAddress(ipAddressStr);
+        }
+
         if (m_overheated && !showsOverlay) {
             m_display->showOverheating();
             showsOverlay = true;

@@ -121,6 +121,7 @@ extern "C" void app_main(void)
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
     board->initBoard();
+    board->loadSettings();
 
     SYSTEM_MODULE.setBoard(board);
 
@@ -148,7 +149,6 @@ extern "C" void app_main(void)
     const char *username = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL);
     if (username) {
         wifi_softap_off();
-        board->loadSettings();
 
         if (!board->initAsics()) {
             ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
