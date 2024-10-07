@@ -57,16 +57,22 @@ jobs:
     - name: Rename Build Artifacts
       run: |
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.board }}.bin
-
+    
+    - name: Create files list
+      run: |
+        echo "esp-miner-factory-${{ matrix.board }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
+        echo "build/esp-miner-${{ matrix.board }}.bin" >> file_list.txt
+        if [ "${{ matrix.upload_www }}" == "true" ]; then
+          echo "build/www.bin" >> file_list.txt
+        fi
+    
     - name: Upload to Existing Release
       if: always()
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          esp-miner-factory-${{ matrix.board }}-${{ env.VERSION_TAG }}.bin
-          build/esp-miner-${{ matrix.board }}.bin
-          ${{ matrix.upload_www == 'true' && 'build/www.bin' || '' }}
+        files: $(cat file_list.txt)
         tag_name: ${{ env.VERSION_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
