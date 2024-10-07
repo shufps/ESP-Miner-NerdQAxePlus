@@ -57,11 +57,6 @@ jobs:
     - name: Rename Build Artifacts
       run: |
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.board }}.bin
-        if [[ ${{ matrix.upload_www }} == 'true' ]]; then
-          sudo mv build/www.bin build/www.bin
-        else
-          sudo mv build/www.bin build/www-${{ matrix.board }}.bin
-        fi
 
     - name: Upload to Existing Release
       if: always()
