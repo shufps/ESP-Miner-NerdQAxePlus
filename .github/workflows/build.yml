@@ -8,7 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        board: [NERDQAXEPLUS, NERDOCTAXEPLUS]
+        board: [NERDQAXEPLUS, NERDOCTAXEPLUS, NERDQAXEPLUS2]
+        include:
+          - board: NERDQAXEPLUS
+            upload_www: true
+          - board: NERDOCTAXEPLUS
+            upload_www: false
+          - board: NERDQAXEPLUS2
+            upload_www: false
 
     steps:
     - name: Checkout repository
@@ -50,15 +57,20 @@ jobs:
     - name: Rename Build Artifacts
       run: |
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.board }}.bin
-        sudo mv build/www.bin build/www-${{ matrix.board }}.bin
+        if [[ ${{ matrix.upload_www }} == 'true' ]]; then
+          sudo mv build/www.bin build/www.bin
+        else
+          sudo mv build/www.bin build/www-${{ matrix.board }}.bin
+        fi
 
     - name: Upload to Existing Release
+      if: always()
       uses: softprops/action-gh-release@v1
       with:
         files: |
           esp-miner-factory-${{ matrix.board }}-${{ env.VERSION_TAG }}.bin
           build/esp-miner-${{ matrix.board }}.bin
-          build/www-${{ matrix.board }}.bin
+          ${{ matrix.upload_www == 'true' && 'build/www.bin' || '' }}
         tag_name: ${{ env.VERSION_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
       env:
