@@ -12,10 +12,13 @@ jobs:
         include:
           - board: NERDQAXEPLUS
             upload_www: true
+            label: NerdQAxe+
           - board: NERDOCTAXEPLUS
             upload_www: false
+            label: NerdOctaxe+
           - board: NERDQAXEPLUS2
             upload_www: false
+            label: NerdQAxe++
 
     steps:
     - name: Checkout repository
@@ -52,16 +55,16 @@ jobs:
         0x10000 build/esp-miner.bin \
         0x410000 build/www.bin \
         0xf10000 build/ota_data_initial.bin \
-        -o esp-miner-factory-${{ matrix.board }}-${{ env.VERSION_TAG }}.bin
+        -o esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
 
     - name: Rename Build Artifacts
       run: |
-        sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.board }}.bin
+        sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.label }}.bin
     
     - name: Create files list
       run: |
-        echo "esp-miner-factory-${{ matrix.board }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
-        echo "build/esp-miner-${{ matrix.board }}.bin" >> file_list.txt
+        echo "esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
+        echo "build/esp-miner-${{ matrix.label }}.bin" >> file_list.txt
         if [ "${{ matrix.upload_www }}" == "true" ]; then
           echo "build/www.bin" >> file_list.txt
         fi
