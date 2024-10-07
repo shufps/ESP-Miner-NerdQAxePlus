@@ -66,13 +66,16 @@ jobs:
           echo "build/www.bin" >> file_list.txt
         fi
     
+    - name: Set files variable
+      id: set_files_var
+      run: echo "files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
+    
     - name: Upload to Existing Release
       if: always()
       uses: softprops/action-gh-release@v1
       with:
-        files: $(cat file_list.txt)
+        files: ${{ env.files }}
         tag_name: ${{ env.VERSION_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
