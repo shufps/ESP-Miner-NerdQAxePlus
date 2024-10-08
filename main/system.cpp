@@ -233,14 +233,17 @@ void System::task() {
     uint8_t countCycle = 10;
     bool showsOverlay = false;
     char ipAddressStr[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
+    bool validIp = false;
+
+    // show initial 0.0.0.0
+    m_display->updateIpAddress(ipAddressStr);
 
     while (1) {
-        // Check if the IP address is still "0.0.0.0" and update if not valid
-        if (strcmp(ipAddressStr, "0.0.0.0") == 0) {
-            esp_netif_get_ip_info(m_netif, &m_ipInfo);
-            esp_ip4addr_ntoa(&m_ipInfo.ip, ipAddressStr, IP4ADDR_STRLEN_MAX);
+        // update IP on the screen if it is available
+        if (!validIp && connect_get_ip_addr(ipAddressStr, sizeof(ipAddressStr))) {
             ESP_LOGI(TAG, "ip address: %s", ipAddressStr);
             m_display->updateIpAddress(ipAddressStr);
+            validIp = true;
         }
 
         if (m_overheated && !showsOverlay) {

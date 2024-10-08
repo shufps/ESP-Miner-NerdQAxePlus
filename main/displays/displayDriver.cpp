@@ -543,14 +543,11 @@ void DisplayDriver::updateGlobalState()
 
 void DisplayDriver::updateIpAddress(char *ip_address_str)
 {
-    char strData[20];
-
     if (m_ui->ui_MiningScreen == NULL)
         return;
     if (m_ui->ui_SettingsScreen == NULL)
         return;
 
-    snprintf(strData, sizeof(strData), "%s", ip_address_str);
     lv_label_set_text(m_ui->ui_lbIP, ip_address_str);    // Update label
     lv_label_set_text(m_ui->ui_lbIPSet, ip_address_str); // Update label
 }

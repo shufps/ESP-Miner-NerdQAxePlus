@@ -38,6 +38,7 @@ void wifi_softap_off(void);
 void wifi_init(const char *wifi_ssid, const char *wifi_pass, const char *hostname);
 EventBits_t wifi_connect(void);
 void generate_ssid(char *ssid);
+bool connect_get_ip_addr(char *buf, size_t buf_len);
 
 #ifdef __cplusplus
 }
