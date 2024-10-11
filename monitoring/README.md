@@ -1,5 +1,16 @@
 ### Run the setup
 
+First you need to install Docker:
+
+```
+# Install Docker
+sudo apt update && sudo apt install docker.io docker-compose -y
+
+# Start Docker
+sudo systemctl start docker && sudo systemctl enable docker
+```
+
+
 Before the setup is run, the data directories need to be created:
 
 ```
