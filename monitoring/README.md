@@ -42,3 +42,13 @@ To stop the monitoring use:
 docker compose down
 ```
 
+## Setup InfluxDB on AxeOS
+
+The settings should look like this:
+
+![image](https://github.com/user-attachments/assets/aa7f86f6-890a-4d07-9904-58af239f9e80)
+
+`Influx URL` is the IP / hostname of the computer running the Grafana + Influx Setup.
+
+
+
