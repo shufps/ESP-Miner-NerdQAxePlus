@@ -1,8 +1,9 @@
 ### Run the setup
 
+## Install Docker
 First you need to install Docker:
 
-```
+```bash
 # Install Docker
 sudo apt update && sudo apt install docker.io docker-compose -y
 
@@ -10,6 +11,16 @@ sudo apt update && sudo apt install docker.io docker-compose -y
 sudo systemctl start docker && sudo systemctl enable docker
 ```
 
+## Clone Repository
+
+First clone the repository and change into the monitoring directors.
+
+```bash
+git clone https://github.com/shufps/ESP-Miner-NerdQAxePlus
+cd ESP-Miner-NerdQAxePlus/monitoring
+```
+
+## Prepare and run Grafana and Influx
 
 Before the setup is run, the data directories need to be created:
 
