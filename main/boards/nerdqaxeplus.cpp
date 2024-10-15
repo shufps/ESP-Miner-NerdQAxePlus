@@ -116,7 +116,7 @@ bool NerdQaxePlus::initAsics()
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     // set final output voltage
-    setVoltage(m_asicVoltage / 1000.0);
+    setVoltage(m_asicVoltage);
 
     m_isInitialized = true;
     return true;
@@ -144,11 +144,6 @@ bool NerdQaxePlus::setVoltage(float core_voltage)
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
     TPS53647_set_vout(core_voltage);
     return true;
-}
-
-uint16_t NerdQaxePlus::getVoltageMv()
-{
-    return TPS53647_get_vout() * 1000.0f;
 }
 
 void NerdQaxePlus::setFanSpeed(float perc) {

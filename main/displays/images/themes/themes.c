@@ -16,6 +16,13 @@
 #include "./NerdQaxePlus2/ui_img_settingsscreen_png.c"
 #include "./NerdQaxePlus2/ui_img_splashscreen2_png.c"
 
+#include "./NerdAxe/ui_img_initscreen2_png.c"
+#include "./NerdAxe/ui_img_miningscreen2_png.c"
+#include "./NerdAxe/ui_img_portalscreen_png.c"
+#include "./NerdAxe/ui_img_btcscreen_png.c"
+#include "./NerdAxe/ui_img_settingsscreen_png.c"
+#include "./NerdAxe/ui_img_splashscreen2_png.c"
+
 #include "./NerdOctaxePlus/ui_img_initscreen2_png.c"
 #include "./NerdOctaxePlus/ui_img_miningscreen2_png.c"
 #include "./NerdOctaxePlus/ui_img_portalscreen_png.c"

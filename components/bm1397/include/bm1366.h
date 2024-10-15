@@ -5,7 +5,7 @@
 #include "rom/gpio.h"
 #include "asic.h"
 
-class BM1368 : public Asic {
+class BM1366 : public Asic {
 protected:
     virtual const uint8_t* getChipId();
 
@@ -13,8 +13,8 @@ protected:
     virtual uint8_t asicToJobId(uint8_t asic_id);
 
 public:
-    BM1368();
-    virtual const char* getName() { return "BM1368"; };
+    BM1366();
+    virtual const char* getName() { return "BM1366"; };
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty);
     virtual int setMaxBaud(void);
     virtual void requestChipTemp();

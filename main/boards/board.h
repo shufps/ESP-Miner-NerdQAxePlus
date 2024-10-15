@@ -49,7 +49,6 @@ class Board {
 
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
-    virtual uint16_t getVoltageMv() = 0;
 
     virtual void setFanSpeed(float perc) = 0;
     virtual void getFanSpeed(uint16_t *rpm) = 0;

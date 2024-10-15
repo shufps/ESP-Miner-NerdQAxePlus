@@ -33,7 +33,7 @@ static bool fan_sense_pass(Board *board)
 
 static bool core_voltage_pass(Board *board)
 {
-    uint16_t core_voltage = board->getVoltageMv();
+    uint16_t core_voltage = (int) (board->getVout() * 1000.0f);
     ESP_LOGI(TAG, "Voltage: %u", core_voltage);
 
     if (core_voltage > 1100 && core_voltage < 1300) {

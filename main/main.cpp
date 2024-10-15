@@ -12,6 +12,7 @@
 #include "boards/nerdoctaxeplus.h"
 #include "boards/nerdqaxeplus.h"
 #include "boards/nerdqaxeplus2.h"
+#include "boards/nerdaxe.h"
 #include "create_jobs_task.h"
 #include "global_state.h"
 #include "history.h"
@@ -117,11 +118,15 @@ extern "C" void app_main(void)
 #ifdef NERDOCTAXEPLUS
     Board *board = new NerdOctaxePlus();
 #endif
+#ifdef NERDAXE
+    Board *board = new NerdAxe();
+#endif
 
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
-    board->initBoard();
     board->loadSettings();
+    board->initBoard();
+
 
     SYSTEM_MODULE.setBoard(board);
 

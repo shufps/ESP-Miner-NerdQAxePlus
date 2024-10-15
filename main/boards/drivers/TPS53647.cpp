@@ -351,7 +351,7 @@ int TPS53647_init(int num_phases)
     smb_write_byte(PMBUS_MFR_SPECIFIC_12, 0x20); // default value
 
     // set maximum current
-    smb_write_byte(PMBUS_MFR_SPECIFIC_10, TPS43647_INIT_IMAX);
+    smb_write_byte(PMBUS_MFR_SPECIFIC_10, TPS53647_INIT_IMAX);
 
     // operation mode
     // VR12 Mode

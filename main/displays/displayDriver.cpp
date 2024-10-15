@@ -19,7 +19,7 @@
 #include "ui_helpers.h"
 #include "global_state.h"
 #include "system.h"
-#include "TPS53647.h"
+
 #include "nvs_config.h"
 #include "displayDriver.h"
 
@@ -536,7 +536,8 @@ void DisplayDriver::updateGlobalState()
     updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.getPower());
     updateBTCprice();
 
-    uint16_t vcore = (int) (TPS53647_get_vout() * 1000.0f);
+    Board *board = SYSTEM_MODULE.getBoard();
+    uint16_t vcore = (int) (board->getVout() * 1000.0f);
     snprintf(strData, sizeof(strData), "%umV", vcore);
     lv_label_set_text(m_ui->ui_lbVcore, strData); // Update label
 }

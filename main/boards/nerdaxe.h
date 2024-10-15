@@ -1,19 +1,15 @@
 #pragma once
 
 #include "asic.h"
-#include "bm1368.h"
+#include "bm1366.h"
 #include "board.h"
 
-class NerdQaxePlus : public Board {
+class NerdAxe : public Board {
   protected:
-    int m_numPhases;
-    float m_initVoltage;
-
-    void LDO_enable();
-    void LDO_disable();
+    uint8_t ds4432_tps40305_bitaxe_voltage_to_reg(float vout);
 
   public:
-    NerdQaxePlus();
+    NerdAxe();
 
     virtual bool initBoard();
     virtual bool initAsics();
