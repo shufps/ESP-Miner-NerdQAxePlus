@@ -3,10 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "boards/board.h"
 #include "displays/displayDriver.h"
 #include "esp_netif.h"
 #include "freertos/queue.h"
-#include "boards/board.h"
 #include "history.h"
 
 // Configuration and constants
@@ -18,8 +18,7 @@
 class System {
   protected:
     // Hashrate and timing
-    double m_currentHashrate10m; // Current hashrate averaged over 10 minutes
-    int64_t m_startTime;         // System start time (in milliseconds)
+    int64_t m_startTime;      // System start time (in milliseconds)
 
     // Share statistics
     uint64_t m_sharesAccepted; // Number of accepted shares
@@ -50,7 +49,7 @@ class System {
     int m_poolErrors;  // Count of errors related to the mining pool
     bool m_overheated; // Flag to indicate if the system is overheated
 
-    const char* m_lastResetReason;
+    const char *m_lastResetReason;
 
     // Clock synchronization
     uint32_t m_lastClockSync; // Last clock synchronization timestamp
@@ -127,9 +126,14 @@ class System {
     {
         return m_startTime;
     }
+    double getCurrentHashrate() const
+    {
+        return m_history->getCurrentHashrate();
+    }
+
     double getCurrentHashrate10m() const
     {
-        return m_currentHashrate10m;
+        return m_history->getCurrentHashrate10m();
     }
 
     // Pool-related getters and setters
@@ -198,22 +202,25 @@ class System {
         m_startupDone = true;
     }
 
-    void setBoard(Board* board) {
+    void setBoard(Board *board)
+    {
         m_board = board;
     }
 
-    Board* getBoard() {
+    Board *getBoard()
+    {
         return m_board;
     }
 
-    History* getHistory() {
+    History *getHistory()
+    {
         return m_history;
     }
 
     void showLastResetReason();
 
-    const char* getLastResetReason() {
+    const char *getLastResetReason()
+    {
         return m_lastResetReason;
     }
-
 };

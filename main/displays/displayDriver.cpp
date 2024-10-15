@@ -423,9 +423,9 @@ void DisplayDriver::updateHashrate(System *module, float power)
 {
     char strData[20];
 
-    float efficiency = power / (module->getCurrentHashrate10m() / 1000.0);
+    float efficiency = power / (module->getCurrentHashrate() / 1000.0);
 
-    snprintf(strData, sizeof(strData), "%.1f", module->getCurrentHashrate10m());
+    snprintf(strData, sizeof(strData), "%.1f", module->getCurrentHashrate());
     lv_label_set_text(m_ui->ui_lbHashrate, strData);    // Update hashrate
     lv_label_set_text(m_ui->ui_lbHashrateSet, strData); // Update hashrate
     lv_label_set_text(m_ui->ui_lblHashPrice, strData);  // Update hashrate

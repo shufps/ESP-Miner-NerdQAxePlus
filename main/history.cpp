@@ -20,8 +20,8 @@ static const char *TAG = "history";
 // define for wrapped access of psram
 #define WRAP(a) ((a) & (HISTORY_MAX_SAMPLES - 1))
 
-
-NonceDistribution::NonceDistribution() {
+NonceDistribution::NonceDistribution()
+{
     // NOP
 }
 
@@ -33,7 +33,8 @@ void NonceDistribution::init(int numAsics)
     }
 }
 
-void NonceDistribution::addShare(int asicNr) {
+void NonceDistribution::addShare(int asicNr)
+{
     if (m_distribution && asicNr < m_numAsics) {
         m_distribution[asicNr]++;
     }
@@ -60,7 +61,6 @@ void NonceDistribution::toLog()
     ESP_LOGI(TAG, "nonce distribution: %s", buffer);
 }
 
-
 uint64_t History::getTimestampSample(int index)
 {
     return m_timestamps[WRAP(index)];
@@ -79,6 +79,11 @@ float History::getHashrate1hSample(int index)
 float History::getHashrate1dSample(int index)
 {
     return m_hashrate1d[WRAP(index)];
+}
+
+double History::getCurrentHashrate()
+{
+    return m_avg.getGh();
 }
 
 double History::getCurrentHashrate10m()
@@ -122,7 +127,8 @@ bool History::isAvailable()
     return m_shares && m_timestamps && m_hashrate10m && m_hashrate1h && m_hashrate1d;
 }
 
-History::History() : m_avg10m(this, 600llu * 1000llu), m_avg1h(this, 3600llu * 1000llu), m_avg1d(this, 86400llu * 1000llu)
+History::History()
+    : m_avg(this, 128), m_avg10m(this, 600llu * 1000llu), m_avg1h(this, 3600llu * 1000llu), m_avg1d(this, 86400llu * 1000llu)
 {
     // NOP
 }
@@ -210,6 +216,54 @@ void HistoryAvg::update()
     m_timestamp = lastTimestamp;
 }
 
+HistoryAvgMaxSamples::HistoryAvgMaxSamples(History *history, uint64_t numMaxSamples) : HistoryAvg(history, 0)
+{
+    m_history = history;
+    m_numMaxSamples = numMaxSamples;
+}
+
+void HistoryAvgMaxSamples::update()
+{
+    // Catch up with the latest sample and update diffsum
+    while (m_lastSample + 1 < m_history->getNumSamples()) {
+        m_lastSample++;
+        m_diffSum += (uint64_t) m_history->getShareSample(m_lastSample);
+    }
+
+    // Adjust the window on the older side
+    // Ensure that the sample window does not exceed the maximum number of samples (m_numMaxSamples)
+    while (m_lastSample - m_firstSample + 1 > m_numMaxSamples) {
+        m_diffSum -= (uint64_t) m_history->getShareSample(m_firstSample);
+        m_firstSample++;
+    }
+
+    // Check for overflow in diffsum
+    if (m_diffSum >> 63ull) {
+        ESP_LOGE(TAG, "Error in hashrate calculation: diffsum overflowed");
+        return;
+    }
+
+    uint64_t lastTimestamp = m_history->getTimestampSample(m_lastSample);
+    uint64_t firstTimestamp = m_history->getTimestampSample(m_firstSample);
+
+    // Prevent division by zero
+    if (lastTimestamp == firstTimestamp) {
+        ESP_LOGW(TAG, "Timestamps are equal; cannot compute average.");
+        return;
+    }
+
+    // Calculate the average hash rate
+    uint64_t duration = (lastTimestamp - firstTimestamp);
+
+    // preliminary means that it's not the real hashrate because
+    // the buffer is not yet completly filled
+    m_preliminary = (m_lastSample - m_firstSample + 1 < m_numMaxSamples);
+
+    // Calculate the average hash rate, preventing potential overflow during calculation
+    m_avg = (double) (m_diffSum << 32llu) / ((double) duration / 1.0e3);
+    m_avgGh = m_avg / 1.0e9;
+    m_timestamp = lastTimestamp;
+}
 
 void History::pushShare(uint32_t diff, uint64_t timestamp, int asic_nr)
 {
@@ -223,6 +277,7 @@ void History::pushShare(uint32_t diff, uint64_t timestamp, int asic_nr)
     m_timestamps[WRAP(m_numSamples)] = timestamp;
     m_numSamples++;
 
+    m_avg.update();
     m_avg10m.update();
     m_avg1h.update();
     m_avg1d.update();
@@ -235,12 +290,13 @@ void History::pushShare(uint32_t diff, uint64_t timestamp, int asic_nr)
 
     unlock();
 
+    char preliminary = (m_avg.isPreliminary()) ? '*' : ' ';
     char preliminary_10m = (m_avg10m.isPreliminary()) ? '*' : ' ';
     char preliminary_1h = (m_avg1h.isPreliminary()) ? '*' : ' ';
     char preliminary_1d = (m_avg1d.isPreliminary()) ? '*' : ' ';
 
-    ESP_LOGI(TAG, "hashrate: 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", m_avg10m.getGh(), preliminary_10m, m_avg1h.getGh(),
-             preliminary_1h, m_avg1d.getGh(), preliminary_1d);
+    ESP_LOGI(TAG, "hashrate: %.3fGH%c 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", m_avg.getGh(), preliminary, m_avg10m.getGh(),
+             preliminary_10m, m_avg1h.getGh(), preliminary_1h, m_avg1d.getGh(), preliminary_1d);
 
     m_distribution.toLog();
 }
