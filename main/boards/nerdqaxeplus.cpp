@@ -116,7 +116,7 @@ bool NerdQaxePlus::initAsics()
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     // set final output voltage
-    setVoltage(m_asicVoltage / 1000.0);
+    setVoltage(m_asicVoltage);
 
     m_isInitialized = true;
     return true;

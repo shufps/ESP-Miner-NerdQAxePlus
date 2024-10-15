@@ -86,6 +86,7 @@ protected:
 
 public:
     Asic();
+    virtual const char* getName() = 0;
     uint8_t sendWork(uint32_t job_id, bm_job *next_bm_job);
     bool processWork(task_result *result);
     void setJobDifficultyMask(int difficulty);

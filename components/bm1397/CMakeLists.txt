@@ -1,6 +1,7 @@
 idf_component_register(
 SRCS
     "asic.cpp"
+    "bm1366.cpp"
     "bm1368.cpp"
     "bm1370.cpp"
     "serial.cpp"
