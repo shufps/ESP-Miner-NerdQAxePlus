@@ -32,7 +32,7 @@ static const char* TAG="nerdaxe";
 
 NerdAxe::NerdAxe() : Board() {
     m_deviceModel = "NerdAxe";
-    m_version = 402;
+    m_version = 204;
     m_asicModel = "BM1366";
     m_asicCount = 1;
     m_asicJobIntervalMs = 1500;
@@ -174,7 +174,12 @@ void NerdAxe::getFanSpeed(uint16_t* rpm) {
 }
 
 float NerdAxe::readTemperature(int index) {
-    return EMC2101_get_internal_temp();
+    if (!index) {
+        return EMC2101_get_internal_temp() + 5;
+    } else {
+        return 0.0;
+    }
+
 }
 
 float NerdAxe::getVin() {
