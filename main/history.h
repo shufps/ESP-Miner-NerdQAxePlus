@@ -20,11 +20,14 @@ class NonceDistribution {
     void toLog();
 };
 
+// timespan is fixed, used sample count is variable
 class HistoryAvg {
+  private:
+    uint64_t m_timespan = 0;
+
   protected:
     int m_firstSample = 0;
     int m_lastSample = 0;
-    uint64_t m_timespan = 0;
     uint64_t m_diffSum = 0;
     double m_avg = 0;
     double m_avgGh = 0;
@@ -50,7 +53,18 @@ class HistoryAvg {
     {
         return m_preliminary;
     };
-    void update();
+    virtual void update();
+};
+
+// timespan is variable, numer of samples is capped
+class HistoryAvgMaxSamples : public HistoryAvg {
+  private:
+    uint32_t m_numMaxSamples = 0;
+
+  public:
+    HistoryAvgMaxSamples(History *history, uint64_t numMaxSamples);
+
+    virtual void update();
 };
 
 class History {
@@ -64,6 +78,7 @@ class History {
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+    HistoryAvgMaxSamples m_avg;
     HistoryAvg m_avg10m;
     HistoryAvg m_avg1h;
     HistoryAvg m_avg1d;
@@ -84,6 +99,7 @@ class History {
     float getHashrate1hSample(int index);
     float getHashrate1dSample(int index);
     uint64_t getCurrentTimestamp(void);
+    double getCurrentHashrate();
     double getCurrentHashrate10m();
     double getCurrentHashrate1h();
     double getCurrentHashrate1d();

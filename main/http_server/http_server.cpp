@@ -486,6 +486,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "temp", POWER_MANAGEMENT_MODULE.getAvgChipTemp());
     cJSON_AddNumberToObject(root, "vrTemp", POWER_MANAGEMENT_MODULE.getVrTemp());
     cJSON_AddNumberToObject(root, "hashRateTimestamp", history->getCurrentTimestamp());
+    cJSON_AddNumberToObject(root, "hashRate", history->getCurrentHashrate());
     cJSON_AddNumberToObject(root, "hashRate_10m", history->getCurrentHashrate10m());
     cJSON_AddNumberToObject(root, "hashRate_1h", history->getCurrentHashrate1h());
     cJSON_AddNumberToObject(root, "hashRate_1d", history->getCurrentHashrate1d());

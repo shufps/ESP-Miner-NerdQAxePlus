@@ -33,7 +33,6 @@ System::System() {
 }
 
 void System::initSystem() {
-    m_currentHashrate10m = 0.0;
     m_screenPage = 0;
     m_sharesAccepted = 0;
     m_sharesRejected = 0;
@@ -294,6 +293,5 @@ void System::notifyFoundNonce(double poolDiff, int asicNr) {
 
     m_history->pushShare(poolDiff, timestamp, asicNr);
 
-    m_currentHashrate10m = m_history->getCurrentHashrate10m();
     updateHashrate();
 }
