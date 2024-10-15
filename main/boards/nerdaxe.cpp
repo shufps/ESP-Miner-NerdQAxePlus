@@ -81,6 +81,7 @@ uint8_t NerdAxe::ds4432_tps40305_bitaxe_voltage_to_reg(float vout)
 
 bool NerdAxe::initBoard()
 {
+    ADC_init();
     SERIAL_init();
 
     // Init I2C
@@ -95,13 +96,12 @@ bool NerdAxe::initBoard()
     // configure gpios
     gpio_pad_select_gpio(PWR_EN_PIN);
     gpio_set_direction(PWR_EN_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(PWR_EN_PIN, 0);
+    // inverted
+    gpio_set_level(PWR_EN_PIN, 1);
 
     gpio_pad_select_gpio(BM1366_RST_PIN);
     gpio_set_direction(BM1366_RST_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(BM1366_RST_PIN, 0);
-
-    ADC_init();
 
     return true;
 }
@@ -151,21 +151,18 @@ void NerdAxe::requestBuckTelemtry() {
 bool NerdAxe::setVoltage(float core_voltage)
 {
     if (!core_voltage) {
-        gpio_set_level(PWR_EN_PIN, 0);
+        // inverted
+        gpio_set_level(PWR_EN_PIN, 1);
         return true;
     }
     uint8_t reg_setting = ds4432_tps40305_bitaxe_voltage_to_reg(core_voltage);
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV [0x%02X]", core_voltage, reg_setting);
     DS4432U_set_current_code(0, reg_setting); /// eek!
 
-    gpio_set_level(PWR_EN_PIN, 1);
+    // inverted
+    gpio_set_level(PWR_EN_PIN, 0);
 
     return true;
-}
-
-uint16_t NerdAxe::getVoltageMv()
-{
-    return ADC_get_vcore();
 }
 
 void NerdAxe::setFanSpeed(float perc) {
@@ -177,26 +174,15 @@ void NerdAxe::getFanSpeed(uint16_t* rpm) {
 }
 
 float NerdAxe::readTemperature(int index) {
-    switch (index) {
-        case 0: {
-            return EMC2101_get_external_temp();
-        }
-        case 1: {
-            return EMC2101_get_internal_temp();
-        }
-        default: {
-            // NOP
-        }
-    }
-    return 0.0;
+    return EMC2101_get_internal_temp();
 }
 
 float NerdAxe::getVin() {
-    return INA260_read_voltage();
+    return INA260_read_voltage() / 1000.0;
 }
 
 float NerdAxe::getIin() {
-    return INA260_read_current();
+    return INA260_read_current() / 1000.0;
 }
 
 float NerdAxe::getPin() {
@@ -204,7 +190,7 @@ float NerdAxe::getPin() {
 }
 
 float NerdAxe::getVout() {
-    return getVoltageMv();
+    return ADC_get_vcore() / 1000.0;
 }
 
 float NerdAxe::getIout() {

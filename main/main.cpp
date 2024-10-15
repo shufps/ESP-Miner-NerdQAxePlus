@@ -124,8 +124,9 @@ extern "C" void app_main(void)
 
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
-    board->initBoard();
     board->loadSettings();
+    board->initBoard();
+
 
     SYSTEM_MODULE.setBoard(board);
 

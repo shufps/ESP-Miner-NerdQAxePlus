@@ -16,7 +16,6 @@ class NerdAxe : public Board {
 
 // abstract common methos
     virtual bool setVoltage(float core_voltage);
-    virtual uint16_t getVoltageMv();
 
     virtual void setFanSpeed(float perc);
     virtual void getFanSpeed(uint16_t *rpm);

@@ -146,11 +146,6 @@ bool NerdQaxePlus::setVoltage(float core_voltage)
     return true;
 }
 
-uint16_t NerdQaxePlus::getVoltageMv()
-{
-    return TPS53647_get_vout() * 1000.0f;
-}
-
 void NerdQaxePlus::setFanSpeed(float perc) {
     EMC2302_set_fan_speed(perc);
 }
