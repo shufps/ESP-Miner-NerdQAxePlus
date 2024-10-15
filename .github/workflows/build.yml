@@ -19,6 +19,9 @@ jobs:
           - board: NERDQAXEPLUS2
             upload_www: false
             label: NerdQAxe++
+          - board: NERDQAXE
+            upload_www: false
+            label: NerdAxe
 
     steps:
     - name: Checkout repository
@@ -60,7 +63,7 @@ jobs:
     - name: Rename Build Artifacts
       run: |
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.label }}.bin
-    
+
     - name: Create files list
       run: |
         echo "esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
@@ -68,11 +71,11 @@ jobs:
         if [ "${{ matrix.upload_www }}" == "true" ]; then
           echo "build/www.bin" >> file_list.txt
         fi
-    
+
     - name: Set files variable
       id: set_files_var
       run: echo "files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
-    
+
     - name: Upload to Existing Release
       if: always()
       uses: softprops/action-gh-release@v1
