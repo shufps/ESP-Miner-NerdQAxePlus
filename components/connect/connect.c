@@ -56,10 +56,11 @@ static const char *TAG = "wifi station";
 
 static int s_retry_num = 0;
 
-static char s_ip_addr[20]={0};
+static char s_ip_addr[20] = {0};
 static bool ip_valid = false;
 
-bool connect_get_ip_addr(char *buf, size_t buf_len) {
+bool connect_get_ip_addr(char *buf, size_t buf_len)
+{
     strncpy(buf, s_ip_addr, buf_len);
     return ip_valid;
 }
@@ -90,6 +91,7 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
         ESP_LOGI(TAG, "Device ip: %s", s_ip_addr);
         s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+        MINER_set_wifi_status(WIFI_CONNECTED, 0);
     }
 }
 
@@ -167,6 +169,11 @@ esp_netif_t *wifi_init_sta(const char *wifi_ssid, const char *wifi_pass)
                 .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
                 // .sae_pwe_h2e = ESP_WIFI_SAE_MODE,
                 // .sae_h2e_identifier = EXAMPLE_H2E_IDENTIFIER,
+                .btm_enabled = 1,
+                .rm_enabled = 1,
+                .scan_method = WIFI_ALL_CHANNEL_SCAN,
+                .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
+                .pmf_cfg = {.capable = true, .required = false},
             },
     };
     strncpy((char *) wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));

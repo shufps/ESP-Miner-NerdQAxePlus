@@ -172,7 +172,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           return `https://solo.d-central.tech/#/app/${address}`;
         } else if (info.stratumURL.includes('solo.ckpool.org')) {
           const address = info.stratumUser.split('.')[0];
-          return `https://solostats.ckpool.org/stats/${address}`;
+          return `https://solo.ckpool.org/users/${address}`;
         } else {
           return undefined;
         }
