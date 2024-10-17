@@ -26,6 +26,26 @@ export class EditComponent implements OnInit {
 
   @Input() uri = '';
 
+  public BM1366DropdownFrequency = [
+    { name: '400', value: 400 },
+    { name: '425', value: 425 },
+    { name: '450', value: 450 },
+    { name: '475', value: 475 },
+    { name: '485 (default)', value: 485 },
+    { name: '500', value: 500 },
+    { name: '525', value: 525 },
+    { name: '550', value: 550 },
+    { name: '575', value: 575 },
+  ];
+
+  public BM1366CoreVoltage = [
+    { name: '1100', value: 1100 },
+    { name: '1150', value: 1150 },
+    { name: '1200 (default)', value: 1200 },
+    { name: '1250', value: 1250 },
+    { name: '1300', value: 1300 },
+  ];
+
   public BM1368DropdownFrequency = [
     { name: '400', value: 400 },
     { name: '425', value: 425 },
