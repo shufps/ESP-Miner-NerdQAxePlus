@@ -162,9 +162,13 @@ export class SettingsComponent {
               this.toastrService.error(event.statusText, 'Error');
             }
           }
+          else if (event instanceof HttpErrorResponse)
+          {
+            this.toastrService.error(event.error, 'Error');
+          }
         },
         error: (err) => {
-          this.toastrService.error('Uploaded Error', 'Error');
+          this.toastrService.error(err.error, 'Error');
         },
         complete: () => {
           this.firmwareUpdateProgress = null;
@@ -197,9 +201,13 @@ export class SettingsComponent {
               this.toastrService.error(event.statusText, 'Error');
             }
           }
+          else if (event instanceof HttpErrorResponse)
+          {
+            this.toastrService.error(event.error, 'Error');
+          }
         },
         error: (err) => {
-          this.toastrService.error('Upload Error', 'Error');
+          this.toastrService.error(err.error, 'Error');
         },
         complete: () => {
           this.websiteUpdateProgress = null;
