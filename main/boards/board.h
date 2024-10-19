@@ -26,6 +26,12 @@ class Board {
     bool m_fanInvertPolarity;
     float m_fanPerc;
 
+    // max power settings
+    float m_maxPin;
+    float m_minPin;
+    float m_maxVin;
+    float m_minVin;
+
     // display m_theme
     Theme *m_theme = nullptr;
 
@@ -86,5 +92,21 @@ class Board {
     virtual Asic *getAsics()
     {
         return m_isInitialized ? m_asics : nullptr;
+    }
+
+    float getMinPin() {
+        return m_minPin;
+    }
+
+    float getMaxPin() {
+        return m_maxPin;
+    }
+
+    float getMinVin() {
+        return m_minVin;
+    }
+
+    float getMaxVin() {
+        return m_maxVin;
     }
 };

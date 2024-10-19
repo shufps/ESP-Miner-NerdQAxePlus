@@ -10,7 +10,11 @@ import { IInfluxDB } from 'src/models/IInfluxDB';
 
 const defaultInfo: ISystemInfo = {
   power: 11.670000076293945,
+  minPower: 5.0,
+  maxPower: 15.0,
   voltage: 5208.75,
+  maxVoltage: 4.5,
+  minVoltage: 5.5,
   current: 2237.5,
   temp: 60,
   vrTemp: 45,

@@ -41,6 +41,11 @@ NerdAxe::NerdAxe() : Board() {
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
 
+    m_maxPin = 15.0;
+    m_minPin = 5.0;
+    m_maxVin = 5.5;
+    m_minVin = 4.5;
+
     m_asicMaxDifficulty = 256;
     m_asicMinDifficulty = 64;
 

@@ -31,6 +31,11 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_fanPerc = 100;
     m_numPhases = 2;
 
+    m_maxPin = 70.0;
+    m_minPin = 30.0;
+    m_maxVin = 13.0;
+    m_minVin = 11.0;
+
     m_asicMaxDifficulty = 1024;
     m_asicMinDifficulty = 256;
 
