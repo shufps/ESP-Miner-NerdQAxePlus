@@ -71,9 +71,9 @@ export class SettingsComponent {
             Validators.max(65353)
           ]],
           stratumUser: [info.stratumUser, [Validators.required]],
-          stratumPassword: ['password', [Validators.required]],
+          stratumPassword: ['*****', [Validators.required]],
           ssid: [info.ssid, [Validators.required]],
-          wifiPass: ['password'],
+          wifiPass: ['*****'],
           coreVoltage: [info.coreVoltage, [Validators.required]],
           frequency: [info.frequency, [Validators.required]],
           autofanspeed: [info.autofanspeed == 1, [Validators.required]],
@@ -118,10 +118,13 @@ export class SettingsComponent {
     form.autofanspeed = form.autofanspeed == true ? 1 : 0;
     form.autoscreenoff = form.autoscreenoff == true ? 1 : 0;
 
-    if (form.wifiPass === 'password') {
+    // Allow an empty wifi password
+    form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
+
+    if (form.wifiPass === '*****') {
       delete form.wifiPass;
     }
-    if (form.stratumPassword === 'password') {
+    if (form.stratumPassword === '*****') {
       delete form.stratumPassword;
     }
 
@@ -159,9 +162,13 @@ export class SettingsComponent {
               this.toastrService.error(event.statusText, 'Error');
             }
           }
+          else if (event instanceof HttpErrorResponse)
+          {
+            this.toastrService.error(event.error, 'Error');
+          }
         },
         error: (err) => {
-          this.toastrService.error('Uploaded Error', 'Error');
+          this.toastrService.error(err.error, 'Error');
         },
         complete: () => {
           this.firmwareUpdateProgress = null;
@@ -194,9 +201,13 @@ export class SettingsComponent {
               this.toastrService.error(event.statusText, 'Error');
             }
           }
+          else if (event instanceof HttpErrorResponse)
+          {
+            this.toastrService.error(event.error, 'Error');
+          }
         },
         error: (err) => {
-          this.toastrService.error('Upload Error', 'Error');
+          this.toastrService.error(err.error, 'Error');
         },
         complete: () => {
           this.websiteUpdateProgress = null;

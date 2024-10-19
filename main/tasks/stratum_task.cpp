@@ -187,16 +187,16 @@ void StratumTask::stratumLoop(int sock)
     // mining.configure - ID: 2
     STRATUM_V1_configure_version_rolling(sock);
 
-    // mining.suggest_difficulty - ID: 3
-    STRATUM_V1_suggest_difficulty(sock, CONFIG_STRATUM_DIFFICULTY);
-
     char *username = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
     char *password = nvs_config_get_string(NVS_CONFIG_STRATUM_PASS, CONFIG_STRATUM_PW);
 
-    // mining.authorize - ID: 4
+    // mining.authorize - ID: 3
     STRATUM_V1_authenticate(sock, username, password);
     free(password);
     free(username);
+
+    // mining.suggest_difficulty - ID: 4
+    STRATUM_V1_suggest_difficulty(sock, CONFIG_STRATUM_DIFFICULTY);
 
     while (1) {
         if (!is_socket_connected(sock)) {

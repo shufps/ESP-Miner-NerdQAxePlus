@@ -13,6 +13,7 @@ else()
     message(FATAL_ERROR "Environment variable BOARD is not set")
 endif()
 
+message(STATUS "Selected board: $ENV{BOARD}")
 
 # not longer used
 #add_definitions(-DDISPLAY_TTGO)
