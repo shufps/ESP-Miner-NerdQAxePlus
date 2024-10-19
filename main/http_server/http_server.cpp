@@ -474,7 +474,6 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, CONFIG_LWIP_LOCAL_HOSTNAME);
     char *stratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
     char *stratumUser = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
-    char *board_version = nvs_config_get_string(NVS_CONFIG_BOARD_VERSION, "unknown");
 
     Board* board = SYSTEM_MODULE.getBoard();
     History* history = SYSTEM_MODULE.getHistory();
@@ -513,7 +512,6 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "stratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT));
     cJSON_AddStringToObject(root, "stratumUser", stratumUser);
     cJSON_AddStringToObject(root, "version", esp_ota_get_app_description()->version);
-    cJSON_AddStringToObject(root, "boardVersion", board_version);
     cJSON_AddStringToObject(root, "runningPartition", esp_ota_get_running_partition()->label);
     cJSON_AddNumberToObject(root, "flipscreen", nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 1));
     cJSON_AddNumberToObject(root, "overheat_temp", nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, 0));
@@ -535,7 +533,6 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     free(hostname);
     free(stratumURL);
     free(stratumUser);
-    free(board_version);
 
     const char *sys_info = cJSON_Print(root);
     httpd_resp_sendstr(req, sys_info);

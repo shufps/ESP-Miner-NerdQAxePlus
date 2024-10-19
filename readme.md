@@ -37,13 +37,6 @@ cp config.cvs.example config.cvs
 
 Then you can edit the fields like `stratumurl` and so on.
 
-Please note that this fields will be removed soon because they are not used anymore:
-
-- `devicemodel`
-- `boardversion`
-- `asicmodel`
-
-
 #### Bitaxetool
 
 After the changes on the `config.cvs` files are done, you use the `bitaxetool` to flash factory binary and the config onto the device.
