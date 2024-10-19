@@ -7,7 +7,11 @@ export interface ISystemInfo {
     invertscreen: number;
     autoscreenoff: number;
     power: number,
+    maxPower: number,
+    minPower: number,
     voltage: number,
+    maxVoltage: number,
+    minVoltage: number,
     current: number,
     temp: number,
     vrTemp: number,

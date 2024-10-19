@@ -140,8 +140,17 @@ export class HomeComponent implements OnInit, OnDestroy {
         if (!info) {
           return SystemService.defaultInfo(); // Return empty object if no info
         }
+        info.minVoltage = parseFloat(info.minVoltage.toFixed(1));
+        info.maxVoltage = parseFloat(info.maxVoltage.toFixed(1));
+        info.minPower = parseFloat(info.minPower.toFixed(1));
+        info.maxPower = parseFloat(info.maxPower.toFixed(1));
         info.power = parseFloat(info.power.toFixed(1));
         info.voltage = parseFloat((info.voltage / 1000).toFixed(1));
+
+        // Clamp power and voltage values between their min and max
+        info.power = Math.max(info.minPower, Math.min(info.maxPower, info.power));
+        info.voltage = Math.max(info.minVoltage, Math.min(info.maxVoltage, info.voltage));
+
         info.current = parseFloat((info.current / 1000).toFixed(1));
         info.coreVoltageActual = parseFloat((info.coreVoltageActual / 1000).toFixed(2));
         info.coreVoltage = parseFloat((info.coreVoltage / 1000).toFixed(2));

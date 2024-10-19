@@ -481,7 +481,11 @@ static esp_err_t GET_system_info(httpd_req_t *req)
 
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "power", POWER_MANAGEMENT_MODULE.getPower());
+    cJSON_AddNumberToObject(root, "maxPower", board->getMaxPin());
+    cJSON_AddNumberToObject(root, "minPower", board->getMinPin());
     cJSON_AddNumberToObject(root, "voltage", POWER_MANAGEMENT_MODULE.getVoltage());
+    cJSON_AddNumberToObject(root, "maxVoltage", board->getMaxVin());
+    cJSON_AddNumberToObject(root, "minVoltage", board->getMinVin());
     cJSON_AddNumberToObject(root, "current", POWER_MANAGEMENT_MODULE.getCurrent());
     cJSON_AddNumberToObject(root, "temp", POWER_MANAGEMENT_MODULE.getAvgChipTemp());
     cJSON_AddNumberToObject(root, "vrTemp", POWER_MANAGEMENT_MODULE.getVrTemp());
