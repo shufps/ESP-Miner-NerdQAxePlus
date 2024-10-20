@@ -508,6 +508,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "asicCount", board->getAsicCount());
     cJSON_AddNumberToObject(root, "smallCoreCount", (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0);
     cJSON_AddStringToObject(root, "ASICModel", board->getAsicModel());
+    cJSON_AddStringToObject(root, "deviceModel", board->getDeviceModel());
     cJSON_AddStringToObject(root, "stratumURL", stratumURL);
     cJSON_AddNumberToObject(root, "stratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT));
     cJSON_AddStringToObject(root, "stratumUser", stratumUser);
