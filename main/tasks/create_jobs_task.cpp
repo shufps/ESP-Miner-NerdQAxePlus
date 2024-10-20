@@ -1,7 +1,7 @@
 #include <limits.h>
 #include <pthread.h>
-#include <sys/time.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "esp_log.h"
 #include "esp_system.h"
@@ -10,8 +10,8 @@
 
 #include "global_state.h"
 
-#include "system.h"
 #include "boards/board.h"
+#include "system.h"
 
 static const char *TAG = "create_jobs_task";
 
@@ -29,8 +29,8 @@ static uint32_t stratum_difficulty = 8192;
 static uint32_t active_stratum_difficulty = 8192;
 static uint32_t version_mask = 0;
 
-#define min(a,b) ((a<b)?(a):(b))
-#define max(a,b) ((a>b)?(a):(b))
+#define min(a, b) ((a < b) ? (a) : (b))
+#define max(a, b) ((a > b) ? (a) : (b))
 
 static void create_job_timer(TimerHandle_t xTimer)
 {
@@ -107,11 +107,10 @@ void create_job_mining_notify(mining_notify *notifiy)
     trigger_job_creation();
 }
 
-
 void *create_jobs_task(void *pvParameters)
 {
     Board *board = SYSTEM_MODULE.getBoard();
-    Asic* asics = board->getAsics();
+    Asic *asics = board->getAsics();
 
     ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board->getAsicJobIntervalMs());
     SYSTEM_MODULE.notifyMiningStarted();
@@ -139,10 +138,19 @@ void *create_jobs_task(void *pvParameters)
     uint64_t last_submit_time = 0;
     uint32_t extranonce_2 = 0;
 
+    int lastJobInterval = board->getAsicJobIntervalMs();
+
     while (1) {
         pthread_mutex_lock(&job_mutex);
         pthread_cond_wait(&job_cond, &job_mutex); // Wait for the timer or external trigger
         pthread_mutex_unlock(&job_mutex);
+
+        // job interval changed via UI
+        if (board->getAsicJobIntervalMs() != lastJobInterval) {
+            xTimerChangePeriod(job_timer, pdMS_TO_TICKS(board->getAsicJobIntervalMs()), 0);
+            lastJobInterval = board->getAsicJobIntervalMs();
+            continue;
+        }
 
         pthread_mutex_lock(&current_stratum_job_mutex);
 
@@ -161,7 +169,8 @@ void *create_jobs_task(void *pvParameters)
         snprintf(extranonce_2_str, sizeof(extranonce_2_str), "%0*lx", (int) extranonce_2_len * 2, extranonce_2);
 
         // generate coinbase tx
-        int coinbase_tx_len = strlen(current_job.coinbase_1) + strlen(extranonce_str) + strlen(extranonce_2_str) + strlen(current_job.coinbase_2);
+        int coinbase_tx_len =
+            strlen(current_job.coinbase_1) + strlen(extranonce_str) + strlen(extranonce_2_str) + strlen(current_job.coinbase_2);
         char coinbase_tx[coinbase_tx_len + 1]; // +1 zero termination
         snprintf(coinbase_tx, sizeof(coinbase_tx), "%s%s%s%s", current_job.coinbase_1, extranonce_str, extranonce_2_str,
                  current_job.coinbase_2);

@@ -23,7 +23,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_version = 501;
     m_asicModel = "BM1368";
     m_asicCount = 4;
-    m_asicJobIntervalMs = 1500;
+    m_asicJobIntervalMs = 1200;
     m_asicFrequency = 490.0;
     m_asicVoltage = 1.20;
     m_initVoltage = 1.25;

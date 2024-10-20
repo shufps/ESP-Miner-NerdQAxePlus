@@ -326,6 +326,9 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
     if ((item = cJSON_GetObjectItem(root, "frequency")) != NULL && item->valueint > 0) {
         nvs_config_set_u16(NVS_CONFIG_ASIC_FREQ, item->valueint);
     }
+    if ((item = cJSON_GetObjectItem(root, "jobInterval")) != NULL && item->valueint > 0) {
+        nvs_config_set_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, item->valueint);
+    }
     if ((item = cJSON_GetObjectItem(root, "flipscreen")) != NULL) {
         nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, item->valueint);
     }
@@ -350,6 +353,11 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
 
     cJSON_Delete(root);
     httpd_resp_send_chunk(req, NULL, 0);
+
+    // reload settings
+    Board* board = SYSTEM_MODULE.getBoard();
+    board->loadSettings();
+
     return ESP_OK;
 }
 
@@ -492,6 +500,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "hashRate_10m", history->getCurrentHashrate10m());
     cJSON_AddNumberToObject(root, "hashRate_1h", history->getCurrentHashrate1h());
     cJSON_AddNumberToObject(root, "hashRate_1d", history->getCurrentHashrate1d());
+    cJSON_AddNumberToObject(root, "jobInterval", board->getAsicJobIntervalMs());
     cJSON_AddStringToObject(root, "bestDiff", SYSTEM_MODULE.getBestDiffString());
     cJSON_AddStringToObject(root, "bestSessionDiff", SYSTEM_MODULE.getBestSessionDiffString());
 

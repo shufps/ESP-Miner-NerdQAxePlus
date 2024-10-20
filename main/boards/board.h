@@ -94,19 +94,23 @@ class Board {
         return m_isInitialized ? m_asics : nullptr;
     }
 
-    float getMinPin() {
+    float getMinPin()
+    {
         return m_minPin;
     }
 
-    float getMaxPin() {
+    float getMaxPin()
+    {
         return m_maxPin;
     }
 
-    float getMinVin() {
+    float getMinVin()
+    {
         return m_minVin;
     }
 
-    float getMaxVin() {
+    float getMaxVin()
+    {
         return m_maxVin;
     }
 };
