@@ -21,7 +21,7 @@ export class SettingsComponent {
   public firmwareUpdateProgress: number | null = null;
   public websiteUpdateProgress: number | null = null;
 
-
+  public deviceModel: string = "";
   public devToolsOpen: boolean = false;
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
@@ -54,6 +54,7 @@ export class SettingsComponent {
 
       this.info$.pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
+        this.deviceModel = info.deviceModel;
         this.ASICModel = info.ASICModel;
         this.form = this.fb.group({
           flipscreen: [info.flipscreen == 1],
@@ -142,9 +143,10 @@ export class SettingsComponent {
 
   otaUpdate(event: FileUploadHandlerEvent) {
     const file = event.files[0];
+    const expectedFileName = `esp-miner-${this.deviceModel}.bin`;
 
-    if (file.name != 'esp-miner.bin') {
-      this.toastrService.error('Incorrect file, looking for esp-miner.bin.', 'Error');
+    if (file.name !== expectedFileName) {
+      this.toastrService.error(`Incorrect file, looking for ${expectedFileName}.`, 'Error');
       return;
     }
 
@@ -157,13 +159,10 @@ export class SettingsComponent {
           } else if (event.type === HttpEventType.Response) {
             if (event.ok) {
               this.toastrService.success('Firmware updated', 'Success!');
-
             } else {
               this.toastrService.error(event.statusText, 'Error');
             }
-          }
-          else if (event instanceof HttpErrorResponse)
-          {
+          } else if (event instanceof HttpErrorResponse) {
             this.toastrService.error(event.error, 'Error');
           }
         },
