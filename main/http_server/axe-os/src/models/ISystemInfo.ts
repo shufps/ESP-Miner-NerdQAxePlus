@@ -45,6 +45,7 @@ export interface ISystemInfo {
     fanrpm: number,
     coreVoltageActual: number,
     lastResetReason: string,
+    jobInterval: number,
 
     boardtemp1?: number,
     boardtemp2?: number,

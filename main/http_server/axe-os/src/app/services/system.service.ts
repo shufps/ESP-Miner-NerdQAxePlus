@@ -51,6 +51,7 @@ const defaultInfo: ISystemInfo = {
   fanrpm: 0,
   autoscreenoff: 0,
   lastResetReason: "Unknown",
+  jobInterval: 1200,
 
   boardtemp1: 30,
   boardtemp2: 40,
