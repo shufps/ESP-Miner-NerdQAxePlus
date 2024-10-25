@@ -372,8 +372,8 @@ int TPS53647_init(int num_phases)
     smb_write_word(PMBUS_OT_FAULT_LIMIT, int_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
 
     // iout current
-    smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11((float) (imax - 10)));
-    smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11((float) (imax - 5)));
+    smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11((float) (imax/* - 10*/)));
+    smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11((float) (imax/* - 5*/)));
 
     is_initialized = true;
 
