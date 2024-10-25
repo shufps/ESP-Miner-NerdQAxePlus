@@ -26,6 +26,8 @@
 
 #define SMBUS_DEFAULT_TIMEOUT (1000 / portTICK_PERIOD_MS)
 
+#define _DEBUG_LOG_
+
 static const char *TAG = "TPS53647.c";
 
 static bool is_initialized = false;
@@ -321,11 +323,8 @@ void TPS53647_status()
 }
 
 // Set up the TPS53647 regulator and turn it on
-int TPS53647_init(int num_phases)
+int TPS53647_init(int num_phases, int imax)
 {
-    // each phase can do 30A
-    int imax = num_phases * 30;
-
     ESP_LOGI(TAG, "Initializing the core voltage regulator");
 
     // Establish communication with regulator

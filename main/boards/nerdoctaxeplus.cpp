@@ -7,6 +7,7 @@ NerdOctaxePlus::NerdOctaxePlus() : NerdQaxePlus() {
     m_deviceModel = "NerdOCTAXE+";
     m_asicCount = 8;
     m_numPhases = 3;
+    m_imax = m_numPhases * 30;
 
     m_asicMaxDifficulty = 2048;
     m_asicMinDifficulty = 512;

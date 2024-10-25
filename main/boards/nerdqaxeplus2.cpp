@@ -8,6 +8,7 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_asicModel = "BM1370";
     m_asicCount = 4;
     m_numPhases = 3;
+    m_imax = m_numPhases * 30;
 
     m_asicJobIntervalMs = 500;
     m_asicFrequency = 525.0;

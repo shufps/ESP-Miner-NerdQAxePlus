@@ -9,6 +9,7 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
     m_asicModel = "BM1370";
     m_asicCount = 8;
     m_numPhases = 4;
+    m_imax = 180;
 
     // use m_asicVoltage for init
     m_initVoltage = 0.0;
@@ -22,6 +23,6 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
     m_asicMinDifficulty = 1024;
 
 #ifdef NERDOCTAXEGAMMA
-    m_theme = new ThemeNerdoctaxeplus();
+    m_theme = new ThemeNerdoctaxegamma();
 #endif
 }

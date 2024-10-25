@@ -26,7 +26,7 @@
 #define TPS53647_INIT_OT_FAULT_LIMIT 145 // degrees C
 
 /* public functions */
-int TPS53647_init(int num_phases);
+int TPS53647_init(int num_phases, int imax);
 int TPS53647_get_frequency(void);
 void TPS53647_set_frequency(int);
 int TPS53647_get_temperature(void);
