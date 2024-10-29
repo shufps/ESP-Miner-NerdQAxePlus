@@ -145,7 +145,9 @@ export class SettingsComponent {
 
   otaUpdate(event: FileUploadHandlerEvent) {
     const file = event.files[0];
-    const expectedFileName = `esp-miner-${this.deviceModel}.bin`;
+
+    // Replace 'γ' with 'Gamma' if present
+    const expectedFileName = `esp-miner-${this.deviceModel}.bin`.replace('γ', 'Gamma');
 
     if (file.name !== expectedFileName) {
       this.toastrService.error(`Incorrect file, looking for ${expectedFileName}.`, 'Error');
