@@ -10,6 +10,7 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
     m_asicCount = 8;
     m_numPhases = 4;
     m_imax = 180;
+    m_ifault = 140.0;
 
     // use m_asicVoltage for init
     m_initVoltage = 0.0;

@@ -31,6 +31,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_fanPerc = 100;
     m_numPhases = 2;
     m_imax = m_numPhases * 30;
+    m_ifault = (float) (m_imax - 5);
 
     m_maxPin = 70.0;
     m_minPin = 30.0;
@@ -97,7 +98,7 @@ bool NerdQaxePlus::initAsics()
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     // init buck and enable output
-    TPS53647_init(m_numPhases, m_imax);
+    TPS53647_init(m_numPhases, m_imax, m_ifault);
 
      // set the init voltage
     setVoltage(m_initVoltage ? m_initVoltage : m_asicVoltage);

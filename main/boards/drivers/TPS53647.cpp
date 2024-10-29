@@ -323,7 +323,7 @@ void TPS53647_status()
 }
 
 // Set up the TPS53647 regulator and turn it on
-int TPS53647_init(int num_phases, int imax)
+int TPS53647_init(int num_phases, int imax, float ifault)
 {
     ESP_LOGI(TAG, "Initializing the core voltage regulator");
 
@@ -371,8 +371,9 @@ int TPS53647_init(int num_phases, int imax)
     smb_write_word(PMBUS_OT_FAULT_LIMIT, int_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
 
     // iout current
-    smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11((float) (imax/* - 10*/)));
-    smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11((float) (imax/* - 5*/)));
+    // set warn and fault to the same value
+    smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11(ifault));
+    smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11(ifault));
 
     is_initialized = true;
 
