@@ -5,7 +5,7 @@
 static const char* TAG="nerdqaxeplus2";
 
 NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
-    m_deviceModel = "NerdOCTAXEGamma";
+    m_deviceModel = "NerdOCTAXE-γ";
     m_asicModel = "BM1370";
     m_asicCount = 8;
     m_numPhases = 4;
