@@ -15,7 +15,7 @@ jobs:
             label: NerdQAxe+
           - board: NERDOCTAXEPLUS
             upload_www: false
-            label: NerdOctaxe+
+            label: NerdOCTAXE+
           - board: NERDQAXEPLUS2
             upload_www: false
             label: NerdQAxe++
@@ -24,7 +24,7 @@ jobs:
             label: NerdAxe
           - board: NERDOCTAXEGAMMA
             upload_www: false
-            label: NerdOctaxeGamma
+            label: NerdOCTAXE-γ
 
     steps:
     - name: Checkout repository
