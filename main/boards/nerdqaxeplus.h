@@ -7,6 +7,8 @@
 class NerdQaxePlus : public Board {
   protected:
     int m_numPhases;
+    int m_imax;
+    float m_ifault;
     float m_initVoltage;
 
     void LDO_enable();

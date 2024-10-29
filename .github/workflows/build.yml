@@ -22,6 +22,9 @@ jobs:
           - board: NERDAXE
             upload_www: false
             label: NerdAxe
+          - board: NERDOCTAXEGAMMA
+            upload_www: false
+            label: NerdOctaxeGamma
 
     steps:
     - name: Checkout repository

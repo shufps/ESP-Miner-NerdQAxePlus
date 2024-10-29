@@ -10,6 +10,7 @@
 #include "asic_result_task.h"
 #include "boards/board.h"
 #include "boards/nerdoctaxeplus.h"
+#include "boards/nerdoctaxegamma.h"
 #include "boards/nerdqaxeplus.h"
 #include "boards/nerdqaxeplus2.h"
 #include "boards/nerdaxe.h"
@@ -120,6 +121,9 @@ extern "C" void app_main(void)
 #endif
 #ifdef NERDAXE
     Board *board = new NerdAxe();
+#endif
+#ifdef NERDOCTAXEGAMMA
+    Board *board = new NerdOctaxeGamma();
 #endif
 
     // initialize everything non-asic-specific like
