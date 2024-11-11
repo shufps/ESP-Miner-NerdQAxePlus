@@ -68,7 +68,7 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     // set chip address
     for (uint8_t i = 0; i < chip_counter; i++) {
-        setChipAddress(i * 2);
+        setChipAddress(i * 4);
     }
 
     // Core Register Control
@@ -91,15 +91,15 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     for (uint8_t i = 0; i < chip_counter; i++) {
         // Reg_A8
-        send6(CMD_WRITE_SINGLE, i * 2, 0xA8, 0x00, 0x07, 0x01, 0xF0);
+        send6(CMD_WRITE_SINGLE, i * 4, 0xA8, 0x00, 0x07, 0x01, 0xF0);
         // Misc Control
-        send6(CMD_WRITE_SINGLE, i * 2, 0x18, 0xF0, 0x00, 0xC1, 0x00);
+        send6(CMD_WRITE_SINGLE, i * 4, 0x18, 0xF0, 0x00, 0xC1, 0x00);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x8B, 0x00);
+        send6(CMD_WRITE_SINGLE, i * 4, 0x3C, 0x80, 0x00, 0x8B, 0x00);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x80, 0x0C);
+        send6(CMD_WRITE_SINGLE, i * 4, 0x3C, 0x80, 0x00, 0x80, 0x0C);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x82, 0xAA);
+        send6(CMD_WRITE_SINGLE, i * 4, 0x3C, 0x80, 0x00, 0x82, 0xAA);
     }
 
     // ?
@@ -122,9 +122,9 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x14, 0x46); //S19XP-Luxos Default
     // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0x1C); //S19XP-Stock Default
     // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x0F, 0x00, 0x00); //supposedly the "full" 32bit nonce range
-    send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0xA4); // S21-Stock Default
+    //send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0xA4); // S21-Stock Default
     // this creates duplicate nonces
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x1e, 0xB5); // S21-Pro
+    send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x1e, 0xB5); // S21-Pro
 
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
