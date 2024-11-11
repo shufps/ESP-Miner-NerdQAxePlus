@@ -142,14 +142,14 @@ char *STRATUM_V1_receive_jsonrpc_line(int sockfd)
             nbytes = recv(sockfd, recv_buffer, BUFFER_SIZE - 1, 0);
             if (nbytes == -1) {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                    ESP_LOGW(TAG, "Socket receive timeout occurred");
+                    ESP_LOGW(TAG, "No transmission from Stratum server for 30s. Checking socket ...");
 
                     // Check if the socket is still connected
                     if (is_socket_connected(sockfd)) {
-                        ESP_LOGI(TAG, "Socket still connected, retrying recv()");
+                        ESP_LOGI(TAG, "All good, socket is still connected.");
                         continue; // Retry the recv() call
                     } else {
-                        ESP_LOGE(TAG, "Socket not connected after timeout, closing socket");
+                        ESP_LOGE(TAG, "Ups, socket is not connected anymore. Trying to reconnect ...");
                         if (json_rpc_buffer) {
                             free(json_rpc_buffer);
                             json_rpc_buffer = 0;

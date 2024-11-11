@@ -136,6 +136,11 @@ uint8_t BM1368::asicToJobId(uint8_t asic_id) {
     return (asic_id & 0xf0) >> 1;
 }
 
+uint8_t BM1368::nonceToAsicNr(uint32_t nonce) {
+    return (uint8_t) ((nonce & 0x0000fc00) >> 10);
+}
+
+
 uint16_t BM1368::getSmallCoreCount() {
     return BM1368_SMALL_CORE_COUNT;
 }

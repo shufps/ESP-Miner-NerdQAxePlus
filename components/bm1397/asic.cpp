@@ -319,7 +319,7 @@ bool Asic::processWork(task_result *result)
 
     uint32_t rolled_version = (reverseUint16(asic_result.version) << 13); // shift the 16 bit value left 13
 
-    int asic_nr = (asic_result.nonce & 0x0000fc00) >> 11;
+    int asic_nr = nonceToAsicNr(asic_result.nonce);
 
     result->job_id = job_id;
     result->asic_nr = asic_nr;

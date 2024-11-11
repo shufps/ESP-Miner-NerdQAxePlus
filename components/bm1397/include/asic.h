@@ -93,6 +93,7 @@ public:
     bool setAsicFrequency(float frequency);
     virtual void requestChipTemp() = 0;
     virtual uint16_t getSmallCoreCount() = 0;
+    virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
 
     // asic models specific
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty) = 0;

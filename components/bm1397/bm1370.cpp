@@ -131,6 +131,10 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     return chip_counter;
 }
 
+uint8_t BM1370::nonceToAsicNr(uint32_t nonce) {
+    return (uint8_t) ((nonce & 0x0000fc00) >> 11);
+}
+
 void BM1370::requestChipTemp() {
     // NOP
 }
