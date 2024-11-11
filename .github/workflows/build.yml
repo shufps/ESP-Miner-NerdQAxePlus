@@ -29,15 +29,14 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Ensure full history and tags are fetched
 
     - name: Get Version Tag
       id: version_tag
       run: |
         git fetch --tags  # Ensure all tags are fetched
-        version=$(git describe --tags --abbrev=0 2>/dev/null || echo "untagged")
+        version=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
+        echo "${version}" > version.txt
         echo "VERSION_TAG=${version}"
 
     - name: Set Target
