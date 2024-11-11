@@ -15,5 +15,6 @@ public:
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty);
     virtual void requestChipTemp();
     virtual uint16_t getSmallCoreCount();
+    virtual uint8_t nonceToAsicNr(uint32_t nonce);
 };
 

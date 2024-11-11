@@ -19,5 +19,6 @@ public:
     virtual int setMaxBaud(void);
     virtual void requestChipTemp();
     virtual uint16_t getSmallCoreCount();
+    virtual uint8_t nonceToAsicNr(uint32_t nonce);
 };
 
