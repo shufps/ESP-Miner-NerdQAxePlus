@@ -28,6 +28,7 @@ export class SettingsComponent {
 
   public checkLatestRelease: boolean = false;
   public latestRelease$: Observable<any>;
+  public expectedFileName: string = "";
 
   public info$: Observable<any>;
 
@@ -92,6 +93,8 @@ export class SettingsComponent {
             this.form.controls['fanspeed'].enable();
           }
         });
+        // Replace 'γ' with 'Gamma' if present
+        this.expectedFileName = `esp-miner-${this.deviceModel}.bin`.replace('γ', 'Gamma');
       });
 
   }
@@ -146,11 +149,8 @@ export class SettingsComponent {
   otaUpdate(event: FileUploadHandlerEvent) {
     const file = event.files[0];
 
-    // Replace 'γ' with 'Gamma' if present
-    const expectedFileName = `esp-miner-${this.deviceModel}.bin`.replace('γ', 'Gamma');
-
-    if (file.name !== expectedFileName) {
-      this.toastrService.error(`Incorrect file, looking for ${expectedFileName}.`, 'Error');
+    if (file.name !== this.expectedFileName) {
+      this.toastrService.error(`Incorrect file, looking for ${this.expectedFileName}.`, 'Error');
       return;
     }
 
