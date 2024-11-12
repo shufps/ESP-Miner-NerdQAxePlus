@@ -9,18 +9,18 @@
 <div class="grid">
     <div class="col-12 lg:col-6 xl:col-4">
         <div class="card" *ngIf="checkLatestRelease == false">
-            <h5>Current Version: {{(info$ | async)?.version}}</h5> 
+            <h5>Current Version: {{(info$ | async)?.version}}</h5>
             <h2>Latest Release: <p-button (onClick)="checkLatestRelease = true">Check</p-button></h2>
         </div>
         <div class="card" *ngIf="checkLatestRelease == true">
             <ng-container *ngIf="latestRelease$ | async as latestRelease">
-            <h5>Current Version: {{(info$ | async)?.version}}</h5> 
+            <h5>Current Version: {{(info$ | async)?.version}}</h5>
             <h2>Latest Release: {{latestRelease.name}}</h2>
 
             <div *ngFor="let asset of latestRelease.assets">
-                <div *ngIf="asset.name == 'esp-miner.bin'">
+                <div *ngIf="asset.name === expectedFileName">
                     <a style="text-decoration: underline;" target="_blank"
-                        [href]="asset.browser_download_url">esp-miner.bin</a>
+                        [href]="asset.browser_download_url">{{ expectedFileName }}</a>
                 </div>
                 <div *ngIf="asset.name == 'www.bin'">
                     <a style="text-decoration: underline;" target="_blank"
@@ -37,7 +37,7 @@
             <p-fileUpload [customUpload]="true" mode="basic" accept=".bin" (uploadHandler)="otaUpdate($event)"
                 [auto]="true" chooseLabel="Browse"></p-fileUpload>
 
-            <small>(esp-miner.bin)</small>
+            <small>({{ expectedFileName }})</small>
         </div>
 
     </div>
