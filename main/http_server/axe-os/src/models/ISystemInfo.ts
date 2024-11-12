@@ -16,6 +16,7 @@ export interface ISystemInfo {
     temp: number,
     vrTemp: number,
     hashRateTimestamp: number,
+    hashRate: number,
     hashRate_10m: number,
     hashRate_1h: number,
     hashRate_1d: number,
