@@ -76,7 +76,7 @@ protected:
     int m_nextScreen;                      // The next screen to display
     char m_portalWifiName[30];             // WiFi name displayed on the portal screen
 
-    lv_obj_t* m_countdownLabel;            // Label object for the countdown timer
+    lv_obj_t* m_countdownLabel = nullptr;  // Label object for the countdown timer
     bool m_countdownActive = false;        // Flag for countdown timer activity
     int64_t m_countdownStartTime = 0;      // Start time for the countdown
 
