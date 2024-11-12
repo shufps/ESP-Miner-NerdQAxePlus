@@ -23,7 +23,7 @@ export class GithubUpdateService {
 
   public getReleases(): Observable<GithubRelease[]> {
     return this.httpClient.get<GithubRelease[]>(
-      'https://github.com/shufps/ESP-Miner-NerdQAxePlus/releases'
+      'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases'
     ).pipe(
       map((releases: GithubRelease[]) => releases.filter((release: GithubRelease) => !release.prerelease))
     );
