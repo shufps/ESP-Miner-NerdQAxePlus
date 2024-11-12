@@ -19,6 +19,7 @@ const defaultInfo: ISystemInfo = {
   temp: 60,
   vrTemp: 45,
   hashRateTimestamp: 1724398272483,
+  hashRate: 475,
   hashRate_10m: 475,
   hashRate_1h: 475,
   hashRate_1d: 475,
