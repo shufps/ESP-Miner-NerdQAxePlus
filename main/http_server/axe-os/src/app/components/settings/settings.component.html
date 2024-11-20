@@ -1,9 +1,14 @@
+<div *ngIf="devToolsOpen" class="pro-mode-warning">
+    <p>Warning: You are now in Pro Mode. Adjusting settings with incorrect or unsuitable values may damage the device. Proceed with caution and at your own risk.</p>
+</div>
+
 <div class="card">
     <h2>Settings</h2>
-
     <app-edit></app-edit>
+</div>
 
-
+<div *ngIf="devToolsOpen" class="pro-mode-warning">
+    <p>Warning: You are now in Pro Mode. Adjusting settings with incorrect or unsuitable values may damage the device. Proceed with caution and at your own risk.</p>
 </div>
 
 <div class="grid">
@@ -14,20 +19,19 @@
         </div>
         <div class="card" *ngIf="checkLatestRelease == true">
             <ng-container *ngIf="latestRelease$ | async as latestRelease">
-            <h5>Current Version: {{(info$ | async)?.version}}</h5>
-            <h2>Latest Release: {{latestRelease.name}}</h2>
-
-            <div *ngFor="let asset of latestRelease.assets">
-                <div *ngIf="asset.name === expectedFileName">
-                    <a style="text-decoration: underline;" target="_blank"
-                        [href]="asset.browser_download_url">{{ expectedFileName }}</a>
+                <h5>Current Version: {{(info$ | async)?.version}}</h5>
+                <h2>Latest Release: {{latestRelease.name}}</h2>
+                <div *ngFor="let asset of latestRelease.assets">
+                    <div *ngIf="asset.name === expectedFileName">
+                        <a style="text-decoration: underline;" target="_blank"
+                            [href]="asset.browser_download_url">{{ expectedFileName }}</a>
+                    </div>
+                    <div *ngIf="asset.name == 'www.bin'">
+                        <a style="text-decoration: underline;" target="_blank"
+                            [href]="asset.browser_download_url">www.bin</a>
+                    </div>
                 </div>
-                <div *ngIf="asset.name == 'www.bin'">
-                    <a style="text-decoration: underline;" target="_blank"
-                        [href]="asset.browser_download_url">www.bin</a>
-                </div>
-            </div>
-        </ng-container>
+            </ng-container>
         </div>
     </div>
     <div class="col-12 lg:col-6 xl:col-4">
@@ -36,18 +40,14 @@
             <!-- <input type="file" id="file" (change)="otaUpdate($event)" accept=".bin"> -->
             <p-fileUpload [customUpload]="true" mode="basic" accept=".bin" (uploadHandler)="otaUpdate($event)"
                 [auto]="true" chooseLabel="Browse"></p-fileUpload>
-
             <small>({{ expectedFileName }})</small>
         </div>
-
     </div>
     <div class="col-12 lg:col-12 xl:col-4">
         <div class="card">
             <h2>Update Website <span *ngIf="websiteUpdateProgress != null">{{websiteUpdateProgress}}%</span></h2>
-
             <p-fileUpload [customUpload]="true" mode="basic" accept=".bin" (uploadHandler)="otaWWWUpdate($event)"
                 [auto]="true" chooseLabel="Browse"></p-fileUpload>
-
             <small>(www.bin)</small>
         </div>
     </div>
