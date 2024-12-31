@@ -30,7 +30,7 @@ sudo ./create_data_directories.sh
 
 Afterwards start with:
 ```
-docker compose up -d
+sudo docker compose up -d
 ```
 
 Then, Grafana should be available at `http://localhost:3000`.
@@ -39,12 +39,12 @@ Default Username and Password is `admin` and `foobar`
 
 To stop the monitoring use:
 ```
-docker compose down
+sudo docker compose down
 ```
 
 ## Setup InfluxDB on AxeOS
 
-The settings should look like this:
+The settings should look like this (default token is `f37fh783hf8hq`):
 
 ![image](https://github.com/user-attachments/assets/aa7f86f6-890a-4d07-9904-58af239f9e80)
 
