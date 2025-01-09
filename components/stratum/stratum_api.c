@@ -9,14 +9,14 @@
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "lwip/sockets.h"
-#include "utils.h"
+//#include "utils.h"
 #include <stdio.h>
 #include <string.h>
 
 #define BUFFER_SIZE 1024
-static const char * TAG = "stratum_api";
+static const char *TAG = "stratum_api";
 
-static char * json_rpc_buffer = NULL;
+static char *json_rpc_buffer = NULL;
 static size_t json_rpc_buffer_size = 0;
 
 // A message ID that must be unique per request that expects a response.
@@ -25,7 +25,39 @@ static int send_uid = 1;
 
 static void debug_stratum_tx(const char *);
 
-int is_socket_connected(int socket) {
+static uint8_t hex2val(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    } else if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    } else {
+        return 0;
+    }
+}
+
+static size_t hex2bin(const char *hex, uint8_t *bin, size_t bin_len)
+{
+    size_t len = 0;
+
+    while (*hex && len < bin_len) {
+        bin[len] = hex2val(*hex++) << 4;
+
+        if (!*hex) {
+            len++;
+            break;
+        }
+
+        bin[len++] |= hex2val(*hex++);
+    }
+
+    return len;
+}
+
+int is_socket_connected(int socket)
+{
     struct timeval tv;
     fd_set writefds;
 
@@ -42,7 +74,7 @@ int is_socket_connected(int socket) {
         return 0; // Socket not ready
     }
 }
-int _parse_stratum_subscribe_result_message(const char * result_json_str, char ** extranonce, int * extranonce2_len);
+int _parse_stratum_subscribe_result_message(const char *result_json_str, char **extranonce, int *extranonce2_len);
 
 void STRATUM_V1_reset_uid()
 {
@@ -79,7 +111,7 @@ static void realloc_json_buffer(size_t len)
     }
 
     new = new + (BUFFER_SIZE - (new % BUFFER_SIZE));
-    void * new_sockbuf = realloc(json_rpc_buffer, new);
+    void *new_sockbuf = realloc(json_rpc_buffer, new);
 
     if (new_sockbuf == NULL) {
         fprintf(stderr, "Error: realloc failed in recalloc_sock()\n");
@@ -93,11 +125,12 @@ static void realloc_json_buffer(size_t len)
     json_rpc_buffer_size = new;
 }
 
-char * STRATUM_V1_receive_jsonrpc_line(int sockfd)
+char *STRATUM_V1_receive_jsonrpc_line(int sockfd)
 {
     if (json_rpc_buffer == NULL) {
         STRATUM_V1_initialize_buffer();
     }
+
     char *line, *tok = NULL;
     char recv_buffer[BUFFER_SIZE];
     int nbytes;
@@ -108,18 +141,36 @@ char * STRATUM_V1_receive_jsonrpc_line(int sockfd)
             memset(recv_buffer, 0, BUFFER_SIZE);
             nbytes = recv(sockfd, recv_buffer, BUFFER_SIZE - 1, 0);
             if (nbytes == -1) {
-                ESP_LOGI(TAG, "Error: recv");
-                if (json_rpc_buffer) {
-                    free(json_rpc_buffer);
-                    json_rpc_buffer=0;
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    ESP_LOGW(TAG, "No transmission from Stratum server for 30s. Checking socket ...");
+
+                    // Check if the socket is still connected
+                    if (is_socket_connected(sockfd)) {
+                        ESP_LOGI(TAG, "All good, socket is still connected.");
+                        continue; // Retry the recv() call
+                    } else {
+                        ESP_LOGE(TAG, "Ups, socket is not connected anymore. Trying to reconnect ...");
+                        if (json_rpc_buffer) {
+                            free(json_rpc_buffer);
+                            json_rpc_buffer = 0;
+                        }
+                        return 0;
+                    }
+                } else {
+                    ESP_LOGE(TAG, "Error in recv: %s", strerror(errno));
+                    if (json_rpc_buffer) {
+                        free(json_rpc_buffer);
+                        json_rpc_buffer = 0;
+                    }
+                    return 0;
                 }
-                return 0;
             }
 
             realloc_json_buffer(nbytes);
             strncat(json_rpc_buffer, recv_buffer, nbytes);
         } while (!strstr(json_rpc_buffer, "\n"));
     }
+
     buflen = strlen(json_rpc_buffer);
     tok = strtok(json_rpc_buffer, "\n");
     line = strdup(tok);
@@ -128,24 +179,25 @@ char * STRATUM_V1_receive_jsonrpc_line(int sockfd)
         memmove(json_rpc_buffer, json_rpc_buffer + len + 1, buflen - len + 1);
     else
         strcpy(json_rpc_buffer, "");
+
     return line;
 }
 
-void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
+void STRATUM_V1_parse(StratumApiV1Message *message, const char *stratum_json)
 {
-    cJSON * json = cJSON_Parse(stratum_json);
+    cJSON *json = cJSON_Parse(stratum_json);
 
-    cJSON * id_json = cJSON_GetObjectItem(json, "id");
+    cJSON *id_json = cJSON_GetObjectItem(json, "id");
     int64_t parsed_id = -1;
     if (id_json != NULL && cJSON_IsNumber(id_json)) {
         parsed_id = id_json->valueint;
     }
     message->message_id = parsed_id;
 
-    cJSON * method_json = cJSON_GetObjectItem(json, "method");
+    cJSON *method_json = cJSON_GetObjectItem(json, "method");
     stratum_method result = STRATUM_UNKNOWN;
 
-    //if there is a method, then use that to decide what to do
+    // if there is a method, then use that to decide what to do
     if (method_json != NULL && cJSON_IsString(method_json)) {
         if (strcmp("mining.notify", method_json->valuestring) == 0) {
             result = MINING_NOTIFY;
@@ -159,17 +211,17 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
             ESP_LOGI(TAG, "unhandled method in stratum message: %s", stratum_json);
         }
 
-    //if there is no method, then it is a result
+        // if there is no method, then it is a result
     } else {
         // parse results
-        cJSON * result_json = cJSON_GetObjectItem(json, "result");
-        cJSON * error_json = cJSON_GetObjectItem(json, "error");
+        cJSON *result_json = cJSON_GetObjectItem(json, "result");
+        cJSON *error_json = cJSON_GetObjectItem(json, "error");
 
-        //if the result is null, then it's a fail
+        // if the result is null, then it's a fail
         if (result_json == NULL) {
             message->response_success = false;
 
-        //if it's an error, then it's a fail
+            // if it's an error, then it's a fail
         } else if (!cJSON_IsNull(error_json)) {
             if (parsed_id < 5) {
                 result = STRATUM_RESULT_SETUP;
@@ -178,7 +230,7 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
             }
             message->response_success = false;
 
-        //if the result is a boolean, then parse it
+            // if the result is a boolean, then parse it
         } else if (cJSON_IsBool(result_json)) {
             if (parsed_id < 5) {
                 result = STRATUM_RESULT_SETUP;
@@ -190,12 +242,12 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
             } else {
                 message->response_success = false;
             }
-        
-        //if the id is STRATUM_ID_SUBSCRIBE parse it
+
+            // if the id is STRATUM_ID_SUBSCRIBE parse it
         } else if (parsed_id == STRATUM_ID_SUBSCRIBE) {
             result = STRATUM_RESULT_SUBSCRIBE;
 
-            cJSON * extranonce2_len_json = cJSON_GetArrayItem(result_json, 2);
+            cJSON *extranonce2_len_json = cJSON_GetArrayItem(result_json, 2);
             if (extranonce2_len_json == NULL) {
                 ESP_LOGE(TAG, "Unable to parse extranonce2_len: %s", result_json->valuestring);
                 message->response_success = false;
@@ -203,7 +255,7 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
             }
             message->extranonce_2_len = extranonce2_len_json->valueint;
 
-            cJSON * extranonce_json = cJSON_GetArrayItem(result_json, 1);
+            cJSON *extranonce_json = cJSON_GetArrayItem(result_json, 1);
             if (extranonce_json == NULL) {
                 ESP_LOGE(TAG, "Unable parse extranonce: %s", result_json->valuestring);
                 message->response_success = false;
@@ -213,13 +265,13 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
             strcpy(message->extranonce_str, extranonce_json->valuestring);
             message->response_success = true;
 
-            //print the extranonce_str
+            // print the extranonce_str
             ESP_LOGI(TAG, "extranonce_str: %s", message->extranonce_str);
             ESP_LOGI(TAG, "extranonce_2_len: %d", message->extranonce_2_len);
 
-        //if the id is STRATUM_ID_CONFIGURE parse it
+            // if the id is STRATUM_ID_CONFIGURE parse it
         } else if (parsed_id == STRATUM_ID_CONFIGURE) {
-            cJSON * mask = cJSON_GetObjectItem(result_json, "version-rolling.mask");
+            cJSON *mask = cJSON_GetObjectItem(result_json, "version-rolling.mask");
             if (mask != NULL) {
                 result = STRATUM_RESULT_VERSION_MASK;
                 message->version_mask = strtoul(mask->valuestring, NULL, 16);
@@ -237,23 +289,29 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
 
     if (message->method == MINING_NOTIFY) {
 
-        mining_notify * new_work = malloc(sizeof(mining_notify));
+        mining_notify *new_work = malloc(sizeof(mining_notify));
         // new_work->difficulty = difficulty;
-        cJSON * params = cJSON_GetObjectItem(json, "params");
+        cJSON *params = cJSON_GetObjectItem(json, "params");
+
         new_work->job_id = strdup(cJSON_GetArrayItem(params, 0)->valuestring);
-        new_work->prev_block_hash = strdup(cJSON_GetArrayItem(params, 1)->valuestring);
+
+        hex2bin(cJSON_GetArrayItem(params, 1)->valuestring, new_work->_prev_block_hash, HASH_SIZE);
+
+        // TODO
+        // is there a safe assumption about coinb1 and coinb2 size?
+        // we would love to use strndup here
         new_work->coinbase_1 = strdup(cJSON_GetArrayItem(params, 2)->valuestring);
         new_work->coinbase_2 = strdup(cJSON_GetArrayItem(params, 3)->valuestring);
 
-        cJSON * merkle_branch = cJSON_GetArrayItem(params, 4);
+        cJSON *merkle_branch = cJSON_GetArrayItem(params, 4);
         new_work->n_merkle_branches = cJSON_GetArraySize(merkle_branch);
         if (new_work->n_merkle_branches > MAX_MERKLE_BRANCHES) {
             printf("Too many Merkle branches.\n");
             abort();
         }
-        new_work->merkle_branches = malloc(HASH_SIZE * new_work->n_merkle_branches);
+
         for (size_t i = 0; i < new_work->n_merkle_branches; i++) {
-            hex2bin(cJSON_GetArrayItem(merkle_branch, i)->valuestring, new_work->merkle_branches + HASH_SIZE * i, HASH_SIZE * 2);
+            hex2bin(cJSON_GetArrayItem(merkle_branch, i)->valuestring, new_work->_merkle_branches[i], HASH_SIZE);
         }
 
         new_work->version = strtoul(cJSON_GetArrayItem(params, 5)->valuestring, NULL, 16);
@@ -267,51 +325,49 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
         int value = cJSON_IsTrue(cJSON_GetArrayItem(params, paramsLength - 1));
         message->should_abandon_work = value;
     } else if (message->method == MINING_SET_DIFFICULTY) {
-        cJSON * params = cJSON_GetObjectItem(json, "params");
+        cJSON *params = cJSON_GetObjectItem(json, "params");
         uint32_t difficulty = cJSON_GetArrayItem(params, 0)->valueint;
 
         message->new_difficulty = difficulty;
     } else if (message->method == MINING_SET_VERSION_MASK) {
 
-        cJSON * params = cJSON_GetObjectItem(json, "params");
+        cJSON *params = cJSON_GetObjectItem(json, "params");
         uint32_t version_mask = strtoul(cJSON_GetArrayItem(params, 0)->valuestring, NULL, 16);
         message->version_mask = version_mask;
     }
-    done:
+done:
     cJSON_Delete(json);
 }
 
-void STRATUM_V1_free_mining_notify(mining_notify * params)
+void STRATUM_V1_free_mining_notify(mining_notify *params)
 {
     free(params->job_id);
-    free(params->prev_block_hash);
     free(params->coinbase_1);
     free(params->coinbase_2);
-    free(params->merkle_branches);
     free(params);
 }
 
-int _parse_stratum_subscribe_result_message(const char * result_json_str, char ** extranonce, int * extranonce2_len)
+int _parse_stratum_subscribe_result_message(const char *result_json_str, char **extranonce, int *extranonce2_len)
 {
-    cJSON * root = cJSON_Parse(result_json_str);
+    cJSON *root = cJSON_Parse(result_json_str);
     if (root == NULL) {
         ESP_LOGE(TAG, "Unable to parse %s", result_json_str);
         return -1;
     }
-    cJSON * result = cJSON_GetObjectItem(root, "result");
+    cJSON *result = cJSON_GetObjectItem(root, "result");
     if (result == NULL) {
         ESP_LOGE(TAG, "Unable to parse subscribe result %s", result_json_str);
         return -1;
     }
 
-    cJSON * extranonce2_len_json = cJSON_GetArrayItem(result, 2);
+    cJSON *extranonce2_len_json = cJSON_GetArrayItem(result, 2);
     if (extranonce2_len_json == NULL) {
         ESP_LOGE(TAG, "Unable to parse extranonce2_len: %s", result->valuestring);
         return -1;
     }
     *extranonce2_len = extranonce2_len_json->valueint;
 
-    cJSON * extranonce_json = cJSON_GetArrayItem(result, 1);
+    cJSON *extranonce_json = cJSON_GetArrayItem(result, 1);
     if (extranonce_json == NULL) {
         ESP_LOGE(TAG, "Unable parse extranonce: %s", result->valuestring);
         return -1;
@@ -324,13 +380,14 @@ int _parse_stratum_subscribe_result_message(const char * result_json_str, char *
     return 0;
 }
 
-int STRATUM_V1_subscribe(int socket, char * model)
+int STRATUM_V1_subscribe(int socket, const char* device, const char* asic)
 {
     // Subscribe
     char subscribe_msg[BUFFER_SIZE];
     const esp_app_desc_t *app_desc = esp_ota_get_app_description();
-    const char *version = app_desc->version;	
-    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"bitaxe/%s (%s)\"]}\n", send_uid++, model, version);
+    const char *version = app_desc->version;
+    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"%s/%s/%s\"]}\n", send_uid++,
+            device, asic, version);
     debug_stratum_tx(subscribe_msg);
     write(socket, subscribe_msg, strlen(subscribe_msg));
 
@@ -341,14 +398,14 @@ int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty)
 {
     char difficulty_msg[BUFFER_SIZE];
     sprintf(difficulty_msg, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%ld]}\n", send_uid++, difficulty);
-    
+
     debug_stratum_tx(difficulty_msg);
     write(socket, difficulty_msg, strlen(difficulty_msg));
 
     return 1;
 }
 
-int STRATUM_V1_authenticate(int socket, const char * username, const char * pass)
+int STRATUM_V1_authenticate(int socket, const char *username, const char *pass)
 {
     char authorize_msg[BUFFER_SIZE];
     sprintf(authorize_msg, "{\"id\": %d, \"method\": \"mining.authorize\", \"params\": [\"%s\", \"%s\"]}\n", send_uid++, username,
@@ -366,13 +423,13 @@ int STRATUM_V1_authenticate(int socket, const char * username, const char * pass
 /// @param ntime The hex-encoded time value use in the block header.
 /// @param extranonce_2 The hex-encoded value of extra nonce 2.
 /// @param nonce The hex-encoded nonce value to use in the block header.
-void STRATUM_V1_submit_share(int socket, const char * username, const char * jobid, const char * extranonce_2, const uint32_t ntime,
+void STRATUM_V1_submit_share(int socket, const char *username, const char *jobid, const char *extranonce_2, const uint32_t ntime,
                              const uint32_t nonce, const uint32_t version)
 {
     char submit_msg[BUFFER_SIZE];
 
     if (!is_socket_connected(socket)) {
-        ESP_LOGI(TAG,"Socket not connected. Cannot send message.\n");
+        ESP_LOGI(TAG, "Socket not connected. Cannot send message.");
         return;
     }
 
@@ -380,10 +437,15 @@ void STRATUM_V1_submit_share(int socket, const char * username, const char * job
             "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
             send_uid++, username, jobid, extranonce_2, ntime, nonce, version);
     debug_stratum_tx(submit_msg);
-    write(socket, submit_msg, strlen(submit_msg));
+
+    ssize_t bytes_written = write(socket, submit_msg, strlen(submit_msg));
+    if (bytes_written == -1) {
+        ESP_LOGE(TAG, "Error writing to socket: %s", strerror(errno));
+        // Handle write error, possibly closing socket or retrying
+    }
 }
 
-void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)
+void STRATUM_V1_configure_version_rolling(int socket)
 {
     char configure_msg[BUFFER_SIZE * 2];
     sprintf(configure_msg,
@@ -396,16 +458,16 @@ void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)
     return;
 }
 
-static void debug_stratum_tx(const char * msg)
+static void debug_stratum_tx(const char *msg)
 {
-    //remove the trailing newline
-    char * newline = strchr(msg, '\n');
+    // remove the trailing newline
+    char *newline = strchr(msg, '\n');
     if (newline != NULL) {
         *newline = '\0';
     }
     ESP_LOGI(TAG, "tx: %s", msg);
 
-    //put it back!
+    // put it back!
     if (newline != NULL) {
         *newline = '\n';
     }

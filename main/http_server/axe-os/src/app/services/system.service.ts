@@ -3,8 +3,69 @@ import { Injectable } from '@angular/core';
 import { delay, Observable, of } from 'rxjs';
 import { eASICModel } from 'src/models/enum/eASICModel';
 import { ISystemInfo } from 'src/models/ISystemInfo';
+import { IHistory } from 'src/models/IHistory';
 
 import { environment } from '../../environments/environment';
+import { IInfluxDB } from 'src/models/IInfluxDB';
+
+const defaultInfo: ISystemInfo = {
+  power: 11.670000076293945,
+  minPower: 5.0,
+  maxPower: 15.0,
+  voltage: 5208.75,
+  maxVoltage: 4.5,
+  minVoltage: 5.5,
+  current: 2237.5,
+  temp: 60,
+  vrTemp: 45,
+  hashRateTimestamp: 1724398272483,
+  hashRate: 475,
+  hashRate_10m: 475,
+  hashRate_1h: 475,
+  hashRate_1d: 475,
+  bestDiff: "0",
+  bestSessionDiff: "0",
+  freeHeap: 200504,
+  coreVoltage: 1200,
+  coreVoltageActual: 1200,
+  hostname: "Bitaxe",
+  ssid: "default",
+  wifiPass: "password",
+  wifiStatus: "Connected!",
+  sharesAccepted: 1,
+  sharesRejected: 0,
+  uptimeSeconds: 38,
+  asicCount: 1,
+  smallCoreCount: 672,
+  ASICModel: eASICModel.BM1368,
+  deviceModel: "NerdQAxe+",
+  stratumURL: "public-pool.io",
+  stratumPort: 21496,
+  stratumUser: "bc1q99n3pu025yyu0jlywpmwzalyhm36tg5u37w20d.bitaxe-U1",
+  frequency: 485,
+  version: "2.0",
+  flipscreen: 1,
+  invertscreen: 0,
+  invertfanpolarity: 1,
+  autofanspeed: 1,
+  fanspeed: 100,
+  fanrpm: 0,
+  autoscreenoff: 0,
+  lastResetReason: "Unknown",
+  jobInterval: 1200,
+
+  boardtemp1: 30,
+  boardtemp2: 40,
+  overheat_temp: 70,
+  history: {
+    hashrate_10m: [],
+    hashrate_1h: [],
+    hashrate_1d: [],
+    timestamps: [],
+    timestampBase: 0
+  }
+}
+
 
 @Injectable({
   providedIn: 'root'
@@ -15,53 +76,44 @@ export class SystemService {
     private httpClient: HttpClient
   ) { }
 
-  public getInfo(uri: string = ''): Observable<ISystemInfo> {
+  static defaultInfo() {
+    return defaultInfo;
+  }
+
+  public getInfo(ts: number, uri: string = ''): Observable<ISystemInfo> {
     if (environment.production) {
-      return this.httpClient.get(`${uri}/api/system/info`) as Observable<ISystemInfo>;
+      return this.httpClient.get(`${uri}/api/system/info?ts=${ts}`) as Observable<ISystemInfo>;
+    } else {
+      return of(defaultInfo).pipe(delay(1000));
+    }
+  }
+
+  public getInfluxInfo(uri: string = ''): Observable<IInfluxDB> {
+    if (environment.production) {
+      return this.httpClient.get(`${uri}/api/influx/info`) as Observable<IInfluxDB>;
     } else {
       return of(
         {
-          power: 11.670000076293945,
-          voltage: 5208.75,
-          current: 2237.5,
-          temp: 60,
-          vrTemp: 45,
-          hashRate: 475,
-          bestDiff: "0",
-          bestSessionDiff: "0",
-          freeHeap: 200504,
-          coreVoltage: 1200,
-          coreVoltageActual: 1200,
-          hostname: "Bitaxe",
-          ssid: "default",
-          wifiPass: "password",
-          wifiStatus: "Connected!",
-          sharesAccepted: 1,
-          sharesRejected: 0,
-          uptimeSeconds: 38,
-          asicCount: 1,
-          smallCoreCount: 672,
-          ASICModel: eASICModel.BM1366,
-          stratumURL: "public-pool.io",
-          stratumPort: 21496,
-          stratumUser: "bc1q99n3pu025yyu0jlywpmwzalyhm36tg5u37w20d.bitaxe-U1",
-          frequency: 485,
-          version: "2.0",
-          boardVersion: "204",
-          flipscreen: 1,
-          invertscreen: 0,
-          invertfanpolarity: 1,
-          autofanspeed: 1,
-          fanspeed: 100,
-          fanrpm: 0,
-          autoscreenoff: 0,
-
-          boardtemp1: 30,
-          boardtemp2: 40
+          influxEnable: 0,
+          influxURL: "http://192.168.0.1",
+          influxPort: 8086,
+          influxToken: "TOKEN",
+          influxBucket: "BUCKET",
+          influxOrg: "ORG",
+          influxPrefix: "mainnet_stats"
         }
       ).pipe(delay(1000));
     }
   }
+
+  public getHistoryLen(): Observable<any> {
+    return this.httpClient.get<any>('/api/history/len');
+  }
+
+  public getHistoryData(ts: number): Observable<any> {
+    return this.httpClient.get<any>(`/api/history/data?ts=${ts}`);
+  }
+
 
   public restart(uri: string = '') {
     return this.httpClient.post(`${uri}/api/system/restart`, {});
@@ -69,6 +121,10 @@ export class SystemService {
 
   public updateSystem(uri: string = '', update: any) {
     return this.httpClient.patch(`${uri}/api/system`, update);
+  }
+
+  public updateInflux(uri: string = '', update: any) {
+    return this.httpClient.patch(`${uri}/api/influx`, update);
   }
 
 

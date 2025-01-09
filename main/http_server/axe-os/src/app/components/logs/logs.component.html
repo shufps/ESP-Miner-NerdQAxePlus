@@ -5,11 +5,15 @@
             <table *ngIf="info$ | async as info">
                 <tr>
                     <td>Model:</td>
-                    <td>{{info.ASICModel}}</td>
+                    <td>{{info.deviceModel}} ({{info.ASICModel}})</td>
                 </tr>
                 <tr>
                     <td>Uptime:</td>
                     <td>{{info.uptimeSeconds | dateAgo}}</td>
+                </tr>
+                <tr>
+                    <td>Last Reset Reason:</td>
+                    <td>{{info.lastResetReason}}</td>
                 </tr>
                 <tr>
                     <td>WiFi Status:</td>
@@ -22,10 +26,6 @@
                 <tr>
                     <td>Version:</td>
                     <td>{{info.version}}</td>
-                </tr>
-                <tr>
-                    <td>Board Version:</td>
-                    <td>{{info.boardVersion}}</td>
                 </tr>
             </table>
         </div>

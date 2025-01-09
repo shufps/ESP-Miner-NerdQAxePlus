@@ -26,25 +26,6 @@ export class EditComponent implements OnInit {
 
   @Input() uri = '';
 
-  public BM1397DropdownFrequency = [
-    { name: '400', value: 400 },
-    { name: '425 (default)', value: 425 },
-    { name: '450', value: 450 },
-    { name: '475', value: 475 },
-    { name: '485', value: 485 },
-    { name: '500', value: 500 },
-    { name: '525', value: 525 },
-    { name: '550', value: 550 },
-    { name: '575', value: 575 },
-    { name: '590', value: 590 },
-    { name: '600', value: 600 },
-    { name: '610', value: 610 },
-    { name: '620', value: 620 },
-    { name: '630', value: 630 },
-    { name: '640', value: 640 },
-    { name: '650', value: 650 },
-  ];
-
   public BM1366DropdownFrequency = [
     { name: '400', value: 400 },
     { name: '425', value: 425 },
@@ -55,6 +36,14 @@ export class EditComponent implements OnInit {
     { name: '525', value: 525 },
     { name: '550', value: 550 },
     { name: '575', value: 575 },
+  ];
+
+  public BM1366CoreVoltage = [
+    { name: '1100', value: 1100 },
+    { name: '1150', value: 1150 },
+    { name: '1200 (default)', value: 1200 },
+    { name: '1250', value: 1250 },
+    { name: '1300', value: 1300 },
   ];
 
   public BM1368DropdownFrequency = [
@@ -69,29 +58,24 @@ export class EditComponent implements OnInit {
     { name: '575', value: 575 },
   ];
 
-  public BM1397CoreVoltage = [
+  public BM1368CoreVoltage = [
     { name: '1100', value: 1100 },
     { name: '1150', value: 1150 },
-    { name: '1200', value: 1200 },
-    { name: '1250', value: 1250 },
-    { name: '1300', value: 1300 },
-    { name: '1350', value: 1350 },
-    { name: '1400', value: 1400 },
-    { name: '1450', value: 1450 },
-    { name: '1500', value: 1500 },
-  ];
-  public BM1366CoreVoltage = [
-    { name: '1100', value: 1100 },
-    { name: '1150', value: 1150 },
+    { name: '1166', value: 1166 },
     { name: '1200 (default)', value: 1200 },
     { name: '1250', value: 1250 },
     { name: '1300', value: 1300 },
   ];
-  public BM1368CoreVoltage = [
+
+  public BM1370DropdownFrequency = [
+    { name: '525 (eco)', value: 525 },
+    { name: '600 (default)', value: 600 },
+  ];
+
+  public BM1370CoreVoltage = [
     { name: '1100', value: 1100 },
     { name: '1150', value: 1150 },
-    { name: '1166 (default)', value: 1166 },
-    { name: '1200', value: 1200 },
+    { name: '1200 (default)', value: 1200 },
     { name: '1250', value: 1250 },
     { name: '1300', value: 1300 },
   ];
@@ -109,7 +93,7 @@ export class EditComponent implements OnInit {
 
   }
   ngOnInit(): void {
-    this.systemService.getInfo(this.uri)
+    this.systemService.getInfo(0, this.uri)
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
         this.ASICModel = info.ASICModel;
@@ -129,15 +113,17 @@ export class EditComponent implements OnInit {
             Validators.max(65353)
           ]],
           stratumUser: [info.stratumUser, [Validators.required]],
-          stratumPassword: ['password', [Validators.required]],
+          stratumPassword: ['*****', [Validators.required]],
           hostname: [info.hostname, [Validators.required]],
           ssid: [info.ssid, [Validators.required]],
-          wifiPass: ['password'],
+          wifiPass: ['*****'],
           coreVoltage: [info.coreVoltage, [Validators.required]],
           frequency: [info.frequency, [Validators.required]],
+          jobInterval: [info.jobInterval, [Validators.required]],
           autofanspeed: [info.autofanspeed == 1, [Validators.required]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],
+          overheat_temp: [info.overheat_temp, [Validators.required]]
         });
 
         this.form.controls['autofanspeed'].valueChanges.pipe(
@@ -168,10 +154,13 @@ export class EditComponent implements OnInit {
 
     const form = this.form.getRawValue();
 
-    if (form.wifiPass === 'password') {
+    // Allow an empty wifi password
+    form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
+
+    if (form.wifiPass === '*****') {
       delete form.wifiPass;
     }
-    if (form.stratumPassword === 'password') {
+    if (form.stratumPassword === '*****') {
       delete form.stratumPassword;
     }
 
@@ -185,6 +174,16 @@ export class EditComponent implements OnInit {
           this.toastr.error('Error.', `Could not save. ${err.message}`);
         }
       });
+  }
+
+  showStratumPassword: boolean = false;
+  toggleStratumPasswordVisibility() {
+    this.showStratumPassword = !this.showStratumPassword;
+  }
+
+  showWifiPassword: boolean = false;
+  toggleWifiPasswordVisibility() {
+    this.showWifiPassword = !this.showWifiPassword;
   }
 
 }

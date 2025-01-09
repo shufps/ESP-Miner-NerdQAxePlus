@@ -13,7 +13,8 @@
 #include <string.h>
 
 #include "connect.h"
-#include "main.h"
+
+void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count);
 
 #if CONFIG_ESP_WPA3_SAE_PWE_HUNT_AND_PECK
 #define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HUNT_AND_PECK
@@ -51,11 +52,20 @@
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
 
-static const char * TAG = "wifi station";
+static const char *TAG = "wifi station";
 
 static int s_retry_num = 0;
 
-static void event_handler(void * arg, esp_event_base_t event_base, int32_t event_id, void * event_data)
+static char s_ip_addr[20] = {0};
+static bool ip_valid = false;
+
+bool connect_get_ip_addr(char *buf, size_t buf_len)
+{
+    strncpy(buf, s_ip_addr, buf_len);
+    return ip_valid;
+}
+
+static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
@@ -75,14 +85,17 @@ static void event_handler(void * arg, esp_event_base_t event_base, int32_t event
             MINER_set_wifi_status(WIFI_CONNECT_FAILED, 0);
         }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ip_event_got_ip_t * event = (ip_event_got_ip_t *) event_data;
-        ESP_LOGI(TAG, "Nerdaxe ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
+        snprintf(s_ip_addr, sizeof(s_ip_addr), IPSTR, IP2STR(&event->ip_info.ip));
+        ip_valid = true;
+        ESP_LOGI(TAG, "Device ip: %s", s_ip_addr);
         s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+        MINER_set_wifi_status(WIFI_CONNECTED, 0);
     }
 }
 
-void generate_ssid(char * ssid)
+void generate_ssid(char *ssid)
 {
     uint8_t mac[6];
     esp_wifi_get_mac(ESP_IF_WIFI_AP, mac);
@@ -90,9 +103,9 @@ void generate_ssid(char * ssid)
     snprintf(ssid, 32, "Nerdaxe_%02X%02X", mac[4], mac[5]);
 }
 
-esp_netif_t * wifi_init_softap(void)
+esp_netif_t *wifi_init_softap(void)
 {
-    esp_netif_t * esp_netif_ap = esp_netif_create_default_wifi_ap();
+    esp_netif_t *esp_netif_ap = esp_netif_create_default_wifi_ap();
 
     // Define a buffer for the SSID
     char ssid_with_mac[13]; // "Bitaxe" + 4 bytes from MAC address
@@ -107,7 +120,7 @@ esp_netif_t * wifi_init_softap(void)
     wifi_ap_config.ap.channel = 1;
     wifi_ap_config.ap.max_connection = 30;
     wifi_ap_config.ap.authmode = WIFI_AUTH_OPEN;
-    //wifi_ap_config.ap.pmf_cfg.required = false;
+    // wifi_ap_config.ap.pmf_cfg.required = false;
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
 
@@ -141,9 +154,9 @@ void wifi_softap_on(void)
 }
 
 /* Initialize wifi station */
-esp_netif_t * wifi_init_sta(const char * wifi_ssid, const char * wifi_pass)
+esp_netif_t *wifi_init_sta(const char *wifi_ssid, const char *wifi_pass)
 {
-    esp_netif_t * esp_netif_sta = esp_netif_create_default_wifi_sta();
+    esp_netif_t *esp_netif_sta = esp_netif_create_default_wifi_sta();
 
     wifi_config_t wifi_sta_config = {
         .sta =
@@ -156,11 +169,14 @@ esp_netif_t * wifi_init_sta(const char * wifi_ssid, const char * wifi_pass)
                 .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
                 // .sae_pwe_h2e = ESP_WIFI_SAE_MODE,
                 // .sae_h2e_identifier = EXAMPLE_H2E_IDENTIFIER,
+                .btm_enabled = 1,
+                .rm_enabled = 1,
+                .scan_method = WIFI_ALL_CHANNEL_SCAN,
+                .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
+                .pmf_cfg = {.capable = true, .required = false},
             },
     };
-    strncpy((char *) wifi_sta_config.sta.ssid,
-            wifi_ssid,
-            sizeof(wifi_sta_config.sta.ssid));
+    strncpy((char *) wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));
     wifi_sta_config.sta.ssid[sizeof(wifi_sta_config.sta.ssid) - 1] = '\0';
     strncpy((char *) wifi_sta_config.sta.password, wifi_pass, 63);
     wifi_sta_config.sta.password[63] = '\0';
@@ -172,9 +188,11 @@ esp_netif_t * wifi_init_sta(const char * wifi_ssid, const char * wifi_pass)
     return esp_netif_sta;
 }
 
-void wifi_init(const char * wifi_ssid, const char * wifi_pass, const char * hostname)
+void wifi_init(const char *wifi_ssid, const char *wifi_pass, const char *hostname)
 {
     s_wifi_event_group = xEventGroupCreate();
+
+    strcpy(s_ip_addr, "0.0.0.0");
 
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -192,11 +210,11 @@ void wifi_init(const char * wifi_ssid, const char * wifi_pass, const char * host
 
     /* Initialize AP */
     ESP_LOGI(TAG, "ESP_WIFI Access Point On");
-    esp_netif_t * esp_netif_ap = wifi_init_softap();
+    esp_netif_t *esp_netif_ap = wifi_init_softap();
 
     /* Initialize STA */
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
-    esp_netif_t * esp_netif_sta = wifi_init_sta(wifi_ssid, wifi_pass);
+    esp_netif_t *esp_netif_sta = wifi_init_sta(wifi_ssid, wifi_pass);
 
     /* Start WiFi */
     ESP_ERROR_CHECK(esp_wifi_start());

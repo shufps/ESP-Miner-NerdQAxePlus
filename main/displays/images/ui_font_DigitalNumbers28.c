@@ -4,7 +4,7 @@
  * Opts: --bpp 4 --size 28 --font DigitalNumbers-Regular.ttf -o ui_font_DigitalNumbers28.c --format lvgl -r 0x20-0x7f --no-compress --no-prefilter
  ******************************************************************************/
 
-#include "ui.h"
+#include "lvgl.h"
 
 #ifndef UI_FONT_DIGITALNUMBERS28
 #define UI_FONT_DIGITALNUMBERS28 1

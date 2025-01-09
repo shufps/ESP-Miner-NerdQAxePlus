@@ -1,15 +1,18 @@
 idf_component_register(
-SRCS 
-    "bm1368.c"
-    "bm1366.c"
-    "bm1397.c"
-    "serial.c"
-    "crc.c"
+SRCS
+    "asic.cpp"
+    "bm1366.cpp"
+    "bm1368.cpp"
+    "bm1370.cpp"
+    "serial.cpp"
+    "crc.cpp"
+    "utils.cpp"
+    "mining.cpp"
 
-INCLUDE_DIRS 
+INCLUDE_DIRS
     "include"
 
-REQUIRES 
+REQUIRES
     "freertos"
     "driver"
     "stratum"

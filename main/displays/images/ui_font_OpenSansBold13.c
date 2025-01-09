@@ -4,7 +4,7 @@
  * Opts: --bpp 8 --size 13 --font OpenSans-Bold.ttf -o ui_font_OpenSansBold13.c --format lvgl -r 0x20-0x7f --no-compress --no-prefilter
  ******************************************************************************/
 
-#include "ui.h"
+#include "lvgl.h"
 
 #ifndef UI_FONT_OPENSANSBOLD13
 #define UI_FONT_OPENSANSBOLD13 1

@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include "lwip/sys.h"
 #include <arpa/inet.h>
 #include <lwip/netdb.h>
@@ -9,8 +14,6 @@
 #define WIFI_SSID CONFIG_ESP_WIFI_SSID
 #define WIFI_PASS CONFIG_ESP_WIFI_PASSWORD
 #define HOSTNAME CONFIG_LWIP_LOCAL_HOSTNAME
-
-
 
 /* The event group allows multiple bits for each event, but we only care about two events:
  * - we are connected to the AP with an IP
@@ -32,6 +35,12 @@ typedef enum
 void toggle_wifi_softap(void);
 void wifi_softap_on(void);
 void wifi_softap_off(void);
-void wifi_init(const char * wifi_ssid, const char * wifi_pass, const char * hostname);
+void wifi_init(const char *wifi_ssid, const char *wifi_pass, const char *hostname);
 EventBits_t wifi_connect(void);
-void generate_ssid(char * ssid);
+void generate_ssid(char *ssid);
+bool connect_get_ip_addr(char *buf, size_t buf_len);
+
+#ifdef __cplusplus
+}
+#endif
+

@@ -4,43 +4,145 @@
 
 | Supported Targets | ESP32-S3              |
 | ----------------- | --------------------- |
-| Old Platform      | ~~ESP-IDF v4.4.6~~        |
-| ----------------- | --------------------- |
-| Required Platform | ESP-IDF v5.2.X        | Update!
+| Required Platform | >= ESP-IDF v5.3.X       |
 | ----------------- | --------------------- |
 
-This is a forked version of ESP-miner, the original firmware of Bitaxe project developed by @skot/ESP-Miner, @ben and @jhonny.
-The current fork supports LVGL library with an UI that works with 8bit parallel screen over `TTGO-TdiplayS3` board.
+This is a forked version from the NerdAxe miner that was modified for using on the [NerdQAxe+](https://github.com/shufps/qaxe).
 
-~~This features unfortunatelly can't be added to the original project because requires specific ESP-IDF version to be built.~~
-
-Now firmware is up to date with current ESP-miner, so this firmware adds a Display layer
+Credits to the devs:
+- BitAxe devs on OSMU: @skot/ESP-Miner, @ben and @jhonny
+- NerdAxe dev @BitMaker
 
 
 ## How to flash/update firmware
 
-#### Online Flashtool [Recommended]
+The newest releases are always here:
 
-Easyiest way to flash firmware. Build your own miner using the folowing firwmare flash tool:
+https://github.com/shufps/ESP-Miner-NerdQAxePlus/releases
 
-1. Get a TTGO T-display S3 
-1. Get a NerdAxe board
-1. Go to flasher online tool: https://flasher.bitronics.store/ (recommend via Google Chrome incognito mode)
+#### Clone repository and prepare config
+
+First you need to clone the repository and create a local copy of the config file:
+
+```bash
+# clone repository
+git clone https://github.com/shufps/ESP-Miner-NerdQAxePlus
+
+# change into the cloned repository
+cd ESP-Miner-NerdQAxePlus
+
+# copy the example config
+cp config.cvs.example config.cvs
+```
+
+Then you can edit the fields like `stratumurl` and so on.
 
 #### Bitaxetool
 
-The bitaxetool includes all necessary library for flashing the binary file to the Bitaxe Hardware.
+After the changes on the `config.cvs` files are done, you use the `bitaxetool` to flash factory binary and the config onto the device.
 
-The bitaxetool requires a config.cvs preloaded file and the appropiate firmware.bin file in it's executed directory.
-
-3. Flash with the bitaxetool
+To switch it into bootload mode, reset the device with presset `boot` button.
 
 ```
-bitaxetool --config ./config.cvs --firmware ./esp-miner-factory-nerd101-v2.1.4.bin
+bitaxetool --config ./config.cvs --firmware esp-miner-factory-NERDQAXEPLUS-v1.0.10.bin
+
 ```
+
 
 ## How to build firmware
 
+### Using Docker
+
+Docker containers allow to use the toolchain without installing `esp-idf` or `Node 20.x` on the system.
+
+#### 1. First build the docker container
+
+```bash
+cd docker
+./build_docker.sh
+```
+
+#### 2. How to use it
+
+There are several scripts in the `docker` directory but what is most flexible is to just start the container as bash via
+
+```bash
+./docker/idf-shell.sh
+```
+
+You will get a new terminal that provides tools like:
+- `idf.py`
+- `bitaxetool`
+- `esptool.py`
+- `nvs_partition_gen.py`
+
+The current repository will be mounted to `/home/builder/project`.
+
+The default `builder` user has `uid:gid = 1000:1000` (like the main user on *buntu/Mint)
+
+#### 3. Compiling & Flashing using the shell
+
+#### 3.1. Just flashing with dockered `bitaxetool` with factory binary
+
+(no `idf-shell.sh` version)
+
+```bash
+./docker/bitaxetool.sh --config config.cvs --firmware esp-miner-factory-NERDQAXEPLUS-v1.0.10.bin -p /dev/ttyACM0
+```
+
+##### 3.2. Compiling & Flashing using BitAxe tool
+
+(inside of `idf-shell.sh`)
+
+```bash
+# start idf-shell
+./docker/idf-shell.sh
+
+# set target and build the binaries
+idf.py set-target esp32s3
+idf.py build
+
+# merge all partitions including config into a single binary
+./merge_bin.sh nerdqaxe+.bin
+
+bitaxetool --config config.cvs --firmware esp-miner-factory-nerdqaxe+.bin  -p /dev/ttyACM0
+```
+
+#### 3.3. All manual steps for building and flashing
+
+(inside of `idf-shell.sh`)
+
+```bash
+# start idf-shell
+./docker/idf-shell.sh
+
+# set target and build the binaries
+idf.py set-target esp32s3
+
+# optional if you want to change the sdkconfig
+idf.py menuconfig
+
+# build the binaries
+idf.py build
+
+# creat config.bin nvm partition from config.cvs
+nvs_partition_gen.py generate config.cvs config.bin 12288
+
+# merge all partitions including config into a single binary
+./merge_bin_with_config.sh nerdqaxe+.bin
+
+# flash using esptool
+esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 \
+  --before=default_reset --after=hard_reset write_flash \
+  --flash_mode dio --flash_freq 80m --flash_size 16MB 0x0 nerdqaxe+.bin
+```
+
+
+
+When done just `exit` the shell.
+
+
+### Without Docker
 
 Install bitaxetool from pip. pip is included with Python 3.4 but if you need to install it check <https://pip.pypa.io/en/stable/installation/>
 
@@ -48,36 +150,20 @@ Install bitaxetool from pip. pip is included with Python 3.4 but if you need to 
 pip install --upgrade bitaxetool
 ```
 
-## Preconfiguration
+## Grafana Monitoring
 
-Starting with v2.0.0, the ESP-Miner firmware requires some basic manufacturing data to be flashed in the NVS partition.
+<img src="https://github.com/user-attachments/assets/3c485428-5e48-4761-9717-bd88579a747d" width="600px">
 
-1. Download the esp-miner-factory-v2.0.3.bin file from the release tab.
-   Click [here](https://github.com/skot/ESP-Miner/releases) for the release tab
+The NerdQaxe+ firmware supports Influx and the repository provides an installation with Grafana dashboard that can be started with a few bash commands: https://github.com/shufps/ESP-Miner-NerdQAxePlus/tree/master/monitoring
 
-2. Copy `config.cvs.example` to `config.cvs` and modify `asicfrequency`, `asicvoltage`, `asicmodel`, `devicemodel`, and `boardversion`
-
-The following are recommendations but it is necessary that you do have all values in your `config.cvs`file to flash properly.
-
-- recommended values for the NerdAxe 1366 (ultra)
-
-  ```
-  key,type,encoding,value
-  main,namespace,,
-  asicfrequency,data,u16,485
-  asicvoltage,data,u16,1200
-  asicmodel,data,string,BM1366
-  devicemodel,data,string,ultra
-  boardversion,data,string,101
-  ```
 
 ## API
-Nerdaxe uses same bitaxe API funcitons.
+Nerdaxe uses the same bitaxe API functions.
 
 For more details take a look at `main/http_server/http_server.c`.
 
 Things that can be done are:
-  
+
   - Get System Info
   - Get Swarm Info
   - Update Swarm

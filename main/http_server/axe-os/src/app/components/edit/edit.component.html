@@ -15,8 +15,13 @@
         </div>
         <div class="field grid p-fluid">
             <label htmlFor="wifiPass" class="col-12 mb-2 md:col-2 md:mb-0">WiFi Password:</label>
-            <div class="col-12 md:col-10">
-                <input pInputText id="wifiPass" formControlName="wifiPass" type="password" />
+            <div class="col-12 md:col-10 p-input-icon-right">
+                <i *ngIf="form.get('wifiPass')?.dirty" class="pi"
+                   [ngClass]="{'pi-eye': !showWifiPassword, 'pi-eye-slash': showWifiPassword}"
+                   (click)="toggleWifiPasswordVisibility()" style="cursor: pointer;"></i>
+                <input pInputText id="wifiPass" formControlName="wifiPass"
+                       [type]="showWifiPassword ? 'text' : 'password'"
+                       placeholder="Enter WiFi password" />
             </div>
         </div>
         <div class="field grid p-fluid">
@@ -45,12 +50,15 @@
         </div>
         <div class="field grid p-fluid">
             <label htmlFor="stratumPassword" class="col-12 mb-2 md:col-2 md:mb-0">Stratum Password:</label>
-            <div class="col-12 md:col-10">
-                <input pInputText id="stratumPassword" formControlName="stratumPassword" type="password" />
+            <div class="col-12 md:col-10 p-input-icon-right">
+                <i *ngIf="form.get('stratumPassword')?.dirty" class="pi"
+                   [ngClass]="{'pi-eye': !showStratumPassword, 'pi-eye-slash': showStratumPassword}"
+                   (click)="toggleStratumPasswordVisibility()" style="cursor: pointer;"></i>
+                <input pInputText id="stratumPassword" formControlName="stratumPassword"
+                       [type]="showStratumPassword ? 'text' : 'password'"
+                       placeholder="Enter stratum password" />
             </div>
         </div>
-
-
 
         <ng-container *ngIf="!devToolsOpen && ASICModel == eASICModel.BM1366">
 
@@ -88,19 +96,19 @@
             </div>
         </ng-container>
 
-        <ng-container *ngIf="!devToolsOpen && ASICModel == eASICModel.BM1397">
+        <ng-container *ngIf="!devToolsOpen && ASICModel == eASICModel.BM1370">
 
             <div class="field grid p-fluid">
                 <label class="col-12 mb-2 md:col-2 md:mb-0" htmlFor="frequency">Frequency</label>
-
-                <p-dropdown class="col-12 md:col-10" [options]="BM1397DropdownFrequency" optionLabel="name"
-                    optionValue="value" formControlName="frequency"></p-dropdown>
-
+                <div class="col-12 md:col-10">
+                    <p-dropdown [options]="BM1370DropdownFrequency" optionLabel="name" optionValue="value"
+                        formControlName="frequency"></p-dropdown>
+                </div>
             </div>
 
             <div class="field grid p-fluid">
                 <label class="col-12 mb-2 md:col-2 md:mb-0" htmlFor="coreVoltage">Core Voltage</label>
-                <p-dropdown class="col-12 md:col-10" [options]="BM1397CoreVoltage" optionLabel="name"
+                <p-dropdown class="col-12 md:col-10" [options]="BM1370CoreVoltage" optionLabel="name"
                     optionValue="value" formControlName="coreVoltage"></p-dropdown>
             </div>
         </ng-container>
@@ -121,8 +129,23 @@
                 </div>
             </div>
 
+            <div class="field grid p-fluid">
+                <label htmlFor="jobInterval" class="col-12 mb-2 md:col-2 md:mb-0">Job Interval</label>
+                <div class="col-12 md:col-10">
+                    <input pInputText id="jobInterval" formControlName="jobInterval" type="number" />
+                </div>
+            </div>
         </ng-container>
 
+        <div class="field grid p-fluid">
+            <label htmlFor="overheat_temp" class="col-12 mb-2 md:col-2 md:mb-0">Shutdown Temperature</label>
+            <div class="col-12 md:col-10">
+                <input pInputText id="overheat_temp" formControlName="overheat_temp" type="number" />
+                <div>
+                    <small>Shutdown Temperature in °C. To turn off use "0"</small>
+                </div>
+            </div>
+        </div>
 
         <div class="col-12 md:col-4">
             <div class="field-checkbox">
@@ -156,7 +179,6 @@
             </div>
         </div>
 
-
         <div *ngIf="form.controls['autofanspeed'].value != true">
             <div class="col-12" *ngIf="form.controls['autofanspeed'].value != true">
                 <label>Fan Speed {{form.controls['fanspeed'].value}}%
@@ -174,7 +196,7 @@
             <b style="line-height: 34px;">You must restart this device after saving for changes to take effect.</b>
         </div>
 
-        
+
 
 
     </form>

@@ -21,13 +21,14 @@ export class SettingsComponent {
   public firmwareUpdateProgress: number | null = null;
   public websiteUpdateProgress: number | null = null;
 
-
+  public deviceModel: string = "";
   public devToolsOpen: boolean = false;
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
 
   public checkLatestRelease: boolean = false;
   public latestRelease$: Observable<any>;
+  public expectedFileName: string = "";
 
   public info$: Observable<any>;
 
@@ -49,11 +50,12 @@ export class SettingsComponent {
       return releases[0];
     }));
 
-    this.info$ = this.systemService.getInfo().pipe(shareReplay({refCount: true, bufferSize: 1}))
+    this.info$ = this.systemService.getInfo(0).pipe(shareReplay({refCount: true, bufferSize: 1}))
 
 
       this.info$.pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
+        this.deviceModel = info.deviceModel;
         this.ASICModel = info.ASICModel;
         this.form = this.fb.group({
           flipscreen: [info.flipscreen == 1],
@@ -71,11 +73,12 @@ export class SettingsComponent {
             Validators.max(65353)
           ]],
           stratumUser: [info.stratumUser, [Validators.required]],
-          stratumPassword: ['password', [Validators.required]],
+          stratumPassword: ['*****', [Validators.required]],
           ssid: [info.ssid, [Validators.required]],
-          wifiPass: ['password'],
+          wifiPass: ['*****'],
           coreVoltage: [info.coreVoltage, [Validators.required]],
           frequency: [info.frequency, [Validators.required]],
+          jobInterval: [info.jobInterval, [Validators.required]],
           autofanspeed: [info.autofanspeed == 1, [Validators.required]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],
@@ -90,6 +93,8 @@ export class SettingsComponent {
             this.form.controls['fanspeed'].enable();
           }
         });
+        // Replace 'γ' with 'Gamma' if present
+        this.expectedFileName = `esp-miner-${this.deviceModel}.bin`.replace('γ', 'Gamma');
       });
 
   }
@@ -110,18 +115,22 @@ export class SettingsComponent {
 
     form.frequency = parseInt(form.frequency);
     form.coreVoltage = parseInt(form.coreVoltage);
+    form.jobInterval = parseInt(form.jobInterval);
 
     // bools to ints
     form.flipscreen = form.flipscreen == true ? 1 : 0;
     form.invertscreen = form.invertscreen == true ? 1 : 0;
     form.invertfanpolarity = form.invertfanpolarity == true ? 1 : 0;
-    form.autofanspeed = form.autofanspeed == true ? 1 : 0; 
+    form.autofanspeed = form.autofanspeed == true ? 1 : 0;
     form.autoscreenoff = form.autoscreenoff == true ? 1 : 0;
 
-    if (form.wifiPass === 'password') {
+    // Allow an empty wifi password
+    form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
+
+    if (form.wifiPass === '*****') {
       delete form.wifiPass;
     }
-    if (form.stratumPassword === 'password') {
+    if (form.stratumPassword === '*****') {
       delete form.stratumPassword;
     }
 
@@ -140,8 +149,8 @@ export class SettingsComponent {
   otaUpdate(event: FileUploadHandlerEvent) {
     const file = event.files[0];
 
-    if (file.name != 'esp-miner.bin') {
-      this.toastrService.error('Incorrect file, looking for esp-miner.bin.', 'Error');
+    if (file.name !== this.expectedFileName) {
+      this.toastrService.error(`Incorrect file, looking for ${this.expectedFileName}.`, 'Error');
       return;
     }
 
@@ -154,14 +163,15 @@ export class SettingsComponent {
           } else if (event.type === HttpEventType.Response) {
             if (event.ok) {
               this.toastrService.success('Firmware updated', 'Success!');
-
             } else {
               this.toastrService.error(event.statusText, 'Error');
             }
+          } else if (event instanceof HttpErrorResponse) {
+            this.toastrService.error(event.error, 'Error');
           }
         },
         error: (err) => {
-          this.toastrService.error('Uploaded Error', 'Error');
+          this.toastrService.error(err.error, 'Error');
         },
         complete: () => {
           this.firmwareUpdateProgress = null;
@@ -194,9 +204,13 @@ export class SettingsComponent {
               this.toastrService.error(event.statusText, 'Error');
             }
           }
+          else if (event instanceof HttpErrorResponse)
+          {
+            this.toastrService.error(event.error, 'Error');
+          }
         },
         error: (err) => {
-          this.toastrService.error('Upload Error', 'Error');
+          this.toastrService.error(err.error, 'Error');
         },
         complete: () => {
           this.websiteUpdateProgress = null;

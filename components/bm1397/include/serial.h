@@ -1,6 +1,9 @@
 #ifndef SERIAL_H_
 #define SERIAL_H_
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #define CHUNK_SIZE 1024
 
 int SERIAL_send(uint8_t *, int, bool);

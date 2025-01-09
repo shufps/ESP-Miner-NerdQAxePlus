@@ -1,6 +1,4 @@
-#ifndef SELF_TEST_H_
-#define SELF_TEST_H_
+#pragma once
 
-void self_test(void * pvParameters);
+void self_test(void *pvParameters);
 
-#endif

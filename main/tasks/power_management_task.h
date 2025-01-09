@@ -1,23 +1,52 @@
-#ifndef POWER_MANAGEMENT_TASK_H_
-#define POWER_MANAGEMENT_TASK_H_
+#pragma once
 
-typedef struct
-{
-    uint16_t fan_perc;
-    uint16_t fan_rpm;
-    float chip_temp[6];
-    float chip_temp_avg;
-    float vr_temp;
-    float voltage;
-    float frequency_multiplier;
-    float frequency_value;
-    float power;
-    float current;
-    bool HAS_POWER_EN;
-    bool HAS_PLUG_SENSE;
-    bool AUTO_SCREEN_OFF;
-} PowerManagementModule;
+#include "boards/board.h"
 
-void POWER_MANAGEMENT_task(void * pvParameters);
+class PowerManagementTask {
+  protected:
+    uint16_t m_fanPerc;
+    uint16_t m_fanRPM;
+    float m_chipTempAvg;
+    float m_vrTemp;
+    float m_voltage;
+    float m_power;
+    float m_current;
 
-#endif
+    double automaticFanSpeed(Board *board, float chip_temp);
+
+    void task();
+
+  public:
+    PowerManagementTask();
+
+    static void taskWrapper(void *pvParameters);
+
+    float getPower()
+    {
+        return m_power;
+    };
+    float getVoltage()
+    {
+        return m_voltage;
+    };
+    float getCurrent()
+    {
+        return m_current;
+    };
+    float getAvgChipTemp()
+    {
+        return m_chipTempAvg;
+    };
+    float getVrTemp()
+    {
+        return m_vrTemp;
+    };
+    uint16_t getFanRPM()
+    {
+        return m_fanRPM;
+    };
+    uint16_t getFanPerc()
+    {
+        return m_fanPerc;
+    };
+};
