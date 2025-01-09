@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "nvs_flash.h"
 #include "esp_log.h"
 
@@ -101,7 +103,8 @@ bool NerdQaxePlus::initAsics()
     TPS53647_init(m_numPhases, m_imax, m_ifault);
 
     // set the init voltage
-    setVoltage((m_initVoltage > m_asicVoltage) ? m_initVoltage : m_asicVoltage);
+    // use the higher voltage for initialization
+    setVoltage(fmaxf(m_initVoltage, m_asicVoltage));
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
