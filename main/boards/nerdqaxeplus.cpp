@@ -100,8 +100,8 @@ bool NerdQaxePlus::initAsics()
     // init buck and enable output
     TPS53647_init(m_numPhases, m_imax, m_ifault);
 
-     // set the init voltage
-    setVoltage(m_initVoltage ? m_initVoltage : m_asicVoltage);
+    // set the init voltage
+    setVoltage((m_initVoltage > m_asicVoltage) ? m_initVoltage : m_asicVoltage);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
