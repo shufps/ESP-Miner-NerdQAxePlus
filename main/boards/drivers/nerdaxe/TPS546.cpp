@@ -31,6 +31,8 @@ static uint8_t MFR_ID[] = {'B', 'A', 'X'};
 static uint8_t MFR_MODEL[] = {'H', 'E', 'X'};
 static uint8_t MFR_REVISION[] = {0x00, 0x00, 0x01};
 
+static bool is_initialized = false;
+
 //static uint8_t COMPENSATION_CONFIG[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 //static i2c_master_dev_handle_t tps546_dev_handle;
@@ -134,52 +136,6 @@ static esp_err_t smb_write_word(uint8_t command, uint16_t data)
 
     return err;
 }
-
-/**
- * @brief SMBus read byte
- * @param command The command to read
- * @param data Pointer to store the read data
- */
-/*static esp_err_t smb_read_byte(uint8_t command, uint8_t *data)
-{
-    return i2c_master_register_read(TPS546_I2CADDR, command, data, 1);
-}*/
-
-/**
- * @brief SMBus write byte
- * @param command The command to write
- * @param data The data to write
- */
-/*static esp_err_t smb_write_byte(uint8_t command, uint8_t data)
-{
-    return i2c_master_register_write_byte(TPS546_I2CADDR, command, data);
-}*/
-
-/**
- * @brief SMBus read word
- * @param command The command to read
- * @param result Pointer to store the read data
- */
-/*static esp_err_t smb_read_word(uint8_t command, uint16_t *result)
-{
-    uint8_t data[2];
-    if (i2c_master_register_read(TPS546_I2CADDR, command, data, 2) != ESP_OK) {
-        return ESP_FAIL;
-    } else {
-        *result = (data[1] << 8) + data[0];
-        return ESP_OK;
-    }
-}*/
-
-/**
- * @brief SMBus write word
- * @param command The command to write
- * @param data The data to write
- */
-/*static esp_err_t smb_write_word(uint8_t command, uint16_t data)
-{
-    return i2c_master_register_write_word(TPS546_I2CADDR, command, data);
-}*/
 
 /**
  * @brief SMBus read block -- SMBus is funny in that the first byte returned is the length of data??
@@ -515,6 +471,8 @@ int TPS546_init(void)
     ESP_LOGI(TAG, "%02x %02x %02x %02x %02x", comp_config[0], comp_config[1],
         comp_config[2], comp_config[3], comp_config[4]);
 
+    is_initialized = true;
+
     return 0;
 }
 
@@ -699,6 +657,10 @@ int TPS546_get_temperature(void)
     uint16_t value;
     int temp;
 
+    if (!is_initialized) {
+        return 0;
+    }
+
     smb_read_word(PMBUS_READ_TEMPERATURE_1, &value);
     temp = slinear11_2_int(value);
 
@@ -709,6 +671,10 @@ float TPS546_get_vin(void)
 {
     uint16_t u16_value;
     float vin;
+
+    if (!is_initialized) {
+        return 0.0f;
+    }
 
     /* Get voltage input (ULINEAR16) */
     if (smb_read_word(PMBUS_READ_VIN, &u16_value) != ESP_OK) {
@@ -728,13 +694,18 @@ float TPS546_get_iout(void)
     uint16_t u16_value;
     float iout;
 
+    if (!is_initialized) {
+        return 0.0f;
+    }
+
     /* Get current output (SLINEAR11) */
     if (smb_read_word(PMBUS_READ_IOUT, &u16_value) != ESP_OK) {
         ESP_LOGE(TAG, "Could not read Iout");
         return 0;
     } else {
         iout = slinear11_2_float(u16_value);
-
+    
+    //iout = iout * -1.0;
     #ifdef _DEBUG_LOG_
         ESP_LOGI(TAG, "Got Iout: %2.3f A", iout);
     #endif
@@ -747,6 +718,10 @@ float TPS546_get_vout(void)
 {
     uint16_t u16_value;
     float vout;
+
+    if (!is_initialized) {
+        return 0.0f;
+    }
 
     /* Get voltage output (ULINEAR16) */
     if (smb_read_word(PMBUS_READ_VOUT, &u16_value) != ESP_OK) {

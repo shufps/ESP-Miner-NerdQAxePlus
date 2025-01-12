@@ -12,6 +12,8 @@
 
 #define BM1370_RST_PIN GPIO_NUM_1
 
+bool tempinit = false;
+
 static const char* TAG="nerdaxeGamma";
 
 NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
@@ -54,16 +56,17 @@ bool NerdaxeGamma::initBoard()
     }
 
     EMC2101_init(m_fanInvertPolarity);
-    //EMC2101_set_ideality_factor(EMC2101_IDEALITY_1_0319);
-    //EMC2101_set_beta_compensation(EMC2101_BETA_11);
+    EMC2101_set_ideality_factor(EMC2101_IDEALITY_1_0319);
+    EMC2101_set_beta_compensation(EMC2101_BETA_11);
     setFanSpeed(m_fanPerc);
     
+
     //Init voltage controller
     if (TPS546_init() != ESP_OK) {
         ESP_LOGE(TAG, "TPS546 init failed!");
         return ESP_FAIL;
     }
-    setVoltage(m_initVoltage);
+    setVoltage(0.0);
 
     gpio_pad_select_gpio(BM1370_RST_PIN);
     gpio_set_direction(BM1370_RST_PIN, GPIO_MODE_OUTPUT);
@@ -122,10 +125,13 @@ bool NerdaxeGamma::setVoltage(float core_voltage)
 }
 
 float NerdaxeGamma::readTemperature(int index) {
+    
+    if (!m_isInitialized) return EMC2101_get_internal_temp() + 5;
+
     if (!index) {
         //return (float)TPS546_get_temperature(); - vr_temp (voltage regulator temp)
-        //return EMC2101_get_external_temp(); //External board Temp
-        return EMC2101_get_internal_temp() + 5;
+        return EMC2101_get_external_temp(); //External board Temp
+        //return EMC2101_get_internal_temp() + 5;
     } else {
         return 0.0;
     }
@@ -137,11 +143,11 @@ float NerdaxeGamma::getVin() {
 }
 
 float NerdaxeGamma::getIin() {
-    return 0.0;
+    return TPS546_get_iout();
 }
 
 float NerdaxeGamma::getPin() {
-    return TPS546_get_vout() * TPS546_get_iout() / 1000;
+    return TPS546_get_vout() * TPS546_get_iout();
 }
 
 float NerdaxeGamma::getVout() {
