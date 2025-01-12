@@ -14,6 +14,7 @@
 #include "boards/nerdqaxeplus.h"
 #include "boards/nerdqaxeplus2.h"
 #include "boards/nerdaxe.h"
+#include "boards/nerdaxegamma.h"
 #include "create_jobs_task.h"
 #include "global_state.h"
 #include "history.h"
@@ -125,6 +126,9 @@ extern "C" void app_main(void)
 #ifdef NERDOCTAXEGAMMA
     Board *board = new NerdOctaxeGamma();
 #endif
+#ifdef NERDAXEGAMMA
+    Board *board = new NerdaxeGamma();
+#endif
 
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
@@ -135,7 +139,7 @@ extern "C" void app_main(void)
     SYSTEM_MODULE.setBoard(board);
 
     size_t total_psram = esp_psram_get_size();
-    ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));
+    ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));        
     ESP_LOGI(TAG, "Found Device Model: %s", board->getDeviceModel());
     ESP_LOGI(TAG, "Found Board Version: %d", board->getVersion());
 

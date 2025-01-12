@@ -88,3 +88,14 @@ uint8_t EMC2101_get_internal_temp(void)
     ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_INTERNAL_TEMP, &temp, 1));
     return temp;
 }
+
+void EMC2101_set_ideality_factor(uint8_t ideality){
+    //set Ideality Factor
+    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_IDEALITY_FACTOR, ideality));
+}
+
+void EMC2101_set_beta_compensation(uint8_t beta){
+    //set Beta Compensation
+    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_BETA_COMPENSATION, beta));
+
+}
