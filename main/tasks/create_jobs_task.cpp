@@ -137,6 +137,7 @@ void *create_jobs_task(void *pvParameters)
     uint32_t last_ntime = 0;
     uint64_t last_submit_time = 0;
     uint32_t extranonce_2 = 0;
+    uint32_t job_counter = 0;
 
     int lastJobInterval = board->getAsicJobIntervalMs();
 
@@ -162,6 +163,9 @@ void *create_jobs_task(void *pvParameters)
         if (last_ntime != current_job.ntime) {
             last_ntime = current_job.ntime;
             ESP_LOGI(TAG, "New Work Received %s", current_job.job_id);
+
+            // reset extra nonce 2 on new job
+            extranonce_2 = 0;
         }
 
         // generate extranonce2 hex string
@@ -205,7 +209,7 @@ void *create_jobs_task(void *pvParameters)
         }
         last_submit_time = current_time;
 
-        int asic_job_id = asics->sendWork(extranonce_2, next_job);
+        int asic_job_id = asics->sendWork(job_counter, next_job);
 
         ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
 
@@ -213,6 +217,7 @@ void *create_jobs_task(void *pvParameters)
         asicJobs.storeJob(next_job, asic_job_id);
 
         extranonce_2++;
+        job_counter++;
     }
 
     return NULL;
