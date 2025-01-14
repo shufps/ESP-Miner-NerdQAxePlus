@@ -314,6 +314,9 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
     if ((item = cJSON_GetObjectItem(root, "ssid")) != NULL) {
         nvs_config_set_string(NVS_CONFIG_WIFI_SSID, item->valuestring);
     }
+    if ((item = cJSON_GetObjectItem(root, "ntp")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_NTP, item->valuestring);
+    }
     if ((item = cJSON_GetObjectItem(root, "wifiPass")) != NULL) {
         nvs_config_set_string(NVS_CONFIG_WIFI_PASS, item->valuestring);
     }
@@ -482,6 +485,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, CONFIG_LWIP_LOCAL_HOSTNAME);
     char *stratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
     char *stratumUser = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
+    char *ntp = nvs_config_get_string(NVS_CONFIG_NTP, CONFIG_ESP_NTP_SERVER);
 
     Board* board = SYSTEM_MODULE.getBoard();
     History* history = SYSTEM_MODULE.getHistory();
@@ -510,6 +514,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "coreVoltageActual", (int) (board->getVout() * 1000.0f));
     cJSON_AddNumberToObject(root, "frequency", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
     cJSON_AddStringToObject(root, "ssid", ssid);
+    cJSON_AddStringToObject(root, "ntp", ntp);
     cJSON_AddStringToObject(root, "hostname", hostname);
     cJSON_AddStringToObject(root, "wifiStatus", SYSTEM_MODULE.getWifiStatus());
     cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.getSharesAccepted());
@@ -540,6 +545,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
         cJSON_AddItemToObject(root, "history", history);
     }
 
+    free(ntp);
     free(ssid);
     free(hostname);
     free(stratumURL);

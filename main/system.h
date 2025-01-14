@@ -52,9 +52,6 @@ class System {
 
     const char* m_lastResetReason;
 
-    // Clock synchronization
-    uint32_t m_lastClockSync; // Last clock synchronization timestamp
-
     History *m_history;
 
     // Network interface
@@ -186,10 +183,6 @@ class System {
     bool isFoundBlock() const
     {
         return m_foundBlock;
-    }
-    uint32_t getLastClockSync() const
-    {
-        return m_lastClockSync;
     }
 
     // Startup status setter

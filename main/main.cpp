@@ -25,6 +25,7 @@
 #include "serial.h"
 #include "stratum_task.h"
 #include "system.h"
+#include "ntp_time.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -32,6 +33,7 @@ System SYSTEM_MODULE;
 
 PowerManagementTask POWER_MANAGEMENT_MODULE;
 StratumTask STRATUM_TASK;
+NTPTime NTP_TIME;
 
 AsicJobs asicJobs;
 
@@ -139,7 +141,7 @@ extern "C" void app_main(void)
     SYSTEM_MODULE.setBoard(board);
 
     size_t total_psram = esp_psram_get_size();
-    ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));        
+    ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));
     ESP_LOGI(TAG, "Found Device Model: %s", board->getDeviceModel());
     ESP_LOGI(TAG, "Found Board Version: %d", board->getVersion());
 
@@ -168,6 +170,8 @@ extern "C" void app_main(void)
         }
 
         TaskHandle_t stratum_task_handle;
+
+        xTaskCreate(NTP_TIME.taskWrapper, "ntp", 8192, (void *) &NTP_TIME, 5, NULL);
 
         xTaskCreate(STRATUM_TASK.taskWrapper, "stratum admin", 8192, (void *) &STRATUM_TASK, 5, &stratum_task_handle);
 

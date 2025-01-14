@@ -31,7 +31,7 @@ menu "Stratum Configuration"
 
     config STRATUM_USER
         string "Stratum username"
-        default "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa.bitaxe"
+        default "bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.bitaxe"
         help
             Stratum user to use with pool
 
