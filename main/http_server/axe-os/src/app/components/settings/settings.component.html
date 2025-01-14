@@ -1,9 +1,14 @@
+<div *ngIf="devToolsOpen" class="pro-mode-warning">
+    <p>Warning: You are now in Pro Mode. Adjusting settings with incorrect or unsuitable values may damage the device. Proceed with caution and at your own risk.</p>
+</div>
+
 <div class="card">
     <h2>Settings</h2>
-
     <app-edit></app-edit>
+</div>
 
-
+<div *ngIf="devToolsOpen" class="pro-mode-warning">
+    <p>Warning: You are now in Pro Mode. Adjusting settings with incorrect or unsuitable values may damage the device. Proceed with caution and at your own risk.</p>
 </div>
 
 <div class="grid">
