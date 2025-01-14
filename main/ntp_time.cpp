@@ -44,18 +44,27 @@ void NTPTime::task()
 {
     char *ntp = nvs_config_get_string(NVS_CONFIG_NTP, CONFIG_ESP_NTP_SERVER);
 
+    ESP_LOGI(TAG, "NTP server: %s", ntp);
+
     initialize_sntp(ntp);
 
+    time_t epoch = 0;
     while (1) {
-        time_t now = 0;
-        time(&now);
+        // get system time
+        time(&epoch);
 
-        ESP_LOGI(TAG, "epoch: %lu", (uint32_t) now);
-
-        if ((uint32_t) time > 0) {
+        // epoch > 1.1.2025 0:00:00?
+        if ((uint32_t) epoch > 1735689600) {
             m_valid = true;
+            break;
         }
+        ESP_LOGI(TAG, "waiting for time ...");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 
+    ESP_LOGI(TAG, "set epoch to %lu", (uint32_t) epoch);
+
+    while (1) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
