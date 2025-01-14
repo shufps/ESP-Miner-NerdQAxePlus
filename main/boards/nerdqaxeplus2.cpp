@@ -12,8 +12,8 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_ifault = (float) (m_imax - 5);
 
     m_asicJobIntervalMs = 500;
-    m_asicFrequency = 525.0;
-    m_asicVoltage = 1.20;
+    m_asicFrequency = 600.0;
+    m_asicVoltage = 1.15; // default voltage
     m_initVoltage = 1.20;
 
     m_maxPin = 100.0;

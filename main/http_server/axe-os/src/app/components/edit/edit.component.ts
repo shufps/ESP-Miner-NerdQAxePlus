@@ -61,23 +61,31 @@ export class EditComponent implements OnInit {
   public BM1368CoreVoltage = [
     { name: '1100', value: 1100 },
     { name: '1150', value: 1150 },
-    { name: '1166', value: 1166 },
-    { name: '1200 (default)', value: 1200 },
-    { name: '1250', value: 1250 },
+    { name: '1200', value: 1200 },
+    { name: '1250 (default)', value: 1250 },
     { name: '1300', value: 1300 },
+    { name: '1350', value: 1350 },
   ];
 
   public BM1370DropdownFrequency = [
-    { name: '525 (eco)', value: 525 },
+    { name: '500', value: 500 },
+    { name: '525', value: 525 },
+    { name: '550', value: 550 },
+    { name: '575', value: 575 },
+    { name: '590', value: 590 },
     { name: '600 (default)', value: 600 },
   ];
 
   public BM1370CoreVoltage = [
-    { name: '1100', value: 1100 },
-    { name: '1150', value: 1150 },
-    { name: '1200 (default)', value: 1200 },
-    { name: '1250', value: 1250 },
-    { name: '1300', value: 1300 },
+    { name: '1120', value: 1120 },
+    { name: '1130', value: 1130 },
+    { name: '1140', value: 1140 },
+    { name: '1150 (default)', value: 1150 },
+    { name: '1160', value: 1160 },
+    { name: '1170', value: 1170 },
+    { name: '1180', value: 1180 },
+    { name: '1190', value: 1190 },
+    { name: '1200', value: 1200 },
   ];
 
   constructor(

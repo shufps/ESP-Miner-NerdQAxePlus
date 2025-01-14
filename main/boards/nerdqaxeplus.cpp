@@ -27,7 +27,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicCount = 4;
     m_asicJobIntervalMs = 1200;
     m_asicFrequency = 490.0;
-    m_asicVoltage = 1.20;
+    m_asicVoltage = 1.25; // default voltage
     m_initVoltage = 1.25;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
