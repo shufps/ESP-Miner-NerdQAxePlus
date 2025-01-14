@@ -35,11 +35,6 @@ void NTPTime::taskWrapper(void *pvParameters)
     timeInstance->task();
 }
 
-/*
- * FreeRTOS task that handles NTP time synchronization.
- * The task will check for Wi‑Fi connectivity and then attempt to sync time.
- * If an error occurs (e.g., no Wi‑Fi or NTP failure), the task waits and retries.
- */
 void NTPTime::task()
 {
     char *ntp = nvs_config_get_string(NVS_CONFIG_NTP, CONFIG_ESP_NTP_SERVER);
