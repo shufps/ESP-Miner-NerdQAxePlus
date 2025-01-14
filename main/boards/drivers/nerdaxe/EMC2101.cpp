@@ -66,19 +66,28 @@ float EMC2101_get_external_temp(void)
     ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_EXTERNAL_TEMP_MSB, &temp_msb, 1));
     ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_EXTERNAL_TEMP_LSB, &temp_lsb, 1));
 
-    reading = temp_lsb | (temp_msb << 8);
-    reading >>= 5;
+    // Combine MSB and LSB, and then right shift to get 11 bits
+    reading = (temp_msb << 8) | temp_lsb;
+    reading >>= 5;  // Now, `reading` contains an 11-bit signed value
 
-    if (reading == EMC2101_TEMP_FAULT_OPEN_CIRCUIT) {
-        ESP_LOGE(TAG, "EMC2101 TEMP_FAULT_OPEN_CIRCUIT");
-        return 0.0;
-    }
-    if (reading == EMC2101_TEMP_FAULT_SHORT) {
-        ESP_LOGE(TAG, "EMC2101 TEMP_FAULT_SHORT");
-        return 0.0;
+    // Cast `reading` to a signed 16-bit integer
+    int16_t signed_reading = (int16_t)reading;
+
+    // If the 11th bit (sign bit in 11-bit data) is set, extend the sign
+    if (signed_reading & 0x0400) {
+        signed_reading |= 0xF800;  // Set upper bits to extend the sign
     }
 
-    float result = (float) reading / 8.0;
+    if (signed_reading == EMC2101_TEMP_FAULT_OPEN_CIRCUIT) {
+        ESP_LOGE(TAG, "EMC2101 TEMP_FAULT_OPEN_CIRCUIT: %04X", signed_reading);
+    }
+    if (signed_reading == EMC2101_TEMP_FAULT_SHORT) {
+        ESP_LOGE(TAG, "EMC2101 TEMP_FAULT_SHORT: %04X", signed_reading);
+    }
+
+    // Convert the signed reading to temperature in Celsius
+    float result = (float)signed_reading / 8.0;
+
     return result;
 }
 
@@ -87,4 +96,15 @@ uint8_t EMC2101_get_internal_temp(void)
     uint8_t temp;
     ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_INTERNAL_TEMP, &temp, 1));
     return temp;
+}
+
+void EMC2101_set_ideality_factor(uint8_t ideality){
+    //set Ideality Factor
+    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_IDEALITY_FACTOR, ideality));
+}
+
+void EMC2101_set_beta_compensation(uint8_t beta){
+    //set Beta Compensation
+    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_BETA_COMPENSATION, beta));
+
 }

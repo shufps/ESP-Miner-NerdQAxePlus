@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        board: [NERDQAXEPLUS, NERDOCTAXEPLUS, NERDQAXEPLUS2]
+        board: [NERDQAXEPLUS, NERDOCTAXEPLUS, NERDQAXEPLUS2, NERDAXE, NERDAXEGAMMA]
         include:
           - board: NERDQAXEPLUS
             upload_www: true
@@ -21,10 +21,13 @@ jobs:
             label: NerdQAxe++
           - board: NERDAXE
             upload_www: false
-            label: NerdAxe
+            label: Nerdaxe
           - board: NERDOCTAXEGAMMA
             upload_www: false
             label: NerdOCTAXE-Gamma
+          - board: NERDAXEGAMMA
+            upload_www: false
+            label: NerdaxeGamma
 
     steps:
     - name: Checkout repository
