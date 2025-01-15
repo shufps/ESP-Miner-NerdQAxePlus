@@ -25,7 +25,7 @@
 #include "serial.h"
 #include "stratum_task.h"
 #include "system.h"
-#include "ntp_time.h"
+#include "time_provider.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -33,7 +33,7 @@ System SYSTEM_MODULE;
 
 PowerManagementTask POWER_MANAGEMENT_MODULE;
 StratumTask STRATUM_TASK;
-NTPTime NTP_TIME;
+TimeProvider TIME_PROVIDER;
 
 AsicJobs asicJobs;
 
@@ -171,7 +171,7 @@ extern "C" void app_main(void)
 
         TaskHandle_t stratum_task_handle;
 
-        xTaskCreate(NTP_TIME.taskWrapper, "ntp", 8192, (void *) &NTP_TIME, 5, NULL);
+        xTaskCreate(TIME_PROVIDER.taskWrapper, "ntp", 8192, (void *) &TIME_PROVIDER, 5, NULL);
 
         xTaskCreate(STRATUM_TASK.taskWrapper, "stratum admin", 8192, (void *) &STRATUM_TASK, 5, &stratum_task_handle);
 

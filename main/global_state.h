@@ -14,12 +14,12 @@
 
 #include "boards/nerdqaxeplus.h"
 #include "system.h"
-#include "ntp_time.h"
+#include "time_provider.h"
 
 extern System SYSTEM_MODULE;
 extern PowerManagementTask POWER_MANAGEMENT_MODULE;
 extern StratumTask STRATUM_TASK;
-extern NTPTime NTP_TIME;
+extern TimeProvider TIME_PROVIDER;
 
 extern AsicJobs asicJobs;
 

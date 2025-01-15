@@ -153,7 +153,7 @@ void influx_task(void *pvParameters)
 
     // start submitting new data
     ESP_LOGI(TAG, "waiting for clock sync ...");
-    while (!NTP_TIME.isValid()) {
+    while (!TIME_PROVIDER.isSynced()) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     ESP_LOGI(TAG, "waiting for clock sync ... done");

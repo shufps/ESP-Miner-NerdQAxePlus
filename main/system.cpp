@@ -25,7 +25,7 @@
 #include "influx_task.h"
 #include "history.h"
 #include "boards/board.h"
-#include "ntp_time.h"
+#include "time_provider.h"
 
 static const char* TAG = "SystemModule";
 
@@ -270,10 +270,12 @@ void System::notifyRejectedShare() {
 
 void System::notifyMiningStarted() {}
 
-void System::notifyNewNtime(uint32_t ntime) {}
+void System::notifyNewNtime(uint32_t ntime) {
+    TIME_PROVIDER.setNTime(ntime);
+}
 
 void System::notifyFoundNonce(double poolDiff, int asicNr) {
-    if (!NTP_TIME.isValid()) {
+    if (!TIME_PROVIDER.isSynced()) {
         ESP_LOGW(TAG, "clock not (yet) synchronized");
         return;
     }
