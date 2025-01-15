@@ -32,6 +32,7 @@ const defaultInfo: ISystemInfo = {
   ssid: "default",
   wifiPass: "password",
   wifiStatus: "Connected!",
+  ntp: "europe.pool.ntp.org",
   sharesAccepted: 1,
   sharesRejected: 0,
   uptimeSeconds: 38,

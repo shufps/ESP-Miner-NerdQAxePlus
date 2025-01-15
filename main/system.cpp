@@ -25,6 +25,7 @@
 #include "influx_task.h"
 #include "history.h"
 #include "boards/board.h"
+#include "ntp_time.h"
 
 static const char* TAG = "SystemModule";
 
@@ -40,7 +41,6 @@ void System::initSystem() {
     m_bestNonceDiff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
     m_bestSessionNonceDiff = 0;
     m_startTime = esp_timer_get_time();
-    m_lastClockSync = 0;
     m_foundBlock = false;
     m_startupDone = false;
     m_poolErrors = 0;
@@ -270,20 +270,10 @@ void System::notifyRejectedShare() {
 
 void System::notifyMiningStarted() {}
 
-void System::notifyNewNtime(uint32_t ntime) {
-    if (m_lastClockSync + (60 * 60) > ntime) {
-        return;
-    }
-    ESP_LOGI(TAG, "Syncing clock");
-    m_lastClockSync = ntime;
-    struct timeval tv;
-    tv.tv_sec = ntime;
-    tv.tv_usec = 0;
-    settimeofday(&tv, nullptr);
-}
+void System::notifyNewNtime(uint32_t ntime) {}
 
 void System::notifyFoundNonce(double poolDiff, int asicNr) {
-    if (!m_lastClockSync) {
+    if (!NTP_TIME.isValid()) {
         ESP_LOGW(TAG, "clock not (yet) synchronized");
         return;
     }
