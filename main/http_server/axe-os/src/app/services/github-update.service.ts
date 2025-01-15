@@ -25,7 +25,12 @@ export class GithubUpdateService {
     return this.httpClient.get<GithubRelease[]>(
       'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases'
     ).pipe(
-      map((releases: GithubRelease[]) => releases.filter((release: GithubRelease) => !release.prerelease))
+      map((releases: GithubRelease[]) =>
+        releases.filter((release: GithubRelease) =>
+          // Exclude prereleases and releases with "-rc" in the tag name.
+          !release.prerelease && !release.tag_name.includes('-rc')
+        )
+      )
     );
   }
 
