@@ -29,3 +29,9 @@ components/components/*
 config.bin
 config.cvs
 managed_components/*
+docker/build_docker.sh
+docker/build_docker.sh
+merge_bin.sh
+docker/
+nerdqaxe+.bin
+.gitignore
