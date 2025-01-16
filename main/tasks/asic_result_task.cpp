@@ -17,6 +17,8 @@ void ASIC_result_task(void *pvParameters)
     Asic* asics = board->getAsics();
 
     char *user = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, STRATUM_USER);
+    float asic_temp = 0;
+    int asic_count = board->getAsicCount() - 1;
 
     while (1) {
         //ESP_LOGI("Memory", "%lu", esp_get_free_heap_size()); test
@@ -33,6 +35,14 @@ void ASIC_result_task(void *pvParameters)
                     if (asic_result.data & 0x80000000) {
                         float ftemp = (float) (asic_result.data & 0x0000ffff) * 0.171342f - 299.5144f;;
                         ESP_LOGI(TAG, "asic %d temp: %.3f", (int) asic_result.asic_nr, ftemp);
+                        if (ftemp > asic_temp) {
+                            POWER_MANAGEMENT_MODULE.setAsicHighTemp(ftemp);
+                            if ( (int) asic_result.asic_nr == asic_count){
+                                asic_temp = 0;
+                            } else {
+                                asic_temp = ftemp;
+                            }
+                        }
                     }
                     break;
                 }
