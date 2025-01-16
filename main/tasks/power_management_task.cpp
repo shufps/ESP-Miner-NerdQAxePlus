@@ -111,10 +111,17 @@ void PowerManagementTask::task()
 
         m_chipTempAvg = board->readTemperature(0);
         m_vrTemp = board->readTemperature(1);
+        ESP_LOGI(TAG, "asic high temp: %.3f", m_asic_high_temp);
+
+        // to show the high temp in dashboard
+        if (m_asic_high_temp > m_chipTempAvg) m_chipTempAvg = m_asic_high_temp;
+
         influx_task_set_temperature(m_chipTempAvg, m_vrTemp);
 
         if (overheat_temp &&
-            (m_chipTempAvg > overheat_temp || m_vrTemp > overheat_temp)) {
+            // To keep the sensor and asic temp separated, comment the if above and uncomment below
+            // (m_chipTempAvg > overheat_temp || m_vrTemp > overheat_temp || m_asic_high_temp > overheat_temp)) {
+            (m_chipTempAvg > overheat_temp || m_vrTemp > overheat_temp )) {
             // over temperature
             SYSTEM_MODULE.setOverheated(true);
             // disables the buck
