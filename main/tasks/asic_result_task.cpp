@@ -17,7 +17,7 @@ void ASIC_result_task(void *pvParameters)
     Asic* asics = board->getAsics();
 
     char *user = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, STRATUM_USER);
-    float asic_temp = 0;
+    float asic_temp = 0.0f;
     int asic_count = board->getAsicCount() - 1;
 
     while (1) {
@@ -33,15 +33,15 @@ void ASIC_result_task(void *pvParameters)
             switch (asic_result.reg) {
                 case 0xb4: {
                     if (asic_result.data & 0x80000000) {
-                        float ftemp = (float) (asic_result.data & 0x0000ffff) * 0.171342f - 299.5144f;;
+                        float ftemp = (float) (asic_result.data & 0x0000ffff) * 0.171342f - 299.5144f;
+                        int asic_nr = (int) asic_result.asic_nr;
                         ESP_LOGI(TAG, "asic %d temp: %.3f", (int) asic_result.asic_nr, ftemp);
                         if (ftemp > asic_temp) {
                             POWER_MANAGEMENT_MODULE.setAsicHighTemp(ftemp);
-                            if ( (int) asic_result.asic_nr == asic_count){
-                                asic_temp = 0;
-                            } else {
-                                asic_temp = ftemp;
-                            }
+                            asic_temp = ftemp;                                         
+                        }
+                        if ( asic_count == asic_nr){
+                                asic_temp = 0.0f;                                
                         }
                     }
                     break;
