@@ -40,7 +40,7 @@ void ASIC_result_task(void *pvParameters)
                             POWER_MANAGEMENT_MODULE.setAsicHighTemp(ftemp);
                             asic_temp = ftemp;                                         
                         }
-                        if ( asic_count == asic_nr){
+                        if ( asic_count == asic_nr ){
                                 asic_temp = 0.0f;                                
                         }
                     }
