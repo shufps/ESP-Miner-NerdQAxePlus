@@ -3,7 +3,6 @@ SRCS
     "main.cpp"
     "nvs_config.cpp"
     "system.cpp"
-    "ntp_time.cpp"
     "boards/board.cpp"
     "boards/nerdaxe.cpp"
     "boards/nerdaxegamma.cpp"

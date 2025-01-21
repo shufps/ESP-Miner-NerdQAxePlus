@@ -28,7 +28,6 @@ export interface ISystemInfo {
     ssid: string,
     wifiPass: string,
     wifiStatus: string,
-    ntp: string,
     sharesAccepted: number,
     sharesRejected: number,
     uptimeSeconds: number,

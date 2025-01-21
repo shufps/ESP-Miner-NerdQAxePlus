@@ -151,13 +151,6 @@ void influx_task(void *pvParameters)
     ESP_LOGI(TAG, "last values: total_uptime: %d, total_best_difficulty: %.3f, total_blocks_found: %d",
              influxdb->stats.total_uptime, influxdb->stats.total_best_difficulty, influxdb->stats.total_blocks_found);
 
-    // start submitting new data
-    ESP_LOGI(TAG, "waiting for clock sync ...");
-    while (!NTP_TIME.isValid()) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-    ESP_LOGI(TAG, "waiting for clock sync ... done");
-
     // Create and start the uptime timer with a 1-second period
     TimerHandle_t uptime_timer = xTimerCreate("UptimeTimer", pdMS_TO_TICKS(1000), pdTRUE, (void *) 0, uptime_timer_callback);
     if (uptime_timer != NULL) {

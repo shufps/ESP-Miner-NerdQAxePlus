@@ -25,7 +25,6 @@
 #include "influx_task.h"
 #include "history.h"
 #include "boards/board.h"
-#include "ntp_time.h"
 
 static const char* TAG = "SystemModule";
 
@@ -273,14 +272,11 @@ void System::notifyMiningStarted() {}
 void System::notifyNewNtime(uint32_t ntime) {}
 
 void System::notifyFoundNonce(double poolDiff, int asicNr) {
-    if (!NTP_TIME.isValid()) {
-        ESP_LOGW(TAG, "clock not (yet) synchronized");
-        return;
-    }
+    // ms timestamp
+    uint64_t timestamp = esp_timer_get_time() / 1000llu;
 
-    struct timeval now;
-    gettimeofday(&now, nullptr);
-    uint64_t timestamp = (uint64_t)now.tv_sec * 1000llu + (uint64_t)now.tv_usec / 1000llu;
+    // nasty hack to avoid negative numbers
+    timestamp += 1000000000000llu;
 
     m_history->pushShare(poolDiff, timestamp, asicNr);
 
