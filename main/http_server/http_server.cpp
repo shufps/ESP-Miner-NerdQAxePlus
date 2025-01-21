@@ -609,21 +609,11 @@ static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp,
 
     // get current system timestamp since system boot in ms
     uint64_t sys_timestamp = esp_timer_get_time() / 1000llu;
-    int64_t sys_start = (int64_t) sys_timestamp + rel_start + 1000000000000ll;
-    int64_t sys_end = (int64_t) sys_timestamp + rel_end + 1000000000000ll;
+    int64_t sys_start = (int64_t) sys_timestamp + rel_start;
+    int64_t sys_end = (int64_t) sys_timestamp + rel_end;
 
-/* debugging
-    ESP_LOGI(TAG, "start_timestamp: %llu", current_timestamp);
-    ESP_LOGI(TAG, "end_timestamp: %llu", current_timestamp);
-    ESP_LOGI(TAG, "current_timestamp: %llu", current_timestamp);
-    ESP_LOGI(TAG, "sys_timestamp: %llu", sys_timestamp);
-    ESP_LOGI(TAG, "sys_start: %llu", sys_start);
-    ESP_LOGI(TAG, "sys_end: %llu", sys_end);
-    ESP_LOGI(TAG, "rel_start: %lld", rel_start);
-    ESP_LOGI(TAG, "rel_end: %lld", rel_end);
-*/
-    int start_index = history->searchNearestTimestamp((uint64_t) sys_start);
-    int end_index = history->searchNearestTimestamp((uint64_t) sys_end);
+    int start_index = history->searchNearestTimestamp(sys_start);
+    int end_index = history->searchNearestTimestamp(sys_end);
     int num_samples = end_index - start_index + 1;
 
     cJSON *json_history = cJSON_CreateObject();
@@ -642,14 +632,14 @@ static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp,
     for (int i = start_index; i < start_index + num_samples; i++) {
         uint64_t sample_timestamp = history->getTimestampSample(i);
 
-        if (sample_timestamp < sys_start) {
+        if ((int64_t) sample_timestamp < sys_start) {
             continue;
         }
 
         cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int)(history->getHashrate10mSample(i) * 100.0)));
         cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int)(history->getHashrate1hSample(i) * 100.0)));
         cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int)(history->getHashrate1dSample(i) * 100.0)));
-        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(sample_timestamp - sys_start));
+        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber((int64_t) sample_timestamp - sys_start));
     }
 
     cJSON_AddItemToObject(json_history, "hashrate_10m", json_hashrate_10m);

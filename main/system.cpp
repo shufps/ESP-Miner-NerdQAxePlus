@@ -275,9 +275,6 @@ void System::notifyFoundNonce(double poolDiff, int asicNr) {
     // ms timestamp
     uint64_t timestamp = esp_timer_get_time() / 1000llu;
 
-    // nasty hack to avoid negative numbers
-    timestamp += 1000000000000llu;
-
     m_history->pushShare(poolDiff, timestamp, asicNr);
 
     m_currentHashrate10m = m_history->getCurrentHashrate10m();
