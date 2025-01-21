@@ -44,13 +44,8 @@ void TimeProvider::setNTime(uint32_t ntime)
     time_t epoch = 0;
     time(&epoch);
 
-    // don't adjust the time backwards
-    if (ntime < (uint32_t) epoch) {
-        return;
-    }
-
     // set the new epoch
-    ESP_LOGI(TAG, "Syncing clock from ntime");
+    ESP_LOGI(TAG, "Syncing clock from ntime: %lu", ntime);
     m_lastNTimeClockSync = ntime;
     struct timeval tv;
     tv.tv_sec = ntime;

@@ -124,7 +124,7 @@ export class EditComponent implements OnInit {
           stratumPassword: ['*****', [Validators.required]],
           hostname: [info.hostname, [Validators.required]],
           ssid: [info.ssid, [Validators.required]],
-          ntp: [info.ntp, [Validators.required]],
+          ntp: [info.ntp, []],
           wifiPass: ['*****'],
           coreVoltage: [info.coreVoltage, [Validators.required]],
           frequency: [info.frequency, [Validators.required]],

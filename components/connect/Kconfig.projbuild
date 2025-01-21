@@ -16,7 +16,7 @@ menu "WiFi Configuration"
         string "NTP Server"
         default "europe.pool.ntp.org"
         help
-            NTP Server
+            NTP Server. Leave this field empty for syncing the system time from Stratum jobs.
 
     choice ESP_WIFI_SAE_MODE
         prompt "WPA3 SAE mode selection"
