@@ -39,8 +39,9 @@ SRCS
     "./displays/images/ui_font_OpenSansBold14.c"
     "./displays/images/ui_font_OpenSansBold24.c"
     "./displays/images/ui_font_OpenSansBold45.c"
+    "./displays/images/ui_font_vt323_21.c"
+    "./displays/images/ui_font_vt323_35.c"
     "./displays/images/themes/themes.c"
-    "./displays/images/ui_img_overheat_png.c"
 
 
 INCLUDE_DIRS
