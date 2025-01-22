@@ -460,43 +460,63 @@ void UI::bTCScreenInit(void)
     lv_obj_set_style_text_font(ui_lblTempPrice, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
 }
 
-
-// Function to show the overlay with the overheating image
-void UI::showOverheatWarningOverlay()
+// Function to show the overlay with an error message and custom colors
+void UI::showErrorOverlay(const char *error_message, uint32_t error_code)
 {
     // Get the currently active screen
     lv_obj_t *current_screen = lv_scr_act();
 
     // Create a container for the overlay
     lv_obj_t *overlay_container = lv_obj_create(current_screen);
-    lv_obj_set_size(overlay_container, 274 + 4, 65 + 4); // Set the size of the overlay box
+    lv_obj_set_size(overlay_container, 278, 80); // Set the size of the overlay box
     lv_obj_align(overlay_container, LV_ALIGN_CENTER, 0, -20); // Center the overlay on the screen
 
     // Disable scrollbars for the container
     lv_obj_clear_flag(overlay_container, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Set background color and border style if needed
-    lv_obj_set_style_bg_color(overlay_container, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_border_width(overlay_container, 2, LV_PART_MAIN);
-    lv_obj_set_style_border_color(overlay_container, lv_color_hex(0xff0000), LV_PART_MAIN);
+    // Set background color and border style
+    lv_obj_set_style_bg_color(overlay_container, lv_color_hex(0x111111), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(overlay_container, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(overlay_container, lv_color_hex(0xe60000), LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    // Create the image inside the overlay container
-    lv_obj_t *overlay_image = lv_img_create(overlay_container);
-    lv_img_set_src(overlay_image, &ui_img_overheat_png); // Use the existing overheating image
-    lv_obj_set_width(overlay_image, LV_SIZE_CONTENT);  // Adjust width based on content
-    lv_obj_set_height(overlay_image, LV_SIZE_CONTENT); // Adjust height based on content
-    lv_obj_set_align(overlay_image, LV_ALIGN_CENTER);  // Center the image in the overlay
+    // Create the first label for the error message
+    lv_obj_t *error_label = lv_label_create(overlay_container);
+    lv_obj_set_width(error_label, LV_SIZE_CONTENT);  // Adjust width based on content
+    lv_obj_set_height(error_label, LV_SIZE_CONTENT); // Adjust height based on content
+    lv_obj_set_x(error_label, 0); // Center horizontally
+    lv_obj_set_y(error_label, 0); // Align slightly below the top
+    lv_obj_set_align(error_label, LV_ALIGN_TOP_MID); // Align top-middle
+    lv_label_set_text(error_label, error_message); // Set the error message text
+    lv_obj_set_style_text_color(error_label, lv_color_hex(0xe60000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(error_label, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_set_style_text_font(error_label, &lv_font_unscii_16, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(error_label, &ui_font_vt323_35, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(error_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    // Add any additional flags or styles as needed
-    lv_obj_add_flag(overlay_image, LV_OBJ_FLAG_ADV_HITTEST);
-    lv_obj_clear_flag(overlay_image, LV_OBJ_FLAG_SCROLLABLE);
+    // Create the second label for the Guru Meditation Error
+    lv_obj_t *code_label = lv_label_create(overlay_container);
+    lv_obj_set_width(code_label, LV_SIZE_CONTENT);  // Adjust width based on content
+    lv_obj_set_height(code_label, LV_SIZE_CONTENT); // Adjust height based on content
+    lv_obj_set_x(code_label, 0); // Center horizontally
+    lv_obj_set_y(code_label, 0); // Align slightly above the bottom
+    lv_obj_set_align(code_label, LV_ALIGN_BOTTOM_MID); // Align bottom-middle
+
+    // Format the error code message
+    char error_code_message[64];
+    snprintf(error_code_message, sizeof(error_code_message), "Guru Meditation #%08X", (int) error_code);
+    lv_label_set_text(code_label, error_code_message); // Set the error code message
+    lv_obj_set_style_text_color(code_label, lv_color_hex(0xe60000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(code_label, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_set_style_text_font(code_label, &lv_font_unscii_8, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(code_label, &ui_font_vt323_21, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(code_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
 }
 
-void UI::hideOverheatWarningOverlay(lv_obj_t *overlay_container)
+void UI::hideErrorOverlay(lv_obj_t *&overlay_container) // Pass by reference
 {
     if (overlay_container != NULL) {
-        lv_obj_del(overlay_container);
-        overlay_container = NULL; // Clear the pointer
+        lv_obj_del(overlay_container); // Delete the overlay object and its children
+        overlay_container = NULL;     // Clear the pointer to avoid dangling references
     }
 }
 

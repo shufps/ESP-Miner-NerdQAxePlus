@@ -136,8 +136,8 @@ void DisplayDriver::refreshScreen(void) {
     increaseLvglTick();
 }
 
-void DisplayDriver::showOverheating() {
-    m_ui->showOverheatWarningOverlay();
+void DisplayDriver::showError(const char *error_message, uint32_t error_code) {
+    m_ui->showErrorOverlay(error_message, error_code);
     refreshScreen();
 }
 

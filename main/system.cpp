@@ -246,7 +246,7 @@ void System::task() {
         }
 
         if (m_overheated && !showsOverlay) {
-            m_display->showOverheating();
+            m_display->showError("MINER OVERHEATED", 0x14);
             showsOverlay = true;
         }
 
