@@ -32,7 +32,6 @@ const defaultInfo: ISystemInfo = {
   ssid: "default",
   wifiPass: "password",
   wifiStatus: "Connected!",
-  ntp: "europe.pool.ntp.org",
   sharesAccepted: 1,
   sharesRejected: 0,
   uptimeSeconds: 38,
@@ -83,7 +82,7 @@ export class SystemService {
 
   public getInfo(ts: number, uri: string = ''): Observable<ISystemInfo> {
     if (environment.production) {
-      return this.httpClient.get(`${uri}/api/system/info?ts=${ts}`) as Observable<ISystemInfo>;
+      return this.httpClient.get(`${uri}/api/system/info?ts=${ts}&cur=${Math.floor(Date.now())}`) as Observable<ISystemInfo>;
     } else {
       return of(defaultInfo).pipe(delay(1000));
     }

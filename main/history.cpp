@@ -247,7 +247,7 @@ void History::pushShare(uint32_t diff, uint64_t timestamp, int asic_nr)
 
 // successive approximation in a wrapped ring buffer with
 // monotonic/unwrapped write pointer :woozy:
-int History::searchNearestTimestamp(uint64_t timestamp)
+int History::searchNearestTimestamp(int64_t timestamp)
 {
     // get index of the first sample, clamp to min 0
     int lowest_index = (m_numSamples - HISTORY_MAX_SAMPLES < 0) ? 0 : m_numSamples - HISTORY_MAX_SAMPLES;
@@ -266,10 +266,10 @@ int History::searchNearestTimestamp(uint64_t timestamp)
         ESP_LOGD(TAG, "current %d num_elements %d stored_timestamp %llu wrapped-current %d", current, num_elements,
                  stored_timestamp, WRAP(current));
 
-        if (stored_timestamp > timestamp) {
+        if ((int64_t) stored_timestamp > timestamp) {
             // If timestamp is too large, search lower
             highest_index = current - 1; // Narrow the search to the lower half
-        } else if (stored_timestamp < timestamp) {
+        } else if ((int64_t) stored_timestamp < timestamp) {
             // If timestamp is too small, search higher
             lowest_index = current + 1; // Narrow the search to the upper half
         } else {

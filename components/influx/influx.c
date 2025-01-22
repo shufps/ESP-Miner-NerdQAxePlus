@@ -251,8 +251,6 @@ bool load_last_values(Influx *influx)
 void influx_write(Influx *influx)
 {
     char url[256];
-    struct timeval now;
-    gettimeofday(&now, NULL);
 
     snprintf(big_buffer, sizeof(big_buffer),
              "%s temperature=%f,temperature2=%f,"
@@ -260,13 +258,13 @@ void influx_write(Influx *influx)
              "best_difficulty=%f,total_best_difficulty=%f,pool_errors=%d,"
              "accepted=%d,not_accepted=%d,total_uptime=%d,blocks_found=%d,"
              "pwr_vin=%f,pwr_iin=%f,pwr_pin=%f,pwr_vout=%f,pwr_iout=%f,pwr_pout=%f,"
-             "total_blocks_found=%d,duplicate_hashes=%d %lld",
+             "total_blocks_found=%d,duplicate_hashes=%d",
              influx->prefix, influx->stats.temp, influx->stats.temp2, influx->stats.hashing_speed, influx->stats.invalid_shares,
              influx->stats.valid_shares, influx->stats.uptime, influx->stats.best_difficulty, influx->stats.total_best_difficulty,
              influx->stats.pool_errors, influx->stats.accepted, influx->stats.not_accepted, influx->stats.total_uptime,
              influx->stats.blocks_found, influx->stats.pwr_vin, influx->stats.pwr_iin, influx->stats.pwr_pin,
              influx->stats.pwr_vout, influx->stats.pwr_iout, influx->stats.pwr_pout, influx->stats.total_blocks_found,
-             influx->stats.duplicate_hashes, (long long) now.tv_sec);
+             influx->stats.duplicate_hashes);
 
     snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", influx->host, influx->port, influx->bucket,
              influx->org);

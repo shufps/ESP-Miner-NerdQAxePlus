@@ -12,12 +12,6 @@ menu "WiFi Configuration"
         help
             WiFi password (WPA or WPA2) for the example to use.
 
-    config ESP_NTP_SERVER
-        string "NTP Server"
-        default "europe.pool.ntp.org"
-        help
-            NTP Server
-
     choice ESP_WIFI_SAE_MODE
         prompt "WPA3 SAE mode selection"
         default ESP_WPA3_SAE_PWE_BOTH
