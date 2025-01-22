@@ -62,6 +62,7 @@ protected:
     lv_obj_t *ui_lblPriceInc = nullptr;
     lv_obj_t *ui_lblHashPrice = nullptr;
     lv_obj_t *ui_lblTempPrice = nullptr;
+    lv_obj_t *ui_errOverlayContainer = nullptr;
 
     Board* m_board;
     Theme* m_theme;
@@ -85,7 +86,7 @@ public:
     void bTCScreenInit(void);
 
     void showErrorOverlay(const char *error_message, uint32_t error_code);
-    void hideErrorOverlay(lv_obj_t *&overlay_container);
+    void hideErrorOverlay();
 
     friend class DisplayDriver;
 };
