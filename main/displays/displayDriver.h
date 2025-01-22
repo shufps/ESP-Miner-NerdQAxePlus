@@ -137,4 +137,5 @@ class DisplayDriver {
     void portalScreen(const char *message);                         // Switch to the portal screen
     void updateWifiStatus(const char *message);                     // Update the WiFi status on the display
     void showError(const char *error_message, uint32_t error_code); // Show generic error
+    void hideError();                                               // Hide error overlay
 };

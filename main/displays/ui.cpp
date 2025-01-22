@@ -467,20 +467,20 @@ void UI::showErrorOverlay(const char *error_message, uint32_t error_code)
     lv_obj_t *current_screen = lv_scr_act();
 
     // Create a container for the overlay
-    lv_obj_t *overlay_container = lv_obj_create(current_screen);
-    lv_obj_set_size(overlay_container, 278, 80); // Set the size of the overlay box
-    lv_obj_align(overlay_container, LV_ALIGN_CENTER, 0, -20); // Center the overlay on the screen
+    ui_errOverlayContainer = lv_obj_create(current_screen);
+    lv_obj_set_size(ui_errOverlayContainer, 278, 80); // Set the size of the overlay box
+    lv_obj_align(ui_errOverlayContainer, LV_ALIGN_CENTER, 0, -20); // Center the overlay on the screen
 
     // Disable scrollbars for the container
-    lv_obj_clear_flag(overlay_container, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(ui_errOverlayContainer, LV_OBJ_FLAG_SCROLLABLE);
 
     // Set background color and border style
-    lv_obj_set_style_bg_color(overlay_container, lv_color_hex(0x111111), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(overlay_container, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_border_color(overlay_container, lv_color_hex(0xe60000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_errOverlayContainer, lv_color_hex(0x111111), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_errOverlayContainer, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_errOverlayContainer, lv_color_hex(0xe60000), LV_PART_MAIN | LV_STATE_DEFAULT);
 
     // Create the first label for the error message
-    lv_obj_t *error_label = lv_label_create(overlay_container);
+    lv_obj_t *error_label = lv_label_create(ui_errOverlayContainer);
     lv_obj_set_width(error_label, LV_SIZE_CONTENT);  // Adjust width based on content
     lv_obj_set_height(error_label, LV_SIZE_CONTENT); // Adjust height based on content
     lv_obj_set_x(error_label, 0); // Center horizontally
@@ -494,7 +494,7 @@ void UI::showErrorOverlay(const char *error_message, uint32_t error_code)
     lv_obj_set_style_text_align(error_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     // Create the second label for the Guru Meditation Error
-    lv_obj_t *code_label = lv_label_create(overlay_container);
+    lv_obj_t *code_label = lv_label_create(ui_errOverlayContainer);
     lv_obj_set_width(code_label, LV_SIZE_CONTENT);  // Adjust width based on content
     lv_obj_set_height(code_label, LV_SIZE_CONTENT); // Adjust height based on content
     lv_obj_set_x(code_label, 0); // Center horizontally
@@ -512,11 +512,11 @@ void UI::showErrorOverlay(const char *error_message, uint32_t error_code)
     lv_obj_set_style_text_align(code_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
 }
 
-void UI::hideErrorOverlay(lv_obj_t *&overlay_container) // Pass by reference
+void UI::hideErrorOverlay()
 {
-    if (overlay_container != NULL) {
-        lv_obj_del(overlay_container); // Delete the overlay object and its children
-        overlay_container = NULL;     // Clear the pointer to avoid dangling references
+    if (ui_errOverlayContainer != NULL) {
+        lv_obj_del(ui_errOverlayContainer); // Delete the overlay object and its children
+        ui_errOverlayContainer = NULL;     // Clear the pointer to avoid dangling references
     }
 }
 

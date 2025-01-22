@@ -54,6 +54,10 @@ void System::initSystem() {
     // Initialize overheat flag
     m_overheated = false;
 
+    // Initialize shown overlay flag and last error code
+    m_showsOverlay = false;
+    m_currentErrorCode = 0;
+
     // Set the best diff string
     suffixString(m_bestNonceDiff, m_bestDiffString, DIFF_STRING_SIZE, 0);
     suffixString(m_bestSessionNonceDiff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
@@ -200,6 +204,25 @@ void System::showLastResetReason() {
     ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason);
 }
 
+void System::showError(const char *error_message, uint32_t error_code) {
+    // is this error already shown? yes, do nothing
+    if (m_showsOverlay && m_currentErrorCode == error_code) {
+        return;
+    }
+    m_display->showError("MINER OVERHEATED", 0x14);
+    m_showsOverlay = true;
+    m_currentErrorCode = error_code;
+}
+
+void System::hideError() {
+    if (!m_showsOverlay) {
+        return;
+    }
+    m_display->hideError();
+    m_currentErrorCode = 0;
+    m_showsOverlay = false;
+}
+
 void System::taskWrapper(void* pvParameters) {
     System* systemInstance = static_cast<System*>(pvParameters);
     systemInstance->task();
@@ -230,7 +253,6 @@ void System::task() {
     m_display->updateCurrentSettings();
 
     uint8_t countCycle = 10;
-    bool showsOverlay = false;
     char ipAddressStr[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
     bool validIp = false;
 
@@ -245,9 +267,8 @@ void System::task() {
             validIp = true;
         }
 
-        if (m_overheated && !showsOverlay) {
-            m_display->showError("MINER OVERHEATED", 0x14);
-            showsOverlay = true;
+        if (m_overheated) {
+            showError("MINER OVERHEATED", 0x14);
         }
 
         m_display->updateGlobalState();

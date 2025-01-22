@@ -49,6 +49,8 @@ class System {
     // Error tracking
     int m_poolErrors;  // Count of errors related to the mining pool
     bool m_overheated; // Flag to indicate if the system is overheated
+    bool m_showsOverlay;    // Flat if overlay is shown
+    uint32_t m_currentErrorCode;
 
     const char* m_lastResetReason;
 
@@ -90,6 +92,10 @@ class System {
 
     // Main task method, typically runs the main loop
     void task();
+
+    // hide and show error overlay
+    void showError(const char *error_message, uint32_t error_code);
+    void hideError();
 
     // Notification methods to update share statistics
     void notifyAcceptedShare();                              // Notify system of an accepted share
