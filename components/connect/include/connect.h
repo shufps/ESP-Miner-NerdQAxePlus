@@ -32,7 +32,6 @@ typedef enum
     WIFI_RETRYING,
 } wifi_status_t;
 
-void toggle_wifi_softap(void);
 void wifi_softap_on(void);
 void wifi_softap_off(void);
 void wifi_init(const char *wifi_ssid, const char *wifi_pass, const char *hostname);
