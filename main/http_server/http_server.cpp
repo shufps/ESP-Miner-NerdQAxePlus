@@ -4,21 +4,21 @@
 #include <sys/param.h>
 
 #include "cJSON.h"
+#include "dns_server.h"
 #include "esp_chip_info.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_mac.h"
+#include "esp_netif.h"
+#include "esp_ota_ops.h"
 #include "esp_random.h"
 #include "esp_spiffs.h"
 #include "esp_timer.h"
 #include "esp_vfs.h"
-#include "esp_mac.h"
-#include "esp_netif.h"
-#include "esp_ota_ops.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
-#include "dns_server.h"
 #include "lwip/err.h"
 #include "lwip/inet.h"
 #include "lwip/lwip_napt.h"
@@ -27,23 +27,23 @@
 #include "lwip/sys.h"
 
 #include "global_state.h"
+#include "http_server.h"
 #include "nvs_config.h"
 #include "recovery_page.h"
-#include "http_server.h"
 
-#include "history.h"
 #include "boards/board.h"
+#include "history.h"
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
 #pragma GCC diagnostic error "-Wmissing-prototypes"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
-#define max(a,b) ((a)>(b))?(a):(b)
-#define min(a,b) ((a)<(b))?(a):(b)
+#define max(a, b) ((a) > (b)) ? (a) : (b)
+#define min(a, b) ((a) < (b)) ? (a) : (b)
 
 static const char *TAG = "http_server";
-static const char * CORS_TAG = "CORS";
+static const char *CORS_TAG = "CORS";
 
 static httpd_handle_t server = NULL;
 QueueHandle_t log_queue = NULL;
@@ -90,7 +90,8 @@ static void configure_cjson_for_psram()
     cJSON_InitHooks(&hooks);
 }
 
-static esp_err_t ip_in_private_range(uint32_t address) {
+static esp_err_t ip_in_private_range(uint32_t address)
+{
     uint32_t ip_address = ntohl(address);
 
     // 10.0.0.0 - 10.255.255.255 (Class A)
@@ -132,7 +133,7 @@ static uint32_t extract_origin_ip_addr(httpd_req_t *req)
 
         // Extract the IP address portion (up to the next '/')
         char *ip_end = strchr(ip_start, '/');
-        size_t ip_len = ip_end ? (size_t)(ip_end - ip_start) : strlen(ip_start);
+        size_t ip_len = ip_end ? (size_t) (ip_end - ip_start) : strlen(ip_start);
         if (ip_len < sizeof(ip_str)) {
             strncpy(ip_str, ip_start, ip_len);
             ip_str[ip_len] = '\0'; // Null-terminate the string
@@ -152,7 +153,7 @@ static uint32_t extract_origin_ip_addr(httpd_req_t *req)
     return origin_ip_addr;
 }
 
-static esp_err_t is_network_allowed(httpd_req_t * req)
+static esp_err_t is_network_allowed(httpd_req_t *req)
 {
     if (SYSTEM_MODULE.getAPState()) {
         ESP_LOGI(CORS_TAG, "Device in AP mode. Allowing CORS.");
@@ -161,10 +162,10 @@ static esp_err_t is_network_allowed(httpd_req_t * req)
 
     int sockfd = httpd_req_to_sockfd(req);
     char ipstr[INET6_ADDRSTRLEN];
-    struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
+    struct sockaddr_in6 addr; // esp_http_server uses IPv6 addressing
     socklen_t addr_size = sizeof(addr);
 
-    if (getpeername(sockfd, (struct sockaddr *)&addr, &addr_size) < 0) {
+    if (getpeername(sockfd, (struct sockaddr *) &addr, &addr_size) < 0) {
         ESP_LOGE(CORS_TAG, "Error getting client IP");
         return ESP_FAIL;
     }
@@ -469,7 +470,7 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
     httpd_resp_send_chunk(req, NULL, 0);
 
     // reload settings
-    Board* board = SYSTEM_MODULE.getBoard();
+    Board *board = SYSTEM_MODULE.getBoard();
     board->loadSettings();
 
     return ESP_OK;
@@ -618,8 +619,8 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     char *stratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
     char *stratumUser = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
 
-    Board* board = SYSTEM_MODULE.getBoard();
-    History* history = SYSTEM_MODULE.getHistory();
+    Board *board = SYSTEM_MODULE.getBoard();
+    History *history = SYSTEM_MODULE.getHistory();
 
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "power", POWER_MANAGEMENT_MODULE.getPower());
@@ -682,11 +683,10 @@ static esp_err_t GET_system_info(httpd_req_t *req)
 
     const char *sys_info = cJSON_Print(root);
     httpd_resp_sendstr(req, sys_info);
-    free((void*) sys_info);
+    free((void *) sys_info);
     cJSON_Delete(root);
     return ESP_OK;
 }
-
 
 /* Simple handler for getting system handler */
 static esp_err_t GET_influx_info(httpd_req_t *req)
@@ -724,7 +724,7 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
 
     const char *influx_info = cJSON_Print(root);
     httpd_resp_sendstr(req, influx_info);
-    free((char*) influx_info);
+    free((char *) influx_info);
     cJSON_Delete(root);
     return ESP_OK;
 }
@@ -768,9 +768,9 @@ static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp,
             continue;
         }
 
-        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int)(history->getHashrate10mSample(i) * 100.0)));
-        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int)(history->getHashrate1hSample(i) * 100.0)));
-        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int)(history->getHashrate1dSample(i) * 100.0)));
+        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int) (history->getHashrate10mSample(i) * 100.0)));
+        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int) (history->getHashrate1hSample(i) * 100.0)));
+        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int) (history->getHashrate1dSample(i) * 100.0)));
         cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber((int64_t) sample_timestamp - sys_start));
     }
 
@@ -885,7 +885,7 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
     return ESP_OK;
 }
 
-static int log_to_queue(const char * format, va_list args)
+static int log_to_queue(const char *format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -895,7 +895,7 @@ static int log_to_queue(const char * format, va_list args)
     va_end(args_copy);
 
     // Allocate the buffer dynamically
-    char * log_buffer = (char *) calloc(needed_size + 2, sizeof(char));  // +2 for potential \n and \0
+    char *log_buffer = (char *) calloc(needed_size + 2, sizeof(char)); // +2 for potential \n and \0
     if (log_buffer == NULL) {
         return 0;
     }
@@ -916,11 +916,11 @@ static int log_to_queue(const char * format, va_list args)
     // Print to standard output
     printf("%s", log_buffer);
 
-	if (xQueueSendToBack(log_queue, (void*)&log_buffer, (TickType_t) 0) != pdPASS) {
-		if (log_buffer != NULL) {
-			free((void*)log_buffer);
-		}
-	}
+    if (xQueueSendToBack(log_queue, (void *) &log_buffer, (TickType_t) 0) != pdPASS) {
+        if (log_buffer != NULL) {
+            free((void *) log_buffer);
+        }
+    }
     return 0;
 }
 
@@ -929,7 +929,7 @@ static void send_log_to_websocket(char *message)
     // Prepare the WebSocket frame
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = (uint8_t *)message;
+    ws_pkt.payload = (uint8_t *) message;
     ws_pkt.len = strlen(message);
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
@@ -942,7 +942,7 @@ static void send_log_to_websocket(char *message)
     }
 
     // Free the allocated buffer
-    free((void*)message);
+    free((void *) message);
 }
 
 /*
@@ -978,30 +978,29 @@ static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
     return ESP_OK;
 }
 
-static void websocket_log_handler(void* param)
+static void websocket_log_handler(void *param)
 {
-	while (true)
-	{
-		char *message;
-		if (xQueueReceive(log_queue, &message, (TickType_t) portMAX_DELAY) != pdPASS) {
-			if (message != NULL) {
-				free((void*)message);
-			}
-			vTaskDelay(10 / portTICK_PERIOD_MS);
-			continue;
-		}
+    while (true) {
+        char *message;
+        if (xQueueReceive(log_queue, &message, (TickType_t) portMAX_DELAY) != pdPASS) {
+            if (message != NULL) {
+                free((void *) message);
+            }
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+            continue;
+        }
 
-		if (fd == -1) {
-			free((void*)message);
-			vTaskDelay(100 / portTICK_PERIOD_MS);
-			continue;
-		}
+        if (fd == -1) {
+            free((void *) message);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            continue;
+        }
 
-		send_log_to_websocket(message);
-	}
+        send_log_to_websocket(message);
+    }
 }
 
-esp_err_t start_rest_server(void * pvParameters)
+esp_err_t start_rest_server(void *pvParameters)
 {
     configure_cjson_for_psram();
 
@@ -1019,7 +1018,7 @@ esp_err_t start_rest_server(void * pvParameters)
         return ESP_FAIL;
     }
 
-    rest_server_context_t *rest_context = (rest_server_context_t*) calloc(1, sizeof(rest_server_context_t));
+    rest_server_context_t *rest_context = (rest_server_context_t *) calloc(1, sizeof(rest_server_context_t));
     if (!rest_context) {
         ESP_LOGE(TAG, "No memory for rest context");
         return ESP_FAIL;
@@ -1027,7 +1026,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     strlcpy(rest_context->base_path, base_path, sizeof(rest_context->base_path));
 
-    log_queue = xQueueCreate(MESSAGE_QUEUE_SIZE, sizeof(char*));
+    log_queue = xQueueCreate(MESSAGE_QUEUE_SIZE, sizeof(char *));
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
