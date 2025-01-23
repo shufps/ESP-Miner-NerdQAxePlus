@@ -68,6 +68,9 @@ void System::initSystem() {
     // Clear the wifi_status string
     memset(m_wifiStatus, 0, 20);
 
+    // initialize AP state
+    m_apState = false;
+
     // Initialize the display
     m_display = new DisplayDriver();
     m_display->init(m_board);
