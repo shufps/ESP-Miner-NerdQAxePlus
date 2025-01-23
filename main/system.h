@@ -42,6 +42,7 @@ class System {
     // Network and connection info
     char m_ssid[33];           // WiFi SSID (+1 for null terminator)
     char m_wifiStatus[20];     // WiFi status string
+    bool m_apState;
     char *m_poolUrl;           // URL of the mining pool
     uint16_t m_poolPort;       // Port number of the mining pool
     uint32_t m_poolDifficulty; // Current pool difficulty
@@ -180,6 +181,15 @@ class System {
     {
         strncpy(m_wifiStatus, wifiStatus, sizeof(m_wifiStatus));
     }
+
+    void setAPState(bool state) {
+        m_apState = state;
+    }
+
+    bool getAPState() {
+        return m_apState;
+    }
+
     void setSsid(const char *ssid)
     {
         strncpy(m_ssid, ssid, sizeof(m_ssid));
