@@ -278,7 +278,7 @@ void System::task() {
         }
 
         if (m_psuError) {
-            showError("POWER ERROR", 0x15);
+            showError("PSU ERROR", 0x15);
         }
 
         m_display->updateGlobalState();
