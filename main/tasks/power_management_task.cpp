@@ -104,6 +104,17 @@ void PowerManagementTask::task()
 
         influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
+        // currently only implemented for boards with TPS536x7
+        bool psuError = board->getPSUFault();
+        if (psuError) {
+            // when this happens, there is some PSU error
+            // on the nerdqaxes the buck restarted and defaulted to 1.00V
+            // this can happen when the PSU can't deliver enough current
+            // we display the error message and switch the buck off
+            SYSTEM_MODULE.setPSUError(true);
+            board->setVoltage(0.0);
+        }
+
         m_voltage = vin * 1000.0;
         m_current = iin * 1000.0;
         m_power = pin;

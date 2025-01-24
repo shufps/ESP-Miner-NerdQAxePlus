@@ -70,6 +70,10 @@ class Board {
 
     virtual void requestBuckTelemtry() = 0;
 
+    virtual bool getPSUFault() {
+        return false;
+    }
+
     Theme *getTheme()
     {
         return m_theme;

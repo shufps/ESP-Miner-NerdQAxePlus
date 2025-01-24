@@ -192,3 +192,14 @@ float NerdQaxePlus::getPout() {
     return TPS53647_get_pout();
 }
 
+bool NerdQaxePlus::getPSUFault() {
+    uint16_t vid = TPS53647_get_vout_vid();
+    uint8_t status_byte = TPS53647_get_status_byte();
+
+    // if we have 0x97 it means the buck was reset and
+    // restarted with VBOOT. In this case we assume there
+    // is a PSU error
+    // in case of the PSUs over current protection (voltage will drop),
+    // we will see bit 3 "VIN_UV" in the status byte
+    return ((vid == 0x97) || (status_byte & 0x08));
+}

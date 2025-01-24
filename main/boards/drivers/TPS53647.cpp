@@ -304,12 +304,13 @@ static uint16_t float_2_slinear11(float value)
 
 void TPS53647_status()
 {
-    uint8_t status_byte;
-    uint16_t status_word;
-    uint8_t status_vout;
-    uint8_t status_iout;
-    uint8_t status_input;
-    uint8_t status_mfr_specific;
+    uint8_t status_byte = 0xff;
+    uint16_t status_word = 0xffff;
+    uint8_t status_vout = 0xff;
+    uint8_t status_iout = 0xff;
+    uint8_t status_input = 0xff;
+    uint8_t status_mfr_specific = 0xff;
+    uint16_t vout_cmd = 0xffff;
 
     smb_read_byte(PMBUS_STATUS_BYTE, &status_byte);
     smb_read_word(PMBUS_STATUS_WORD, &status_word);
@@ -396,8 +397,8 @@ static void TPS53647_power_disable()
 
 int TPS53647_get_temperature(void)
 {
-    uint16_t value;
-    int temp;
+    uint16_t value = 0;
+    int temp = 0;
 
     if (!is_initialized) {
         return 0;
@@ -410,8 +411,8 @@ int TPS53647_get_temperature(void)
 
 float TPS53647_get_pin(void)
 {
-    uint16_t u16_value;
-    float pin;
+    uint16_t u16_value = 0;
+    float pin = 0.0f;
 
     if (!is_initialized) {
         return 0.0f;
@@ -428,8 +429,8 @@ float TPS53647_get_pin(void)
 
 float TPS53647_get_pout(void)
 {
-    uint16_t u16_value;
-    float pout;
+    uint16_t u16_value = 0;
+    float pout = 0.0f;
 
     if (!is_initialized) {
         return 0.0f;
@@ -446,8 +447,8 @@ float TPS53647_get_pout(void)
 
 float TPS53647_get_vin(void)
 {
-    uint16_t u16_value;
-    float vin;
+    uint16_t u16_value = 0;
+    float vin = 0.0f;
 
     if (!is_initialized) {
         return 0.0f;
@@ -464,8 +465,8 @@ float TPS53647_get_vin(void)
 
 float TPS53647_get_vout(void)
 {
-    uint16_t u16_value;
-    float vout;
+    uint16_t u16_value = 0;
+    float vout = 0.0f;
 
     if (!is_initialized) {
         return 0.0f;
@@ -482,8 +483,8 @@ float TPS53647_get_vout(void)
 
 float TPS53647_get_iin(void)
 {
-    uint16_t u16_value;
-    float iin;
+    uint16_t u16_value = 0;
+    float iin = 0.0f;
 
     if (!is_initialized) {
         return 0.0f;
@@ -501,8 +502,8 @@ float TPS53647_get_iin(void)
 
 float TPS53647_get_iout(void)
 {
-    uint16_t u16_value;
-    float iout;
+    uint16_t u16_value = 0;
+    float iout = 0.0f;
 
     if (!is_initialized) {
         return 0.0f;
@@ -578,4 +579,18 @@ void TPS53647_show_voltage_settings(void)
     smb_read_word(PMBUS_VOUT_MARGIN_LOW, &u16_value);
     f_value = vid_to_volt(u16_value);
     ESP_LOGI(TAG, "Vout Margin LOW: %f V", f_value);
+}
+
+uint16_t TPS53647_get_vout_vid(void) {
+    // 0x97 is 1.00V
+    uint16_t vid = 0x97;
+    smb_read_word(PMBUS_VOUT_COMMAND, &vid);
+    //ESP_LOGI(TAG, "vout_cmd: %02x", vid);
+    return vid;
+}
+
+uint8_t TPS53647_get_status_byte(void) {
+    uint8_t status_byte = 0xff;
+    smb_read_byte(PMBUS_STATUS_BYTE, &status_byte);
+    return status_byte;
 }

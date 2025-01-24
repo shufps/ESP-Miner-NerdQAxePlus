@@ -54,6 +54,9 @@ void System::initSystem() {
     // Initialize overheat flag
     m_overheated = false;
 
+    // Initialize psu error flag
+    m_psuError = false;
+
     // Initialize shown overlay flag and last error code
     m_showsOverlay = false;
     m_currentErrorCode = 0;
@@ -212,7 +215,7 @@ void System::showError(const char *error_message, uint32_t error_code) {
     if (m_showsOverlay && m_currentErrorCode == error_code) {
         return;
     }
-    m_display->showError("MINER OVERHEATED", 0x14);
+    m_display->showError(error_message, error_code);
     m_showsOverlay = true;
     m_currentErrorCode = error_code;
 }
@@ -272,6 +275,10 @@ void System::task() {
 
         if (m_overheated) {
             showError("MINER OVERHEATED", 0x14);
+        }
+
+        if (m_psuError) {
+            showError("PSU ERROR", 0x15);
         }
 
         m_display->updateGlobalState();
