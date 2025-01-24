@@ -585,5 +585,12 @@ uint16_t TPS53647_get_vout_vid(void) {
     // 0x97 is 1.00V
     uint16_t vid = 0x97;
     smb_read_word(PMBUS_VOUT_COMMAND, &vid);
+    //ESP_LOGI(TAG, "vout_cmd: %02x", vid);
     return vid;
+}
+
+uint8_t TPS53647_get_status_byte(void) {
+    uint8_t status_byte = 0xff;
+    smb_read_byte(PMBUS_STATUS_BYTE, &status_byte);
+    return status_byte;
 }
