@@ -124,10 +124,8 @@ jobs:
 
     - name: Combine SHA-256 Sums
       run: |
-        echo '<!--' >> sha256-summary.txt  # Add opening code block
         files="$( find ./artifacts -name "*.sha256" | xargs )"
-        cat $files | sort -k2 >> sha256-summary.txt
-        echo '-->' >> sha256-summary.txt  # Add opening code block
+        cat $files | sort -k2 > sha256-summary.txt
 
     - name: Install GitHub CLI
       run: |
@@ -137,5 +135,18 @@ jobs:
     - name: Update Release Body
       run: |
         gh release edit ${{ env.VERSION_TAG }} --notes-file sha256-summary.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Append to Release Body
+      run: |
+        # Fetch the current release body
+        existing_notes=$(gh release view ${{ env.VERSION_TAG }} --json body -q '.body')
+
+        # Append the new content
+        new_notes="$existing_notes\n<!--\n$(cat sha256-summary.txt)\n-->\n"
+
+        # Update the release body
+        echo -e "$new_notes" | gh release edit ${{ env.VERSION_TAG }} --notes -
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
