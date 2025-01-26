@@ -141,10 +141,13 @@ jobs:
     - name: Append to Release Body
       run: |
         # Fetch the current release body
-        existing_notes=$(gh release view ${{ env.VERSION_TAG }} --json body -q '.body')
+        existing_notes="$(gh release view ${{ env.VERSION_TAG }} --json body -q '.body')"
 
         # Append the new content
-        new_notes="$existing_notes\n<\!--\n$(cat sha256-summary.txt)\n-->\n"
+        new_notes="$existing_notes\n"
+        new_notes+='<!--\n'
+        new_notes+="$(cat sha256-summary.txt)\n"
+        new_notes+='-->\n'
 
         # Update the release body
         gh release edit ${{ env.VERSION_TAG }} --notes "$(echo -e "$new_notes")"
