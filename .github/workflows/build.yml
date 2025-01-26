@@ -132,12 +132,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y gh
 
-    - name: Update Release Body
-      run: |
-        gh release edit ${{ env.VERSION_TAG }} --notes-file sha256-summary.txt
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Append to Release Body
       run: |
         # Fetch the current release body
