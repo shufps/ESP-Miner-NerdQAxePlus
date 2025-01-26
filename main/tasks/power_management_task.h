@@ -17,6 +17,7 @@ class PowerManagementTask {
     void task();
 
   public:
+    float m_asic_high_temp;
     PowerManagementTask();
 
     static void taskWrapper(void *pvParameters);
@@ -49,4 +50,7 @@ class PowerManagementTask {
     {
         return m_fanPerc;
     };
+    void setAsicHighTemp(float asic_h_temp){
+        m_asic_high_temp = asic_h_temp;
+    }
 };
