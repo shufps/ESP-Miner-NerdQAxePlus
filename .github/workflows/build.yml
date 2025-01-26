@@ -121,7 +121,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: ./sha256
-        pattern: *.sha256
+        pattern: "*.sha256"
         merge-multiple: true
 
     - name: Combine SHA-256 Sums
