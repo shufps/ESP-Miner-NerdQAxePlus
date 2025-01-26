@@ -113,11 +113,13 @@ jobs:
     - name: Combine SHA-256 Sums
       run: |
         echo "### Factory files SHA-256 Checksums" > sha256-summary.txt
-        cat *.sha256 | sort -k2 > sha256-summary.txt
+        cat ./sha256/*.sha256 | sort -k2 >> sha256-summary.txt
+
+    - name: Install GitHub CLI
+      uses: cli/gh-cli@v1
 
     - name: Update Release Body
-      uses: github/gh-cli@v2
-      with:
-        command: |
-          gh release edit ${{ needs.build-and-release.outputs.VERSION_TAG }} \
-          --notes-file sha256-summary.txt
+      run: |
+        gh release edit ${{ needs.build-and-release.outputs.VERSION_TAG }} --notes-file sha256-summary.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
