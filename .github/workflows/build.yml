@@ -124,11 +124,10 @@ jobs:
 
     - name: Combine SHA-256 Sums
       run: |
-        echo "### Factory files SHA-256 Checksums" > sha256-summary.txt
-        echo '```' >> sha256-summary.txt  # Add opening code block
+        echo '<!--' >> sha256-summary.txt  # Add opening code block
         files="$( find ./artifacts -name "*.sha256" | xargs )"
         cat $files | sort -k2 >> sha256-summary.txt
-        echo '```' >> sha256-summary.txt  # Add opening code block
+        echo '-->' >> sha256-summary.txt  # Add opening code block
 
     - name: Install GitHub CLI
       run: |
