@@ -147,6 +147,6 @@ jobs:
         new_notes="$existing_notes\n<\!--\n$(cat sha256-summary.txt)\n-->\n"
 
         # Update the release body
-        echo -e "$new_notes" | gh release edit ${{ env.VERSION_TAG }} --notes -
+        gh release edit ${{ env.VERSION_TAG }} --notes "$(echo -e "$new_notes")"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
