@@ -13,6 +13,8 @@ LV_FONT_DECLARE(ui_font_OpenSansBold13);
 LV_FONT_DECLARE(ui_font_OpenSansBold14);
 LV_FONT_DECLARE(ui_font_OpenSansBold45);
 LV_FONT_DECLARE(ui_font_OpenSansBold24);
+LV_FONT_DECLARE(ui_font_vt323_35);
+LV_FONT_DECLARE(ui_font_vt323_21);
 
 #define TDISPLAYS3_LVGL_TICK_PERIOD_MS 30
 
@@ -60,6 +62,7 @@ protected:
     lv_obj_t *ui_lblPriceInc = nullptr;
     lv_obj_t *ui_lblHashPrice = nullptr;
     lv_obj_t *ui_lblTempPrice = nullptr;
+    lv_obj_t *ui_errOverlayContainer = nullptr;
 
     Board* m_board;
     Theme* m_theme;
@@ -82,8 +85,8 @@ public:
     void logScreenInit(void);
     void bTCScreenInit(void);
 
-    void showOverheatWarningOverlay();
-    void hideOverheatWarningOverlay(lv_obj_t *overlay_container);
+    void showErrorOverlay(const char *error_message, uint32_t error_code);
+    void hideErrorOverlay();
 
     friend class DisplayDriver;
 };

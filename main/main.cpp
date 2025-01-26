@@ -139,7 +139,7 @@ extern "C" void app_main(void)
     SYSTEM_MODULE.setBoard(board);
 
     size_t total_psram = esp_psram_get_size();
-    ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));        
+    ESP_LOGI(TAG, "PSRAM found with %dMB", total_psram / (1024 * 1024));
     ESP_LOGI(TAG, "Found Device Model: %s", board->getDeviceModel());
     ESP_LOGI(TAG, "Found Board Version: %d", board->getVersion());
 
@@ -203,4 +203,8 @@ void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
         break;
     }
     }
+}
+
+void MINER_set_ap_status(bool state) {
+    SYSTEM_MODULE.setAPState(state);
 }

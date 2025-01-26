@@ -15,6 +15,7 @@
 #include "connect.h"
 
 void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count);
+void MINER_set_ap_status(bool state);
 
 #if CONFIG_ESP_WPA3_SAE_PWE_HUNT_AND_PECK
 #define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HUNT_AND_PECK
@@ -127,30 +128,18 @@ esp_netif_t *wifi_init_softap(void)
     return esp_netif_ap;
 }
 
-void toggle_wifi_softap(void)
-{
-    wifi_mode_t mode = WIFI_MODE_NULL;
-    ESP_ERROR_CHECK(esp_wifi_get_mode(&mode));
-
-    if (mode == WIFI_MODE_APSTA) {
-        ESP_LOGI(TAG, "ESP_WIFI Access Point Off");
-        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    } else {
-        ESP_LOGI(TAG, "ESP_WIFI Access Point On");
-        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
-    }
-}
-
 void wifi_softap_off(void)
 {
     ESP_LOGI(TAG, "ESP_WIFI Access Point Off");
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    MINER_set_ap_status(false);
 }
 
 void wifi_softap_on(void)
 {
     ESP_LOGI(TAG, "ESP_WIFI Access Point On");
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    MINER_set_ap_status(true);
 }
 
 /* Initialize wifi station */

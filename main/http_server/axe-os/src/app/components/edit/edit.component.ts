@@ -16,6 +16,9 @@ export class EditComponent implements OnInit {
 
   public form!: FormGroup;
 
+  public frequencyOptions: { name: string; value: number }[] = []; // Declare for frequency options
+  public voltageOptions: { name: string; value: number }[] = [];  // Declare for voltage options
+
   public firmwareUpdateProgress: number | null = null;
   public websiteUpdateProgress: number | null = null;
 
@@ -25,68 +28,6 @@ export class EditComponent implements OnInit {
   public ASICModel!: eASICModel;
 
   @Input() uri = '';
-
-  public BM1366DropdownFrequency = [
-    { name: '400', value: 400 },
-    { name: '425', value: 425 },
-    { name: '450', value: 450 },
-    { name: '475', value: 475 },
-    { name: '485 (default)', value: 485 },
-    { name: '500', value: 500 },
-    { name: '525', value: 525 },
-    { name: '550', value: 550 },
-    { name: '575', value: 575 },
-  ];
-
-  public BM1366CoreVoltage = [
-    { name: '1100', value: 1100 },
-    { name: '1150', value: 1150 },
-    { name: '1200 (default)', value: 1200 },
-    { name: '1250', value: 1250 },
-    { name: '1300', value: 1300 },
-  ];
-
-  public BM1368DropdownFrequency = [
-    { name: '400', value: 400 },
-    { name: '425', value: 425 },
-    { name: '450', value: 450 },
-    { name: '475', value: 475 },
-    { name: '490 (default)', value: 490 },
-    { name: '500', value: 500 },
-    { name: '525', value: 525 },
-    { name: '550', value: 550 },
-    { name: '575', value: 575 },
-  ];
-
-  public BM1368CoreVoltage = [
-    { name: '1100', value: 1100 },
-    { name: '1150', value: 1150 },
-    { name: '1200', value: 1200 },
-    { name: '1250 (default)', value: 1250 },
-    { name: '1300', value: 1300 },
-    { name: '1350', value: 1350 },
-  ];
-
-  public BM1370DropdownFrequency = [
-    { name: '500', value: 500 },
-    { name: '525', value: 525 },
-    { name: '550', value: 550 },
-    { name: '575', value: 575 },
-    { name: '590', value: 590 },
-    { name: '600 (default)', value: 600 },
-  ];
-
-  public BM1370CoreVoltage = [
-    { name: '1120', value: 1120 },
-    { name: '1130', value: 1130 },
-    { name: '1140', value: 1140 },
-    { name: '1150 (default)', value: 1150 },
-    { name: '1160', value: 1160 },
-    { name: '1170', value: 1170 },
-    { name: '1180', value: 1180 },
-    { name: '1190', value: 1190 },
-    { name: '1200', value: 1200 },
-  ];
 
   constructor(
     private fb: FormBuilder,
@@ -105,6 +46,12 @@ export class EditComponent implements OnInit {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
         this.ASICModel = info.ASICModel;
+
+        // Assemble dropdown options
+        this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(), info.frequency);
+        this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(), info.coreVoltage);
+
+
         this.form = this.fb.group({
           flipscreen: [info.flipscreen == 1],
           invertscreen: [info.invertscreen == 1],
@@ -148,15 +95,25 @@ export class EditComponent implements OnInit {
 
 
   private checkDevTools = () => {
-    if (
+    const previousState = this.devToolsOpen;
+    this.devToolsOpen =
       window.outerWidth - window.innerWidth > 160 ||
-      window.outerHeight - window.innerHeight > 160
-    ) {
-      this.devToolsOpen = true;
-    } else {
-      this.devToolsOpen = false;
+      window.outerHeight - window.innerHeight > 160;
+
+    // When transitioning from devTools open to closed
+    if (!this.devToolsOpen && previousState) {
+      // Update dropdown options with free-text values
+      this.frequencyOptions = this.assembleDropdownOptions(
+        this.getPredefinedFrequencies(),
+        this.form.controls['frequency'].value
+      );
+      this.voltageOptions = this.assembleDropdownOptions(
+        this.getPredefinedVoltages(),
+        this.form.controls['coreVoltage'].value
+      );
     }
   };
+
 
   public updateSystem() {
 
@@ -193,5 +150,108 @@ export class EditComponent implements OnInit {
   toggleWifiPasswordVisibility() {
     this.showWifiPassword = !this.showWifiPassword;
   }
+
+
+/**
+ * Dynamically assemble dropdown options, including custom values.
+ * @param predefined The predefined options.
+ * @param currentValue The current value to include as a custom option if needed.
+ */
+private assembleDropdownOptions(predefined: { name: string, value: number }[], currentValue: number): { name: string, value: number }[] {
+  // Clone predefined options to avoid side effects
+  const options = [...predefined];
+
+  // Add custom value if not already in the list
+  if (!options.some(option => option.value === currentValue)) {
+    options.push({
+      name: `${currentValue} (custom)`,
+      value: currentValue
+    });
+  }
+
+  return options;
+}
+
+/**
+ * Returns predefined frequencies based on the current ASIC model.
+ */
+private getPredefinedFrequencies(): { name: string, value: number }[] {
+  switch (this.ASICModel) {
+    case eASICModel.BM1366:
+      return [
+        { name: '400', value: 400 },
+        { name: '425', value: 425 },
+        { name: '450', value: 450 },
+        { name: '475', value: 475 },
+        { name: '485 (default)', value: 485 },
+        { name: '500', value: 500 },
+        { name: '525', value: 525 },
+        { name: '550', value: 550 },
+        { name: '575', value: 575 }
+      ];
+    case eASICModel.BM1368:
+      return [
+        { name: '400', value: 400 },
+        { name: '425', value: 425 },
+        { name: '450', value: 450 },
+        { name: '475', value: 475 },
+        { name: '490 (default)', value: 490 },
+        { name: '500', value: 500 },
+        { name: '525', value: 525 },
+        { name: '550', value: 550 },
+        { name: '575', value: 575 }
+      ];
+    case eASICModel.BM1370:
+      return [
+        { name: '500', value: 500 },
+        { name: '525', value: 525 },
+        { name: '550', value: 550 },
+        { name: '575', value: 575 },
+        { name: '590', value: 590 },
+        { name: '600 (default)', value: 600 }
+      ];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Returns predefined core voltages based on the current ASIC model.
+ */
+private getPredefinedVoltages(): { name: string, value: number }[] {
+  switch (this.ASICModel) {
+    case eASICModel.BM1366:
+      return [
+        { name: '1100', value: 1100 },
+        { name: '1150', value: 1150 },
+        { name: '1200 (default)', value: 1200 },
+        { name: '1250', value: 1250 },
+        { name: '1300', value: 1300 }
+      ];
+    case eASICModel.BM1368:
+      return [
+        { name: '1100', value: 1100 },
+        { name: '1150', value: 1150 },
+        { name: '1200', value: 1200 },
+        { name: '1250 (default)', value: 1250 },
+        { name: '1300', value: 1300 },
+        { name: '1350', value: 1350 }
+      ];
+    case eASICModel.BM1370:
+      return [
+        { name: '1120', value: 1120 },
+        { name: '1130', value: 1130 },
+        { name: '1140', value: 1140 },
+        { name: '1150 (default)', value: 1150 },
+        { name: '1160', value: 1160 },
+        { name: '1170', value: 1170 },
+        { name: '1180', value: 1180 },
+        { name: '1190', value: 1190 },
+        { name: '1200', value: 1200 },
+      ];
+    default:
+      return [];
+  }
+}
 
 }

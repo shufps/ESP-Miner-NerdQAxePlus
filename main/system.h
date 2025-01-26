@@ -42,6 +42,7 @@ class System {
     // Network and connection info
     char m_ssid[33];           // WiFi SSID (+1 for null terminator)
     char m_wifiStatus[20];     // WiFi status string
+    bool m_apState;
     char *m_poolUrl;           // URL of the mining pool
     uint16_t m_poolPort;       // Port number of the mining pool
     uint32_t m_poolDifficulty; // Current pool difficulty
@@ -49,11 +50,11 @@ class System {
     // Error tracking
     int m_poolErrors;  // Count of errors related to the mining pool
     bool m_overheated; // Flag to indicate if the system is overheated
+    bool m_psuError;   // Flag to indicate that there is some PSU problem
+    bool m_showsOverlay;    // Flat if overlay is shown
+    uint32_t m_currentErrorCode;
 
     const char* m_lastResetReason;
-
-    // Clock synchronization
-    uint32_t m_lastClockSync; // Last clock synchronization timestamp
 
     History *m_history;
 
@@ -93,6 +94,10 @@ class System {
 
     // Main task method, typically runs the main loop
     void task();
+
+    // hide and show error overlay
+    void showError(const char *error_message, uint32_t error_code);
+    void hideError();
 
     // Notification methods to update share statistics
     void notifyAcceptedShare();                              // Notify system of an accepted share
@@ -164,6 +169,11 @@ class System {
         m_overheated = status;
     }
 
+    void setPSUError(bool status)
+    {
+        m_psuError = status;
+    }
+
     // WiFi-related getters and setters
     const char *getWifiStatus() const
     {
@@ -177,6 +187,15 @@ class System {
     {
         strncpy(m_wifiStatus, wifiStatus, sizeof(m_wifiStatus));
     }
+
+    void setAPState(bool state) {
+        m_apState = state;
+    }
+
+    bool getAPState() {
+        return m_apState;
+    }
+
     void setSsid(const char *ssid)
     {
         strncpy(m_ssid, ssid, sizeof(m_ssid));
@@ -186,10 +205,6 @@ class System {
     bool isFoundBlock() const
     {
         return m_foundBlock;
-    }
-    uint32_t getLastClockSync() const
-    {
-        return m_lastClockSync;
     }
 
     // Startup status setter

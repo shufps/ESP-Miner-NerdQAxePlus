@@ -65,6 +65,16 @@ jobs:
         0xf10000 build/ota_data_initial.bin \
         -o esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
 
+    - name: Generate SHA-256 Sum of factory file
+      run: |
+        sha256sum esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin > esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
+
+    - name: Upload SHA-256 Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
+        path: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
+
     - name: Rename Build Artifacts
       run: |
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.label }}.bin
@@ -88,5 +98,52 @@ jobs:
         files: ${{ env.files }}
         tag_name: ${{ env.VERSION_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-release-body:
+    runs-on: ubuntu-latest
+    needs: build-and-release
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Get Version Tag
+      id: version_tag
+      run: |
+        git fetch --tags  # Ensure all tags are fetched
+        version=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
+        echo "VERSION_TAG=${version}" >> $GITHUB_ENV
+        echo "${version}" > version.txt
+        echo "VERSION_TAG=${version}"
+
+    - name: Download SHA-256 Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: ./artifacts
+
+    - name: Combine SHA-256 Sums
+      run: |
+        files="$( find ./artifacts -name "*.sha256" | xargs )"
+        cat $files | sort -k2 > sha256-summary.txt
+
+    - name: Install GitHub CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gh
+
+    - name: Append to Release Body
+      run: |
+        # Fetch the current release body
+        existing_notes="$(gh release view ${{ env.VERSION_TAG }} --json body -q '.body')"
+
+        # Append the new content
+        new_notes="$existing_notes\n"
+        new_notes+='<!--\n'
+        new_notes+="$(cat sha256-summary.txt)\n"
+        new_notes+='-->\n'
+
+        # Update the release body
+        gh release edit ${{ env.VERSION_TAG }} --notes "$(echo -e "$new_notes")"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

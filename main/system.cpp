@@ -40,7 +40,6 @@ void System::initSystem() {
     m_bestNonceDiff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
     m_bestSessionNonceDiff = 0;
     m_startTime = esp_timer_get_time();
-    m_lastClockSync = 0;
     m_foundBlock = false;
     m_startupDone = false;
     m_poolErrors = 0;
@@ -55,6 +54,13 @@ void System::initSystem() {
     // Initialize overheat flag
     m_overheated = false;
 
+    // Initialize psu error flag
+    m_psuError = false;
+
+    // Initialize shown overlay flag and last error code
+    m_showsOverlay = false;
+    m_currentErrorCode = 0;
+
     // Set the best diff string
     suffixString(m_bestNonceDiff, m_bestDiffString, DIFF_STRING_SIZE, 0);
     suffixString(m_bestSessionNonceDiff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
@@ -64,6 +70,9 @@ void System::initSystem() {
 
     // Clear the wifi_status string
     memset(m_wifiStatus, 0, 20);
+
+    // initialize AP state
+    m_apState = false;
 
     // Initialize the display
     m_display = new DisplayDriver();
@@ -201,6 +210,25 @@ void System::showLastResetReason() {
     ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason);
 }
 
+void System::showError(const char *error_message, uint32_t error_code) {
+    // is this error already shown? yes, do nothing
+    if (m_showsOverlay && m_currentErrorCode == error_code) {
+        return;
+    }
+    m_display->showError(error_message, error_code);
+    m_showsOverlay = true;
+    m_currentErrorCode = error_code;
+}
+
+void System::hideError() {
+    if (!m_showsOverlay) {
+        return;
+    }
+    m_display->hideError();
+    m_currentErrorCode = 0;
+    m_showsOverlay = false;
+}
+
 void System::taskWrapper(void* pvParameters) {
     System* systemInstance = static_cast<System*>(pvParameters);
     systemInstance->task();
@@ -231,7 +259,6 @@ void System::task() {
     m_display->updateCurrentSettings();
 
     uint8_t countCycle = 10;
-    bool showsOverlay = false;
     char ipAddressStr[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
     bool validIp = false;
 
@@ -246,9 +273,12 @@ void System::task() {
             validIp = true;
         }
 
-        if (m_overheated && !showsOverlay) {
-            m_display->showOverheating();
-            showsOverlay = true;
+        if (m_overheated) {
+            showError("MINER OVERHEATED", 0x14);
+        }
+
+        if (m_psuError) {
+            showError("PSU ERROR", 0x15);
         }
 
         m_display->updateGlobalState();
@@ -270,27 +300,11 @@ void System::notifyRejectedShare() {
 
 void System::notifyMiningStarted() {}
 
-void System::notifyNewNtime(uint32_t ntime) {
-    if (m_lastClockSync + (60 * 60) > ntime) {
-        return;
-    }
-    ESP_LOGI(TAG, "Syncing clock");
-    m_lastClockSync = ntime;
-    struct timeval tv;
-    tv.tv_sec = ntime;
-    tv.tv_usec = 0;
-    settimeofday(&tv, nullptr);
-}
+void System::notifyNewNtime(uint32_t ntime) {}
 
 void System::notifyFoundNonce(double poolDiff, int asicNr) {
-    if (!m_lastClockSync) {
-        ESP_LOGW(TAG, "clock not (yet) synchronized");
-        return;
-    }
-
-    struct timeval now;
-    gettimeofday(&now, nullptr);
-    uint64_t timestamp = (uint64_t)now.tv_sec * 1000llu + (uint64_t)now.tv_usec / 1000llu;
+    // ms timestamp
+    uint64_t timestamp = esp_timer_get_time() / 1000llu;
 
     m_history->pushShare(poolDiff, timestamp, asicNr);
 

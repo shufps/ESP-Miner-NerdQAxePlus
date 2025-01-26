@@ -39,8 +39,11 @@
 #pragma GCC diagnostic error "-Wmissing-prototypes"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
+#define max(a,b) ((a)>(b))?(a):(b)
+#define min(a,b) ((a)<(b))?(a):(b)
 
 static const char *TAG = "http_server";
+static const char * CORS_TAG = "CORS";
 
 static httpd_handle_t server = NULL;
 QueueHandle_t log_queue = NULL;
@@ -67,7 +70,7 @@ typedef struct rest_server_context
 
 #define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
 
-static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp);
+static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
 
 static void *psram_malloc(size_t size)
 {
@@ -85,6 +88,106 @@ static void configure_cjson_for_psram()
     hooks.malloc_fn = psram_malloc;
     hooks.free_fn = psram_free;
     cJSON_InitHooks(&hooks);
+}
+
+static esp_err_t ip_in_private_range(uint32_t address) {
+    uint32_t ip_address = ntohl(address);
+
+    // 10.0.0.0 - 10.255.255.255 (Class A)
+    if ((ip_address >= 0x0A000000) && (ip_address <= 0x0AFFFFFF)) {
+        return ESP_OK;
+    }
+
+    // 172.16.0.0 - 172.31.255.255 (Class B)
+    if ((ip_address >= 0xAC100000) && (ip_address <= 0xAC1FFFFF)) {
+        return ESP_OK;
+    }
+
+    // 192.168.0.0 - 192.168.255.255 (Class C)
+    if ((ip_address >= 0xC0A80000) && (ip_address <= 0xC0A8FFFF)) {
+        return ESP_OK;
+    }
+
+    return ESP_FAIL;
+}
+
+static uint32_t extract_origin_ip_addr(httpd_req_t *req)
+{
+    char origin[128];
+    char ip_str[16];
+    uint32_t origin_ip_addr = 0;
+
+    // Attempt to get the Origin header.
+    if (httpd_req_get_hdr_value_str(req, "Origin", origin, sizeof(origin)) != ESP_OK) {
+        ESP_LOGD(CORS_TAG, "No origin header found.");
+        return 0;
+    }
+    ESP_LOGD(CORS_TAG, "Origin header: %s", origin);
+
+    // Find the start of the IP address in the Origin header
+    const char *prefix = "http://";
+    char *ip_start = strstr(origin, prefix);
+    if (ip_start) {
+        ip_start += strlen(prefix); // Move past "http://"
+
+        // Extract the IP address portion (up to the next '/')
+        char *ip_end = strchr(ip_start, '/');
+        size_t ip_len = ip_end ? (size_t)(ip_end - ip_start) : strlen(ip_start);
+        if (ip_len < sizeof(ip_str)) {
+            strncpy(ip_str, ip_start, ip_len);
+            ip_str[ip_len] = '\0'; // Null-terminate the string
+
+            // Convert the IP address string to uint32_t
+            origin_ip_addr = inet_addr(ip_str);
+            if (origin_ip_addr == INADDR_NONE) {
+                ESP_LOGW(CORS_TAG, "Invalid IP address: %s", ip_str);
+            } else {
+                ESP_LOGD(CORS_TAG, "Extracted IP address %lu", origin_ip_addr);
+            }
+        } else {
+            ESP_LOGW(CORS_TAG, "IP address string is too long: %s", ip_start);
+        }
+    }
+
+    return origin_ip_addr;
+}
+
+static esp_err_t is_network_allowed(httpd_req_t * req)
+{
+    if (SYSTEM_MODULE.getAPState()) {
+        ESP_LOGI(CORS_TAG, "Device in AP mode. Allowing CORS.");
+        return ESP_OK;
+    }
+
+    int sockfd = httpd_req_to_sockfd(req);
+    char ipstr[INET6_ADDRSTRLEN];
+    struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
+    socklen_t addr_size = sizeof(addr);
+
+    if (getpeername(sockfd, (struct sockaddr *)&addr, &addr_size) < 0) {
+        ESP_LOGE(CORS_TAG, "Error getting client IP");
+        return ESP_FAIL;
+    }
+
+    uint32_t request_ip_addr = addr.sin6_addr.un.u32_addr[3];
+
+    // // Convert to IPv6 string
+    // inet_ntop(AF_INET, &addr.sin6_addr, ipstr, sizeof(ipstr));
+
+    // Convert to IPv4 string
+    inet_ntop(AF_INET, &request_ip_addr, ipstr, sizeof(ipstr));
+
+    uint32_t origin_ip_addr = extract_origin_ip_addr(req);
+    if (origin_ip_addr == 0) {
+        origin_ip_addr = request_ip_addr;
+    }
+
+    if (ip_in_private_range(origin_ip_addr) == ESP_OK && ip_in_private_range(request_ip_addr) == ESP_OK) {
+        return ESP_OK;
+    }
+
+    ESP_LOGI(CORS_TAG, "Client is NOT in the private ip ranges or same range as server.");
+    return ESP_FAIL;
 }
 
 static esp_err_t init_fs(void)
@@ -156,6 +259,9 @@ static esp_err_t set_cors_headers(httpd_req_t *req)
 /* Recovery handler */
 static esp_err_t rest_recovery_handler(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
     httpd_resp_send(req, recovery_page, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
@@ -257,6 +363,10 @@ static esp_err_t PATCH_update_swarm(httpd_req_t *req)
 
 static esp_err_t handle_options_request(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     // Set CORS headers for OPTIONS request
     if (set_cors_headers(req) != ESP_OK) {
         httpd_resp_send_500(req);
@@ -271,6 +381,10 @@ static esp_err_t handle_options_request(httpd_req_t *req)
 
 static esp_err_t PATCH_update_settings(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     // Set CORS headers
     if (set_cors_headers(req) != ESP_OK) {
         httpd_resp_send_500(req);
@@ -363,6 +477,10 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
 
 static esp_err_t PATCH_update_influx(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     // Set CORS headers
     if (set_cors_headers(req) != ESP_OK) {
         httpd_resp_send_500(req);
@@ -420,6 +538,10 @@ static esp_err_t PATCH_update_influx(httpd_req_t *req)
 
 static esp_err_t POST_restart(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     ESP_LOGI(TAG, "Restarting System because of API Request");
 
     // Send HTTP response before restarting
@@ -438,6 +560,10 @@ static esp_err_t POST_restart(httpd_req_t *req)
 
 static esp_err_t GET_swarm(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     httpd_resp_set_type(req, "application/json");
 
     // Set CORS headers
@@ -455,6 +581,10 @@ static esp_err_t GET_swarm(httpd_req_t *req)
 /* Simple handler for getting system handler */
 static esp_err_t GET_system_info(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     httpd_resp_set_type(req, "application/json");
 
     // Set CORS headers
@@ -465,6 +595,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
 
     // Parse optional start_timestamp parameter
     uint64_t start_timestamp = 0;
+    uint64_t current_timestamp = 0;
     bool history_requested = false;
     char query_str[128];
     if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
@@ -474,6 +605,10 @@ static esp_err_t GET_system_info(httpd_req_t *req)
             if (start_timestamp) {
                 history_requested = true;
             }
+        }
+        if (httpd_query_key_value(query_str, "cur", param, sizeof(param)) == ESP_OK) {
+            current_timestamp = strtoull(param, NULL, 10);
+            ESP_LOGI(TAG, "cur: %llu", current_timestamp);
         }
     }
 
@@ -536,7 +671,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     // If start_timestamp is provided, include history data
     if (history_requested) {
         uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour after start_timestamp
-        cJSON *history = get_history_data(start_timestamp, end_timestamp);
+        cJSON *history = get_history_data(start_timestamp, end_timestamp, current_timestamp);
         cJSON_AddItemToObject(root, "history", history);
     }
 
@@ -556,6 +691,10 @@ static esp_err_t GET_system_info(httpd_req_t *req)
 /* Simple handler for getting system handler */
 static esp_err_t GET_influx_info(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     httpd_resp_set_type(req, "application/json");
 
     // Set CORS headers
@@ -590,15 +729,23 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
     return ESP_OK;
 }
 
-static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp)
+static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp)
 {
     History *history = SYSTEM_MODULE.getHistory();
 
     // Ensure consistency
     history->lock();
 
-    int start_index = history->searchNearestTimestamp(start_timestamp);
-    int end_index = history->searchNearestTimestamp(end_timestamp);
+    int64_t rel_start = (int64_t) start_timestamp - (int64_t) current_timestamp;
+    int64_t rel_end = (int64_t) end_timestamp - (int64_t) current_timestamp;
+
+    // get current system timestamp since system boot in ms
+    uint64_t sys_timestamp = esp_timer_get_time() / 1000llu;
+    int64_t sys_start = (int64_t) sys_timestamp + rel_start;
+    int64_t sys_end = (int64_t) sys_timestamp + rel_end;
+
+    int start_index = history->searchNearestTimestamp(sys_start);
+    int end_index = history->searchNearestTimestamp(sys_end);
     int num_samples = end_index - start_index + 1;
 
     cJSON *json_history = cJSON_CreateObject();
@@ -617,14 +764,14 @@ static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp)
     for (int i = start_index; i < start_index + num_samples; i++) {
         uint64_t sample_timestamp = history->getTimestampSample(i);
 
-        if (sample_timestamp < start_timestamp) {
+        if ((int64_t) sample_timestamp < sys_start) {
             continue;
         }
 
         cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int)(history->getHashrate10mSample(i) * 100.0)));
         cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int)(history->getHashrate1hSample(i) * 100.0)));
         cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int)(history->getHashrate1dSample(i) * 100.0)));
-        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber(sample_timestamp - start_timestamp));
+        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber((int64_t) sample_timestamp - sys_start));
     }
 
     cJSON_AddItemToObject(json_history, "hashrate_10m", json_hashrate_10m);
@@ -638,107 +785,12 @@ static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp)
     return json_history;
 }
 
-
-static esp_err_t GET_history_len(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "application/json");
-
-    // Set CORS headers
-    if (set_cors_headers(req) != ESP_OK) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    }
-
-    History* history = SYSTEM_MODULE.getHistory();
-
-    // ensure consistency
-    history->lock();
-
-    uint64_t first_timestamp = 0;
-    uint64_t last_timestamp = 0;
-    int num_samples = 0;
-
-    if (!history->isAvailable()) {
-        ESP_LOGW(TAG, "history is not available");
-    } else {
-        history->getTimestamps(&first_timestamp, &last_timestamp, &num_samples);
-    }
-
-    history->unlock();
-
-    cJSON *root = cJSON_CreateObject();
-    cJSON_AddItemToObjectCS(root, "firstTimestamp", cJSON_CreateNumber(first_timestamp));
-    cJSON_AddItemToObjectCS(root, "lastTimestamp", cJSON_CreateNumber(last_timestamp));
-    cJSON_AddItemToObjectCS(root, "numSamples", cJSON_CreateNumber(num_samples));
-
-    const char *history_len = cJSON_Print(root);
-    httpd_resp_sendstr(req, history_len);
-    free((char*) history_len);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
-
-
-static esp_err_t GET_history(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "application/json");
-
-    // Set CORS headers
-    if (set_cors_headers(req) != ESP_OK) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    }
-
-    uint64_t start_timestamp = 0;
-    uint64_t end_timestamp = 0;
-
-    // Retrieve the start timestamp from the request using the query parameter "start_timestamp"
-    char query_str[128];
-    if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
-        char param[64];
-
-        // Extract the start_timestamp
-        if (httpd_query_key_value(query_str, "ts", param, sizeof(param)) == ESP_OK) {
-            start_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
-        } else {
-            httpd_resp_send_500(req); // Bad Request if the start_timestamp parameter is missing
-            return ESP_FAIL;
-        }
-
-        // Extract the optional end_timestamp
-        if (httpd_query_key_value(query_str, "ts_end", param, sizeof(param)) == ESP_OK) {
-            end_timestamp = strtoull(param, NULL, 10); // Convert the string to uint64_t
-
-            // Ensure that the end_timestamp is not more than 1 hour after start_timestamp
-            if (end_timestamp > start_timestamp + 3600 * 1000ULL) {
-                end_timestamp = start_timestamp + 3600 * 1000ULL;
-            }
-        } else {
-            // If end_timestamp is not provided, default it to 1 hour after start_timestamp
-            end_timestamp = start_timestamp + 3600 * 1000ULL;
-        }
-    } else {
-        httpd_resp_send_500(req); // Bad Request if query string is missing
-        return ESP_FAIL;
-    }
-
-    // Get history data
-    cJSON *history = get_history_data(start_timestamp, end_timestamp);
-
-    // Serialize the JSON object to a string
-    const char *response = cJSON_PrintUnformatted(history);
-    httpd_resp_sendstr(req, response);
-
-    // Cleanup
-    free((void *)response);
-    cJSON_Delete(history);
-
-    return ESP_OK;
-}
-
-
 static esp_err_t POST_WWW_update(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     char buf[1000];
     int remaining = req->content_len;
 
@@ -785,6 +837,10 @@ static esp_err_t POST_WWW_update(httpd_req_t *req)
  */
 static esp_err_t POST_OTA_update(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     char buf[1000];
     esp_ota_handle_t ota_handle;
     int remaining = req->content_len;
@@ -895,6 +951,10 @@ static void send_log_to_websocket(char *message)
  */
 static esp_err_t echo_handler(httpd_req_t *req)
 {
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "Handshake done, the new connection was opened");
         fd = httpd_req_to_sockfd(req);
@@ -996,14 +1056,6 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_uri_t swarm_get_uri = {.uri = "/api/swarm/info", .method = HTTP_GET, .handler = GET_swarm, .user_ctx = rest_context};
     httpd_register_uri_handler(server, &swarm_get_uri);
-
-    httpd_uri_t history_get_uri = {
-        .uri = "/api/history/data", .method = HTTP_GET, .handler = GET_history, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &history_get_uri);
-
-    httpd_uri_t history_get_len_uri = {
-        .uri = "/api/history/len", .method = HTTP_GET, .handler = GET_history_len, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &history_get_len_uri);
 
     httpd_uri_t update_swarm_uri = {
         .uri = "/api/swarm", .method = HTTP_PATCH, .handler = PATCH_update_swarm, .user_ctx = rest_context};

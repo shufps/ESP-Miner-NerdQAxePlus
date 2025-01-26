@@ -88,7 +88,7 @@ class History {
     double getCurrentHashrate1h();
     double getCurrentHashrate1d();
     uint32_t getShareSample(int index);
-    int searchNearestTimestamp(uint64_t timestamp);
+    int searchNearestTimestamp(int64_t timestamp);
 
     int getNumSamples()
     {
