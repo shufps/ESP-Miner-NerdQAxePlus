@@ -116,7 +116,9 @@ jobs:
         cat ./sha256/*.sha256 | sort -k2 >> sha256-summary.txt
 
     - name: Install GitHub CLI
-      uses: cli/gh-cli@v1
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gh
 
     - name: Update Release Body
       run: |
