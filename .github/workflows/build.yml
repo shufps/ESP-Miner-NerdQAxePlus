@@ -112,12 +112,8 @@ jobs:
 
     - name: Combine SHA-256 Sums
       run: |
-        echo "### Firmware SHA-256 Checksums" > sha256-summary.txt
-        for file in ./sha256/*.sha256; do
-          echo "#### $(basename $file .sha256)" >> sha256-summary.txt
-          cat "$file" >> sha256-summary.txt
-          echo "" >> sha256-summary.txt
-        done
+        echo "### Factory files SHA-256 Checksums" > sha256-summary.txt
+        cat *.sha256 | sort -k2 > sha256-summary.txt
 
     - name: Update Release Body
       uses: github/gh-cli@v2
