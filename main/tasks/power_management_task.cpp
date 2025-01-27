@@ -70,7 +70,7 @@ void PowerManagementTask::task()
 
         uint16_t core_voltage = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
         uint16_t asic_frequency = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
-        uint16_t overheat_temp = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, OVERHEAT_DEFAULT);
+        uint16_t asic_overheat_temp = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, OVERHEAT_DEFAULT);
 
         if (core_voltage != last_core_voltage) {
             ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
@@ -104,17 +104,6 @@ void PowerManagementTask::task()
 
         influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
-        // currently only implemented for boards with TPS536x7
-        bool psuError = board->getPSUFault();
-        if (psuError) {
-            // when this happens, there is some PSU error
-            // on the nerdqaxes the buck restarted and defaulted to 1.00V
-            // this can happen when the PSU can't deliver enough current
-            // we display the error message and switch the buck off
-            SYSTEM_MODULE.setPSUError(true);
-            board->setVoltage(0.0);
-        }
-
         m_voltage = vin * 1000.0;
         m_current = iin * 1000.0;
         m_power = pin;
@@ -124,12 +113,16 @@ void PowerManagementTask::task()
         m_vrTemp = board->readTemperature(1);
         influx_task_set_temperature(m_chipTempAvg, m_vrTemp);
 
-        if (overheat_temp &&
-            (m_chipTempAvg > overheat_temp || m_vrTemp > overheat_temp)) {
+        float vr_maxTemp = asic_overheat_temp; 
+        if(board->getVrThrottleTemp()) vr_maxTemp = board->getVrThrottleTemp();
+
+        if (asic_overheat_temp &&
+            (m_chipTempAvg > asic_overheat_temp || m_vrTemp > vr_maxTemp)) {
             // over temperature
             SYSTEM_MODULE.setOverheated(true);
             // disables the buck
             board->setVoltage(0.0);
+            ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
         if (auto_fan_speed == 1) {
