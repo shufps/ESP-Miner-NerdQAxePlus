@@ -20,6 +20,16 @@ The newest releases are always here:
 
 https://github.com/shufps/ESP-Miner-NerdQAxePlus/releases
 
+### Recommended Method: The Webflasher
+
+The [Webflasher](https://shufps.github.io/nerdqaxe-web-flasher/) (modified fork of the great [Bitaxe Webflasher](https://github.com/bitaxeorg/bitaxe-web-flasher) by [Wantclue](https://github.com/WantClue)) is the easiest method of updating all Nerd*axe variants.
+
+[<img src="https://github.com/user-attachments/assets/4168f23a-bfe7-4536-91e3-7af6df9a203a" style="border:5px solid red;width:200px">](https://shufps.github.io/nerdqaxe-web-flasher/)
+
+It uses the official releases published on this repository and is always up-to-date.
+
+### Other Methods
+
 #### Clone repository and prepare config
 
 First you need to clone the repository and create a local copy of the config file:
