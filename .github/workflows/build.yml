@@ -21,7 +21,7 @@ jobs:
             label: NerdQAxe++
           - board: NERDAXE
             upload_www: false
-            label: Nerdaxe
+            label: NerdAxe
           - board: NERDOCTAXEGAMMA
             upload_www: false
             label: NerdOCTAXE-Gamma

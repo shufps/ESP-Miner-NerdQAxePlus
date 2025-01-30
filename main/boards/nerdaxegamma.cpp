@@ -18,7 +18,7 @@ bool tempinit = false;
 static const char* TAG="nerdaxeGamma";
 
 NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
-    m_deviceModel = "NerdaxeGamma";
+    m_deviceModel = "NerdAxe";
     m_asicModel = "BM1370";
     m_version = 200;
     m_asicCount = 1;
