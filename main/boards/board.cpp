@@ -30,6 +30,11 @@ const char *Board::getDeviceModel()
     return m_deviceModel;
 }
 
+const char *Board::getMiningAgent()
+{
+    return m_miningAgent;
+}
+
 int Board::getVersion()
 {
     return m_version;

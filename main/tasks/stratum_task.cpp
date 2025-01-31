@@ -182,7 +182,7 @@ void StratumTask::stratumLoop(int sock)
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1
-    STRATUM_V1_subscribe(sock, board->getDeviceModel(), board->getAsicModel());
+    STRATUM_V1_subscribe(sock, board->getMiningAgent(), board->getAsicModel());
 
     // mining.configure - ID: 2
     STRATUM_V1_configure_version_rolling(sock);
