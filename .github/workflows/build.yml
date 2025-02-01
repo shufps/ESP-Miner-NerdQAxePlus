@@ -70,7 +70,7 @@ jobs:
         sha256sum esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin > esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
 
     - name: Upload SHA-256 Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
         path: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
@@ -118,7 +118,7 @@ jobs:
         echo "VERSION_TAG=${version}"
 
     - name: Download SHA-256 Artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: ./artifacts
 
