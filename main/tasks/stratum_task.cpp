@@ -1,11 +1,11 @@
-#include <time.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <time.h>
 
 #include "esp_log.h"
+#include "esp_sntp.h"
 #include "esp_task_wdt.h"
 #include "esp_wifi.h"
-#include "esp_sntp.h"
 #include "lwip/dns.h"
 
 #include "connect.h"
@@ -18,25 +18,27 @@
 #include "stratum_task.h"
 #include "system.h"
 
-static const char *TAG = "stratum_task";
+// static const char *TAG = "stratum_task";
 
 extern "C" int is_socket_connected(int socket);
 
+StratumTask::StratumTask(StratumManager *manager, int index, StratumConfig *config)
+{
+    m_manager = manager;
+    m_config = config;
+    m_index = index;
 
-StratumTask::StratumTask() {
-    // NOP
+    if (config->primary) {
+        m_tag = "stratum task (primary)";
+    } else {
+        m_tag = "stratum task (secondary)";
+    }
 }
 
 bool StratumTask::isWifiConnected()
 {
     wifi_ap_record_t ap_info;
     return esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK;
-}
-
-void StratumTask::cleanQueue()
-{
-    ESP_LOGI(TAG, "Clean Jobs: clearing queue");
-    asicJobs.cleanJobs();
 }
 
 bool StratumTask::resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len)
@@ -82,7 +84,7 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
     if (sock < 0) {
         return 0;
     }
-    ESP_LOGI(TAG, "Socket created, connecting to %s:%d", host_ip, port);
+    ESP_LOGI(m_tag, "Socket created, connecting to %s:%d", host_ip, port);
 
     int err = connect(sock, (struct sockaddr *) &dest_addr, sizeof(struct sockaddr_in6));
     if (err != 0) {
@@ -91,16 +93,16 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
         return 0;
     }
 
-    ESP_LOGI(TAG, "Connected");
+    ESP_LOGI(m_tag, "Connected");
 
     if (!setupSocketTimeouts(sock)) {
-        ESP_LOGE(TAG, "Error setting socket timeouts");
+        ESP_LOGE(m_tag, "Error setting socket timeouts");
     }
 
     return sock;
 }
 
-bool StratumTask::setupSocketTimeouts(int sock)
+bool StratumTask::setupSocketTimeouts()
 {
     // we add timeout to prevent recv to hang forever
     // if it times out on the recv we will check the connection state
@@ -109,14 +111,14 @@ bool StratumTask::setupSocketTimeouts(int sock)
     timeout.tv_sec = 30; // 30 seconds timeout
     timeout.tv_usec = 0; // 0 microseconds
 
-    ESP_LOGI(TAG, "Set socket timeout to %d for recv and write", (int) timeout.tv_sec);
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
-        ESP_LOGE(TAG, "Failed to set socket receive timeout");
+    ESP_LOGI(m_tag, "Set socket timeout to %d for recv and write", (int) timeout.tv_sec);
+    if (setsockopt(m_sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+        ESP_LOGE(m_tag, "Failed to set socket receive timeout");
         return false;
     }
 
-    if (setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
-        ESP_LOGE(TAG, "Failed to set socket send timeout");
+    if (setsockopt(m_sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
+        ESP_LOGE(m_tag, "Failed to set socket send timeout");
         return false;
     }
     return true;
@@ -132,159 +134,298 @@ void StratumTask::task()
 {
     STRATUM_V1_initialize_buffer();
 
-    const char *stratumHost = SYSTEM_MODULE.getPoolUrl();
-    uint16_t port = SYSTEM_MODULE.getPoolPort();
-
     while (1) {
+        // do we have a stratum host configured?
+        // we do it here because we could reload the config after
+        // it was updated on the UI and settings
+        if (!strlen(m_config->host)) {
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            continue;
+        }
+
+        // should stay stopped?
+        if (m_stopFlag) {
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            continue;
+        }
+
+        // check if wifi is connected
+        // esp_wifi_connect is thread safe
         if (!isWifiConnected()) {
-            ESP_LOGI(TAG, "WiFi disconnected, attempting to reconnect...");
+            ESP_LOGI(m_tag, "WiFi disconnected, attempting to reconnect...");
             esp_wifi_connect();
             vTaskDelay(10000 / portTICK_PERIOD_MS);
             continue;
         }
 
-        char ip[17] = {0};
-        if (!resolveHostname(stratumHost, ip, sizeof(ip))) {
-            ESP_LOGE(TAG, "%s couldn't be resolved!", stratumHost);
+        // resolve the IP of the host
+        char ip[INET_ADDRSTRLEN] = {0};
+        if (!resolveHostname(m_config->host, ip, sizeof(ip))) {
+            ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config->host);
             vTaskDelay(10000 / portTICK_PERIOD_MS);
             continue;
         }
 
-        ESP_LOGI(TAG, "Connecting to: stratum+tcp://%s:%d (%s)", stratumHost, port, ip);
+        ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d (%s)", m_config->host, m_config->port, ip);
 
-        if (!(m_sock = connectStratum(ip, port))) {
-            ESP_LOGE(TAG, "Socket unable to connect to %s:%d (errno %d)", stratumHost, port, errno);
+        if (!(m_sock = connectStratum(ip, m_config->port))) {
+            ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config->host, m_config->port, errno);
             vTaskDelay(10000 / portTICK_PERIOD_MS);
             continue;
         }
+
+        // we are successfully connected, call the callback
+        m_manager->connectedCallback(m_index);
 
         // stratum loop
         stratumLoop(m_sock);
 
         // track pool errors
+        // TODO: move this into the manager and mutex it
         SYSTEM_MODULE.incPoolErrors();
 
         // shutdown and reconnect
-        ESP_LOGE(TAG, "Shutdown socket ...");
+        ESP_LOGE(m_tag, "Shutdown socket ...");
         shutdown(m_sock, SHUT_RDWR);
         close(m_sock);
-        vTaskDelay(1000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
+
+        // mark invalid
+        m_sock = -1;
+
+        m_manager->disconnectedCallback(m_index);
+
+        vTaskDelay(10000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
     }
     vTaskDelete(NULL);
 }
 
-void StratumTask::stratumLoop(int sock)
+void StratumTask::stratumLoop()
 {
     Board *board = SYSTEM_MODULE.getBoard();
 
     STRATUM_V1_reset_uid();
-    cleanQueue();
+    m_manager->cleanQueue();
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1
-    STRATUM_V1_subscribe(sock, board->getDeviceModel(), board->getAsicModel());
+    STRATUM_V1_subscribe(m_sock, board->getDeviceModel(), board->getAsicModel());
 
     // mining.configure - ID: 2
-    STRATUM_V1_configure_version_rolling(sock);
-
-    char *username = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
-    char *password = nvs_config_get_string(NVS_CONFIG_STRATUM_PASS, CONFIG_STRATUM_PW);
+    STRATUM_V1_configure_version_rolling(m_sock);
 
     // mining.authorize - ID: 3
-    STRATUM_V1_authenticate(sock, username, password);
-    free(password);
-    free(username);
+    STRATUM_V1_authenticate(m_sock, m_config->user, m_config->password);
 
     // mining.suggest_difficulty - ID: 4
-    STRATUM_V1_suggest_difficulty(sock, CONFIG_STRATUM_DIFFICULTY);
+    STRATUM_V1_suggest_difficulty(m_sock, CONFIG_STRATUM_DIFFICULTY);
 
     while (1) {
-        if (!is_socket_connected(sock)) {
-            ESP_LOGE(TAG, "Socket is not connected ...");
+        if (!is_socket_connected(m_sock)) {
+            ESP_LOGE(m_tag, "Socket is not connected ...");
             return;
         }
 
-        char *line = STRATUM_V1_receive_jsonrpc_line(sock);
+        char *line = STRATUM_V1_receive_jsonrpc_line(m_sock);
         if (!line) {
-            ESP_LOGE(TAG, "Failed to receive JSON-RPC line, reconnecting ...");
+            ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
             return;
         }
 
-        ESP_LOGI(TAG, "rx: %s", line); // debug incoming stratum messages
+        ESP_LOGI(m_tag, "rx: %s", line); // debug incoming stratum messages
 
-        StratumApiV1Message stratum_api_v1_message;
-        memset(&stratum_api_v1_message, 0, sizeof(stratum_api_v1_message));
-
-        STRATUM_V1_parse(&stratum_api_v1_message, line);
+        // if stop is requested, don't dispatch anything
+        // and break the loop
+        if (m_stopFlag) {
+            break;
+        }
+        m_manager->dispatch(m_index, line);
         free(line);
+    }
+}
 
-        switch (stratum_api_v1_message.method) {
-        case MINING_NOTIFY: {
-            SYSTEM_MODULE.notifyNewNtime(stratum_api_v1_message.mining_notification->ntime);
+void StratumTask::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+                              const uint32_t version)
+{
+    STRATUM_V1_submit_share(m_sock, m_config->user, jobid, extranonce_2, ntime, nonce, version);
+}
 
-            // abandon work clears the asic job list
-            if (stratum_api_v1_message.should_abandon_work) {
-                cleanQueue();
-            }
-            create_job_mining_notify(stratum_api_v1_message.mining_notification);
+StratumManager::StratumManager()
+{
+    // NOP
+}
 
-            // free notify
-            STRATUM_V1_free_mining_notify(stratum_api_v1_message.mining_notification);
-            break;
-        }
+void StratumManager::connectedCallback(int index)
+{
+    pthread_mutex_lock(&m_mutex);
 
-        case MINING_SET_DIFFICULTY: {
-            SYSTEM_MODULE.setPoolDifficulty(stratum_api_v1_message.new_difficulty);
-            if (create_job_set_difficulty(stratum_api_v1_message.new_difficulty)) {
-                ESP_LOGI(TAG, "Set stratum difficulty: %ld", stratum_api_v1_message.new_difficulty);
-            }
-            break;
-        }
+    // when primary is connected, use it
+    if (!index) {
+        m_selected = 0;
+    }
+    pthread_mutex_unlock(&m_mutex);
+}
 
-        case MINING_SET_VERSION_MASK:
-        case STRATUM_RESULT_VERSION_MASK: {
-            ESP_LOGI(TAG, "Set version mask: %08lx", stratum_api_v1_message.version_mask);
-            create_job_set_version_mask(stratum_api_v1_message.version_mask);
-            break;
-        }
+void StratumManager::disconnectedCallback(int index)
+{
+    // NOP
+}
 
-        case STRATUM_RESULT_SUBSCRIBE: {
-            ESP_LOGI(TAG, "Set enonce %s enonce2-len: %d", stratum_api_v1_message.extranonce_str,
-                     stratum_api_v1_message.extranonce_2_len);
-            create_job_set_enonce(stratum_api_v1_message.extranonce_str, stratum_api_v1_message.extranonce_2_len);
-            break;
-        }
+void StratumManager::connect(int index)
+{
+    pthread_mutex_lock(&m_mutex);
+    m_selected = index;
+    m_stratumTasks[index]->setStopFlag(false);
+    pthread_mutex_unlock(&m_mutex);
+}
 
-        case CLIENT_RECONNECT: {
-            ESP_LOGE(TAG, "Pool requested client reconnect ...");
-            return;
-        }
+void StratumManager::disconnect(int index)
+{
+    m_stratumTasks[index]->setStopFlag(true);
+}
 
-        case STRATUM_RESULT: {
-            if (stratum_api_v1_message.response_success) {
-                ESP_LOGI(TAG, "message result accepted");
-                SYSTEM_MODULE.notifyAcceptedShare();
-            } else {
-                ESP_LOGW(TAG, "message result rejected");
-                SYSTEM_MODULE.notifyRejectedShare();
-            }
-            // reset the watchdog because we received a result
-            esp_task_wdt_reset();
-            break;
-        }
+// This static wrapper converts the void* parameter into a StratumManager pointer
+// and calls the member function.
+void StratumManager::taskWrapper(void *pvParameters)
+{
+    StratumManager *manager = static_cast<StratumManager *>(pvParameters);
+    manager->task();
+}
 
-        case STRATUM_RESULT_SETUP: {
-            if (stratum_api_v1_message.response_success) {
-                ESP_LOGI(TAG, "setup message accepted");
-            } else {
-                ESP_LOGE(TAG, "setup message rejected");
-            }
-            break;
-        }
+// The fallback task runs an infinite loop checking the connection state
+// every minute and selecting or disconnecting the secondary pool accordingly.
+void StratumManager::task()
+{
+    System *system = &SYSTEM_MODULE;
 
-        default: {
-            // NOP
-        }
+    // Create the tasks for both pools
+    for (int i = 0; i < 2; i++) {
+        m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
+        // Create the Stratum task for each pool.
+        // we don't need the handles
+        xTaskCreate(m_stratumTasks[i]->taskWrapper, (i == 0 ? "stratum task (primary)" : "stratum task (secondary)"), 8192,
+                    (void *) m_stratumTasks[i], 5, NULL);
+    }
+
+    // Always connect primary
+    connect(0);
+
+    while (1) {
+        // Delay for one minute.
+        vTaskDelay(60000 / portTICK_PERIOD_MS);
+
+        // Check primary connection status.
+        // If the primary (index 0) is not connected, attempt to connect the secondary (index 1).
+        // Otherwise, disconnect the secondary.
+        if (!m_stratumTasks[0]->isConnected()) {
+            connect(1);
+        } else {
+            disconnect(1);
         }
     }
+}
+
+void StratumManager::cleanQueue()
+{
+    ESP_LOGI(m_tag, "Clean Jobs: clearing queue");
+    asicJobs.cleanJobs();
+}
+
+const char *StratumManager::getCurrentPoolHost()
+{
+    return m_stratumTasks[m_selected]->getHost();
+}
+
+int StratumManager::getCurrentPoolPort()
+{
+    return m_stratumTasks[m_selected]->getPort();
+}
+
+void StratumManager::dispatch(int pool, const char *line)
+{
+    // only accept data from the selected pool
+    if (pool != m_selected) {
+        return;
+    }
+
+    const char *tag = m_stratumTasks[m_selected]->getTag();
+
+    memset(&m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
+
+    STRATUM_V1_parse(&m_stratum_api_v1_message, line);
+
+    switch (m_stratum_api_v1_message.method) {
+    case MINING_NOTIFY: {
+        SYSTEM_MODULE.notifyNewNtime(m_stratum_api_v1_message.mining_notification->ntime);
+
+        // abandon work clears the asic job list
+        if (m_stratum_api_v1_message.should_abandon_work) {
+            cleanQueue();
+        }
+        create_job_mining_notify(m_stratum_api_v1_message.mining_notification);
+
+        // free notify
+        STRATUM_V1_free_mining_notify(m_stratum_api_v1_message.mining_notification);
+        break;
+    }
+
+    case MINING_SET_DIFFICULTY: {
+        SYSTEM_MODULE.setPoolDifficulty(m_stratum_api_v1_message.new_difficulty);
+        if (create_job_set_difficulty(m_stratum_api_v1_message.new_difficulty)) {
+            ESP_LOGI(tag, "Set stratum difficulty: %ld", m_stratum_api_v1_message.new_difficulty);
+        }
+        break;
+    }
+
+    case MINING_SET_VERSION_MASK:
+    case STRATUM_RESULT_VERSION_MASK: {
+        ESP_LOGI(tag, "Set version mask: %08lx", m_stratum_api_v1_message.version_mask);
+        create_job_set_version_mask(m_stratum_api_v1_message.version_mask);
+        break;
+    }
+
+    case STRATUM_RESULT_SUBSCRIBE: {
+        ESP_LOGI(tag, "Set enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
+                 m_stratum_api_v1_message.extranonce_2_len);
+        create_job_set_enonce(m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
+        break;
+    }
+
+    case CLIENT_RECONNECT: {
+        ESP_LOGE(tag, "Pool requested client reconnect ...");
+        return;
+    }
+
+    case STRATUM_RESULT: {
+        if (m_stratum_api_v1_message.response_success) {
+            ESP_LOGI(tag, "message result accepted");
+            SYSTEM_MODULE.notifyAcceptedShare();
+        } else {
+            ESP_LOGW(tag, "message result rejected");
+            SYSTEM_MODULE.notifyRejectedShare();
+        }
+        // reset the watchdog because we received a result
+        esp_task_wdt_reset();
+        break;
+    }
+
+    case STRATUM_RESULT_SETUP: {
+        if (m_stratum_api_v1_message.response_success) {
+            ESP_LOGI(tag, "setup message accepted");
+        } else {
+            ESP_LOGE(tag, "setup message rejected");
+        }
+        break;
+    }
+
+    default: {
+        // NOP
+    }
+    }
+}
+
+void StratumManager::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+                                 const uint32_t version)
+{
+    // send to the selected pool
+    m_stratumTasks[m_selected]->submitShare(jobid, extranonce_2, ntime, nonce, version);
 }

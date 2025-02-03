@@ -31,7 +31,7 @@
 System SYSTEM_MODULE;
 
 PowerManagementTask POWER_MANAGEMENT_MODULE;
-StratumTask STRATUM_TASK;
+StratumManager STRATUM_MANAGER;
 
 AsicJobs asicJobs;
 
@@ -167,15 +167,15 @@ extern "C" void app_main(void)
             ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
         }
 
-        TaskHandle_t stratum_task_handle;
+        TaskHandle_t stratum_manager_handle;
 
-        xTaskCreate(STRATUM_TASK.taskWrapper, "stratum admin", 8192, (void *) &STRATUM_TASK, 5, &stratum_task_handle);
+        xTaskCreate(STRATUM_MANAGER.taskWrapper, "stratum manager", 8192, (void *) &STRATUM_MANAGER, 5, &stratum_manager_handle);
 
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
 
-        initWatchdog(stratum_task_handle);
+        initWatchdog(stratum_manager_handle);
     }
 }
 

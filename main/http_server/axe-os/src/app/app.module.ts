@@ -22,6 +22,7 @@ import { ANSIPipe } from './pipes/ansi.pipe';
 import { DateAgoPipe } from './pipes/date-ago.pipe';
 import { HashSuffixPipe } from './pipes/hash-suffix.pipe';
 import { PrimeNGModule } from './prime-ng.module';
+import { CheckboxModule } from 'primeng/checkbox';
 
 
 
@@ -58,7 +59,8 @@ const components = [
     BrowserAnimationsModule,
     CommonModule,
     PrimeNGModule,
-    AppLayoutModule
+    AppLayoutModule,
+    CheckboxModule
   ],
   providers: [
     { provide: LocationStrategy, useClass: HashLocationStrategy },

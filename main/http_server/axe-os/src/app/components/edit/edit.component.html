@@ -1,6 +1,6 @@
 <ng-container *ngIf="form != null">
     <form [formGroup]="form">
-
+        <!-- Primary Options -->
         <div class="field grid p-fluid">
             <label htmlFor="hostname" class="col-12 mb-2 md:col-2 md:mb-0">Hostname:</label>
             <div class="col-12 md:col-10">
@@ -27,15 +27,12 @@
         <div class="field grid p-fluid">
             <label htmlFor="stratumURL" class="col-12 mb-2 md:col-2 md:mb-0">Stratum URL:</label>
             <div class="col-12 md:col-10">
-                <input pInputText id="stratumURL" type="text" formControlName="stratumURL"
-                    formControlName="stratumURL" />
+                <input pInputText id="stratumURL" type="text" formControlName="stratumURL" />
                 <div>
                     <small>Do not include 'stratum+tcp://' or port.</small>
                 </div>
             </div>
         </div>
-
-
         <div class="field grid p-fluid">
             <label htmlFor="stratumPort" class="col-12 mb-2 md:col-2 md:mb-0">Stratum Port:</label>
             <div class="col-12 md:col-10">
@@ -60,6 +57,51 @@
             </div>
         </div>
 
+        <!-- Fallback Pool Checkbox -->
+        <div class="field grid p-fluid">
+            <div class="col-12 md:col-10 offset-md-2">
+                <p-checkbox formControlName="enableFallbackPool" [binary]="true" inputId="enableFallbackPool"></p-checkbox>
+                <label for="enableFallbackPool">Enable Fallback Stratum Pool</label>
+            </div>
+        </div>
+
+        <!-- Fallback Pool Options (conditionally shown) -->
+        <ng-container *ngIf="form.controls['enableFallbackPool'].value || form.controls['fallbackStratumURL'].value">
+            <div class="field grid p-fluid">
+                <label htmlFor="fallbackStratumURL" class="col-12 mb-2 md:col-2 md:mb-0">Fallback Stratum URL:</label>
+                <div class="col-12 md:col-10">
+                    <input pInputText id="fallbackStratumURL" type="text" formControlName="fallbackStratumURL" />
+                    <div>
+                        <small>Do not include 'stratum+tcp://' or port.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="field grid p-fluid">
+                <label htmlFor="fallbackStratumPort" class="col-12 mb-2 md:col-2 md:mb-0">Fallback Stratum Port:</label>
+                <div class="col-12 md:col-10">
+                    <input pInputText id="fallbackStratumPort" formControlName="fallbackStratumPort" type="number" />
+                </div>
+            </div>
+            <div class="field grid p-fluid">
+                <label htmlFor="fallbackStratumUser" class="col-12 mb-2 md:col-2 md:mb-0">Fallback Stratum User:</label>
+                <div class="col-12 md:col-10">
+                    <input pInputText id="fallbackStratumUser" type="text" formControlName="fallbackStratumUser" />
+                </div>
+            </div>
+            <div class="field grid p-fluid">
+                <label htmlFor="fallbackStratumPassword" class="col-12 mb-2 md:col-2 md:mb-0">Fallback Stratum Password:</label>
+                <div class="col-12 md:col-10 p-input-icon-right">
+                    <i *ngIf="form.get('fallbackStratumPassword')?.dirty" class="pi"
+                       [ngClass]="{'pi-eye': !showFallbackStratumPassword, 'pi-eye-slash': showFallbackStratumPassword}"
+                       (click)="toggleFallbackStratumPasswordVisibility()" style="cursor: pointer;"></i>
+                    <input pInputText id="fallbackStratumPassword" formControlName="fallbackStratumPassword"
+                           [type]="showFallbackStratumPassword ? 'text' : 'password'"
+                           placeholder="Enter fallback stratum password" />
+                </div>
+            </div>
+        </ng-container>
+
+        <!-- Other Options -->
         <ng-container *ngIf="!devToolsOpen">
             <div class="field grid p-fluid">
                 <label class="col-12 mb-2 md:col-2 md:mb-0" htmlFor="frequency">Frequency</label>
@@ -145,9 +187,8 @@
             <div class="col-12" *ngIf="form.controls['autofanspeed'].value != true">
                 <label>Fan Speed {{form.controls['fanspeed'].value}}%
                     <b *ngIf="form.controls['fanspeed'].value < 33" style="color:red">Danger: Could Cause
-                        Overheating</b> <b *ngIf="form.controls['fanspeed'].value == 100" style="color:	#F2A900">S19
+                        Overheating</b> <b *ngIf="form.controls['fanspeed'].value == 100" style="color:#F2A900">S19
                         Simulator</b></label>
-
                 <p-slider formControlName="fanspeed"></p-slider>
             </div>
         </div>
@@ -157,9 +198,5 @@
                 class="btn btn-primary mr-2">Save</button>
             <b style="line-height: 34px;">You must restart this device after saving for changes to take effect.</b>
         </div>
-
-
-
-
     </form>
 </ng-container>

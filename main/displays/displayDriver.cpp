@@ -488,9 +488,9 @@ void DisplayDriver::updateCurrentSettings()
     if (m_ui->ui_SettingsScreen == NULL)
         return;
 
-    lv_label_set_text(m_ui->ui_lbPoolSet, SYSTEM_MODULE.getPoolUrl()); // Update label
+    lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER.getCurrentPoolHost()); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", SYSTEM_MODULE.getPoolPort());
+    snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER.getCurrentPoolPort());
     lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));

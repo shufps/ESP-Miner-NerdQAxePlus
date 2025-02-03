@@ -58,6 +58,11 @@ static size_t hex2bin(const char *hex, uint8_t *bin, size_t bin_len)
 
 int is_socket_connected(int socket)
 {
+    // if the socket is -1 it was closed
+    if (socket == -1) {
+        return 0;
+    }
+
     struct timeval tv;
     fd_set writefds;
 

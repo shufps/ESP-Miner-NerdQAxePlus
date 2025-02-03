@@ -45,11 +45,22 @@ void System::initSystem() {
     m_poolErrors = 0;
     m_poolDifficulty = 8192;
 
-    // Set the pool URL
-    m_poolUrl = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
+    m_stratumConfig[0] = {
+        true,
+        nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL),
+        nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT),
+        nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER),
+        nvs_config_get_string(NVS_CONFIG_STRATUM_PASS, CONFIG_STRATUM_PW)
+    };
 
-    // Set the pool port
-    m_poolPort = nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT);
+    m_stratumConfig[1] = {
+        false,
+        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_URL, CONFIG_STRATUM_FALLBACK_URL),
+        nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT),
+        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_USER, CONFIG_STRATUM_FALLBACK_USER),
+        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_PASS, CONFIG_STRATUM_FALLBACK_PW)
+    };
+
 
     // Initialize overheat flag
     m_overheated = false;
