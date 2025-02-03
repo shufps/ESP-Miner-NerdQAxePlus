@@ -16,7 +16,7 @@ class StratumTask {
     friend StratumManager;
 
   protected:
-    StratumConfig *m_config;
+    StratumConfig *m_config = nullptr;
 
     int m_index;
 
@@ -38,10 +38,13 @@ class StratumTask {
     // DNS resolving and connection related methods
     bool resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len);
     int connectStratum(const char *host_ip, uint16_t port);
-    bool setupSocketTimeouts();
+    bool setupSocketTimeouts(int sock);
 
     // stratum client loop
     void stratumLoop();
+
+    void connect();
+    void disconnect();
 
     // submit share function
     void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
@@ -65,16 +68,17 @@ class StratumTask {
         return m_isConnected;
     }
 
-    void setStopFlag(bool flag)
-    {
-        m_stopFlag = flag;
-    }
-
     const char *getHost() {
+        if (!m_config) {
+            return "-";
+        }
         return m_config->host;
     }
 
     int getPort() {
+        if (!m_config) {
+            return 0;
+        }
         return m_config->port;
     }
 
@@ -96,14 +100,20 @@ class StratumManager {
     // we define it here because it's quite large for the stack
     StratumApiV1Message m_stratum_api_v1_message;
 
-    StratumTask *m_stratumTasks[2];
+    StratumTask *m_stratumTasks[2] = {nullptr, nullptr};
 
     int m_selected = 0;
 
+    // callback for connection events
     void connectedCallback(int index);
     void disconnectedCallback(int index);
+
+    // some small helpers
     void connect(int index);
     void disconnect(int index);
+    bool isConnected(int index);
+
+    // dispatch stratum response
     void dispatch(int pool, const char *line);
 
     void task();

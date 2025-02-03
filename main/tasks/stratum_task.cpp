@@ -20,6 +20,15 @@
 
 // static const char *TAG = "stratum_task";
 
+// fallback can nicely be tested with netcat
+// mkfifo /tmp/ncpipe
+// nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
+
+enum Selected {
+    PRIMARY = 0,
+    SECONDARY = 1
+};
+
 extern "C" int is_socket_connected(int socket);
 
 StratumTask::StratumTask(StratumManager *manager, int index, StratumConfig *config)
@@ -29,9 +38,9 @@ StratumTask::StratumTask(StratumManager *manager, int index, StratumConfig *conf
     m_index = index;
 
     if (config->primary) {
-        m_tag = "stratum task (primary)";
+        m_tag = "stratum task";
     } else {
-        m_tag = "stratum task (secondary)";
+        m_tag = "stratum task (fallback)";
     }
 }
 
@@ -86,7 +95,7 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
     }
     ESP_LOGI(m_tag, "Socket created, connecting to %s:%d", host_ip, port);
 
-    int err = connect(sock, (struct sockaddr *) &dest_addr, sizeof(struct sockaddr_in6));
+    int err = ::connect(sock, (struct sockaddr *) &dest_addr, sizeof(struct sockaddr_in6));
     if (err != 0) {
         shutdown(sock, SHUT_RDWR);
         close(sock);
@@ -102,7 +111,7 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
     return sock;
 }
 
-bool StratumTask::setupSocketTimeouts()
+bool StratumTask::setupSocketTimeouts(int sock)
 {
     // we add timeout to prevent recv to hang forever
     // if it times out on the recv we will check the connection state
@@ -112,12 +121,12 @@ bool StratumTask::setupSocketTimeouts()
     timeout.tv_usec = 0; // 0 microseconds
 
     ESP_LOGI(m_tag, "Set socket timeout to %d for recv and write", (int) timeout.tv_sec);
-    if (setsockopt(m_sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
         ESP_LOGE(m_tag, "Failed to set socket receive timeout");
         return false;
     }
 
-    if (setsockopt(m_sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
+    if (setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
         ESP_LOGE(m_tag, "Failed to set socket send timeout");
         return false;
     }
@@ -176,9 +185,10 @@ void StratumTask::task()
 
         // we are successfully connected, call the callback
         m_manager->connectedCallback(m_index);
+        m_isConnected = true;
 
         // stratum loop
-        stratumLoop(m_sock);
+        stratumLoop();
 
         // track pool errors
         // TODO: move this into the manager and mutex it
@@ -193,6 +203,7 @@ void StratumTask::task()
         m_sock = -1;
 
         m_manager->disconnectedCallback(m_index);
+        m_isConnected = false;
 
         vTaskDelay(10000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
     }
@@ -249,18 +260,41 @@ void StratumTask::submitShare(const char *jobid, const char *extranonce_2, const
     STRATUM_V1_submit_share(m_sock, m_config->user, jobid, extranonce_2, ntime, nonce, version);
 }
 
+void StratumTask::connect() {
+    m_stopFlag = false;
+}
+
+void StratumTask::disconnect() {
+    m_stopFlag = true;
+}
+
 StratumManager::StratumManager()
 {
     // NOP
 }
 
+void StratumManager::connect(int index) {
+    m_stratumTasks[index]->connect();
+}
+
+void StratumManager::disconnect(int index) {
+    m_stratumTasks[index]->disconnect();
+}
+
+bool StratumManager::isConnected(int index) {
+    return m_stratumTasks[index]->isConnected();
+}
+
 void StratumManager::connectedCallback(int index)
 {
+    // is called from both tasks
     pthread_mutex_lock(&m_mutex);
 
-    // when primary is connected, use it
-    if (!index) {
-        m_selected = 0;
+    // when primary is connected
+    if (index == Selected::PRIMARY) {
+        // set selected to primary
+        m_selected = Selected::PRIMARY;
+        disconnect(Selected::SECONDARY);
     }
     pthread_mutex_unlock(&m_mutex);
 }
@@ -268,19 +302,6 @@ void StratumManager::connectedCallback(int index)
 void StratumManager::disconnectedCallback(int index)
 {
     // NOP
-}
-
-void StratumManager::connect(int index)
-{
-    pthread_mutex_lock(&m_mutex);
-    m_selected = index;
-    m_stratumTasks[index]->setStopFlag(false);
-    pthread_mutex_unlock(&m_mutex);
-}
-
-void StratumManager::disconnect(int index)
-{
-    m_stratumTasks[index]->setStopFlag(true);
 }
 
 // This static wrapper converts the void* parameter into a StratumManager pointer
@@ -307,19 +328,16 @@ void StratumManager::task()
     }
 
     // Always connect primary
-    connect(0);
+    connect(Selected::PRIMARY);
 
     while (1) {
-        // Delay for one minute.
         vTaskDelay(60000 / portTICK_PERIOD_MS);
 
-        // Check primary connection status.
-        // If the primary (index 0) is not connected, attempt to connect the secondary (index 1).
-        // Otherwise, disconnect the secondary.
-        if (!m_stratumTasks[0]->isConnected()) {
-            connect(1);
-        } else {
-            disconnect(1);
+        if (!isConnected(Selected::PRIMARY)) {
+            pthread_mutex_lock(&m_mutex);
+            connect(Selected::SECONDARY);
+            m_selected = Selected::SECONDARY;
+            pthread_mutex_unlock(&m_mutex);
         }
     }
 }
@@ -332,11 +350,17 @@ void StratumManager::cleanQueue()
 
 const char *StratumManager::getCurrentPoolHost()
 {
+    if (!m_stratumTasks[m_selected]) {
+        return "-";
+    }
     return m_stratumTasks[m_selected]->getHost();
 }
 
 int StratumManager::getCurrentPoolPort()
 {
+    if (!m_stratumTasks[m_selected]) {
+        return 0;
+    }
     return m_stratumTasks[m_selected]->getPort();
 }
 

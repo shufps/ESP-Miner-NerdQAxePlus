@@ -425,6 +425,18 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
     if ((item = cJSON_GetObjectItem(root, "stratumPort")) != NULL) {
         nvs_config_set_u16(NVS_CONFIG_STRATUM_PORT, item->valueint);
     }
+    if ((item = cJSON_GetObjectItem(root, "stratumFallbackURL")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_URL, item->valuestring);
+    }
+    if ((item = cJSON_GetObjectItem(root, "stratumFallbackUser")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_USER, item->valuestring);
+    }
+    if ((item = cJSON_GetObjectItem(root, "stratumFallbackPassword")) != NULL) {
+        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_PASS, item->valuestring);
+    }
+    if ((item = cJSON_GetObjectItem(root, "stratumFallbackPort")) != NULL) {
+        nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, item->valueint);
+    }
     if ((item = cJSON_GetObjectItem(root, "ssid")) != NULL) {
         nvs_config_set_string(NVS_CONFIG_WIFI_SSID, item->valuestring);
     }
@@ -615,8 +627,12 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     // Gather system info as before
     char *ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, CONFIG_ESP_WIFI_SSID);
     char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, CONFIG_LWIP_LOCAL_HOSTNAME);
+
     char *stratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
     char *stratumUser = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
+
+    char *stratumFallbackURL = nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_URL, CONFIG_STRATUM_FALLBACK_URL);
+    char *stratumFallbackUser = nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_USER, CONFIG_STRATUM_FALLBACK_USER);
 
     Board* board = SYSTEM_MODULE.getBoard();
     History* history = SYSTEM_MODULE.getHistory();
@@ -657,6 +673,9 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddStringToObject(root, "stratumURL", stratumURL);
     cJSON_AddNumberToObject(root, "stratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT));
     cJSON_AddStringToObject(root, "stratumUser", stratumUser);
+    cJSON_AddStringToObject(root, "stratumFallbackURL", stratumFallbackURL);
+    cJSON_AddNumberToObject(root, "stratumFallbackPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT));
+    cJSON_AddStringToObject(root, "stratumFallbackUser", stratumFallbackUser);
     cJSON_AddStringToObject(root, "version", esp_ota_get_app_description()->version);
     cJSON_AddStringToObject(root, "runningPartition", esp_ota_get_running_partition()->label);
     cJSON_AddNumberToObject(root, "flipscreen", nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 1));
@@ -674,25 +693,13 @@ static esp_err_t GET_system_info(httpd_req_t *req)
         cJSON *history = get_history_data(start_timestamp, end_timestamp, current_timestamp);
         cJSON_AddItemToObject(root, "history", history);
     }
-/*
-    // add nonce distribution to info response
-    NonceDistribution *distribution = history->getNonceDistribution();
-    cJSON *array = cJSON_CreateArray();
-    for (int i=0;i<distribution->getNumAsics();i++) {
-        if (i == 3 && 0) {
-            //cJSON_AddItemToArray(array, cJSON_CreateNumber(0));
-            cJSON_AddItemToArray(array, cJSON_CreateNumber((int)(distribution->getShares(i))/1));
-        } else {
-            cJSON_AddItemToArray(array, cJSON_CreateNumber((int)(distribution->getShares(i))));
 
-        }
-    }
-    cJSON_AddItemToObject(root, "nonceDistribution", array);
-*/
     free(ssid);
     free(hostname);
     free(stratumURL);
     free(stratumUser);
+    free(stratumFallbackURL);
+    free(stratumFallbackUser);
 
     const char *sys_info = cJSON_PrintUnformatted(root);
     httpd_resp_sendstr(req, sys_info);

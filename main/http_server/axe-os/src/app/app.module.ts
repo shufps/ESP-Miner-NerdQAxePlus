@@ -22,7 +22,11 @@ import { ANSIPipe } from './pipes/ansi.pipe';
 import { DateAgoPipe } from './pipes/date-ago.pipe';
 import { HashSuffixPipe } from './pipes/hash-suffix.pipe';
 import { PrimeNGModule } from './prime-ng.module';
-import { CheckboxModule } from 'primeng/checkbox';
+import { FieldsetModule } from 'primeng/fieldset'; // Import FieldsetModule
+import { PanelModule } from 'primeng/panel';
+import { TabViewModule } from 'primeng/tabview';
+
+
 
 
 
@@ -60,7 +64,9 @@ const components = [
     CommonModule,
     PrimeNGModule,
     AppLayoutModule,
-    CheckboxModule
+    FieldsetModule,
+    PanelModule,
+    TabViewModule
   ],
   providers: [
     { provide: LocationStrategy, useClass: HashLocationStrategy },

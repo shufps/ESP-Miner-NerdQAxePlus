@@ -150,6 +150,14 @@ class System {
     {
         return m_poolDifficulty;
     }
+    void incPoolErrors()
+    {
+        ++m_poolErrors;
+    }
+    int getPoolErrors() const
+    {
+        return m_poolErrors;
+    }
 
     // Overheating status setters
     void setOverheated(bool status)
