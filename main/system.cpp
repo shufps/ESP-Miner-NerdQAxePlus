@@ -267,7 +267,6 @@ void System::task() {
     }
 
     m_display->miningScreen();
-    m_display->updateCurrentSettings();
 
     uint8_t countCycle = 10;
     char ipAddressStr[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
@@ -293,6 +292,7 @@ void System::task() {
         }
 
         m_display->updateGlobalState();
+        m_display->updateCurrentSettings();
         m_display->refreshScreen();
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
