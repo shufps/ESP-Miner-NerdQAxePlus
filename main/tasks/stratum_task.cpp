@@ -2,7 +2,6 @@
 #include <sys/types.h>
 #include <time.h>
 
-
 #include "esp_log.h"
 #include "esp_sntp.h"
 #include "esp_task_wdt.h"
@@ -21,16 +20,17 @@
 #include "system.h"
 
 #ifdef CONFIG_SPIRAM
-#define ALLOC(s)    heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
+#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
 #else
-#define ALLOC(s)    malloc(s)
+#define ALLOC(s) malloc(s)
 #endif
 
 // fallback can nicely be tested with netcat
 // mkfifo /tmp/ncpipe
 // nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
 
-enum Selected {
+enum Selected
+{
     PRIMARY = 0,
     SECONDARY = 1
 };
@@ -280,11 +280,13 @@ void StratumTask::submitShare(const char *jobid, const char *extranonce_2, const
     m_stratumAPI.submitShare(m_sock, m_config->user, jobid, extranonce_2, ntime, nonce, version);
 }
 
-void StratumTask::connect() {
+void StratumTask::connect()
+{
     m_stopFlag = false;
 }
 
-void StratumTask::disconnect() {
+void StratumTask::disconnect()
+{
     m_stopFlag = true;
 }
 
@@ -293,30 +295,35 @@ StratumManager::StratumManager()
     m_stratum_api_v1_message = (StratumApiV1Message *) ALLOC(sizeof(StratumApiV1Message));
 }
 
-bool StratumManager::isUsingFallback() {
+bool StratumManager::isUsingFallback()
+{
     return m_selected != Selected::PRIMARY;
 }
 
-
-void StratumManager::connect(int index) {
+void StratumManager::connect(int index)
+{
     m_stratumTasks[index]->connect();
 }
 
-void StratumManager::disconnect(int index) {
+void StratumManager::disconnect(int index)
+{
     m_stratumTasks[index]->disconnect();
 }
 
-bool StratumManager::isConnected(int index) {
+bool StratumManager::isConnected(int index)
+{
     return m_stratumTasks[index]->isConnected();
 }
 
-void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer) {
+void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
+{
     StratumManager *self = static_cast<StratumManager *>(pvTimerGetTimerID(xTimer));
     self->reconnectTimerCallback(xTimer);
 }
 
 // Reconnect Timer Callback
-void StratumManager::reconnectTimerCallback(TimerHandle_t xTimer) {
+void StratumManager::reconnectTimerCallback(TimerHandle_t xTimer)
+{
     // Check if primary is still disconnected
     if (!isConnected(Selected::PRIMARY)) {
         pthread_mutex_lock(&m_mutex);
@@ -327,10 +334,10 @@ void StratumManager::reconnectTimerCallback(TimerHandle_t xTimer) {
 }
 
 // Start the reconnect timer
-void StratumManager::startReconnectTimer() {
+void StratumManager::startReconnectTimer()
+{
     if (m_reconnectTimer == NULL) {
-        m_reconnectTimer = xTimerCreate("Reconnect Timer", pdMS_TO_TICKS(30000),
-                                        pdTRUE, this, reconnectTimerCallbackWrapper);
+        m_reconnectTimer = xTimerCreate("Reconnect Timer", pdMS_TO_TICKS(30000), pdTRUE, this, reconnectTimerCallbackWrapper);
     }
 
     // only start the timer when it is not running
@@ -340,28 +347,31 @@ void StratumManager::startReconnectTimer() {
 }
 
 // Stop the reconnect timer
-void StratumManager::stopReconnectTimer() {
+void StratumManager::stopReconnectTimer()
+{
     if (m_reconnectTimer != NULL) {
         xTimerStop(m_reconnectTimer, 0);
     }
 }
 
 // Connected Callback
-void StratumManager::connectedCallback(int index) {
+void StratumManager::connectedCallback(int index)
+{
     pthread_mutex_lock(&m_mutex);
 
     if (index == Selected::PRIMARY) {
         m_selected = Selected::PRIMARY;
         disconnect(Selected::SECONDARY);
-        stopReconnectTimer();  // Stop reconnect attempts
+        stopReconnectTimer(); // Stop reconnect attempts
     }
 
     pthread_mutex_unlock(&m_mutex);
 }
 
 // Disconnected Callback
-void StratumManager::disconnectedCallback(int index) {
-    startReconnectTimer();  // Start the timer to attempt reconnects
+void StratumManager::disconnectedCallback(int index)
+{
+    startReconnectTimer(); // Start the timer to attempt reconnects
 }
 
 // This static wrapper converts the void* parameter into a StratumManager pointer
@@ -372,15 +382,15 @@ void StratumManager::taskWrapper(void *pvParameters)
     manager->task();
 }
 
-void StratumManager::task() {
+void StratumManager::task()
+{
     System *system = &SYSTEM_MODULE;
 
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
         m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
-        xTaskCreate(m_stratumTasks[i]->taskWrapper,
-                    (i == 0 ? "stratum task (primary)" : "stratum task (secondary)"),
-                    8192, (void *) m_stratumTasks[i], 5, NULL);
+        xTaskCreate(m_stratumTasks[i]->taskWrapper, (i == 0 ? "stratum task (primary)" : "stratum task (secondary)"), 8192,
+                    (void *) m_stratumTasks[i], 5, NULL);
     }
 
     // Always start by connecting to the primary pool
@@ -399,7 +409,6 @@ void StratumManager::task() {
         }
     }
 }
-
 
 void StratumManager::cleanQueue()
 {
