@@ -292,6 +292,11 @@ StratumManager::StratumManager()
     m_stratum_api_v1_message = (StratumApiV1Message *) ALLOC(sizeof(StratumApiV1Message));
 }
 
+bool StratumManager::isUsingFallback() {
+    return m_selected != Selected::PRIMARY;
+}
+
+
 void StratumManager::connect(int index) {
     m_stratumTasks[index]->connect();
 }

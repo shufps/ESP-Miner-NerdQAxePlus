@@ -132,4 +132,6 @@ class StratumManager {
     int getCurrentPoolPort();
 
     void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce, const uint32_t version);
+
+    bool isUsingFallback();
 };

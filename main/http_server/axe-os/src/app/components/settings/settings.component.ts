@@ -134,8 +134,8 @@ export class SettingsComponent {
       delete form.stratumPassword;
     }
 
-    if (form.stratumFallbackPassword === '*****') {
-      delete form.stratumFallbackPassword;
+    if (form.fallbackStratumPassword === '*****') {
+      delete form.fallbackStratumPassword;
     }
 
     this.systemService.updateSystem(undefined, form)

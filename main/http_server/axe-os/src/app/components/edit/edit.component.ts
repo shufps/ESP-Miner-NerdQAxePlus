@@ -70,19 +70,19 @@ export class EditComponent implements OnInit {
           stratumUser: [info.stratumUser, [Validators.required]],
           stratumPassword: ['*****', [Validators.required]],
 
-          stratumFallbackURL: [info.stratumFallbackURL, [
+          fallbackStratumURL: [info.fallbackStratumURL, [
             Validators.required,
             Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
             Validators.pattern(/^[^:]*$/),
           ]],
-          stratumFallbackPort: [info.stratumFallbackPort, [
+          fallbackStratumPort: [info.fallbackStratumPort, [
             Validators.required,
             Validators.pattern(/^[^:]*$/),
             Validators.min(0),
             Validators.max(65353)
           ]],
-          stratumFallbackUser: [info.stratumFallbackUser, [Validators.required]],
-          stratumFallbackPassword: ['*****', [Validators.required]],
+          fallbackStratumUser: [info.fallbackStratumUser, [Validators.required]],
+          fallbackStratumPassword: ['*****', [Validators.required]],
 
           hostname: [info.hostname, [Validators.required]],
           ssid: [info.ssid, [Validators.required]],
@@ -161,9 +161,9 @@ export class EditComponent implements OnInit {
     this.showStratumPassword = !this.showStratumPassword;
   }
 
-  showStratumFallbackPassword: boolean = false;
-  toggleStratumFallbackPasswordVisibility() {
-    this.showStratumFallbackPassword = !this.showStratumFallbackPassword;
+  showFallbackStratumPassword: boolean = false;
+  toggleFallbackStratumPasswordVisibility() {
+    this.showFallbackStratumPassword = !this.showFallbackStratumPassword;
   }
 
   showWifiPassword: boolean = false;

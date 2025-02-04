@@ -69,10 +69,10 @@
             <!-- Fallback Stratum Pool Tab -->
             <p-tabPanel header="Fallback Stratum Pool">
                 <div class="field grid p-fluid">
-                    <label htmlFor="stratumFallbackURL" class="col-12 mb-2 md:col-2 md:mb-0">Stratum
+                    <label htmlFor="fallbackStratumURL" class="col-12 mb-2 md:col-2 md:mb-0">Stratum
                         URL:</label>
                     <div class="col-12 md:col-10">
-                        <input pInputText id="stratumFallbackURL" type="text" formControlName="stratumFallbackURL" />
+                        <input pInputText id="fallbackStratumURL" type="text" formControlName="fallbackStratumURL" />
                         <div>
                             <small>Do not include 'stratum+tcp://' or port.</small>
                         </div>
@@ -80,31 +80,31 @@
                 </div>
 
                 <div class="field grid p-fluid">
-                    <label htmlFor="stratumFallbackPort" class="col-12 mb-2 md:col-2 md:mb-0">Stratum
+                    <label htmlFor="fallbackStratumPort" class="col-12 mb-2 md:col-2 md:mb-0">Stratum
                         Port:</label>
                     <div class="col-12 md:col-10">
-                        <input pInputText id="stratumFallbackPort" formControlName="stratumFallbackPort"
+                        <input pInputText id="fallbackStratumPort" formControlName="fallbackStratumPort"
                             type="number" />
                     </div>
                 </div>
 
                 <div class="field grid p-fluid">
-                    <label htmlFor="stratumFallbackUser" class="col-12 mb-2 md:col-2 md:mb-0">Stratum
+                    <label htmlFor="fallbackStratumUser" class="col-12 mb-2 md:col-2 md:mb-0">Stratum
                         User:</label>
                     <div class="col-12 md:col-10">
-                        <input pInputText id="stratumFallbackUser" type="text" formControlName="stratumFallbackUser" />
+                        <input pInputText id="fallbackStratumUser" type="text" formControlName="fallbackStratumUser" />
                     </div>
                 </div>
 
                 <div class="field grid p-fluid">
-                    <label htmlFor="stratumFallbackPassword" class="col-12 mb-2 md:col-2 md:mb-0">Stratum
+                    <label htmlFor="fallbackStratumPassword" class="col-12 mb-2 md:col-2 md:mb-0">Stratum
                         Password:</label>
                     <div class="col-12 md:col-10 p-input-icon-right">
-                        <i *ngIf="form.get('stratumFallbackPassword')?.dirty" class="pi"
-                            [ngClass]="{'pi-eye': !showStratumFallbackPassword, 'pi-eye-slash': showStratumFallbackPassword}"
-                            (click)="toggleStratumFallbackPasswordVisibility()" style="cursor: pointer;"></i>
-                        <input pInputText id="stratumFallbackPassword" formControlName="stratumFallbackPassword"
-                            [type]="showStratumFallbackPassword ? 'text' : 'password'"
+                        <i *ngIf="form.get('fallbackStratumPassword')?.dirty" class="pi"
+                            [ngClass]="{'pi-eye': !showFallbackStratumPassword, 'pi-eye-slash': showFallbackStratumPassword}"
+                            (click)="toggleFallbackStratumPasswordVisibility()" style="cursor: pointer;"></i>
+                        <input pInputText id="fallbackStratumPassword" formControlName="fallbackStratumPassword"
+                            [type]="showFallbackStratumPassword ? 'text' : 'password'"
                             placeholder="Enter fallback stratum password" />
                     </div>
                 </div>
@@ -114,7 +114,7 @@
 
 
         <!--/ng-container>-->
-        <div class="custom-section-title">ASICs & Miner Settings</div>
+        <div class="custom-section-title">Mining Settings</div>
         <div style="padding-left: 12px">
             <!-- Other Options -->
             <ng-container *ngIf="!devToolsOpen">
