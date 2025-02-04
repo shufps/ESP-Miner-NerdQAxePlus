@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <time.h>
 
+
 #include "esp_log.h"
 #include "esp_sntp.h"
 #include "esp_task_wdt.h"
@@ -309,23 +310,58 @@ bool StratumManager::isConnected(int index) {
     return m_stratumTasks[index]->isConnected();
 }
 
-void StratumManager::connectedCallback(int index)
-{
-    // is called from both tasks
+void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer) {
+    StratumManager *self = static_cast<StratumManager *>(pvTimerGetTimerID(xTimer));
+    self->reconnectTimerCallback(xTimer);
+}
+
+// Reconnect Timer Callback
+void StratumManager::reconnectTimerCallback(TimerHandle_t xTimer) {
+    // Check if primary is still disconnected
+    if (!isConnected(Selected::PRIMARY)) {
+        pthread_mutex_lock(&m_mutex);
+        connect(Selected::SECONDARY);
+        m_selected = Selected::SECONDARY;
+        pthread_mutex_unlock(&m_mutex);
+    }
+}
+
+// Start the reconnect timer
+void StratumManager::startReconnectTimer() {
+    if (m_reconnectTimer == NULL) {
+        m_reconnectTimer = xTimerCreate("Reconnect Timer", pdMS_TO_TICKS(30000),
+                                        pdTRUE, this, reconnectTimerCallbackWrapper);
+    }
+
+    // only start the timer when it is not running
+    if (xTimerIsTimerActive(m_reconnectTimer) == pdFALSE) {
+        xTimerStart(m_reconnectTimer, 0);
+    }
+}
+
+// Stop the reconnect timer
+void StratumManager::stopReconnectTimer() {
+    if (m_reconnectTimer != NULL) {
+        xTimerStop(m_reconnectTimer, 0);
+    }
+}
+
+// Connected Callback
+void StratumManager::connectedCallback(int index) {
     pthread_mutex_lock(&m_mutex);
 
-    // when primary is connected
     if (index == Selected::PRIMARY) {
-        // set selected to primary
         m_selected = Selected::PRIMARY;
         disconnect(Selected::SECONDARY);
+        stopReconnectTimer();  // Stop reconnect attempts
     }
+
     pthread_mutex_unlock(&m_mutex);
 }
 
-void StratumManager::disconnectedCallback(int index)
-{
-    // NOP
+// Disconnected Callback
+void StratumManager::disconnectedCallback(int index) {
+    startReconnectTimer();  // Start the timer to attempt reconnects
 }
 
 // This static wrapper converts the void* parameter into a StratumManager pointer
@@ -336,40 +372,34 @@ void StratumManager::taskWrapper(void *pvParameters)
     manager->task();
 }
 
-// The fallback task runs an infinite loop checking the connection state
-// every minute and selecting or disconnecting the secondary pool accordingly.
-void StratumManager::task()
-{
+void StratumManager::task() {
     System *system = &SYSTEM_MODULE;
 
-    // Create the tasks for both pools
+    // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
         m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
-        // Create the Stratum task for each pool.
-        // we don't need the handles
-        xTaskCreate(m_stratumTasks[i]->taskWrapper, (i == 0 ? "stratum task (primary)" : "stratum task (secondary)"), 8192,
-                    (void *) m_stratumTasks[i], 5, NULL);
+        xTaskCreate(m_stratumTasks[i]->taskWrapper,
+                    (i == 0 ? "stratum task (primary)" : "stratum task (secondary)"),
+                    8192, (void *) m_stratumTasks[i], 5, NULL);
     }
 
-    // always connect primary
+    // Always start by connecting to the primary pool
     connect(Selected::PRIMARY);
 
+    // Start the reconnect timer
+    startReconnectTimer();
+
+    // Watchdog Task Loop (optional, if needed)
     while (1) {
         vTaskDelay(30000 / portTICK_PERIOD_MS);
 
-        // when we see submit responses we reset the watchdog if the response is within the last hour
+        // Reset watchdog if there was a submit response within the last hour
         if (((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 3600) {
             esp_task_wdt_reset();
         }
-
-        if (!isConnected(Selected::PRIMARY)) {
-            pthread_mutex_lock(&m_mutex);
-            connect(Selected::SECONDARY);
-            m_selected = Selected::SECONDARY;
-            pthread_mutex_unlock(&m_mutex);
-        }
     }
 }
+
 
 void StratumManager::cleanQueue()
 {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <pthread.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
 
 class StratumManager;
 
@@ -105,10 +107,6 @@ class StratumManager {
 
     uint64_t m_lastSubmitResponseTimestamp = 0;
 
-    // callback for connection events
-    void connectedCallback(int index);
-    void disconnectedCallback(int index);
-
     // some small helpers
     void connect(int index);
     void disconnect(int index);
@@ -121,6 +119,15 @@ class StratumManager {
 
     // clear asic jobs
     void cleanQueue();
+
+    TimerHandle_t m_reconnectTimer;
+    static void reconnectTimerCallbackWrapper(TimerHandle_t xTimer);
+    void reconnectTimerCallback(TimerHandle_t xTimer);
+
+    void startReconnectTimer();
+    void stopReconnectTimer();
+    void connectedCallback(int index);
+    void disconnectedCallback(int index);
 
 
   public:
