@@ -45,11 +45,22 @@ void System::initSystem() {
     m_poolErrors = 0;
     m_poolDifficulty = 8192;
 
-    // Set the pool URL
-    m_poolUrl = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
+    m_stratumConfig[0] = {
+        true,
+        nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL),
+        nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT),
+        nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER),
+        nvs_config_get_string(NVS_CONFIG_STRATUM_PASS, CONFIG_STRATUM_PW)
+    };
 
-    // Set the pool port
-    m_poolPort = nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT);
+    m_stratumConfig[1] = {
+        false,
+        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_URL, CONFIG_STRATUM_FALLBACK_URL),
+        nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT),
+        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_USER, CONFIG_STRATUM_FALLBACK_USER),
+        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_PASS, CONFIG_STRATUM_FALLBACK_PW)
+    };
+
 
     // Initialize overheat flag
     m_overheated = false;
@@ -256,7 +267,6 @@ void System::task() {
     }
 
     m_display->miningScreen();
-    m_display->updateCurrentSettings();
 
     uint8_t countCycle = 10;
     char ipAddressStr[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
@@ -282,6 +292,7 @@ void System::task() {
         }
 
         m_display->updateGlobalState();
+        m_display->updateCurrentSettings();
         m_display->refreshScreen();
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);

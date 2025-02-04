@@ -7,6 +7,8 @@
 #include "esp_timer.h"
 
 
+#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
+
 UI::UI() {
     m_last_screen_change_time = 0;
 }

@@ -1,6 +1,6 @@
 idf_component_register(
 SRCS
-    "stratum_api.c"
+    "stratum_api.cpp"
 
 INCLUDE_DIRS
     "include"
