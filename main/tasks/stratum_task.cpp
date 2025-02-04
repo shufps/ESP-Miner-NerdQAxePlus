@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "esp_sntp.h"
 #include "esp_task_wdt.h"
+#include "esp_timer.h"
 #include "esp_wifi.h"
 #include "lwip/dns.h"
 
@@ -18,7 +19,11 @@
 #include "stratum_task.h"
 #include "system.h"
 
-// static const char *TAG = "stratum_task";
+#ifdef CONFIG_SPIRAM
+#define ALLOC(s)    heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
+#else
+#define ALLOC(s)    malloc(s)
+#endif
 
 // fallback can nicely be tested with netcat
 // mkfifo /tmp/ncpipe
@@ -29,7 +34,23 @@ enum Selected {
     SECONDARY = 1
 };
 
-extern "C" int is_socket_connected(int socket);
+int is_socket_connected(int socket)
+{
+    if (socket == -1) {
+        return 0;
+    }
+    struct timeval tv;
+    fd_set writefds;
+
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000; // 100 ms timeout
+
+    FD_ZERO(&writefds);
+    FD_SET(socket, &writefds);
+
+    int ret = select(socket + 1, NULL, &writefds, NULL, &tv);
+    return (ret > 0 && FD_ISSET(socket, &writefds)) ? 1 : 0;
+}
 
 StratumTask::StratumTask(StratumManager *manager, int index, StratumConfig *config)
 {
@@ -141,8 +162,6 @@ void StratumTask::taskWrapper(void *pvParameters)
 
 void StratumTask::task()
 {
-    STRATUM_V1_initialize_buffer();
-
     while (1) {
         // do we have a stratum host configured?
         // we do it here because we could reload the config after
@@ -214,21 +233,21 @@ void StratumTask::stratumLoop()
 {
     Board *board = SYSTEM_MODULE.getBoard();
 
-    STRATUM_V1_reset_uid();
+    m_stratumAPI.resetUid();
     m_manager->cleanQueue();
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1
-    STRATUM_V1_subscribe(m_sock, board->getDeviceModel(), board->getAsicModel());
+    m_stratumAPI.subscribe(m_sock, board->getDeviceModel(), board->getAsicModel());
 
     // mining.configure - ID: 2
-    STRATUM_V1_configure_version_rolling(m_sock);
+    m_stratumAPI.configureVersionRolling(m_sock);
 
     // mining.authorize - ID: 3
-    STRATUM_V1_authenticate(m_sock, m_config->user, m_config->password);
+    m_stratumAPI.authenticate(m_sock, m_config->user, m_config->password);
 
     // mining.suggest_difficulty - ID: 4
-    STRATUM_V1_suggest_difficulty(m_sock, CONFIG_STRATUM_DIFFICULTY);
+    m_stratumAPI.suggestDifficulty(m_sock, CONFIG_STRATUM_DIFFICULTY);
 
     while (1) {
         if (!is_socket_connected(m_sock)) {
@@ -236,7 +255,7 @@ void StratumTask::stratumLoop()
             return;
         }
 
-        char *line = STRATUM_V1_receive_jsonrpc_line(m_sock);
+        char *line = m_stratumAPI.receiveJsonRpcLine(m_sock);
         if (!line) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
             return;
@@ -257,7 +276,7 @@ void StratumTask::stratumLoop()
 void StratumTask::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                               const uint32_t version)
 {
-    STRATUM_V1_submit_share(m_sock, m_config->user, jobid, extranonce_2, ntime, nonce, version);
+    m_stratumAPI.submitShare(m_sock, m_config->user, jobid, extranonce_2, ntime, nonce, version);
 }
 
 void StratumTask::connect() {
@@ -270,7 +289,7 @@ void StratumTask::disconnect() {
 
 StratumManager::StratumManager()
 {
-    // NOP
+    m_stratum_api_v1_message = (StratumApiV1Message *) ALLOC(sizeof(StratumApiV1Message));
 }
 
 void StratumManager::connect(int index) {
@@ -327,11 +346,16 @@ void StratumManager::task()
                     (void *) m_stratumTasks[i], 5, NULL);
     }
 
-    // Always connect primary
+    // always connect primary
     connect(Selected::PRIMARY);
 
     while (1) {
-        vTaskDelay(60000 / portTICK_PERIOD_MS);
+        vTaskDelay(30000 / portTICK_PERIOD_MS);
+
+        // when we see submit responses we reset the watchdog
+        if (((m_lastSubmitResponseTimestamp - esp_timer_get_time()) / 1000000) < 3600) {
+            esp_task_wdt_reset();
+        }
 
         if (!isConnected(Selected::PRIMARY)) {
             pthread_mutex_lock(&m_mutex);
@@ -373,44 +397,44 @@ void StratumManager::dispatch(int pool, const char *line)
 
     const char *tag = m_stratumTasks[m_selected]->getTag();
 
-    memset(&m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
+    memset(m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
 
-    STRATUM_V1_parse(&m_stratum_api_v1_message, line);
+    StratumApi::parse(m_stratum_api_v1_message, line);
 
-    switch (m_stratum_api_v1_message.method) {
+    switch (m_stratum_api_v1_message->method) {
     case MINING_NOTIFY: {
-        SYSTEM_MODULE.notifyNewNtime(m_stratum_api_v1_message.mining_notification->ntime);
+        SYSTEM_MODULE.notifyNewNtime(m_stratum_api_v1_message->mining_notification->ntime);
 
         // abandon work clears the asic job list
-        if (m_stratum_api_v1_message.should_abandon_work) {
+        if (m_stratum_api_v1_message->should_abandon_work) {
             cleanQueue();
         }
-        create_job_mining_notify(m_stratum_api_v1_message.mining_notification);
+        create_job_mining_notify(m_stratum_api_v1_message->mining_notification);
 
         // free notify
-        STRATUM_V1_free_mining_notify(m_stratum_api_v1_message.mining_notification);
+        StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
         break;
     }
 
     case MINING_SET_DIFFICULTY: {
-        SYSTEM_MODULE.setPoolDifficulty(m_stratum_api_v1_message.new_difficulty);
-        if (create_job_set_difficulty(m_stratum_api_v1_message.new_difficulty)) {
-            ESP_LOGI(tag, "Set stratum difficulty: %ld", m_stratum_api_v1_message.new_difficulty);
+        SYSTEM_MODULE.setPoolDifficulty(m_stratum_api_v1_message->new_difficulty);
+        if (create_job_set_difficulty(m_stratum_api_v1_message->new_difficulty)) {
+            ESP_LOGI(tag, "Set stratum difficulty: %ld", m_stratum_api_v1_message->new_difficulty);
         }
         break;
     }
 
     case MINING_SET_VERSION_MASK:
     case STRATUM_RESULT_VERSION_MASK: {
-        ESP_LOGI(tag, "Set version mask: %08lx", m_stratum_api_v1_message.version_mask);
-        create_job_set_version_mask(m_stratum_api_v1_message.version_mask);
+        ESP_LOGI(tag, "Set version mask: %08lx", m_stratum_api_v1_message->version_mask);
+        create_job_set_version_mask(m_stratum_api_v1_message->version_mask);
         break;
     }
 
     case STRATUM_RESULT_SUBSCRIBE: {
-        ESP_LOGI(tag, "Set enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
-                 m_stratum_api_v1_message.extranonce_2_len);
-        create_job_set_enonce(m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
+        ESP_LOGI(tag, "Set enonce %s enonce2-len: %d", m_stratum_api_v1_message->extranonce_str,
+                 m_stratum_api_v1_message->extranonce_2_len);
+        create_job_set_enonce(m_stratum_api_v1_message->extranonce_str, m_stratum_api_v1_message->extranonce_2_len);
         break;
     }
 
@@ -420,20 +444,19 @@ void StratumManager::dispatch(int pool, const char *line)
     }
 
     case STRATUM_RESULT: {
-        if (m_stratum_api_v1_message.response_success) {
+        if (m_stratum_api_v1_message->response_success) {
             ESP_LOGI(tag, "message result accepted");
             SYSTEM_MODULE.notifyAcceptedShare();
         } else {
             ESP_LOGW(tag, "message result rejected");
             SYSTEM_MODULE.notifyRejectedShare();
         }
-        // reset the watchdog because we received a result
-        esp_task_wdt_reset();
+        m_lastSubmitResponseTimestamp = esp_timer_get_time();
         break;
     }
 
     case STRATUM_RESULT_SETUP: {
-        if (m_stratum_api_v1_message.response_success) {
+        if (m_stratum_api_v1_message->response_success) {
             ESP_LOGI(tag, "setup message accepted");
         } else {
             ESP_LOGE(tag, "setup message rejected");

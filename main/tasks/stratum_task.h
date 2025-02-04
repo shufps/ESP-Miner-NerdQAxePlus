@@ -17,6 +17,7 @@ class StratumTask {
 
   protected:
     StratumConfig *m_config = nullptr;
+    StratumApi m_stratumAPI;
 
     int m_index;
 
@@ -92,17 +93,17 @@ class StratumManager {
     friend StratumTask;
 
   protected:
-    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
-
     const char *m_tag = "stratum-manager";
 
-    // Stratum message
-    // we define it here because it's quite large for the stack
-    StratumApiV1Message m_stratum_api_v1_message;
+    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    StratumApiV1Message *m_stratum_api_v1_message;
 
     StratumTask *m_stratumTasks[2] = {nullptr, nullptr};
 
     int m_selected = 0;
+
+    uint64_t m_lastSubmitResponseTimestamp = 0;
 
     // callback for connection events
     void connectedCallback(int index);

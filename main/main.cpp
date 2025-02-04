@@ -177,6 +177,12 @@ extern "C" void app_main(void)
 
         initWatchdog(stratum_manager_handle);
     }
+
+    while (1) {
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        size_t free_internal_heap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+        ESP_LOGI(TAG, "Free internal heap: %d bytes", free_internal_heap);
+    }
 }
 
 void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
