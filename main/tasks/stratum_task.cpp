@@ -352,8 +352,8 @@ void StratumManager::task()
     while (1) {
         vTaskDelay(30000 / portTICK_PERIOD_MS);
 
-        // when we see submit responses we reset the watchdog
-        if (((m_lastSubmitResponseTimestamp - esp_timer_get_time()) / 1000000) < 3600) {
+        // when we see submit responses we reset the watchdog if the response is within the last hour
+        if (((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 3600) {
             esp_task_wdt_reset();
         }
 
