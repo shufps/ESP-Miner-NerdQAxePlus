@@ -239,7 +239,7 @@ void StratumTask::stratumLoop()
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1
-    m_stratumAPI.subscribe(m_sock, board->getDeviceModel(), board->getAsicModel());
+    m_stratumAPI.subscribe(m_sock, board->getMiningAgent(), board->getAsicModel());
 
     // mining.configure - ID: 2
     m_stratumAPI.configureVersionRolling(m_sock);

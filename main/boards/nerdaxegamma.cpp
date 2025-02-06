@@ -18,7 +18,8 @@ bool tempinit = false;
 static const char* TAG="nerdaxeGamma";
 
 NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
-    m_deviceModel = "NerdAxe";
+    m_deviceModel = "NerdAxeGamma";
+    m_miningAgent = "NerdAxe";
     m_asicModel = "BM1370";
     m_version = 200;
     m_asicCount = 1;
@@ -61,7 +62,6 @@ bool NerdaxeGamma::initBoard()
     EMC2101_set_ideality_factor(EMC2101_IDEALITY_1_0319);
     EMC2101_set_beta_compensation(EMC2101_BETA_11);
     setFanSpeed(m_fanPerc);
-    
 
     //Init voltage controller
     if (TPS546_init() != ESP_OK) {
@@ -127,15 +127,15 @@ bool NerdaxeGamma::setVoltage(float core_voltage)
 }
 
 float NerdaxeGamma::readTemperature(int index) {
-    
+
     if (!m_isInitialized) return EMC2101_get_internal_temp() + 5;
 
-    if (!index) { 
+    if (!index) {
         //Reading ASIC temp
         float asic_temp = EMC2101_get_external_temp();
         ESP_LOGI(TAG, "Read ASIC temp = %.3fºC", asic_temp);
         return asic_temp; //External board Temp
-    } else 
+    } else
     {   //Reading voltage regulator temp
         float vr_temp = (float)TPS546_get_temperature();
         ESP_LOGI(TAG, "Read vr temp = %.3fºC", vr_temp);

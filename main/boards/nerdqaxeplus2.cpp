@@ -5,6 +5,7 @@ static const char* TAG="nerdqaxeplus2";
 
 NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_deviceModel = "NerdQAxe++";
+    m_miningAgent = m_deviceModel;
     m_asicModel = "BM1370";
     m_asicCount = 4;
     m_numPhases = 3;
