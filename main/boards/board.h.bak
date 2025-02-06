@@ -119,10 +119,5 @@ class Board {
     float getMaxVin()
     {
         return m_maxVin;
-	}
-
-    float getVrThrottleTemp()
-    {
-        return m_vr_maxTemp;
     }
 };

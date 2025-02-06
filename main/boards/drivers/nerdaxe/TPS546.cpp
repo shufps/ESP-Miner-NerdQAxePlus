@@ -8,7 +8,7 @@
 #include "i2c_master.h"
 #include "TPS546.h"
 
-#define _DEBUG_LOG_ 1
+//#define _DEBUG_LOG_ 1
 
 //#define I2C_MASTER_NUM 0 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
 

@@ -5,6 +5,9 @@
 #define TPS546_MANUFACTURER_ID 0xFE  //< Manufacturer ID
 #define TPS546_REVISION        0xFF  //< Chip revision
 
+#define TPS546_THROTTLE_TEMP 105.0
+#define TPS546_MAX_TEMP 145.0
+
 /*-------------------------*/
 /* These are the inital values for the voltage regulator configuration */
 /* when the config revision stored in the TPS546 doesn't match, these values are used */
