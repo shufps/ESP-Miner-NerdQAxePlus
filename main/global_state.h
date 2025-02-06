@@ -17,7 +17,7 @@
 
 extern System SYSTEM_MODULE;
 extern PowerManagementTask POWER_MANAGEMENT_MODULE;
-extern StratumTask STRATUM_TASK;
+extern StratumManager STRATUM_MANAGER;
 
 extern AsicJobs asicJobs;
 
