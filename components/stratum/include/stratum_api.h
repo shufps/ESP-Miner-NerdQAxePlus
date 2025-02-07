@@ -109,6 +109,9 @@ class StratumApi {
     // Resets the message ID counter.
     void resetUid();
 
+    // clear the message buffer
+    void clearBuffer();
+
     // Parses a subscribe result message.
     int parseSubscribeResultMessage(const char *result_json_str, char **extranonce, int *extranonce2_len);
 
