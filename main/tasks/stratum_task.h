@@ -35,6 +35,7 @@ class StratumTask {
 
     bool m_isConnected = false; ///< Connection state flag
     bool m_stopFlag = true;     ///< Stop flag for the task
+    bool m_firstJob;
 
     // Connection and network-related methods
     bool isWifiConnected();                                                      ///< Check if Wi-Fi is connected
