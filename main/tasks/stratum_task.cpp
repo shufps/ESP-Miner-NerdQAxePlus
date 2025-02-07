@@ -203,9 +203,7 @@ void StratumTask::task()
             continue;
         }
 
-        // we are successfully connected, call the callback
-        m_manager->connectedCallback(m_index);
-        m_isConnected = true;
+        // we are connected but it doesn't mean the server is alive ...
 
         // stratum loop
         stratumLoop();
@@ -235,7 +233,6 @@ void StratumTask::stratumLoop()
     Board *board = SYSTEM_MODULE.getBoard();
 
     m_stratumAPI.resetUid();
-    m_manager->cleanQueue();
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1
@@ -250,6 +247,10 @@ void StratumTask::stratumLoop()
     // mining.suggest_difficulty - ID: 4
     m_stratumAPI.suggestDifficulty(m_sock, CONFIG_STRATUM_DIFFICULTY);
 
+    // All Stratum servers should send the first job with clear flag,
+    // but we make sure to clear the jobs on the first job
+    m_firstJob = true;
+
     while (1) {
         if (!is_socket_connected(m_sock)) {
             ESP_LOGE(m_tag, "Socket is not connected ...");
@@ -260,6 +261,14 @@ void StratumTask::stratumLoop()
         if (!line) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
             return;
+        }
+
+        // we wait for some kind of response from the server to be sure we are
+        // connected and it is alive
+        // when we arrived here, we got some
+        if (!m_isConnected) {
+            m_manager->connectedCallback(m_index);
+            m_isConnected = true;
         }
 
         ESP_LOGI(m_tag, "rx: %s", line); // debug incoming stratum messages
@@ -324,13 +333,13 @@ void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
 // Reconnect Timer Callback
 void StratumManager::reconnectTimerCallback(TimerHandle_t xTimer)
 {
+    pthread_mutex_lock(&m_mutex);
     // Check if primary is still disconnected
     if (!isConnected(Selected::PRIMARY)) {
-        pthread_mutex_lock(&m_mutex);
         connect(Selected::SECONDARY);
         m_selected = Selected::SECONDARY;
-        pthread_mutex_unlock(&m_mutex);
     }
+    pthread_mutex_unlock(&m_mutex);
 }
 
 // Start the reconnect timer
@@ -439,7 +448,9 @@ void StratumManager::dispatch(int pool, const char *line)
         return;
     }
 
-    const char *tag = m_stratumTasks[m_selected]->getTag();
+    StratumTask *selected = m_stratumTasks[m_selected];
+
+    const char *tag = selected->getTag();
 
     memset(m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
 
@@ -450,8 +461,10 @@ void StratumManager::dispatch(int pool, const char *line)
         SYSTEM_MODULE.notifyNewNtime(m_stratum_api_v1_message->mining_notification->ntime);
 
         // abandon work clears the asic job list
-        if (m_stratum_api_v1_message->should_abandon_work) {
+        // also clear on first job
+        if (selected->m_firstJob || m_stratum_api_v1_message->should_abandon_work) {
             cleanQueue();
+            selected->m_firstJob = false;
         }
         create_job_mining_notify(m_stratum_api_v1_message->mining_notification);
 
