@@ -233,6 +233,7 @@ void StratumTask::stratumLoop()
     Board *board = SYSTEM_MODULE.getBoard();
 
     m_stratumAPI.resetUid();
+    m_stratumAPI.clearBuffer();
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1

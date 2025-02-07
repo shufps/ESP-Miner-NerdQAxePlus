@@ -27,7 +27,7 @@ static const char *TAG = "stratum_api";
 StratumApi::StratumApi() : m_len(0), m_send_uid(1)
 {
     m_buffer = (char *) ALLOC(BIG_BUFFER_SIZE);
-    memset(m_buffer, 0, BIG_BUFFER_SIZE);
+    clearBuffer();
 }
 
 StratumApi::~StratumApi()
@@ -429,4 +429,12 @@ void StratumApi::resetUid()
 {
     ESP_LOGI(TAG, "Resetting stratum uid");
     m_send_uid = 1;
+}
+
+//--------------------------------------------------------------------
+// clearBuffer()
+//--------------------------------------------------------------------
+void StratumApi::clearBuffer() {
+    memset(m_buffer, 0, BIG_BUFFER_SIZE);
+    m_len = 0;
 }
