@@ -77,8 +77,8 @@ unsigned int getBTCprice(void)
         esp_http_client_config_t config = {
             .url = getBTCAPI,
             .event_handler = http_event_handler,
-            .skip_cert_common_name_check = true,
-            .cert_pem = NULL
+            .cert_pem = NULL,
+            .skip_cert_common_name_check = true
         };
 
         esp_http_client_handle_t client = esp_http_client_init(&config);
