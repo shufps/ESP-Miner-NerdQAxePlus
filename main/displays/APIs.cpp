@@ -40,17 +40,17 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
         break;
     }
     case HTTP_EVENT_ON_FINISH: {
-        // Intentar parsear el JSON completo al final de la transmisión
+        // Parse the complete JSON at the end of transmission
         // ESP_LOGI(tag, "Final JSON received: %s", response_buffer);
         cJSON *json = cJSON_Parse(response_buffer);
         if (json != NULL) {
-            cJSON *bpi = cJSON_GetObjectItem(json, "bpi");
-            if (bpi != NULL) {
-                cJSON *usd = cJSON_GetObjectItem(bpi, "USD");
+            cJSON *quotes = cJSON_GetObjectItem(json, "quotes");
+            if (quotes != NULL) {
+                cJSON *usd = cJSON_GetObjectItem(quotes, "USD");
                 if (usd != NULL) {
-                    cJSON *rate_float = cJSON_GetObjectItem(usd, "rate_float");
-                    if (cJSON_IsNumber(rate_float)) {
-                        bitcoin_price = (int) rate_float->valuedouble;
+                    cJSON *price = cJSON_GetObjectItem(usd, "price");
+                    if (cJSON_IsNumber(price)) {
+                        bitcoin_price = (unsigned int) price->valuedouble;
                         ESP_LOGI(tag, "Bitcoin price in USD: %d", bitcoin_price);
                     }
                 }
