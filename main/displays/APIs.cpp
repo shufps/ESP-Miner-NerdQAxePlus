@@ -40,20 +40,16 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
         break;
     }
     case HTTP_EVENT_ON_FINISH: {
-        // Parse the complete JSON at the end of transmission
+        // Intentar parsear el JSON completo al final de la transmisión
         // ESP_LOGI(tag, "Final JSON received: %s", response_buffer);
         cJSON *json = cJSON_Parse(response_buffer);
         if (json != NULL) {
-            cJSON *quotes = cJSON_GetObjectItem(json, "quotes");
-            if (quotes != NULL) {
-                cJSON *usd = cJSON_GetObjectItem(quotes, "USD");
-                if (usd != NULL) {
-                    cJSON *price = cJSON_GetObjectItem(usd, "price");
-                    if (cJSON_IsNumber(price)) {
-                        bitcoin_price = (unsigned int) price->valuedouble;
-                        ESP_LOGI(tag, "Bitcoin price in USD: %d", bitcoin_price);
-                    }
-                }
+            cJSON *usd = cJSON_GetObjectItem(json, "USD");
+            if (usd != NULL && cJSON_IsNumber(usd)) {
+                bitcoin_price = (int) usd->valuedouble;
+                ESP_LOGI(tag, "Bitcoin price in USD: %d", bitcoin_price);
+            } else {
+                ESP_LOGE(tag, "Failed to get USD price from JSON");
             }
             cJSON_Delete(json);
         } else {
@@ -73,11 +69,12 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
 
 unsigned int getBTCprice(void)
 {
+    static char price_str[32];
+
     if ((mBTCUpdate == 0) || (esp_timer_get_time() / 1000 - mBTCUpdate > UPDATE_BTC_min * 60)) {
         esp_http_client_config_t config = {
             .url = getBTCAPI,
             .event_handler = http_event_handler,
-            .skip_cert_common_name_check = true, // Skip CN check
         };
 
         esp_http_client_handle_t client = esp_http_client_init(&config);
