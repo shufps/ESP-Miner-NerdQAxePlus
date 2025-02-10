@@ -68,6 +68,7 @@ INCLUDE_DIRS
     "esp_http_client"
     "esp_netif"
     "esp_timer"
+    "esp-tls"
     "esp_wifi"
     "esp_lcd"
     "esp_psram"
