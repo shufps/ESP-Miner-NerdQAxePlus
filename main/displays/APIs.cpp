@@ -66,7 +66,7 @@ unsigned int getBTCprice(void)
 
     if ((mBTCUpdate == 0) || (esp_timer_get_time() / 1000 - mBTCUpdate > UPDATE_BTC_min * 60)) {
         esp_http_client_config_t config = {
-            .url = "https://mempool.space/api/v1/prices",
+            .url = getBTCAPI,
             .event_handler = http_event_handler,
             .crt_bundle_attach = esp_crt_bundle_attach,
         };
