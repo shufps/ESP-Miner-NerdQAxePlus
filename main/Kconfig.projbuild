@@ -41,6 +41,31 @@ menu "Stratum Configuration"
         help
             Stratum password to use with pool
 
+    config STRATUM_FALLBACK_URL
+        string "Stratum fallback Address"
+        default ""
+        help
+            The fallback stratum server host
+
+    config STRATUM_FALLBACK_PORT
+        int "Stratum fallback Port"
+        range 0 65535
+        default 0
+        help
+            The fallback stratum server port to connect to.
+
+    config STRATUM_FALLBACK_USER
+        string "Stratum fallback username"
+        default ""
+        help
+            Stratum user to use with fallback pool
+
+    config STRATUM_FALLBACK_PW
+        string "Stratum fallback password"
+        default ""
+        help
+            Stratum password to use with fallback pool
+
     config STRATUM_DIFFICULTY
         int "Stratum default difficulty"
         range 0 4294967296

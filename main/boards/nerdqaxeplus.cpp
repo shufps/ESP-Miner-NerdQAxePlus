@@ -22,6 +22,7 @@ static const char* TAG="nerdqaxe+";
 
 NerdQaxePlus::NerdQaxePlus() : Board() {
     m_deviceModel = "NerdQAxe+";
+    m_miningAgent = m_deviceModel;
     m_version = 501;
     m_asicModel = "BM1368";
     m_asicCount = 4;

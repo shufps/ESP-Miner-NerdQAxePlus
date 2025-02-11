@@ -124,8 +124,10 @@ void PowerManagementTask::task()
         m_vrTemp = board->readTemperature(1);
         influx_task_set_temperature(m_chipTempAvg, m_vrTemp);
 
-        float vr_maxTemp = asic_overheat_temp; 
-        if(board->getVrThrottleTemp()) vr_maxTemp = board->getVrThrottleTemp();
+        float vr_maxTemp = asic_overheat_temp;
+        if(board->getVrMaxTemp()) {
+            vr_maxTemp = board->getVrMaxTemp();
+        }
 
         if (asic_overheat_temp &&
             (m_chipTempAvg > asic_overheat_temp || m_vrTemp > vr_maxTemp)) {

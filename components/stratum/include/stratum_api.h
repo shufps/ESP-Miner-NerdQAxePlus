@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "cJSON.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -64,27 +60,65 @@ typedef struct
     bool response_success;
 } StratumApiV1Message;
 
-void STRATUM_V1_reset_uid();
+class StratumApi {
+  private:
+    // Fixed-size buffer used to accumulate partial incoming data.
+    enum
+    {
+        BUFFER_SIZE = 1024,
+        BIG_BUFFER_SIZE = 4096,
+    };
+    char *m_buffer;
+    size_t m_len;   // Current length of valid data in m_buffer.
+    int m_send_uid; // Message ID counter (each message gets a unique ID).
 
-void STRATUM_V1_initialize_buffer();
+    // Helper: logs a transmit message (removing any trailing newline).
+    void debugTx(const char *msg);
 
-char *STRATUM_V1_receive_jsonrpc_line(int sockfd);
+    // Helper functions for hex conversion.
+    static uint8_t hex2val(char c);
+    static size_t hex2bin(const char *hex, uint8_t *bin, size_t bin_len);
 
-int STRATUM_V1_subscribe(int socket, const char* device, const char* asic);
+    // Helper: checks whether the socket is still connected.
+    static int isSocketConnected(int socket);
 
-void STRATUM_V1_parse(StratumApiV1Message *message, const char *stratum_json);
+  public:
+    StratumApi();
+    ~StratumApi();
 
-void STRATUM_V1_free_mining_notify(mining_notify *params);
+    // Receives a JSON-RPC line (terminated by '\n') from the socket.
+    // Returns a dynamically allocated C-string that the caller must free.
+    char *receiveJsonRpcLine(int sockfd);
 
-int STRATUM_V1_authenticate(int socket, const char *username, const char *pass);
+    // Sends a subscribe message.
+    int subscribe(int socket, const char *device, const char *asic);
 
-void STRATUM_V1_configure_version_rolling(int socket);
+    // Sends a suggest-difficulty message.
+    int suggestDifficulty(int socket, uint32_t difficulty);
 
-int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty);
+    // Sends an authentication message.
+    int authenticate(int socket, const char *username, const char *pass);
 
-void STRATUM_V1_submit_share(int socket, const char *username, const char *jobid, const char *extranonce_2, const uint32_t ntime,
-                             const uint32_t nonce, const uint32_t version);
+    // Submits a share.
+    void submitShare(int socket, const char *username, const char *jobid, const char *extranonce_2, uint32_t ntime, uint32_t nonce,
+                     uint32_t version);
 
-#ifdef __cplusplus
-}
-#endif
+    // Sends a configure-version-rolling message.
+    void configureVersionRolling(int socket);
+
+    // Resets the message ID counter.
+    void resetUid();
+
+    // clear the message buffer
+    void clearBuffer();
+
+    // Parses a subscribe result message.
+    int parseSubscribeResultMessage(const char *result_json_str, char **extranonce, int *extranonce2_len);
+
+    // Parses a received JSON string into a StratumApiV1Message.
+    static void parse(StratumApiV1Message *message, const char *stratum_json);
+
+    // Frees a mining_notify structure allocated in parse().
+    static void freeMiningNotify(mining_notify *params);
+
+};

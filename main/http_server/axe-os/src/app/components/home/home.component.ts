@@ -15,6 +15,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   public info$: Observable<ISystemInfo>;
   public quickLink$: Observable<string | undefined>;
+  public fallbackQuickLink$!: Observable<string | undefined>;
   public expectedHashRate$: Observable<number | undefined>;
 
   public chartOptions: any;
@@ -168,25 +169,35 @@ export class HomeComponent implements OnInit, OnDestroy {
     }));
 
     this.quickLink$ = this.info$.pipe(
-      map(info => {
-        if (!info) return undefined; // Return undefined if no info
-        if (info.stratumURL.includes('public-pool.io')) {
-          const address = info.stratumUser.split('.')[0];
-          return `https://web.public-pool.io/#/app/${address}`;
-        } else if (info.stratumURL.includes('ocean.xyz')) {
-          const address = info.stratumUser.split('.')[0];
-          return `https://ocean.xyz/stats/${address}`;
-        } else if (info.stratumURL.includes('solo.d-central.tech')) {
-          const address = info.stratumUser.split('.')[0];
-          return `https://solo.d-central.tech/#/app/${address}`;
-        } else if (/solo[46]?\.ckpool\.org/.test(info.stratumURL)) {
-          const address = info.stratumUser.split('.')[0];
-          return `https://solo.ckpool.org/users/${address}`;
-        } else {
-          return undefined;
-        }
-      })
+      map(info => this.getQuickLink(info.stratumURL, info.stratumUser))
     );
+
+    this.fallbackQuickLink$ = this.info$.pipe(
+      map(info => this.getQuickLink(info.fallbackStratumURL, info.fallbackStratumUser))
+    );
+  }
+
+  private getQuickLink(stratumURL: string, stratumUser: string): string | undefined {
+    const address = stratumUser.split('.')[0];
+
+    if (stratumURL.includes('public-pool.io')) {
+      return `https://web.public-pool.io/#/app/${address}`;
+    } else if (stratumURL.includes('ocean.xyz')) {
+      return `https://ocean.xyz/stats/${address}`;
+    } else if (stratumURL.includes('solo.d-central.tech')) {
+      return `https://solo.d-central.tech/#/app/${address}`;
+    } else if (/^eusolo[46]?.ckpool.org/.test(stratumURL)) {
+      return `https://eusolostats.ckpool.org/users/${address}`;
+    } else if (/^solo[46]?.ckpool.org/.test(stratumURL)) {
+      return `https://solostats.ckpool.org/users/${address}`;
+    } else if (stratumURL.includes('pool.noderunners.network')) {
+      return `https://noderunners.network/en/pool/user/${address}`;
+    } else if (stratumURL.includes('satoshiradio.nl')) {
+      return `https://pool.satoshiradio.nl/user/${address}`;
+    } else if (stratumURL.includes('solohash.co.uk')) {
+      return `https://solohash.co.uk/user/${address}`;
+    }
+    return stratumURL.startsWith('http') ? stratumURL : `http://${stratumURL}`;
   }
 
   ngOnInit(): void {
