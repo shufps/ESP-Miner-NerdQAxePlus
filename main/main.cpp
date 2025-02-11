@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_task_wdt.h"
+#include "mbedtls/platform.h"
 #include "nvs_flash.h"
 
 #include "asic_jobs.h"
@@ -25,6 +26,7 @@
 #include "serial.h"
 #include "stratum_task.h"
 #include "system.h"
+#include "btc_task.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -32,6 +34,7 @@ System SYSTEM_MODULE;
 
 PowerManagementTask POWER_MANAGEMENT_MODULE;
 StratumManager STRATUM_MANAGER;
+BitcoinPriceFetcher BTC_PRICE_FETCHER;
 
 AsicJobs asicJobs;
 
@@ -100,10 +103,27 @@ void initWatchdog(TaskHandle_t task)
     esp_task_wdt_add(task);
 }
 
+// Custom calloc function that allocates from PSRAM
+void *psram_calloc(size_t num, size_t size) {
+    void *ptr = heap_caps_calloc(num, size, MALLOC_CAP_SPIRAM);
+    if (!ptr) {
+        ESP_LOGE(TAG, "PSRAM allocation failed! Falling back to internal RAM.");
+        ptr = heap_caps_calloc(num, size, MALLOC_CAP_DEFAULT);
+    }
+    return ptr;
+}
+
+void free_psram(void *ptr) {
+    heap_caps_free(ptr);
+}
+
 extern "C" void app_main(void)
 {
     // it could trigger a reset right away after reboot
     esp_task_wdt_deinit();
+
+    // use PSRAM because TLS costs a lot of internal RAM
+    mbedtls_platform_set_calloc_free(psram_calloc, free_psram);
 
     ESP_LOGI(TAG, "Welcome to the bitaxe - hack the planet!");
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -174,6 +194,8 @@ extern "C" void app_main(void)
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
+
+        xTaskCreate(BTC_PRICE_FETCHER.taskWrapper, "btc ticker", 4096, (void*) &BTC_PRICE_FETCHER, 5, NULL);
 
         initWatchdog(stratum_manager_handle);
     }

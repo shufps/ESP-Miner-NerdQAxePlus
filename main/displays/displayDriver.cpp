@@ -1,7 +1,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#include "APIs.h"
 #include "lv_conf.h"
 
 #include "driver/gpio.h"
@@ -516,7 +515,7 @@ void DisplayDriver::updateBTCprice(void)
     if ((m_screenStatus != SCREEN_BTCPRICE) && (m_btcPrice != 0))
         return;
 
-    m_btcPrice = getBTCprice();
+    m_btcPrice = BTC_PRICE_FETCHER.getPrice();
     snprintf(price_str, sizeof(price_str), "%u$", m_btcPrice);
     lv_label_set_text(m_ui->ui_lblBTCPrice, price_str); // Update label
 }
