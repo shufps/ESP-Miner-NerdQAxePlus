@@ -15,6 +15,12 @@ endif()
 
 message(STATUS "Selected board: $ENV{BOARD}")
 
+add_compile_definitions(LV_MEM_CUSTOM=1)
+add_compile_definitions(LV_MEM_CUSTOM_INCLUDE=<lvgl_psram.h>)
+add_compile_definitions(LV_MEM_CUSTOM_ALLOC=lv_psram_alloc)
+add_compile_definitions(LV_MEM_CUSTOM_FREE=lv_psram_free)
+add_compile_definitions(LV_MEM_CUSTOM_REALLOC=lv_psram_realloc)
+
 # not longer used
 #add_definitions(-DDISPLAY_TTGO)
 

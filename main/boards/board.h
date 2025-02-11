@@ -11,6 +11,7 @@ class Board {
     const char *m_deviceModel;
     int m_version;
     const char *m_asicModel;
+    const char *m_miningAgent;
     int m_asicCount;
 
     // asic settings
@@ -21,6 +22,9 @@ class Board {
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
     uint32_t m_asicMaxDifficulty;
+
+    // Voltage regulator max temperature
+    float m_vr_maxTemp = 0.0;
 
     // fans
     bool m_fanInvertPolarity;
@@ -47,6 +51,7 @@ class Board {
 
     void loadSettings();
     const char *getDeviceModel();
+    const char *getMiningAgent();
     int getVersion();
     const char *getAsicModel();
     int getAsicCount();
@@ -116,5 +121,10 @@ class Board {
     float getMaxVin()
     {
         return m_maxVin;
+	}
+
+    float getVrMaxTemp()
+    {
+        return m_vr_maxTemp;
     }
 };

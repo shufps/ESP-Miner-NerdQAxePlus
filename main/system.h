@@ -43,8 +43,9 @@ class System {
     char m_ssid[33];           // WiFi SSID (+1 for null terminator)
     char m_wifiStatus[20];     // WiFi status string
     bool m_apState;
-    char *m_poolUrl;           // URL of the mining pool
-    uint16_t m_poolPort;       // Port number of the mining pool
+
+    StratumConfig m_stratumConfig[2];
+
     uint32_t m_poolDifficulty; // Current pool difficulty
 
     // Error tracking
@@ -137,15 +138,10 @@ class System {
         return m_currentHashrate10m;
     }
 
-    // Pool-related getters and setters
-    const char *getPoolUrl() const
-    {
-        return m_poolUrl;
+    StratumConfig *getStratumConfig(uint8_t index) {
+        return &m_stratumConfig[index];
     }
-    uint16_t getPoolPort() const
-    {
-        return m_poolPort;
-    }
+
     void setPoolDifficulty(uint32_t difficulty)
     {
         m_poolDifficulty = difficulty;

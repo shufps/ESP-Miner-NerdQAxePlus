@@ -11,13 +11,15 @@
 #include "drivers/nerdaxe/TPS546.h"
 
 #define BM1370_RST_PIN GPIO_NUM_1
+#define GAMMA_POWER_OFFSET 5
 
 bool tempinit = false;
 
 static const char* TAG="nerdaxeGamma";
 
 NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
-    m_deviceModel = "NerdaxeGamma";
+    m_deviceModel = "NerdAxeGamma";
+    m_miningAgent = "NerdAxe";
     m_asicModel = "BM1370";
     m_version = 200;
     m_asicCount = 1;
@@ -28,14 +30,15 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_initVoltage = 1.15;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
+    m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
 
-    m_maxPin = 19.0;
+    m_maxPin = 25.0;
     m_minPin = 5.0;
     m_maxVin = 5.5;
     m_minVin = 4.5;
 
-    m_asicMaxDifficulty = 512;
-    m_asicMinDifficulty = 128;
+    m_asicMaxDifficulty = 2048;
+    m_asicMinDifficulty = 512;
 
 #ifdef NERDAXEGAMMA
     m_theme = new ThemeNerdaxe();
@@ -59,7 +62,6 @@ bool NerdaxeGamma::initBoard()
     EMC2101_set_ideality_factor(EMC2101_IDEALITY_1_0319);
     EMC2101_set_beta_compensation(EMC2101_BETA_11);
     setFanSpeed(m_fanPerc);
-    
 
     //Init voltage controller
     if (TPS546_init() != ESP_OK) {
@@ -125,15 +127,19 @@ bool NerdaxeGamma::setVoltage(float core_voltage)
 }
 
 float NerdaxeGamma::readTemperature(int index) {
-    
+
     if (!m_isInitialized) return EMC2101_get_internal_temp() + 5;
 
     if (!index) {
-        //return (float)TPS546_get_temperature(); - vr_temp (voltage regulator temp)
-        return EMC2101_get_external_temp(); //External board Temp
-        //return EMC2101_get_internal_temp() + 5;
-    } else {
-        return 0.0;
+        //Reading ASIC temp
+        float asic_temp = EMC2101_get_external_temp();
+        ESP_LOGI(TAG, "Read ASIC temp = %.3fºC", asic_temp);
+        return asic_temp; //External board Temp
+    } else
+    {   //Reading voltage regulator temp
+        float vr_temp = (float)TPS546_get_temperature();
+        ESP_LOGI(TAG, "Read vr temp = %.3fºC", vr_temp);
+        return vr_temp; //- vr_temp (voltage regulator temp)
     }
 
 }
@@ -147,7 +153,7 @@ float NerdaxeGamma::getIin() {
 }
 
 float NerdaxeGamma::getPin() {
-    return TPS546_get_vout() * TPS546_get_iout();
+    return (TPS546_get_vout() * TPS546_get_iout()) + GAMMA_POWER_OFFSET;
 }
 
 float NerdaxeGamma::getVout() {

@@ -5,6 +5,7 @@ static const char* TAG="nerdoctaxe+";
 
 NerdOctaxePlus::NerdOctaxePlus() : NerdQaxePlus() {
     m_deviceModel = "NerdOCTAXE+";
+    m_miningAgent = m_deviceModel;
     m_asicCount = 8;
     m_numPhases = 3;
     m_imax = m_numPhases * 30;

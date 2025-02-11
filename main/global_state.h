@@ -11,13 +11,15 @@
 #include "tasks/asic_jobs.h"
 #include "tasks/power_management_task.h"
 #include "tasks/stratum_task.h"
+#include "tasks/btc_task.h"
 
 #include "boards/nerdqaxeplus.h"
 #include "system.h"
 
 extern System SYSTEM_MODULE;
 extern PowerManagementTask POWER_MANAGEMENT_MODULE;
-extern StratumTask STRATUM_TASK;
+extern StratumManager STRATUM_MANAGER;
+extern BitcoinPriceFetcher BTC_PRICE_FETCHER;
 
 extern AsicJobs asicJobs;
 
