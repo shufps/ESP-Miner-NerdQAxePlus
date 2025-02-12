@@ -10,6 +10,7 @@
 #include "board.h"
 #include "nerdaxe.h"
 #include "nvs_config.h"
+#include "../displays/displayDriver.h"
 
 #include "drivers/nerdaxe/DS4432U.h"
 #include "drivers/nerdaxe/EMC2101.h"
@@ -136,7 +137,8 @@ bool NerdAxe::initAsics()
     vTaskDelay(250 / portTICK_PERIOD_MS);
 
     SERIAL_clear_buffer();
-    if (!m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty)) {
+    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty);
+    if (!m_chipsDetected) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;
     }
@@ -212,3 +214,43 @@ float NerdAxe::getPout() {
     return 0.0;
 }
 
+bool NerdAxe::selfTest(){
+    //Test Core Voltage
+    #define CORE_VOLTAGE_TARGET_MIN 1.0 //mV
+    #define CORE_VOLTAGE_TARGET_MAX 1.35 //mV
+
+    char logString[300]; 
+    
+    // Initialize the display
+    DisplayDriver *temp_display;
+    temp_display = new DisplayDriver();
+    temp_display->init(this);
+
+    temp_display->logMessage("\nSelfTest initiated, wait...\r\n\n\n\n\n\n"
+                             "[Warning] This test only ensures Asic is properly soldered\nHashrate is not checked");
+
+    //Init Asics
+    initAsics();
+    float power = getPin();
+    float Vout = getVout();
+    bool powerOK = (power > m_minPin) && (power < m_maxPin);
+    bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
+    bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
+    
+    //Warning! This test only ensures Asic is properly soldered
+    snprintf(logString, sizeof(logString),  "\nTest result:\r\n"
+                                            "- Asics detected [%d/%d]\n"
+                                            "- Power status: %s (%.2f W)\n"
+                                            "- Asic voltage: %s (%.2f V)\r\n\n"
+                                            "%s", // Final result
+                                            m_chipsDetected, m_asicCount,
+                                            powerOK ? "OK" : "Warning", power,
+                                            VrOK ? "OK" : "Warning", Vout,
+                                            (allAsicsDetected) ? "OOOOOOOO TEST OK!!! OOOOOOO" : "XXXXXXXXX TEST KO XXXXXXXXX");
+    temp_display->logMessage(logString);             
+
+    //Update SelfTest flag                                                              
+    if(allAsicsDetected) nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);
+
+    return allAsicsDetected;
+}
