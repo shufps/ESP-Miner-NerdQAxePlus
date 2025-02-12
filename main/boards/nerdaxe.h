@@ -29,4 +29,5 @@ class NerdAxe : public Board {
     virtual float getIout();
     virtual float getPout();
     virtual void requestBuckTelemtry();
+    virtual bool selfTest();
 };

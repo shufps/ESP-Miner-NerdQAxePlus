@@ -1,6 +1,7 @@
 #include "board.h"
 #include "nvs_config.h"
 #include "esp_log.h"
+#include "../displays/displayDriver.h"
 
 const static char* TAG = "board";
 
@@ -55,3 +56,16 @@ double Board::getAsicJobIntervalMs()
     return m_asicJobIntervalMs;
 }
 
+bool Board::selfTest(){
+
+    // Initialize the display
+    DisplayDriver *temp_display;
+    temp_display = new DisplayDriver();
+    temp_display->init(this);
+
+    temp_display->logMessage("Self test not supported on this board...");
+    ESP_LOGI("board", "Self test not supported on this board");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+    return false;
+}
