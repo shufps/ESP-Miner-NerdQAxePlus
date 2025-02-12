@@ -976,7 +976,6 @@ static esp_err_t echo_handler(httpd_req_t *req)
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
-
     if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "Handshake done, the new connection was opened");
         fd = httpd_req_to_sockfd(req);
