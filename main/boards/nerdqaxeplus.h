@@ -37,4 +37,5 @@ class NerdQaxePlus : public Board {
     virtual void requestBuckTelemtry();
 
     virtual bool getPSUFault();
+    virtual bool selfTest();
 };

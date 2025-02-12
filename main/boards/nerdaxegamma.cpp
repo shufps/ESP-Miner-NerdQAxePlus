@@ -105,7 +105,8 @@ bool NerdaxeGamma::initAsics() {
     vTaskDelay(250 / portTICK_PERIOD_MS);
 
     SERIAL_clear_buffer();
-    if (!m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty)) {
+    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty);
+    if (!m_chipsDetected) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;
     }
