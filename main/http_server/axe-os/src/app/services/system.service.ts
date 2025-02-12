@@ -1,12 +1,12 @@
 import { HttpClient, HttpEvent } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { delay, Observable, of } from 'rxjs';
-import { eASICModel } from 'src/models/enum/eASICModel';
-import { ISystemInfo } from 'src/models/ISystemInfo';
-import { IHistory } from 'src/models/IHistory';
+import { eASICModel } from '../models/enum/eASICModel';
+import { ISystemInfo } from '../models/ISystemInfo';
+import { IHistory } from '../models/IHistory';
 
 import { environment } from '../../environments/environment';
-import { IInfluxDB } from 'src/models/IInfluxDB';
+import { IInfluxDB } from '../models/IInfluxDB';
 
 const defaultInfo: ISystemInfo = {
   power: 11.670000076293945,

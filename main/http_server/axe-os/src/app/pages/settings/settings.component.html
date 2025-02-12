@@ -1,0 +1,117 @@
+<!-- update.component.html -->
+
+
+  <!-- Settings Card (stays separate) -->
+  <nb-card>
+    <nb-card-header>Settings</nb-card-header>
+    <nb-card-body>
+      <app-edit></app-edit>
+    </nb-card-body>
+  </nb-card>
+
+  <!-- Flex container for the update cards -->
+  <div class="cards-container">
+
+    <!-- Release Info Card (shows one of two versions based on checkLatestRelease) -->
+    <nb-card class="card-item" *ngIf="!checkLatestRelease">
+      <nb-card-header>
+        Current Version: {{ (info$ | async)?.version }}
+      </nb-card-header>
+      <nb-card-body>
+        <h2>
+          Latest Release:
+          <button nbButton status="info" [status]="'primary'" (click)="checkLatestRelease = true">
+            Check
+          </button>
+        </h2>
+      </nb-card-body>
+    </nb-card>
+
+    <nb-card class="card-item" *ngIf="checkLatestRelease">
+      <nb-card-header>
+        Current Version: {{ (info$ | async)?.version }}
+      </nb-card-header>
+      <nb-card-body>
+        <ng-container *ngIf="latestRelease$ | async as latestRelease">
+          <h2>Latest Release: {{ latestRelease.name }}</h2>
+          <div *ngFor="let asset of latestRelease.assets">
+            <div *ngIf="asset.name === expectedFileName">
+              <a nbButton outline status="info" [status]="'primary'" target="_blank" [href]="asset.browser_download_url">
+                {{ expectedFileName }}
+              </a>
+            </div>
+            <div *ngIf="asset.name === 'www.bin'">
+              <a nbButton outline status="info" [status]="'primary'" target="_blank" [href]="asset.browser_download_url">
+                www.bin
+              </a>
+            </div>
+          </div>
+        </ng-container>
+      </nb-card-body>
+    </nb-card>
+
+    <!-- Firmware Update Card -->
+    <nb-card class="card-item">
+      <nb-card-header>
+        Update Firmware
+        <span *ngIf="firmwareUpdateProgress != null">
+          {{ firmwareUpdateProgress }}%
+        </span>
+      </nb-card-header>
+      <nb-card-body>
+        <!-- Hidden file input -->
+        <input type="file"
+               #firmwareInput
+               hidden
+               (change)="onFirmwareFileSelected($event)"
+               accept=".bin">
+        <!-- Action buttons container -->
+        <div class="action-buttons">
+          <!-- Custom "Browse" button -->
+          <button nbButton status="info" [status]="'primary'" (click)="firmwareInput.click()">
+            <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
+            Browse
+          </button>
+          <!-- "Upload" button -->
+          <button nbButton status="info" [status]="'primary'" (click)="uploadFirmwareFile()">
+            <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
+            Flash
+          </button>
+        </div>
+        <small>({{ expectedFileName }})</small>
+      </nb-card-body>
+    </nb-card>
+
+    <!-- Website Update Card -->
+    <nb-card class="card-item">
+      <nb-card-header>
+        Update Website
+        <span *ngIf="websiteUpdateProgress != null">
+          {{ websiteUpdateProgress }}%
+        </span>
+      </nb-card-header>
+      <nb-card-body>
+        <!-- Hidden file input -->
+        <input type="file"
+               #websiteInput
+               hidden
+               (change)="onWebsiteFileSelected($event)"
+               accept=".bin">
+        <!-- Action buttons container -->
+        <div class="action-buttons">
+          <!-- Custom "Browse" button -->
+          <button nbButton status="info" [status]="'primary'" (click)="websiteInput.click()">
+            <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
+            Browse
+          </button>
+          <!-- "Upload" button -->
+          <button nbButton status="info" [status]="'primary'" (click)="uploadWebsiteFile()">
+            <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
+            Flash
+          </button>
+        </div>
+        <small>(www.bin)</small>
+      </nb-card-body>
+    </nb-card>
+
+  </div>

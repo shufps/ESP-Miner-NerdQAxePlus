@@ -1,0 +1,67 @@
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="range"] {
+    min-width: 250px;
+    max-width: 90%;
+}
+
+select {
+    min-width: 268px;
+    max-width: 90%;
+}
+
+.restart {
+    margin-bottom: 1.5rem;
+
+}
+
+@media only screen and (min-width:900px) {
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="range"] {
+        min-width: 500px
+    }
+
+    select {
+        min-width: 518px
+    }
+}
+
+a {
+    color: white;
+}
+
+.pro-mode-warning {
+    background-color: #ffcccb;
+    color: #b22222;
+    border: 1px solid #b22222;
+    padding: 10px;
+    margin: 10px 0;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 5px;
+  }
+
+
+  .cards-container {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap; /* Ensures cards wrap on smaller screens */
+  }
+  .card-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 300px; /* Prevents cards from getting too narrow */
+  }
+  .card-item nb-card-body {
+    flex: 1; /* Makes the card body fill available vertical space */
+  }
+
+  .action-buttons button {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+  }

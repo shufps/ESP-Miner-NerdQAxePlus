@@ -1,0 +1,61 @@
+/*
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="range"] {
+    min-width: 250px;
+    max-width: 90%;
+}
+
+select {
+    min-width: 268px;
+    max-width: 90%;
+}
+
+.restart {
+    margin-bottom: 1.5rem;
+
+}
+
+@media only screen and (min-width:900px) {
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="range"] {
+        min-width: 500px
+    }
+
+    select {
+        min-width: 518px
+    }
+}
+
+a {
+    color: white;
+}
+*/
+.form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.form-label {
+    flex: 0 0 100px;
+    text-align: right;
+    margin-right: 16px;
+}
+
+.form-control-wrapper {
+    flex: 1;
+}
+
+small {
+    padding-left: 5px;
+}
+
+input {
+    min-width: 100% !important;
+}

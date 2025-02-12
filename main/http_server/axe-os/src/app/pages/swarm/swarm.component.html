@@ -1,0 +1,82 @@
+<ng-container>
+    <nb-card>
+        <nb-card-header>AxeOS Device Management</nb-card-header>
+        <nb-card-body>
+            <form [formGroup]="form">
+                <div class="form-row">
+                    <label for="ip" class="form-label">AxeOS Device IP</label>
+                    <div class="form-control-wrapper">
+                        <div class="input-group">
+                            <input nbInput id="ip" formControlName="ip" type="text" placeholder="Enter IP Address" />
+                            <button nbButton (click)="add()" [disabled]="form.invalid" [status]="'primary'">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </nb-card-body>
+    </nb-card>
+
+    <div class="mt-4">
+        <button nbButton status="info" (click)="refresh()" [status]="'primary'">Refresh</button>
+    </div>
+
+    <div class="mt-4">
+        <nb-card>
+            <nb-card-header>Swarm Overview</nb-card-header>
+            <nb-card-body>
+                <table class="swarm-table" *ngIf="swarm$ | async as swarm">
+                    <thead>
+                        <tr>
+                            <th>IP</th>
+                            <th>Hash Rate</th>
+                            <th>Uptime</th>
+                            <th>Accepted</th>
+                            <th>Power</th>
+                            <th>Temp</th>
+                            <th>Best Difficulty</th>
+                            <th>Version</th>
+                            <th>Edit</th>
+                            <th>Restart</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <ng-container *ngFor="let axeOs$ of swarm">
+                            <tr *ngIf="axeOs$ | async as axe">
+                                <td><a [href]="'http://' + axe.ip" target="_blank">{{ axe.ip }}</a></td>
+                                <td>{{ axe.hashRate | number: '1.2-2' }} <small>Gh/s</small></td>
+                                <td>{{ axe.uptimeSeconds | dateAgo }}</td>
+                                <td>{{ axe.sharesAccepted }}</td>
+                                <td>{{ axe.power | number: '1.2-2' }} <small>W</small></td>
+                                <td>{{ axe.temp }} <small>C</small></td>
+                                <td>{{ axe.bestDiff }}</td>
+                                <td>{{ axe.version }}</td>
+                                <td><button nbButton status="warning" size="small" (click)="edit(axe)"><nb-icon
+                                            icon="edit-outline"></nb-icon></button></td>
+                                <td><button nbButton status="danger" size="small" (click)="restart(axe)"><nb-icon
+                                            icon="sync-outline"></nb-icon></button></td>
+                                <td><button nbButton status="basic" size="small" (click)="remove(axe)"><nb-icon
+                                            icon="trash-2-outline"></nb-icon></button></td>
+                            </tr>
+                        </ng-container>
+                    </tbody>
+                </table>
+            </nb-card-body>
+        </nb-card>
+    </div>
+
+    <div *ngIf="showEdit">
+        <div class="modal-backdrop" (click)="showEdit = false"></div>
+        <nb-card class="modal">
+            <nb-card-header>
+                <button nbButton status="danger" size="small" (click)="showEdit = false">&#10006;</button>
+            </nb-card-header>
+            <nb-card-body>
+                <h1>{{ selectedAxeOs?.ip }}</h1>
+                <app-edit [uri]="'http://' + selectedAxeOs?.ip"></app-edit>
+            </nb-card-body>
+        </nb-card>
+    </div>
+
+</ng-container>
+

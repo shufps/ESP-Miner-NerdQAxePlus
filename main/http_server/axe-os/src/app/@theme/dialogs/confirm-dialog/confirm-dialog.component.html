@@ -1,0 +1,13 @@
+<nb-card size="medium" accent="warning">
+    <nb-card-header>
+        <nb-icon icon="circle-question" pack="fas" class="float-end"></nb-icon>
+        Attenzione
+    </nb-card-header>
+    <nb-card-body [innerHTML]="key">
+    </nb-card-body>
+    <nb-card-footer>
+        <button nbButton [status]="btn_dx_status" class="float-end" (click)="success()"> <nb-icon [icon]="btn_dx_icon" pack="fas" ></nb-icon> {{btn_dx_text}} </button>
+        <button nbButton [status]="btn_sx_status" (click)="discard()"> <nb-icon [icon]="btn_sx_icon" pack="fas"></nb-icon> {{btn_sx_text}} </button>
+
+    </nb-card-footer>
+</nb-card>

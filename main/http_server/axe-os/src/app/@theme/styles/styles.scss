@@ -1,0 +1,89 @@
+
+// themes - our custom or/and out of the box themes
+@use './themes.scss' as *;
+
+// framework component themes (styles tied to theme variables)
+@use '@nebular/theme/styles/globals' as *;
+//@use '/node_modules/@nebular/auth/styles/all' as *;
+
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/grid';
+@import "bootstrap/scss/utilities";
+@import "bootstrap/scss/helpers";
+@import "bootstrap/scss/utilities/api";
+
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap');
+
+// loading progress bar theme
+@import './pace.theme';
+
+@import './layout';
+@import './overrides';
+
+// install the framework and custom global styles
+@include nb-install() {
+
+  // framework global styles
+  @include nb-theme-global();
+ // @include nb-auth-global();
+
+  @include ngx-layout();
+  // loading progress bar
+  @include ngx-pace-theme();
+
+  @include nb-overrides();
+
+  
+};
+
+/*
+html, body, xc-app, xc-app-layout, nb-layout {
+  height: 100%;
+
+  .scrollable-container {
+    height: 100% !important;
+  }
+}
+
+nb-layout.with-scroll .scrollable-container {
+ height: auto !important;
+}
+
+.help-icon-right {
+  position: absolute;
+  right: 10px;
+}
+
+
+
+body {
+  overflow: scroll !important;
+}
+*/
+
+angular2-smart-table-tags-list {
+  display: none;
+}
+
+.form-group{
+  @extend .form-group;
+  margin-bottom: 0.25rem;
+}
+
+
+.main-container { top: 0px !important; }
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+mat-icon{
+  font-family: 'Material Icons' !important;
+}
+
+/* Importing Bootstrap SCSS file. */
+@import 'bootstrap/scss/bootstrap';

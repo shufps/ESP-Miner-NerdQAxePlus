@@ -1,41 +1,21 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-
-import { HomeComponent } from './components/home/home.component';
-import { LogsComponent } from './components/logs/logs.component';
-import { SettingsComponent } from './components/settings/settings.component';
-import { InfluxdbComponent } from './components/influxdb/influxdb.component';
-import { SwarmComponent } from './components/swarm/swarm.component';
-import { AppLayoutComponent } from './layout/app.layout.component';
+import { AuthGuard } from './app-auth-guard.service';
 
 const routes: Routes = [
   {
-    path: '',
-    component: AppLayoutComponent,
-    children: [
-      {
-        path: '',
-        component: HomeComponent
-      },
-      {
-        path: 'logs',
-        component: LogsComponent
-      },
-      {
-        path: 'settings',
-        component: SettingsComponent
-      },
-      {
-        path: 'influxdb',
-        component: InfluxdbComponent,
-      },
-      {
-        path: 'swarm',
-        component: SwarmComponent
-      }
-    ]
+    path: 'pages',
+    //canActivate: [AuthGuard], <-- Remove comment to enable auth guard. Remeber to setup NbAuthServiceModule in @core accordingly with yuor backend
+    loadChildren: () => import('./pages/pages.module')
+      .then(m => m.PagesModule),
   },
-
+  {
+    path: 'auth',
+    loadChildren: () => import('./@auth/auth.module')
+    .then(m => m.NgxAuthModule),
+  },
+  { path: '', redirectTo: 'pages', pathMatch: 'prefix'},
+  { path: '**', redirectTo: 'pages' },
 ];
 
 @NgModule({
