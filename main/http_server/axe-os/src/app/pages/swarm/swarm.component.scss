@@ -26,6 +26,23 @@ td {
     border-bottom: 1px solid #304562;
 }
 
+td:nth-child(11) button, td:nth-child(10) button, td:nth-child(9) button {
+    margin-right: 0px;
+}
+
+td:nth-child(11), td:nth-child(10), td:nth-child(9) {
+    text-align: center;
+}
+
+td {
+    text-align: right;
+}
+
+td:nth-child(1), td:nth-child(8) {
+    text-align: left;
+}
+
+
 a {
     color: var(--text-primary-color);// white;
 }
