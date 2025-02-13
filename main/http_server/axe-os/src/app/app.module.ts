@@ -22,6 +22,8 @@ import { ResponseInterceptor } from './@interceptors/response.interceptor';
 import { NbCustomTokenStorage } from './@core/utils.ts/customtokenstorage';
 import { CoreModule } from './@core/core.module';
 import { I18nModule } from './@i18n/i18n.module';
+import { WithCredentialsInterceptor } from './with-credentials.interceptor';
+
 
 export function createTranslateLoader(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -72,6 +74,7 @@ function filterInterceptorRequest(req: HttpRequest<any>): boolean {
         { provide: LocationStrategy, useClass: HashLocationStrategy },
         { provide: HTTP_INTERCEPTORS, useClass: JWTInterceptor, multi: true },
         { provide: HTTP_INTERCEPTORS, useClass: ResponseInterceptor, multi: true },
+        { provide: HTTP_INTERCEPTORS, useClass: WithCredentialsInterceptor, multi: true },
         { provide: NB_AUTH_TOKEN_INTERCEPTOR_FILTER, useValue: filterInterceptorRequest },
         { provide: APP_BASE_HREF, useValue: "/" },
         { provide: NbTokenStorage, useClass: NbCustomTokenStorage },
