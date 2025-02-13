@@ -270,28 +270,39 @@ static esp_err_t rest_recovery_handler(httpd_req_t *req)
 static esp_err_t rest_common_get_handler(httpd_req_t *req)
 {
     char filepath[FILE_PATH_MAX];
-    uint8_t filePathLength = sizeof(filepath);
+    size_t filePathLength = sizeof(filepath);  // Fixed size type
 
     rest_server_context_t *rest_context = (rest_server_context_t *) req->user_ctx;
     strlcpy(filepath, rest_context->base_path, filePathLength);
+
     if (req->uri[strlen(req->uri) - 1] == '/') {
         strlcat(filepath, "/index.html", filePathLength);
     } else {
+        if (strlen(filepath) + strlen(req->uri) + 1 > filePathLength) {
+            ESP_LOGE(TAG, "File path too long!");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "File path too long");
+            return ESP_FAIL;
+        }
         strlcat(filepath, req->uri, filePathLength);
     }
+
     set_content_type_from_file(req, filepath);
-    strcat(filepath, ".gz");
+    strlcat(filepath, ".gz", filePathLength);  // Append .gz extension
+
     int fd = open(filepath, O_RDONLY, 0);
     if (fd == -1) {
-        // Set status
-        httpd_resp_set_status(req, "302 Temporary Redirect");
-        // Redirect to the "/" root directory
-        httpd_resp_set_hdr(req, "Location", "/");
-        // iOS requires content in the response to detect a captive portal, simply redirecting is not sufficient.
-        httpd_resp_send(req, "Redirect to the captive portal", HTTPD_RESP_USE_STRLEN);
+        ESP_LOGE(TAG, "Failed to open file: %s, errno: %d", filepath, errno);
 
-        ESP_LOGI(TAG, "Redirecting to root");
-        return ESP_OK;
+        if (errno == ENOENT) {
+            httpd_resp_set_status(req, "302 Temporary Redirect");
+            httpd_resp_set_hdr(req, "Location", "/");
+            httpd_resp_send(req, "Redirect to the captive portal", HTTPD_RESP_USE_STRLEN);
+            ESP_LOGI(TAG, "Redirecting to root");
+            return ESP_OK;
+        } else {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open file");
+            return ESP_FAIL;
+        }
     }
 
     if (req->uri[strlen(req->uri) - 1] != '/') {
@@ -303,30 +314,28 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
     char *chunk = rest_context->scratch;
     ssize_t read_bytes;
     do {
-        /* Read file in chunks into the scratch buffer */
         read_bytes = read(fd, chunk, SCRATCH_BUFSIZE);
         if (read_bytes == -1) {
-            ESP_LOGE(TAG, "Failed to read file : %s", filepath);
+            ESP_LOGE(TAG, "Failed to read file: %s", filepath);
+            close(fd);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Read error");
+            return ESP_FAIL;
         } else if (read_bytes > 0) {
-            /* Send the buffer contents as HTTP response chunk */
             if (httpd_resp_send_chunk(req, chunk, read_bytes) != ESP_OK) {
-                close(fd);
                 ESP_LOGE(TAG, "File sending failed!");
-                /* Abort sending file */
-                httpd_resp_sendstr_chunk(req, NULL);
-                /* Respond with 500 Internal Server Error */
+                close(fd);
                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
                 return ESP_FAIL;
             }
         }
     } while (read_bytes > 0);
-    /* Close file after sending complete */
+
     close(fd);
     ESP_LOGI(TAG, "File sending complete");
-    /* Respond with an empty chunk to signal HTTP response completion */
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
+
 
 static esp_err_t PATCH_update_swarm(httpd_req_t *req)
 {
@@ -1053,6 +1062,8 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.max_uri_handlers = 20;
+    config.lru_purge_enable = true;
+    config.max_open_sockets = 10;
 
     ESP_LOGI(TAG, "Starting HTTP Server");
     if (httpd_start(&server, &config) != ESP_OK) {
