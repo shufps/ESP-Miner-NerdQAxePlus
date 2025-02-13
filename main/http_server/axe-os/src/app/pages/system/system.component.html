@@ -9,7 +9,8 @@
                 </tr>
                 <tr>
                     <td><b>Uptime:</b></td>
-                    <td>{{ info.uptimeSeconds | dateAgo }}&nbsp;&nbsp;&nbsp;<button nbButton size="small" (click)="restart()" status="danger" >Restart</button></td>
+                    <td>{{ info.uptimeSeconds | dateAgo }}&nbsp;&nbsp;&nbsp;<button nbButton size="small"
+                            (click)="restart()" status="danger">Restart</button></td>
                 </tr>
                 <tr>
                     <td><b>Last Reset Reason:</b></td>
@@ -37,20 +38,15 @@
             <button nbButton size="small" status="primary" (click)="toggleLogs()" style="margin-left: 15px;">
                 {{ showLogs ? 'Hide' : 'Show' }} Logs
             </button>
-            <button
-                nbButton
-                size="small"
-                status="warning"
-                (click)="stopScroll = !stopScroll"
-                *ngIf="showLogs"
-                style="margin-left: 15px;"
-            >
+            <button nbButton size="small" status="warning" (click)="stopScroll = !stopScroll" *ngIf="showLogs"
+                style="margin-left: 15px;">
                 {{ stopScroll ? 'Start' : 'Stop' }} Scrolling
             </button>
         </nb-card-header>
-        <nb-card-body *ngIf="showLogs" id="logs" #scrollContainer>
-            <div class="log-entry" *ngFor="let log of logs">₿ {{ log | ANSI }}</div>
+        <nb-card-body *ngIf="showLogs">
+            <div id="logs" #scrollContainer>
+                <div class="log-entry" *ngFor="let log of logs" [innerHTML]="'₿ ' + (log | ANSI)"></div>
+            </div>
         </nb-card-body>
     </nb-card>
 </ng-container>
-

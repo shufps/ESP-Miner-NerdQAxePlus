@@ -7,10 +7,10 @@ import { NbToastrService } from '@nebular/theme';
 
 @Component({
   selector: 'app-logs',
-  templateUrl: './logs.component.html',
-  styleUrl: './logs.component.scss'
+  templateUrl: './system.component.html',
+  styleUrl: './system.component.scss'
 })
-export class LogsComponent implements OnDestroy, AfterViewChecked {
+export class SystemComponent implements OnDestroy, AfterViewChecked {
 
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
   public info$: Observable<ISystemInfo>;

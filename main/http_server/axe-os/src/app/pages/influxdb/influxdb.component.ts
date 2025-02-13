@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 //import { ToastrService } from 'ngx-toastr';
-import { startWith } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { NbToastrService } from '@nebular/theme';
@@ -68,6 +68,19 @@ export class InfluxdbComponent implements OnInit {
           this.toastrService.danger('Error.', `Could not save. ${err.message}`);
         }
       });
+  }
+
+  public restart() {
+    this.systemService.restart().pipe(
+      catchError(error => {
+        this.toastrService.danger(`Failed to restart Device`, 'Error');
+        return of(null);
+      })
+    ).subscribe(res => {
+      if (res !== null) {
+        this.toastrService.success(`Device restarted`, 'Success');
+      }
+    });
   }
 
 }

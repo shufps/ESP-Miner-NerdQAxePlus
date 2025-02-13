@@ -23,9 +23,9 @@ export const MENU_ITEMS: NbMenuItem[] = [
     link: '/pages/influxdb',
   },
   {
-    title: 'Logs',
+    title: 'System',
     icon: 'menu-outline',
-    link: '/pages/logs',
+    link: '/pages/system',
   },
 
 

@@ -6,7 +6,7 @@ import { NotFoundComponent } from '../@theme/components';
 import { HomeComponent } from './home/home.component';
 import { SettingsComponent } from './settings/settings.component';
 import { InfluxdbComponent } from './influxdb/influxdb.component';
-import { LogsComponent } from './logs/logs.component';
+import { SystemComponent } from './system/system.component';
 import { SwarmComponent } from './swarm/swarm.component';
 
 const routes: Routes = [{
@@ -31,8 +31,8 @@ const routes: Routes = [{
       component: InfluxdbComponent
     },
     {
-      path: 'logs',
-      component: LogsComponent
+      path: 'system',
+      component: SystemComponent
     },
     {
       path: 'swarm',

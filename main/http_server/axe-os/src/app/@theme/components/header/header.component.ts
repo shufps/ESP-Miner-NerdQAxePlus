@@ -76,9 +76,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     // Fetch device info
     this.infoService.getInfo(0).subscribe(info => {
       if (info && info.deviceModel) {
-        this.deviceModel = info.deviceModel;
-        //this.deviceModel = "NerdQAxe++";
-        //this.deviceModel = "NerdAxeGamma";
+        this.deviceModel = info.deviceModel.replace('γ', 'Gamma');
       }
       this.updateLogo();
     });

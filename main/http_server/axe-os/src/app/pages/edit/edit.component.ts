@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 //import { ToastrService } from 'ngx-toastr';
-import { startWith } from 'rxjs';
+import { startWith, catchError, of } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
@@ -273,4 +273,16 @@ private getPredefinedVoltages(): { name: string, value: number }[] {
   }
 }
 
+public restart() {
+  this.systemService.restart().pipe(
+    catchError(error => {
+      this.toastrService.danger(`Failed to restart Device`, 'Error');
+      return of(null);
+    })
+  ).subscribe(res => {
+    if (res !== null) {
+      this.toastrService.success(`Device restarted`, 'Success');
+    }
+  });
+}
 }

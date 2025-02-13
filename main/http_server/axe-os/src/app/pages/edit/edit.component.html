@@ -177,8 +177,11 @@
                 </div>
 
                 <div class="mt-2">
-                    <button nbButton [disabled]="form.invalid" (click)="updateSystem()" [status]="'danger'">Save</button>&nbsp;
+                    <button nbButton size="small" [disabled]="form.invalid" (click)="updateSystem()" [status]="'danger'">Save</button>&nbsp;
                     <b>You must restart this device after saving for changes to take effect.</b>
+                </div>
+                <div class="mt-2">
+                    <button nbButton size="small" (click)="restart()" status="danger" >Restart</button>
                 </div>
             </nb-card-body>
         </nb-card>

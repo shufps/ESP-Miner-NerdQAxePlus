@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 //import { ToastrService } from 'ngx-toastr';
 //import { FileUploadHandlerEvent } from 'primeng/fileupload';
-import { map, Observable, shareReplay, startWith } from 'rxjs';
+import { map, Observable, catchError, of, shareReplay, startWith } from 'rxjs';
 import { GithubUpdateService } from '../../services/github-update.service';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
@@ -214,10 +214,16 @@ export class SettingsComponent {
   }
 
   public restart() {
-    this.systemService.restart().subscribe(res => {
-
+    this.systemService.restart().pipe(
+      catchError(error => {
+        this.toastrService.danger(`Failed to restart Device`, 'Error');
+        return of(null);
+      })
+    ).subscribe(res => {
+      if (res !== null) {
+        this.toastrService.success(`Device restarted`, 'Success');
+      }
     });
-    this.toastrService.success('Success!', 'Bitaxe restarted');
   }
 
 
