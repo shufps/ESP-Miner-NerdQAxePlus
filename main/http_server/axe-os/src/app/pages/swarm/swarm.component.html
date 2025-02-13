@@ -1,14 +1,17 @@
 <ng-container>
     <!-- Manual Addition -->
     <nb-card>
-        <nb-card-header>Manual Addition</nb-card-header>
         <nb-card-body>
             <form [formGroup]="form">
-                <div class="form-group">
-                    <label for="manualAddIp">AxeOS Device IP</label>
-                    <div class="input-group">
+                <div style="display: flex; align-items: center;">
+                    <!-- Label container -->
+                    <div style="margin-right: 20px; white-space: nowrap;">
+                        <label>Manual Addition</label>
+                    </div>
+                    <!-- Input group container -->
+                    <div class="input-group" style="flex: 1; display: flex;">
                         <input nbInput id="manualAddIp" formControlName="manualAddIp" type="text"
-                            placeholder="Enter IP Address" />
+                            placeholder="Enter IP Address" style="flex: 1;" />
                         <button nbButton status="primary" (click)="add()" [disabled]="form.invalid">Add</button>
                     </div>
                 </div>
@@ -16,45 +19,35 @@
         </nb-card-body>
     </nb-card>
 
-    <nb-card class="mt-4">
-        <nb-card-body>
-          <form [formGroup]="form">
-            <!-- Outer container allows wrapping -->
-            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-              <!-- Left group: Buttons -->
-              <div style="display: flex; align-items: center;">
-                <button nbButton status="primary" (click)="scanNetwork()" [disabled]="scanning">
-                  {{ scanning ? 'Scanning...' : 'Automatic Scan' }}
-                </button>
-                <button nbButton status="info" style="width: 170px;" (click)="refreshList()" [disabled]="scanning || isRefreshing">
-                  {{ isRefreshing ? 'Refreshing...' : 'Refresh List (' + refreshIntervalTime + ')' }}
-                </button>
-              </div>
 
-              <!-- Right group: Label and Slider -->
-              <!-- white-space: nowrap ensures these elements stick together -->
-              <div style="white-space: nowrap; margin-top: 10px;">
+    <form [formGroup]="form">
+        <!-- Outer container allows wrapping -->
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <!-- Left group: Buttons -->
+            <div style="display: flex; align-items: center;">
+                <button nbButton status="primary" (click)="scanNetwork()" [disabled]="scanning">
+                    {{ scanning ? 'Scanning...' : 'Automatic Scan' }}
+                </button>
+                <button nbButton status="info" style="width: 170px;" (click)="refreshList()"
+                    [disabled]="scanning || isRefreshing">
+                    {{ isRefreshing ? 'Refreshing...' : 'Refresh List (' + refreshIntervalTime + ')' }}
+                </button>
+            </div>
+
+            <!-- Right group: Label and Slider -->
+            <!-- white-space: nowrap ensures these elements stick together -->
+            <div style="white-space: nowrap; margin-top: 10px;">
                 <label for="refresh-interval" class="mr-2">Refresh Interval:</label>&nbsp;
                 <div class="progress-wrap" style="width:150px; display:inline-block; position: relative;">
-                  <input id="refresh-interval"
-                         type="range"
-                         class="progress"
-                         [formControl]="refreshIntervalControl"
-                         [min]="5"
-                         [max]="30"
-                         step="1"
-                         style="width: 100%;" />
-                  <div class="progress-foreground"
-                       [style.width.%]="((refreshIntervalControl.value - 5) / 25) * 100">
-                  </div>
+                    <input id="refresh-interval" type="range" class="progress" [formControl]="refreshIntervalControl"
+                        [min]="5" [max]="30" step="1" style="width: 100%;" />
+                    <div class="progress-foreground" [style.width.%]="((refreshIntervalControl.value - 5) / 25) * 100">
+                    </div>
                 </div>&nbsp;
                 <span class="ml-2">{{ refreshTimeSet }}s</span>
-              </div>
             </div>
-          </form>
-        </nb-card-body>
-      </nb-card>
-
+        </div>
+    </form>
 
 
     <!-- Totals -->

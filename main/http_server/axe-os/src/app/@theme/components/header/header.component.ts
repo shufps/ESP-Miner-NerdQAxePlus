@@ -78,6 +78,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       if (info && info.deviceModel) {
         this.deviceModel = info.deviceModel;
         //this.deviceModel = "NerdQAxe++";
+        //this.deviceModel = "NerdAxeGamma";
       }
       this.updateLogo();
     });
