@@ -3,7 +3,7 @@ import { interval, map, Observable, shareReplay, startWith, Subscription, switch
 import { SystemService } from '../../services/system.service';
 import { WebsocketService } from '../../services/web-socket.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
-
+import { NbToastrService } from '@nebular/theme';
 
 @Component({
   selector: 'app-logs',
@@ -25,6 +25,7 @@ export class LogsComponent implements OnDestroy, AfterViewChecked {
 
   constructor(
     private websocketService: WebsocketService,
+    private toastrService: NbToastrService,
     private systemService: SystemService
   ) {
 
@@ -75,5 +76,13 @@ export class LogsComponent implements OnDestroy, AfterViewChecked {
       this.scrollContainer.nativeElement.scrollTo({ left: 0, top: this.scrollContainer.nativeElement.scrollHeight, behavior: 'smooth' });
     }
   }
+
+  public restart() {
+    this.systemService.restart().subscribe(res => {
+
+    });
+    this.toastrService.success('Success!', 'Bitaxe restarted');
+  }
+
 
 }

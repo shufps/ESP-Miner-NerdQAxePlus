@@ -9,7 +9,7 @@
                 </tr>
                 <tr>
                     <td><b>Uptime:</b></td>
-                    <td>{{ info.uptimeSeconds | dateAgo }}</td>
+                    <td>{{ info.uptimeSeconds | dateAgo }}&nbsp;&nbsp;&nbsp;<button nbButton size="small" (click)="restart()" status="danger" >Restart</button></td>
                 </tr>
                 <tr>
                     <td><b>Last Reset Reason:</b></td>
