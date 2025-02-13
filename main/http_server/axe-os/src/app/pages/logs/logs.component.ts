@@ -1,5 +1,5 @@
 import { AfterViewChecked, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
-import { interval, map, Observable, shareReplay, startWith, Subscription, switchMap } from 'rxjs';
+import { interval, map, catchError, of, Observable, shareReplay, startWith, Subscription, switchMap } from 'rxjs';
 import { SystemService } from '../../services/system.service';
 import { WebsocketService } from '../../services/web-socket.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
@@ -78,11 +78,16 @@ export class LogsComponent implements OnDestroy, AfterViewChecked {
   }
 
   public restart() {
-    this.systemService.restart().subscribe(res => {
-
+    this.systemService.restart().pipe(
+      catchError(error => {
+        this.toastrService.danger(`Failed to restart Device`, 'Error');
+        return of(null);
+      })
+    ).subscribe(res => {
+      if (res !== null) {
+        this.toastrService.success(`Device restarted`, 'Success');
+      }
     });
-    this.toastrService.success('Success!', 'Bitaxe restarted');
   }
-
 
 }
