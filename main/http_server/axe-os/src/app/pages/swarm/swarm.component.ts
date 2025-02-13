@@ -94,7 +94,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
   }
 
   private calculateIpRange(ip: string, netmask: string): { start: number, end: number } {
-    const ipInt = this.ipToInt('192.168.0.182'/*ip*/);
+    const ipInt = this.ipToInt(ip);
     const netmaskInt = this.ipToInt(netmask);
     const network = ipInt & netmaskInt;
     const broadcast = network | ~netmaskInt;
@@ -124,7 +124,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
             return []; // Return an empty result or handle as desired
           })
         ),
-        10 // Limit concurrency to avoid overload
+        128 // Limit concurrency to avoid overload
       ),
       toArray() // Collect all results into a single array
     ).pipe(take(1)).subscribe({
