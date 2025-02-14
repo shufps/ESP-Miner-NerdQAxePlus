@@ -579,7 +579,7 @@ static esp_err_t POST_restart(httpd_req_t *req)
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     // Restart the system
-    esp_restart();
+    POWER_MANAGEMENT_MODULE.restart();
 
     // This return statement will never be reached, but it's good practice to include it
     return ESP_OK;
@@ -828,7 +828,9 @@ static esp_err_t POST_WWW_update(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
 
-    char buf[1000];
+    // don't put it on the stack
+    char *buf = (char*) malloc(2048);
+
     int remaining = req->content_len;
 
     const esp_partition_t *www_partition =
@@ -848,7 +850,7 @@ static esp_err_t POST_WWW_update(httpd_req_t *req)
     ESP_ERROR_CHECK(esp_partition_erase_range(www_partition, 0, www_partition->size));
 
     while (remaining > 0) {
-        int recv_len = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)));
+        int recv_len = httpd_req_recv(req, buf, MIN(remaining, 2048));
 
         if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
             continue;
@@ -878,7 +880,9 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
 
-    char buf[1000];
+    // don't put it on the stack
+    char *buf = (char*) malloc(2048);
+
     esp_ota_handle_t ota_handle;
     int remaining = req->content_len;
 
@@ -886,7 +890,7 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
     ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
 
     while (remaining > 0) {
-        int recv_len = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)));
+        int recv_len = httpd_req_recv(req, buf, MIN(remaining, 2048));
 
         // Timeout Error: Just retry
         if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
@@ -917,7 +921,7 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
     httpd_resp_sendstr(req, "Firmware update complete, rebooting now!\n");
     ESP_LOGI(TAG, "Restarting System because of Firmware update complete");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    esp_restart();
+    POWER_MANAGEMENT_MODULE.restart();
 
     return ESP_OK;
 }

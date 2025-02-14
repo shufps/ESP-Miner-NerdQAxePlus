@@ -80,6 +80,16 @@ bool NerdQaxePlus::initBoard()
     return true;
 }
 
+void NerdQaxePlus::shutdown() {
+    setVoltage(0.0);
+
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    LDO_disable();
+
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+}
+
 bool NerdQaxePlus::initAsics()
 {
     // disable buck (disables EN pin)

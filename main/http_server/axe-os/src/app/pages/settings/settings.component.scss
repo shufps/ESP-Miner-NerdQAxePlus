@@ -65,3 +65,28 @@ a {
     margin-right: 0.5rem;
     margin-bottom: 0.5rem;
   }
+
+  .upload-overlay {
+    position: fixed; /* changed from absolute to fixed */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.8); /* semi-transparent overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* high z-index to ensure it's on top */
+  }
+
+  .progress-box {
+    text-align: center;
+    width: 300px;
+  }
+
+  .progress-text {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+    margin-top: 10px;
+  }

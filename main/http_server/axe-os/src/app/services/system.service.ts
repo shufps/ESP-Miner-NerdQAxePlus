@@ -147,14 +147,13 @@ export class SystemService {
             'Content-Type': 'application/octet-stream', // Set the content type
           },
         }).subscribe({
-          next: (e) => {
-
+          next: (event) => {
+            subscriber.next(event);
           },
           error: (err) => {
             subscriber.error(err)
           },
           complete: () => {
-            subscriber.next()
             subscriber.complete();
           }
         });
@@ -162,6 +161,7 @@ export class SystemService {
       reader.readAsArrayBuffer(file);
     });
   }
+
 
   public performOTAUpdate(file: File | Blob) {
     return this.otaUpdate(file, `/api/system/OTA`);

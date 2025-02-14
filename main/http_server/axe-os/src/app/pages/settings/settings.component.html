@@ -50,8 +50,7 @@
       </nb-card-body>
     </nb-card>
 
-    <!-- Firmware Update Card -->
-    <nb-card class="card-item">
+    <nb-card class="card-item" style="position: relative;">
       <nb-card-header>
         Update Firmware
         <span *ngIf="firmwareUpdateProgress != null">
@@ -68,12 +67,12 @@
         <!-- Action buttons container -->
         <div class="action-buttons">
           <!-- Custom "Browse" button -->
-          <button nbButton status="info" size="small" [status]="'primary'" (click)="firmwareInput.click()">
+          <button nbButton status="info" size="small" (click)="firmwareInput.click()">
             <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
             Browse
           </button>
           <!-- "Upload" button -->
-          <button nbButton status="info" size="small" [status]="'primary'" [nbSpinner]="isFirmwareUploading" (click)="uploadFirmwareFile()">
+          <button nbButton status="info" size="small" [nbSpinner]="isFirmwareUploading" (click)="uploadFirmwareFile()">
             <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
             Flash
           </button>
@@ -82,8 +81,7 @@
       </nb-card-body>
     </nb-card>
 
-    <!-- Website Update Card -->
-    <nb-card class="card-item">
+    <nb-card class="card-item" style="position: relative;">
       <nb-card-header>
         Update Website
         <span *ngIf="websiteUpdateProgress != null">
@@ -100,12 +98,12 @@
         <!-- Action buttons container -->
         <div class="action-buttons">
           <!-- Custom "Browse" button -->
-          <button nbButton status="info" size="small" [status]="'primary'" (click)="websiteInput.click()">
+          <button nbButton status="info" size="small" (click)="websiteInput.click()">
             <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
             Browse
           </button>
           <!-- "Upload" button -->
-          <button nbButton status="info" size="small" [status]="'primary'" [nbSpinner]="isWebsiteUploading" (click)="uploadWebsiteFile()">
+          <button nbButton status="info" size="small" [nbSpinner]="isWebsiteUploading" (click)="uploadWebsiteFile()">
             <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
             Flash
           </button>
@@ -113,5 +111,21 @@
         <small>(www.bin)</small>
       </nb-card-body>
     </nb-card>
+  </div>
 
+  <!-- Overlay for progress indication -->
+  <div *ngIf="isWebsiteUploading" class="upload-overlay">
+    <div class="progress-box">
+      <!-- Using Nebular's progress bar -->
+      <nb-progress-bar [value]="websiteUpdateProgress" status="primary"></nb-progress-bar>
+      <div class="progress-text">{{ websiteUpdateProgress }}%</div>
+    </div>
+  </div>
+
+  <!-- Overlay for progress indication -->
+  <div *ngIf="isFirmwareUploading" class="upload-overlay">
+    <div class="progress-box">
+      <nb-progress-bar [value]="firmwareUpdateProgress" status="primary"></nb-progress-bar>
+      <div class="progress-text">{{ firmwareUpdateProgress }}%</div>
+    </div>
   </div>

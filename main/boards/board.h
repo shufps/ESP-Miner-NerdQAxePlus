@@ -75,6 +75,8 @@ class Board {
 
     virtual void requestBuckTelemtry() = 0;
 
+    virtual void shutdown() = 0;
+
     virtual bool getPSUFault() {
         return false;
     }

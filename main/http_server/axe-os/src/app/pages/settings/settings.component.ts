@@ -19,8 +19,8 @@ export class SettingsComponent {
 
   public form!: FormGroup;
 
-  public firmwareUpdateProgress: number | null = null;
-  public websiteUpdateProgress: number | null = null;
+  public firmwareUpdateProgress: number | null = 0;
+  public websiteUpdateProgress: number | null = 0;
 
   public deviceModel: string = "";
   public devToolsOpen: boolean = false;
@@ -177,19 +177,34 @@ export class SettingsComponent {
 
     this.isFirmwareUploading = true;
 
-    this.systemService.performOTAUpdate(this.selectedFirmwareFile)  // ⬅ Pass file directly
+    this.systemService.performOTAUpdate(this.selectedFirmwareFile)
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
-        next: () => this.toastrService.success('Firmware updated successfully', 'Success'),
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            console.log(event.loaded);
+            console.log(event.total);
+            this.firmwareUpdateProgress = Math.round(100 * event.loaded / event.total);
+          } else if (event.type === HttpEventType.Response) {
+            this.firmwareUpdateProgress = 100;
+            this.toastrService.success('Firmware updated successfully', 'Success');
+          }
+        },
         error: (err) => {
           this.toastrService.danger(`Upload failed: ${err.message}`, 'Error');
           this.isFirmwareUploading = false;
+          this.firmwareUpdateProgress = 0;
         },
-        complete: () => this.isFirmwareUploading = false,
+        complete: () => {
+          this.isFirmwareUploading = false;
+          // Optionally reset the progress indicator after a short delay
+          setTimeout(() => this.firmwareUpdateProgress = 0, 500);
+        }
       });
 
     this.selectedFirmwareFile = null;
   }
+
 
   public onWebsiteFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -211,22 +226,36 @@ export class SettingsComponent {
 
     this.isWebsiteUploading = true;
 
-    this.systemService.performWWWOTAUpdate(this.selectedWebsiteFile)  // ⬅ Pass file directly
-      .pipe(this.loadingService.lockUIUntilComplete())
-      .subscribe({
-        next: () => {
+    this.systemService.performWWWOTAUpdate(this.selectedWebsiteFile)
+    .pipe(this.loadingService.lockUIUntilComplete())
+    .subscribe({
+      next: (event) => {
+        if (!event) {
+          return; // Skip processing if the event is undefined.
+        }
+        if (event.type === HttpEventType.UploadProgress && event.total) {
+          this.websiteUpdateProgress = Math.round(100 * event.loaded / event.total);
+        } else if (event.type === HttpEventType.Response) {
+          this.websiteUpdateProgress = 100;
           this.toastrService.success('Website updated successfully', 'Success');
           setTimeout(() => window.location.reload(), 1000);
-        },
-        error: (err) => {
-          this.toastrService.danger(`Upload failed: ${err.message}`, 'Error');
-          this.isWebsiteUploading = false
-        },
-        complete: () => this.isWebsiteUploading = false
-      });
+        }
+      },
+      error: (err) => {
+        this.toastrService.danger(`Upload failed: ${err.message}`, 'Error');
+        this.isWebsiteUploading = false;
+        this.websiteUpdateProgress = 0;
+      },
+      complete: () => {
+        this.isWebsiteUploading = false;
+        setTimeout(() => this.websiteUpdateProgress = 0, 500);
+      }
+    });
+
 
     this.selectedWebsiteFile = null;
   }
+
 
   public restart() {
     this.systemService.restart().pipe(

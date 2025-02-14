@@ -11,6 +11,8 @@ class NerdAxe : public Board {
   public:
     NerdAxe();
 
+    virtual void shutdown();
+
     virtual bool initBoard();
     virtual bool initAsics();
 
