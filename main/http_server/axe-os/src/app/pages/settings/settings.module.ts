@@ -4,6 +4,8 @@ import { SettingsComponent } from './settings.component';
 import { NbThemeModule, NbLayoutModule } from '@nebular/theme';
 import { CommonModule } from '@angular/common';
 import { EditModule } from '../edit/edit.module';
+import { NbSpinnerModule } from '@nebular/theme';
+
 
 @NgModule({
   declarations: [SettingsComponent],
@@ -15,6 +17,7 @@ import { EditModule } from '../edit/edit.module';
     NbIconModule,
     NbButtonModule,
     EditModule,
+    NbSpinnerModule,
   ]
 })
 export class SettingsModule { }

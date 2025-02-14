@@ -36,6 +36,9 @@ export class SettingsComponent {
 
   public info$: Observable<any>;
 
+  public isWebsiteUploading = false;
+  public isFirmwareUploading = false;
+
   constructor(
     private fb: FormBuilder,
     private systemService: SystemService,
@@ -172,11 +175,17 @@ export class SettingsComponent {
       return;
     }
 
+    this.isFirmwareUploading = true;
+
     this.systemService.performOTAUpdate(this.selectedFirmwareFile)  // ⬅ Pass file directly
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
         next: () => this.toastrService.success('Firmware updated successfully', 'Success'),
-        error: (err) => this.toastrService.danger(`Upload failed: ${err.message}`, 'Error')
+        error: (err) => {
+          this.toastrService.danger(`Upload failed: ${err.message}`, 'Error');
+          this.isFirmwareUploading = false;
+        },
+        complete: () => this.isFirmwareUploading = false,
       });
 
     this.selectedFirmwareFile = null;
@@ -200,6 +209,8 @@ export class SettingsComponent {
       return;
     }
 
+    this.isWebsiteUploading = true;
+
     this.systemService.performWWWOTAUpdate(this.selectedWebsiteFile)  // ⬅ Pass file directly
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
@@ -207,7 +218,11 @@ export class SettingsComponent {
           this.toastrService.success('Website updated successfully', 'Success');
           setTimeout(() => window.location.reload(), 1000);
         },
-        error: (err) => this.toastrService.danger(`Upload failed: ${err.message}`, 'Error')
+        error: (err) => {
+          this.toastrService.danger(`Upload failed: ${err.message}`, 'Error');
+          this.isWebsiteUploading = false
+        },
+        complete: () => this.isWebsiteUploading = false
       });
 
     this.selectedWebsiteFile = null;

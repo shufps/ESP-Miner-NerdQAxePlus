@@ -73,7 +73,7 @@
             Browse
           </button>
           <!-- "Upload" button -->
-          <button nbButton status="info" size="small" [status]="'primary'" (click)="uploadFirmwareFile()">
+          <button nbButton status="info" size="small" [status]="'primary'" [nbSpinner]="isFirmwareUploading" (click)="uploadFirmwareFile()">
             <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
             Flash
           </button>
@@ -105,7 +105,7 @@
             Browse
           </button>
           <!-- "Upload" button -->
-          <button nbButton status="info" size="small" [status]="'primary'" (click)="uploadWebsiteFile()">
+          <button nbButton status="info" size="small" [status]="'primary'" [nbSpinner]="isWebsiteUploading" (click)="uploadWebsiteFile()">
             <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
             Flash
           </button>
