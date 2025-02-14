@@ -13,33 +13,32 @@ table {
     margin-bottom: 40px;
     border: 1px solid #304562;
 }
-
 th {
-    text-align: left;
+    text-align: right;
     background-color: var(--card-header-primary-background-color);
 }
 
-
-th,
-td {
-    padding: 0.5rem 0.5rem;
+th, td {
+    padding: 0.5rem;
     border-bottom: 1px solid #304562;
-}
-
-td:nth-child(11) button, td:nth-child(10) button, td:nth-child(9) button {
-    margin-right: 0px;
-}
-
-td:nth-child(11), td:nth-child(10), td:nth-child(9) {
-    text-align: center;
-}
-
-td {
     text-align: right;
 }
 
-td:nth-child(1), td:nth-child(8) {
-    text-align: left;
+th:nth-child(1), td:nth-child(1),
+th:nth-child(8), td:nth-child(8),
+th:nth-child(9), th:nth-child(10), th:nth-child(11),
+td:nth-child(9), td:nth-child(10), td:nth-child(11) {
+    text-align: center;
+}
+
+th:nth-child(9), th:nth-child(10), th:nth-child(11) {
+    width: 32px;
+}
+
+td:nth-child(9) button,
+td:nth-child(10) button,
+td:nth-child(11) button {
+    margin-right: 0;
 }
 
 

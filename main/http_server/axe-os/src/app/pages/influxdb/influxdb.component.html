@@ -1,4 +1,8 @@
-<ng-container *ngIf="form != null">
+<ng-template #loading>
+    <h4>Loading...</h4>
+</ng-template>
+
+<ng-container *ngIf="form != null; else loading">
     <form [formGroup]="form">
         <nb-card>
             <nb-card-header>InfluxDB Settings</nb-card-header>

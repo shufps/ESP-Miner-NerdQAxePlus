@@ -128,10 +128,10 @@
             <div class="row text-center">
               <div class="col-4">
                 <app-gauge [value]="info.power" [min]="info.minPower" [max]="info.maxPower" [unit]="'W'"
-                  [label]="'Power'"></app-gauge>
+                  [label]="'Power'" [format]="'1.1-1'"></app-gauge>
               </div>
               <div class="col-4">
-                <app-gauge [value]="info.voltage" [min]="info.minVoltage" [max]="info.maxVoltage" [unit]="'V'"
+                <app-gauge [value]="info.voltage" [format]="'1.1-1'" [min]="info.minVoltage" [max]="info.maxVoltage" [unit]="'V'"
                   [label]="'Input Voltage'"></app-gauge>
               </div>
               <div class="col-4">
@@ -152,16 +152,16 @@
           <nb-card-body class="no-scroll">
             <div class="row text-center">
               <div class="col-6">
-                <app-gauge [value]="info.temp" [min]="20" [max]="75" [unit]="'°C'" [label]="'ASIC Temp'"></app-gauge>
+                <app-gauge [value]="info.temp" [min]="20" [max]="75" [format]="'1.1-1'" [unit]="'°C'" [label]="'ASIC Temp'"></app-gauge>
               </div>
               <div class="col-6" *ngIf="info.vrTemp > 0">
-                <app-gauge [value]="info.vrTemp" [min]="20" [max]="145" [unit]="'°C'" [label]="'VR Temp'"></app-gauge>
+                <app-gauge [value]="info.vrTemp" [min]="20" [max]="145" [format]="'1.1-1'" [unit]="'°C'" [label]="'VR Temp'"></app-gauge>
               </div>
               <div class="col-6">
-                <app-gauge [value]="info.fanspeed" [min]="0" [max]="100" [unit]="'%'" [label]="'Fan Speed'"></app-gauge>
+                <app-gauge [value]="info.fanspeed" [min]="0" [format]="'1.0-0'" [max]="100" [unit]="'%'" [label]="'Fan Speed'"></app-gauge>
               </div>
               <div class="col-6">
-                <app-gauge [value]="info.fanrpm" [min]="0" [max]="20000" [unit]="'RPM'" [label]="'Fan RPM'"></app-gauge>
+                <app-gauge [value]="info.fanrpm" [format]="'1.0-0'" [min]="0" [max]="20000" [unit]="'RPM'" [label]="'Fan RPM'"></app-gauge>
               </div>
             </div>
           </nb-card-body>
@@ -177,7 +177,7 @@
           <nb-card-body class="no-scroll">
             <div class="row text-center">
               <div class="col-6">
-                <app-gauge [value]="info.frequency" [min]="100" [max]="800" [unit]="'MHz'"
+                <app-gauge [value]="info.frequency" [format]="'1.0-0'" [min]="100" [max]="800" [unit]="'MHz'"
                   [label]="'ASIC Frequency'"></app-gauge>
               </div>
               <div class="col-6">

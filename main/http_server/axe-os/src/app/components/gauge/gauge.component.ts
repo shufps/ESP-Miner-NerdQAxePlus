@@ -4,29 +4,33 @@ import { Component, Input } from '@angular/core';
   selector: 'app-gauge',
   template: `
     <div class="gauge-container">
-      <svg class="gauge" [attr.viewBox]="viewBox">
-        <!-- Background Circle -->
-        <circle
-          class="gauge-bg"
-          [attr.cx]="center"
-          [attr.cy]="center"
-          [attr.r]="radius"
-          [attr.stroke-dasharray]="circumference"
-          [attr.stroke-dashoffset]="offset2"
-        ></circle>
-        <!-- Foreground Circle (Value) -->
-        <circle
-          class="gauge-value"
-          [attr.cx]="center"
-          [attr.cy]="center"
-          [attr.r]="radius"
-          [attr.stroke-dasharray]="circumference"
-          [attr.stroke-dashoffset]="offset"
-        ></circle>
-      </svg>
-      <div class="gauge-value-container">
-        <div class="gauge-value">{{ value | number: '1.0-1' }}</div>
-        <div class="gauge-unit">{{ unit }}</div>
+      <div class="gauge-wrap">
+        <svg class="gauge" [attr.viewBox]="viewBox">
+          <!-- Background Circle -->
+          <circle
+            class="gauge-bg"
+            [attr.cx]="center"
+            [attr.cy]="center"
+            [attr.r]="radius"
+            [attr.stroke-dasharray]="circumference"
+            [attr.stroke-dashoffset]="fullOffset"
+            transform="rotate(135, 50, 50)"
+          ></circle>
+          <!-- Foreground Circle (Value) -->
+          <circle
+            class="gauge-value"
+            [attr.cx]="center"
+            [attr.cy]="center"
+            [attr.r]="radius"
+            [attr.stroke-dasharray]="circumference"
+            [attr.stroke-dashoffset]="cappedOffset"
+            transform="rotate(135, 50, 50)"
+          ></circle>
+        </svg>
+        <div class="gauge-value-container">
+          <div class="gauge-value">{{ value | number: format }}</div>
+          <div class="gauge-unit">{{ unit }}</div>
+        </div>
       </div>
       <!-- Label Below -->
       <div class="gauge-label" *ngIf="label">
@@ -41,13 +45,15 @@ import { Component, Input } from '@angular/core';
         flex-direction: column;
         align-items: center;
         justify-content: center;
+      }
+
+      .gauge-wrap {
         position: relative;
       }
 
       .gauge {
-        width: 100px; /* Fixed width */
+        width: 100px;
         height: auto;
-        transform: rotate(135deg);
       }
 
       .gauge-bg {
@@ -72,7 +78,6 @@ import { Component, Input } from '@angular/core';
       }
 
       .gauge-value {
-        margin-top: -17px;
         font-size: 18px;
         color: var(--card-text-color);
       }
@@ -98,6 +103,7 @@ export class GaugeComponent {
   @Input() max: number = 100; // Maximum value
   @Input() unit: string = ''; // Unit (e.g., %, °C)
   @Input() label: string = ''; // Label below the gauge
+  @Input() format: string = '1.2-2'; // Default format with 2 decimal places
 
   radius: number = 40; // Radius of the circle
   center: number = 50; // Center of the circle
@@ -107,13 +113,19 @@ export class GaugeComponent {
     return 2 * Math.PI * this.radius;
   }
 
-  get offset(): number {
-    const progress = (this.value - this.min) / (this.max - this.min) * 0.75;
-    return this.circumference * (1 - Math.min(Math.max(progress, 0), 1));
+  get fullOffset(): number {
+    // Background circle always fills the 270-degree arc
+    return this.circumference * 0.25;
   }
 
-  get offset2(): number {
-    const progress = 0.75; // Full arc length for 270°
-    return this.circumference * (1 - Math.min(Math.max(progress, 0), 1));
+  get offset(): number {
+    // Maps value to 270-degree range
+    const progress = (this.value - this.min) / (this.max - this.min);
+    return this.circumference * (0.75 - Math.min(Math.max(progress * 0.75, 0), 0.75));
+  }
+
+  get cappedOffset(): number {
+    // Ensures foreground circle doesn't exceed background
+    return Math.max(this.offset, this.fullOffset);
   }
 }
