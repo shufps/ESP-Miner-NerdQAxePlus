@@ -147,6 +147,8 @@ export class EditComponent implements OnInit {
   public setDevToolsOpen(state: boolean) {
     this.devToolsOpen = state;
     console.log('Advanced Mode:', state); // Debugging output
+    this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(), this.form.controls['frequency'].value);
+    this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(), this.form.controls['coreVoltage'].value);
   }
 
 
