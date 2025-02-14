@@ -35,12 +35,8 @@ export class EditComponent implements OnInit {
     private systemService: SystemService,
     private toastrService: NbToastrService,
     private loadingService: LoadingService
-  ) {
+  ) {}
 
-    window.addEventListener('resize', this.checkDevTools);
-    this.checkDevTools();
-
-  }
   ngOnInit(): void {
     this.systemService.getInfo(0, this.uri)
       .pipe(this.loadingService.lockUIUntilComplete())
@@ -107,28 +103,6 @@ export class EditComponent implements OnInit {
   }
 
 
-  private checkDevTools = () => {
-    const previousState = this.devToolsOpen;
-    this.devToolsOpen = false;
-
-    //  window.outerWidth - window.innerWidth > 160 ||
-    //  window.outerHeight - window.innerHeight > 160;
-
-    // When transitioning from devTools open to closed
-    if (!this.devToolsOpen && previousState) {
-      // Update dropdown options with free-text values
-      this.frequencyOptions = this.assembleDropdownOptions(
-        this.getPredefinedFrequencies(),
-        this.form.controls['frequency'].value
-      );
-      this.voltageOptions = this.assembleDropdownOptions(
-        this.getPredefinedVoltages(),
-        this.form.controls['coreVoltage'].value
-      );
-    }
-  };
-
-
   public updateSystem() {
 
     const form = this.form.getRawValue();
@@ -168,6 +142,11 @@ export class EditComponent implements OnInit {
   showWifiPassword: boolean = false;
   toggleWifiPasswordVisibility() {
     this.showWifiPassword = !this.showWifiPassword;
+  }
+
+  public setDevToolsOpen(state: boolean) {
+    this.devToolsOpen = state;
+    console.log('Advanced Mode:', state); // Debugging output
   }
 
 

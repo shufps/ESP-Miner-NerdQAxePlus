@@ -1,0 +1,5 @@
+<button nbButton
+        size="small"
+        [class.enabled]="isAdvanced"
+        (click)="toggleAdvanced()"
+        [status]="isAdvanced ? 'danger' : 'info'">PRO</button>

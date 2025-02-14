@@ -6,15 +6,14 @@ import { PagesComponent } from './pages.component';
 
 import { PagesRoutingModule } from './pages-routing.module';
 import { TranslateModule } from '@ngx-translate/core';
-import { HomeComponent } from './home/home.component';
-import { GaugeModule } from './home/gauge/gauge.module';
 import { SettingsModule } from './settings/settings.module';
 import { EditModule } from './edit/edit.module';
 import { InfluxDBModule } from './influxdb/influxdb.module';
 import { SystemModule } from './system/system.module';
 import { SwarmModule } from './swarm/swarm.module';
+import { HomeModule } from './home/home.module';
 
-import { PipesModule} from '../pipes/pipes.module';
+//import { PipesModule} from '../pipes/pipes.module';
 
 @NgModule({
   imports: [
@@ -25,17 +24,16 @@ import { PipesModule} from '../pipes/pipes.module';
     NbCardModule,
     NbAlertModule,
     NbIconModule,
-    GaugeModule,
     SettingsModule,
     EditModule,
     InfluxDBModule,
     SystemModule,
     SwarmModule,
-    PipesModule
+    //PipesModule,
+    HomeModule,
     ],
   declarations: [
     PagesComponent,
-    HomeComponent,
   ],
 })
 export class PagesModule {
