@@ -13,7 +13,7 @@ import { Component, Input } from '@angular/core';
             [attr.cy]="center"
             [attr.r]="radius"
             [attr.stroke-dasharray]="circumference"
-            [attr.stroke-dashoffset]="fullOffset"
+            [attr.stroke-dashoffset]="offset2"
             transform="rotate(135, 50, 50)"
           ></circle>
           <!-- Foreground Circle (Value) -->
@@ -23,7 +23,7 @@ import { Component, Input } from '@angular/core';
             [attr.cy]="center"
             [attr.r]="radius"
             [attr.stroke-dasharray]="circumference"
-            [attr.stroke-dashoffset]="cappedOffset"
+            [attr.stroke-dashoffset]="offset"
             transform="rotate(135, 50, 50)"
           ></circle>
         </svg>
@@ -113,19 +113,17 @@ export class GaugeComponent {
     return 2 * Math.PI * this.radius;
   }
 
-  get fullOffset(): number {
-    // Background circle always fills the 270-degree arc
-    return this.circumference * 0.25;
-  }
-
   get offset(): number {
-    // Maps value to 270-degree range
-    const progress = (this.value - this.min) / (this.max - this.min);
-    return this.circumference * (0.75 - Math.min(Math.max(progress * 0.75, 0), 0.75));
+    let progress = (this.value - this.min) / (this.max - this.min) * 0.75;
+
+    if (progress > 0.75) {
+      progress = 0.75;
+    }
+    return this.circumference * (1 - Math.min(Math.max(progress, 0), 1));
   }
 
-  get cappedOffset(): number {
-    // Ensures foreground circle doesn't exceed background
-    return Math.max(this.offset, this.fullOffset);
+  get offset2(): number {
+    const progress = 0.75; // Full arc length for 270°
+    return this.circumference * (1 - Math.min(Math.max(progress, 0), 1));
   }
 }

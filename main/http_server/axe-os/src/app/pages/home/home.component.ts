@@ -182,8 +182,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         info.voltage = parseFloat((info.voltage / 1000).toFixed(1));
 
         // Clamp power and voltage values between their min and max
-        info.power = Math.max(info.minPower, Math.min(info.maxPower, info.power));
-        info.voltage = Math.max(info.minVoltage, Math.min(info.maxVoltage, info.voltage));
+        //info.power = Math.max(info.minPower, Math.min(info.maxPower, info.power));
+        //info.voltage = Math.max(info.minVoltage, Math.min(info.maxVoltage, info.voltage));
 
         info.current = parseFloat((info.current / 1000).toFixed(1));
         info.coreVoltageActual = parseFloat((info.coreVoltageActual / 1000).toFixed(2));
