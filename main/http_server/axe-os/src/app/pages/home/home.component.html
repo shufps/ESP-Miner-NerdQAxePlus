@@ -49,7 +49,8 @@
               </div>
             </div>
             <span class="text-danger">{{ info.sharesRejected }}</span>
-            <span class="text-hint">&nbsp;rejected</span>
+            <span class="text-hint">&nbsp;rejected</span>&nbsp;
+            <span class="text-hint">({{(info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2'}}%)</span>
           </nb-card-body>
         </nb-card>
       </div>
