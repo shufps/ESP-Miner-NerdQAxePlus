@@ -28,6 +28,9 @@ jobs:
           - board: NERDAXEGAMMA
             upload_www: false
             label: NerdAxeGamma
+          - board: HEXTHAXEGAMMA
+            label: NerdHaxeGamma
+            upload_www: false
 
     steps:
     - name: Checkout repository
