@@ -117,6 +117,10 @@ void PowerManagementTask::task()
         float pout = board->getPout();
         float vout = board->getVout();
         float iout = board->getIout();
+        float m_vrTemp = board->getVRTemp();
+
+        ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, temp: %.2f",
+            vin, iin, pin, vout, iout, pout, m_vrTemp);
 
         influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
@@ -136,8 +140,7 @@ void PowerManagementTask::task()
         m_power = pin;
         board->getFanSpeed(&m_fanRPM);
 
-        m_chipTempAvg = board->readTemperature(0);
-        m_vrTemp = board->readTemperature(1);
+        m_chipTempAvg = board->getTemperature(0);
         influx_task_set_temperature(m_chipTempAvg, m_vrTemp);
 
         float vr_maxTemp = asic_overheat_temp;

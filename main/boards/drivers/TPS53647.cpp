@@ -26,7 +26,7 @@
 
 #define SMBUS_DEFAULT_TIMEOUT (1000 / portTICK_PERIOD_MS)
 
-#define _DEBUG_LOG_
+//#define _DEBUG_LOG_
 
 static const char *TAG = "TPS53647.c";
 
@@ -397,15 +397,19 @@ static void TPS53647_power_disable()
 
 int TPS53647_get_temperature(void)
 {
-    uint16_t value = 0;
-    int temp = 0;
+    uint16_t u16_value = 0;
+    float temp = 0.0f;
 
     if (!is_initialized) {
-        return 0;
+        return 0.0f;
     }
 
-    smb_read_word(PMBUS_READ_TEMPERATURE_1, &value);
-    temp = slinear11_2_int(value);
+    // Get temperature (SLINEAR11)
+    smb_read_word(PMBUS_READ_TEMPERATURE_1, &u16_value);
+    temp = slinear11_2_float(u16_value);
+#ifdef _DEBUG_LOG_
+    ESP_LOGI(TAG, "Got Temp: %2.3f °C", temp);
+#endif
     return temp;
 }
 
