@@ -1,0 +1,65 @@
+<ng-template #loading>
+    <h4>Loading...</h4>
+</ng-template>
+
+<ng-container *ngIf="form != null; else loading">
+    <form [formGroup]="form">
+        <nb-card>
+            <nb-card-header>InfluxDB Settings</nb-card-header>
+            <nb-card-body>
+                <div class="form-row">
+                    <nb-checkbox formControlName="influxEnable">Enable</nb-checkbox>
+                </div>
+                <div class="form-row">
+                    <label for="influxURL" class="form-label">Influx URL:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="influxURL" type="text" formControlName="influxURL"
+                            placeholder="e.g., http://192.168.0.123" /><br />
+                        <small>e.g., http://192.168.0.123</small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="influxPort" class="form-label">Influx Port:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="influxPort" formControlName="influxPort" type="number" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="influxToken" class="form-label">Token:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="influxToken" formControlName="influxToken" type="password" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="influxBucket" class="form-label">Bucket:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="influxBucket" formControlName="influxBucket" type="text" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="influxOrg" class="form-label">Org:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="influxOrg" formControlName="influxOrg" type="text" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="influxPrefix" class="form-label">Prefix:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="influxPrefix" formControlName="influxPrefix" type="text" />
+                    </div>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <div><button nbButton size="small" [disabled]="form.invalid" (click)="updateSystem()"
+                            [status]="'danger'">Save</button>&nbsp;
+                    </div>
+                    <div><button nbButton size="small" (click)="restart()" nbTooltip="'asdf'"
+                            status="danger">Restart</button></div>
+
+                </div>
+                <div>
+                    <b>You must restart this device after saving for changes to take effect.</b>
+                </div>
+            </nb-card-body>
+        </nb-card>
+    </form>
+</ng-container>

@@ -1,0 +1,210 @@
+<ng-template #loading>
+    <h4>Loading...</h4>
+</ng-template>
+
+<ng-container *ngIf="form != null; else loading">
+    <form [formGroup]="form">
+        <nb-card>
+            <nb-card-header>WiFi Settings</nb-card-header>
+            <nb-card-body>
+                <div class="form-row">
+                    <label for="hostname" class="form-label">Hostname:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="hostname" type="text" formControlName="hostname" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="ssid" class="form-label">WiFi SSID:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="ssid" type="text" formControlName="ssid" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="wifiPass" class="form-label">WiFi Password:</label>
+                    <div class="input-with-icon">
+                        <input nbInput id="wifiPass" formControlName="wifiPass"
+                            [type]="showWifiPassword ? 'text' : 'password'" placeholder="Enter WiFi password" />
+                        <button nbButton ghost size="small" (click)="toggleWifiPasswordVisibility()" type="button"
+                            class="icon-button">
+                            <nb-icon [icon]="showWifiPassword ? 'eye-off-outline' : 'eye-outline'" pack="eva"></nb-icon>
+                        </button>
+                    </div>
+                </div>
+            </nb-card-body>
+        </nb-card>
+
+        <nb-tabset>
+            <nb-tab tabTitle="Primary Stratum Pool">
+                <nb-card-body>
+                    <div class="form-row">
+                        <label for="stratumURL" class="form-label">Stratum URL:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="stratumURL" type="text" formControlName="stratumURL" /><br />
+                            <small>Do not include 'stratum+tcp://' or port.</small>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="stratumPort" class="form-label">Stratum Port:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="stratumPort" formControlName="stratumPort" type="number" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="stratumUser" class="form-label">Stratum User:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="stratumUser" formControlName="stratumUser" type="text" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="stratumPassword" class="form-label">Stratum Password:</label>
+                        <div class="input-with-icon">
+                            <input nbInput id="stratumPassword" formControlName="stratumPassword"
+                                [type]="showStratumPassword ? 'text' : 'password'"
+                                placeholder="Enter stratum password" />
+                            <button nbButton ghost (click)="toggleStratumPasswordVisibility()" type="button"
+                                class="icon-button">
+                                <nb-icon [icon]="showStratumPassword ? 'eye-off-outline' : 'eye-outline'"
+                                    pack="eva"></nb-icon>
+                            </button>
+                        </div>
+                    </div>
+                </nb-card-body>
+            </nb-tab>
+
+            <nb-tab tabTitle="Fallback Stratum Pool">
+                <nb-card-body>
+                    <div class="form-row">
+                        <label for="fallbackStratumURL" class="form-label">Stratum URL:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="fallbackStratumURL" type="text"
+                                formControlName="fallbackStratumURL" /><br />
+                            <small>Do not include 'stratum+tcp://' or port.</small>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="fallbackStratumPort" class="form-label">Stratum Port:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="fallbackStratumPort" formControlName="fallbackStratumPort"
+                                type="number" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="fallbackStratumUser" class="form-label">Stratum User:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="fallbackStratumUser" formControlName="fallbackStratumUser" type="text" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="fallbackStratumPassword" class="form-label">Stratum Password:</label>
+                        <div class="input-with-icon">
+                            <input nbInput id="fallbackStratumPassword" formControlName="fallbackStratumPassword"
+                                [type]="showFallbackStratumPassword ? 'text' : 'password'"
+                                placeholder="Enter stratum password" />
+                            <button nbButton ghost (click)="toggleFallbackStratumPasswordVisibility()" type="button"
+                                class="icon-button">
+                                <nb-icon [icon]="showFallbackStratumPassword ? 'eye-off-outline' : 'eye-outline'"
+                                    pack="eva"></nb-icon>
+                            </button>
+                        </div>
+                    </div>
+                </nb-card-body>
+            </nb-tab>
+        </nb-tabset>
+
+        <nb-card>
+            <nb-card-header>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <div>Mining Settings</div>
+                    <div><app-advanced-toggle (advancedToggled)="setDevToolsOpen($event)"></app-advanced-toggle></div>
+                </div>
+            </nb-card-header>
+            <nb-card-body>
+                <ng-container *ngIf="!devToolsOpen">
+                    <div class="form-row">
+                        <label for="frequency" class="form-label">Frequency:</label>
+                        <div class="form-control-wrapper">
+                            <nb-select formControlName="frequency">
+                                <nb-option *ngFor="let option of frequencyOptions" [value]="option.value">{{ option.name
+                                    }}</nb-option>
+                            </nb-select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="coreVoltage" class="form-label">Core Voltage:</label>
+                        <div class="form-control-wrapper">
+                            <nb-select formControlName="coreVoltage">
+                                <nb-option *ngFor="let option of voltageOptions" [value]="option.value">{{ option.name
+                                    }}</nb-option>
+                            </nb-select>
+                        </div>
+                    </div>
+                </ng-container>
+
+                <ng-container *ngIf="devToolsOpen">
+                    <div class="form-row">
+                        <label for="frequency" class="form-label">Frequency:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="frequency" formControlName="frequency" type="number" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="coreVoltage" class="form-label">Core Voltage:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="coreVoltage" formControlName="coreVoltage" type="number" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="jobInterval" class="form-label">Job Interval:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="jobInterval" formControlName="jobInterval" type="number" />
+                        </div>
+                    </div>
+                </ng-container>
+
+                <div class="form-row">
+                    <label for="overheat_temp" class="form-label">Shutdown Temperature:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" /><br />
+                        <small>Shutdown Temperature in °C. To turn off use "0"</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <nb-checkbox formControlName="flipscreen">Flip Screen</nb-checkbox>
+                </div>
+                <div class="form-row">
+                    <nb-checkbox formControlName="autoscreenoff">Automatic Screen Shutdown</nb-checkbox>
+                </div>
+                <div class="form-row" *ngIf="devToolsOpen">
+                    <nb-checkbox formControlName="invertfanpolarity">Invert Fan Polarity</nb-checkbox>
+                </div>
+                <div class="form-row">
+                    <nb-checkbox formControlName="autofanspeed">Automatic Fan Control</nb-checkbox>
+                </div>
+
+                <div *ngIf="form.controls['autofanspeed'].value !== true">
+                    <label>Fan Speed {{ form.controls['fanspeed'].value }}%</label>
+                    <div class="progress-wrap">
+                        <input type="range" class="progress" formControlName="fanspeed" min="0" max="100" step="1" />
+                        <div class="progress-foreground" [style.width.%]="form.controls['fanspeed'].value"></div>
+                    </div>
+                    <small *ngIf="form.controls['fanspeed'].value < 33" style="color: red">Danger: Could Cause
+                        Overheating</small>
+                    <small *ngIf="form.controls['fanspeed'].value === 100" style="color: #F2A900">S19 Simulator</small>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <div><button nbButton size="small" [disabled]="form.invalid" (click)="updateSystem()"
+                            [status]="'danger'">Save</button></div>
+                    <div><button nbButton size="small" (click)="restart()" nbTooltip="'asdf'"
+                            status="danger">Restart</button>
+                    </div>
+
+                </div>
+                <div>
+                    <b>You must restart this device after saving for changes to take effect.</b>
+                </div>
+            </nb-card-body>
+        </nb-card>
+    </form>
+</ng-container>

@@ -1,0 +1,12 @@
+@import '../../styles/themes';
+
+@include nb-install-component() {
+    .help-card {
+        max-width: 400px !important;
+        min-width: 400px !important;
+    
+        max-height: 350px !important;
+        min-height: 350px !important;
+    }
+
+}

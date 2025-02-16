@@ -1,9 +1,11 @@
 #pragma once
 
+#include <pthread.h>
 #include "boards/board.h"
 
 class PowerManagementTask {
   protected:
+    pthread_mutex_t m_mutex;
     uint16_t m_fanPerc;
     uint16_t m_fanRPM;
     float m_chipTempAvg;
@@ -18,6 +20,9 @@ class PowerManagementTask {
 
   public:
     PowerManagementTask();
+
+    // synchronized rebooting to now mess up i2c comms
+    void restart();
 
     static void taskWrapper(void *pvParameters);
 

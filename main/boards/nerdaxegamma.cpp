@@ -77,6 +77,10 @@ bool NerdaxeGamma::initBoard()
     return true;
 }
 
+void NerdaxeGamma::shutdown() {
+    // NOP / TODO
+}
+
 bool NerdaxeGamma::initAsics() {
 
     // set output voltage
