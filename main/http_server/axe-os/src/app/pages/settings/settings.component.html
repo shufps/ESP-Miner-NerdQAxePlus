@@ -20,7 +20,7 @@
       <nb-card-body>
         <h2>
           Latest Release:
-          <button nbButton status="info" size="small" [status]="'primary'" (click)="checkLatestRelease = true">
+          <button nbButton size="small" [status]="'primary'" (click)="checkLatestRelease = true">
             Check
           </button>
         </h2>
@@ -36,12 +36,12 @@
           <h2>Latest Release: {{ latestRelease.name }}</h2>
           <div *ngFor="let asset of latestRelease.assets">
             <div *ngIf="asset.name === expectedFileName">
-              <a nbButton outline status="info" size="small" [status]="'primary'" target="_blank" [href]="asset.browser_download_url">
+              <a nbButton outline size="small" [status]="'primary'" target="_blank" [href]="asset.browser_download_url">
                 {{ expectedFileName }}
               </a>
             </div>
             <div *ngIf="asset.name === 'www.bin'">
-              <a nbButton outline status="info" size="small" [status]="'primary'" target="_blank" [href]="asset.browser_download_url">
+              <a nbButton outline size="small" [status]="'primary'" target="_blank" [href]="asset.browser_download_url">
                 www.bin
               </a>
             </div>
@@ -67,12 +67,12 @@
         <!-- Action buttons container -->
         <div class="action-buttons">
           <!-- Custom "Browse" button -->
-          <button nbButton status="info" size="small" (click)="firmwareInput.click()">
+          <button nbButton [status]="'primary'" size="small" (click)="firmwareInput.click()">
             <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
             Browse
           </button>
           <!-- "Upload" button -->
-          <button nbButton status="info" size="small" [nbSpinner]="isFirmwareUploading" (click)="uploadFirmwareFile()">
+          <button nbButton [status]="'primary'" size="small" [nbSpinner]="isFirmwareUploading" (click)="uploadFirmwareFile()">
             <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
             Flash
           </button>
@@ -98,12 +98,12 @@
         <!-- Action buttons container -->
         <div class="action-buttons">
           <!-- Custom "Browse" button -->
-          <button nbButton status="info" size="small" (click)="websiteInput.click()">
+          <button nbButton [status]="'primary'" size="small" (click)="websiteInput.click()">
             <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
             Browse
           </button>
           <!-- "Upload" button -->
-          <button nbButton status="info" size="small" [nbSpinner]="isWebsiteUploading" (click)="uploadWebsiteFile()">
+          <button nbButton [status]="'primary'" size="small" [nbSpinner]="isWebsiteUploading" (click)="uploadWebsiteFile()">
             <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
             Flash
           </button>
