@@ -174,62 +174,30 @@ float vid_to_volt(uint8_t register_value)
 /**
  * @brief Convert an SLINEAR11 value into an int
  */
-static int slinear11_2_int(uint16_t value)
+static float slinear11_2_float(uint16_t value)
 {
-    int exponent, mantissa;
-    float result;
+    // 5 bits exponent in two's complement
+    int32_t exponent = value >> 11;
 
-    // First 5 bits is exponent in twos-complement
-    // check the first bit of the exponent to see if its negative
-    if (value & 0x8000) {
-        // exponent is negative
-        exponent = -1 * (((~value >> 11) & 0x001F) + 1);
-    } else {
-        exponent = (value >> 11);
-    }
-    // last 11 bits is the mantissa in twos-complement
-    // check the first bit of the mantissa to see if its negative
-    if (value & 0x400) {
-        // mantissa is negative
-        mantissa = -1 * ((~value & 0x03FF) + 1);
-    } else {
-        mantissa = (value & 0x03FF);
-    }
+    // 11 bits mantissa in two's complement
+    int32_t mantissa = value & 0x7ff;
+
+    // extend signs
+    exponent |= (exponent & 0x10) ? 0xffffffe0 : 0;
+    mantissa |= (mantissa & 0x400) ? 0xfffff800 : 0;
 
     // calculate result (mantissa * 2^exponent)
-    result = mantissa * powf(2.0, exponent);
-    return (int) result;
+    return mantissa * powf(2.0, exponent);
 }
 
 /**
  * @brief Convert an SLINEAR11 value into an int
  */
-static float slinear11_2_float(uint16_t value)
+static int slinear11_2_int(uint16_t value)
 {
-    int exponent, mantissa;
-    float result;
-
-    // First 5 bits is exponent in twos-complement
-    // check the first bit of the exponent to see if its negative
-    if (value & 0x8000) {
-        // exponent is negative
-        exponent = -1 * (((~value >> 11) & 0x001F) + 1);
-    } else {
-        exponent = (value >> 11);
-    }
-    // last 11 bits is the mantissa in twos-complement
-    // check the first bit of the mantissa to see if its negative
-    if (value & 0x400) {
-        // mantissa is negative
-        mantissa = -1 * ((~value & 0x03FF) + 1);
-    } else {
-        mantissa = (value & 0x03FF);
-    }
-
-    // calculate result (mantissa * 2^exponent)
-    result = mantissa * powf(2.0, exponent);
-    return result;
+    return (int) slinear11_2_float(value);
 }
+
 
 /**
  * @brief Convert an int value into an SLINEAR11
@@ -395,7 +363,7 @@ static void TPS53647_power_disable()
     gpio_set_level(TPS53647_EN_PIN, 0);
 }
 
-int TPS53647_get_temperature(void)
+float TPS53647_get_temperature(void)
 {
     uint16_t u16_value = 0;
     float temp = 0.0f;
@@ -406,6 +374,7 @@ int TPS53647_get_temperature(void)
 
     // Get temperature (SLINEAR11)
     smb_read_word(PMBUS_READ_TEMPERATURE_1, &u16_value);
+    ESP_LOGI(TAG, "raw temp: %04x", u16_value);
     temp = slinear11_2_float(u16_value);
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Temp: %2.3f °C", temp);
