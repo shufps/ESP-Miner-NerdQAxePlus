@@ -29,7 +29,7 @@ jobs:
             upload_www: false
             label: NerdAxeGamma
           - board: NERDHAXEGAMMA
-            label: NerdHaxeGamma
+            label: NerdHaxe-Gamma
             upload_www: false
 
     steps:
