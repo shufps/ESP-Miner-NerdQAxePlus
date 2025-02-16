@@ -28,7 +28,7 @@ jobs:
           - board: NERDAXEGAMMA
             upload_www: false
             label: NerdAxeGamma
-          - board: HEXTHAXEGAMMA
+          - board: HERDHAXEGAMMA
             label: NerdHaxeGamma
             upload_www: false
 
