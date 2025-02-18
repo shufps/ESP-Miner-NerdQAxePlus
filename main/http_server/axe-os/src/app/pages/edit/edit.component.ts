@@ -96,7 +96,7 @@ export class EditComponent implements OnInit {
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],
           overheat_temp: [info.overheat_temp, [
-            Validators.min(50),
+            Validators.min(40),
             Validators.max(90),
             Validators.required]]
         });
