@@ -162,6 +162,25 @@ export class EditComponent implements OnInit {
     this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(), this.form.controls['coreVoltage'].value);
   }
 
+  public isVoltageTooHigh(): boolean {
+    const maxVoltage = Math.max(...this.getPredefinedVoltages().map(v => v.value));
+    return this.form?.controls['coreVoltage'].value > maxVoltage;
+  }
+
+  public isFrequencyTooHigh(): boolean {
+    const maxFrequency = Math.max(...this.getPredefinedFrequencies().map(f => f.value));
+    return this.form?.controls['frequency'].value > maxFrequency;
+  }
+
+  public checkVoltageLimit(): void {
+    this.form.controls['coreVoltage'].updateValueAndValidity({ emitEvent: false });
+  }
+
+  public checkFrequencyLimit(): void {
+    this.form.controls['frequency'].updateValueAndValidity({ emitEvent: false });
+  }
+
+
 
 /**
  * Dynamically assemble dropdown options, including custom values.

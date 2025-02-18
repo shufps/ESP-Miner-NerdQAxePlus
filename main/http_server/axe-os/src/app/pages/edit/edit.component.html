@@ -144,13 +144,15 @@
                     <div class="form-row">
                         <label for="frequency" class="form-label">Frequency:</label>
                         <div class="form-control-wrapper">
-                            <input nbInput id="frequency" formControlName="frequency" type="number" />
+                            <input (input)="checkFrequencyLimit()" [ngClass]="{'unsafe-setting': isFrequencyTooHigh()}"
+                                nbInput id="frequency" formControlName="frequency" type="number" />
                         </div>
                     </div>
                     <div class="form-row">
                         <label for="coreVoltage" class="form-label">Core Voltage:</label>
                         <div class="form-control-wrapper">
-                            <input nbInput id="coreVoltage" formControlName="coreVoltage" type="number" />
+                            <input (input)="checkVoltageLimit()" [ngClass]="{'unsafe-setting': isVoltageTooHigh()}"
+                                nbInput id="coreVoltage" formControlName="coreVoltage" type="number" />
                         </div>
                     </div>
                     <div class="form-row">
