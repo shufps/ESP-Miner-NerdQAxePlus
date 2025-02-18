@@ -47,6 +47,14 @@ export class EditComponent implements OnInit {
         this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(), info.frequency);
         this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(), info.coreVoltage);
 
+        // fix setting where we allowed to disable temp shutdown
+        if (info.overheat_temp == 0) {
+          info.overheat_temp = 70;
+        }
+
+        // respect the new bounds
+        info.overheat_temp = Math.max(info.overheat_temp, 40);
+        info.overheat_temp = Math.min(info.overheat_temp, 90);
 
         this.form = this.fb.group({
           flipscreen: [info.flipscreen == 1],
@@ -87,7 +95,10 @@ export class EditComponent implements OnInit {
           autofanspeed: [info.autofanspeed == 1, [Validators.required]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],
-          overheat_temp: [info.overheat_temp, [Validators.required]]
+          overheat_temp: [info.overheat_temp, [
+            Validators.min(40),
+            Validators.max(90),
+            Validators.required]]
         });
 
         this.form.controls['autofanspeed'].valueChanges.pipe(
