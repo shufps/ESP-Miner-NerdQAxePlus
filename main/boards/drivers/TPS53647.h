@@ -18,7 +18,7 @@
 // 2: device uses the enable pin
 #define TPS53647_INIT_ON_OFF_CONFIG 0b00010111
 
-#define TPS53647_INIT_VOUT_MIN 0.25
+#define TPS53647_INIT_VOUT_MIN 1.05 //0.25
 #define TPS53647_INIT_VOUT_MAX 1.4
 
 // temperature

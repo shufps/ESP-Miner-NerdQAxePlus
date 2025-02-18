@@ -198,7 +198,6 @@ static int slinear11_2_int(uint16_t value)
     return (int) slinear11_2_float(value);
 }
 
-
 /**
  * @brief Convert an int value into an SLINEAR11
  */
