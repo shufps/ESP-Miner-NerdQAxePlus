@@ -42,6 +42,7 @@ NerdAxe::NerdAxe() : Board() {
     m_asicVoltage = 1.20;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
+    m_numTempSensors = 1;
 
     m_maxPin = 15.0;
     m_minPin = 5.0;
@@ -185,13 +186,15 @@ void NerdAxe::getFanSpeed(uint16_t* rpm) {
     *rpm = EMC2101_get_fan_speed();
 }
 
-float NerdAxe::readTemperature(int index) {
-    if (!index) {
-        return EMC2101_get_internal_temp() + 5;
-    } else {
-        return 0.0;
+float NerdAxe::getTemperature(int index) {
+    if (index > 0) {
+        return 0.0f;
     }
+    return EMC2101_get_internal_temp() + 5;
+}
 
+float NerdAxe::getVRTemp() {
+    return 0.0f;
 }
 
 float NerdAxe::getVin() {
@@ -223,8 +226,8 @@ bool NerdAxe::selfTest(){
     #define CORE_VOLTAGE_TARGET_MIN 1.0 //mV
     #define CORE_VOLTAGE_TARGET_MAX 1.35 //mV
 
-    char logString[300]; 
-    
+    char logString[300];
+
     // Initialize the display
     DisplayDriver *temp_display;
     temp_display = new DisplayDriver();
@@ -240,7 +243,7 @@ bool NerdAxe::selfTest(){
     bool powerOK = (power > m_minPin) && (power < m_maxPin);
     bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
     bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
-    
+
     //Warning! This test only ensures Asic is properly soldered
     snprintf(logString, sizeof(logString),  "\nTest result:\r\n"
                                             "- Asics detected [%d/%d]\n"
@@ -251,9 +254,9 @@ bool NerdAxe::selfTest(){
                                             powerOK ? "OK" : "Warning", power,
                                             VrOK ? "OK" : "Warning", Vout,
                                             (allAsicsDetected) ? "OOOOOOOO TEST OK!!! OOOOOOO" : "XXXXXXXXX TEST KO XXXXXXXXX");
-    temp_display->logMessage(logString);             
+    temp_display->logMessage(logString);
 
-    //Update SelfTest flag                                                              
+    //Update SelfTest flag
     if(allAsicsDetected) nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);
 
     return allAsicsDetected;
