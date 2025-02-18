@@ -158,7 +158,8 @@
                     <div class="form-row">
                         <label for="jobInterval" class="form-label">Job Interval:</label>
                         <div class="form-control-wrapper">
-                            <input nbInput id="jobInterval" formControlName="jobInterval" type="number" />
+                            <input nbInput id="jobInterval" formControlName="jobInterval" type="number" /><br />
+                            <small>Mining job switching time in milliseconds.</small>
                         </div>
                     </div>
                 </ng-container>
@@ -195,8 +196,14 @@
                 </div>
 
                 <div class="d-flex align-items-center justify-content-between mt-2">
-                    <div><button nbButton size="small" [disabled]="form.invalid" (click)="updateSystem()"
-                            [status]="'danger'">Save</button></div>
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mt-2">
+                            <button nbButton size="small" [disabled]="form.invalid" (click)="confirmSave(warningDialog)"
+                                status="danger">
+                                Save
+                            </button>
+                        </div>
+                    </div>
                     <div><button nbButton size="small" (click)="restart()" nbTooltip="'asdf'"
                             status="danger">Restart</button>
                     </div>
@@ -208,4 +215,43 @@
             </nb-card-body>
         </nb-card>
     </form>
+
+    <ng-template #warningDialog>
+        <nb-card accent="danger" style="width: 384px">
+            <nb-card-header style="color: red;">⚠️ Warning: Saving Unsafe Settings ⚠️</nb-card-header>
+            <nb-card-body>
+                <p>
+                    You are about to save settings that exceed the safe operating limits of your device. Proceeding with
+                    these settings may result in:
+                </p>
+                <ul class="m-0 pl-4">
+                    <li><strong>Voids your warranty</strong></li>
+                    <li><strong>May cause permanent hardware damage</strong></li>
+                    <li><strong>Can lead to system instability and crashes</strong></li>
+                    <li><strong>Reduces device lifespan</strong></li>
+                    <li>May cause unexpected reboots or failures</li>
+                    <li>Can lead to excessive heat and potential overheating</li>
+                    <li>Increases power consumption</li>
+                    <li>May cause unpredictable performance issues</li>
+                    <li>⚠️ <strong>MAY SUMMON DRAGONS! 🐉🔥</strong></li>
+                </ul><br />
+
+                <p><b>Are you sure you want to proceed?</b></p>
+                <p>
+                    <nb-checkbox [(ngModel)]="dontShowWarning">
+                        Don't show this warning again
+                    </nb-checkbox>
+                </p>
+                <div class="d-flex justify-content-between">
+                    <button nbButton status="danger" (click)="saveAfterWarning()">Proceed Anyway</button>
+                    <button nbButton status="basic" (click)="dialogRef?.close()">Cancel</button>
+                </div>
+            </nb-card-body>
+        </nb-card>
+    </ng-template>
+
+
+
+
+
 </ng-container>

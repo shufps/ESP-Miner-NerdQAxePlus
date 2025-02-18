@@ -4,6 +4,8 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { NbCardModule, NbIconModule, NbButtonModule, NbInputModule, NbSelectModule, NbCheckboxModule, NbTabsetModule/*, NbSliderModule*/ } from '@nebular/theme';
 import { EditComponent } from './edit.component';
 import { AdvancedToggleModule } from '../../components/advanced-toggle/advanced-toggle.module';
+import { FormsModule } from '@angular/forms';
+
 
 @NgModule({
   declarations: [EditComponent],
@@ -18,6 +20,7 @@ import { AdvancedToggleModule } from '../../components/advanced-toggle/advanced-
     NbTabsetModule,
     NbIconModule,
     AdvancedToggleModule,
+    FormsModule,
   ],
   exports: [EditComponent]
 })
