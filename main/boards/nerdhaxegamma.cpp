@@ -10,7 +10,7 @@ NerdHaxeGamma::NerdHaxeGamma() : NerdQaxePlus2() {
     m_asicModel = "BM1370";
     m_asicCount = 6;
     m_numPhases = 4;
-    m_imax = 135;
+    m_imax = 120;
     m_ifault = 105.0;
 
     // use m_asicVoltage for init
