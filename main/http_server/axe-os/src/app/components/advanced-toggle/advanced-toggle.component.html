@@ -1,6 +1,6 @@
 <button nbButton size="small"
-        [nbTooltip]="isAdvanced ? 'Advanced mode enabled' : 'Enable advanced overclocking (dangerous!)'"
-        [nbTooltipStatus]="isAdvanced ? 'danger' : 'warning'" nbTooltipPlacement="top" [class.enabled]="isAdvanced"
+        [nbTooltip]="isAdvanced ? 'Danger Zone' : 'Danger Zone'"
+        [nbTooltipStatus]="isAdvanced ? 'danger' : 'danger'" nbTooltipPlacement="top" [class.enabled]="isAdvanced"
         (click)="toggleAdvanced()" [status]="isAdvanced ? 'danger' : 'basic'"
         [style.opacity]="isAdvanced ? '1' : '0.1'">
         <nb-icon icon="alert-triangle-outline"></nb-icon>
