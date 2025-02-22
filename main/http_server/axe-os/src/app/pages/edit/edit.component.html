@@ -123,7 +123,7 @@
                     <div class="form-row">
                         <label for="frequency" class="form-label">Frequency:</label>
                         <div class="form-control-wrapper">
-                            <nb-select formControlName="frequency">
+                            <nb-select formControlName="frequency" [ngClass]="{'unsafe-setting': isFrequencyTooHigh()}">
                                 <nb-option *ngFor="let option of frequencyOptions" [value]="option.value">{{ option.name
                                     }}</nb-option>
                             </nb-select>
@@ -132,7 +132,7 @@
                     <div class="form-row">
                         <label for="coreVoltage" class="form-label">Core Voltage:</label>
                         <div class="form-control-wrapper">
-                            <nb-select formControlName="coreVoltage">
+                            <nb-select formControlName="coreVoltage" [ngClass]="{'unsafe-setting': isVoltageTooHigh()}">
                                 <nb-option *ngFor="let option of voltageOptions" [value]="option.value">{{ option.name
                                     }}</nb-option>
                             </nb-select>

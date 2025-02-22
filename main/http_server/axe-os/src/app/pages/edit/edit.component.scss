@@ -145,7 +145,12 @@
         background-color: rgba(255, 0, 0, 0.2) !important; // Light red
         border: 2px solid red !important;
         transition: background-color 0.3s ease-in-out, border 0.3s ease-in-out !important; // Smooth transition
-      }
+    }
+
+    .unsafe-setting ::ng-deep button {
+        background-color: rgba(255, 0, 0, 0.2) !important; // Light red
+        transition: background-color 0.3s ease-in-out, border 0.3s ease-in-out !important; // Smooth transition
+    }
 
 
 }
