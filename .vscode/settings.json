@@ -32,7 +32,11 @@
         "history.h": "c",
         "system.h": "c",
         "influx_task.h": "c",
-        "cmath": "c"
+        "cmath": "c",
+        "ratio": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

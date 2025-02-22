@@ -18,7 +18,7 @@
 // 2: device uses the enable pin
 #define TPS53647_INIT_ON_OFF_CONFIG 0b00010111
 
-#define TPS53647_INIT_VOUT_MIN 0.25
+#define TPS53647_INIT_VOUT_MIN 1.05 //0.25
 #define TPS53647_INIT_VOUT_MAX 1.4
 
 // temperature
@@ -29,7 +29,7 @@
 int TPS53647_init(int num_phases, int imax, float ifault);
 int TPS53647_get_frequency(void);
 void TPS53647_set_frequency(int);
-int TPS53647_get_temperature(void);
+float TPS53647_get_temperature(void);
 float TPS53647_get_vin(void);
 float TPS53647_get_iout(void);
 float TPS53647_get_iin(void);
