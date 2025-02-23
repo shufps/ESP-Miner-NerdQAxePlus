@@ -1,5 +1,5 @@
 #include "btc_task.h"
-#include "cJSON.h"
+#include "ArduinoJson.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -107,27 +107,31 @@ bool BitcoinPriceFetcher::fetchBitcoinPrice()
 }
 
 // Parse Bitcoin price from JSON response
-bool BitcoinPriceFetcher::parseBitcoinPrice(const char *jsonData)
-{
-    cJSON *json = cJSON_Parse(jsonData);
-    if (!json) {
-        ESP_LOGE(TAG, "JSON parsing failed!");
+bool BitcoinPriceFetcher::parseBitcoinPrice(const char *jsonData) {
+    // Use PSRAM-backed JSON document (or regular JsonDocument if PSRAM isn't needed)
+    JsonDocument doc;
+
+    // Deserialize JSON
+    DeserializationError error = deserializeJson(doc, jsonData);
+    if (error) {
+        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
         return false;
     }
 
-    cJSON *usd = cJSON_GetObjectItem(json, "USD");
-    if (!usd || !cJSON_IsNumber(usd)) {
+    // Extract USD price
+    if (!doc["USD"].is<float>()) {
         ESP_LOGE(TAG, "USD field missing or invalid.");
-        cJSON_Delete(json);
         return false;
     }
 
-    m_bitcoinPrice = static_cast<uint32_t>(usd->valuedouble);
+    m_bitcoinPrice = static_cast<uint32_t>(doc["USD"].as<float>());
     ESP_LOGI(TAG, "Bitcoin price in USD: %lu", m_bitcoinPrice);
 
-    cJSON_Delete(json);
+    doc.clear();
+
     return true;
 }
+
 
 // FreeRTOS task wrapper - Calls the main task function
 void BitcoinPriceFetcher::taskWrapper(void *pvParameters)

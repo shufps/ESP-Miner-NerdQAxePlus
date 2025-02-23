@@ -3,9 +3,11 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "board.h"
+#include "board-params.h"
 
 class NerdQaxePlus : public Board {
   protected:
+    BoardParameters m_params;
     int m_numPhases;
     int m_imax;
     float m_ifault;

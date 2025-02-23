@@ -50,6 +50,29 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
 #endif
 
     m_asics = new BM1368();
+
+    m_params.setMinAsicShutdownTemp(40.0f);
+    m_params.setMaxAsicShutdownTemp(90.0f);
+
+    m_params.setMinVRShutdownTemp(40.0f);
+    m_params.setMaxVRShutdownTemp(90.0f);
+
+    // absolute values
+    m_params.setAbsMinAsicVoltage(1005);
+    m_params.setAbsMaxAsicVoltage(1400);
+
+    m_params.setAbsMinFrequency(200);
+    m_params.setAbsMaxFrequency(1000);
+
+    // bm1368 values
+    int frequencies[] = {400, 425, 450, 475, 490, 500, 525, 550, 575};
+    int voltages[] = {1100, 1150, 1200, 1250, 1300, 1350};
+    m_params.setFrequencies(frequencies, sizeof(frequencies)/sizeof(int));
+    m_params.setAsicVoltages(voltages, sizeof(voltages)/sizeof(int));
+
+    m_params.setDefaultFrequency(490);
+    m_params.setDefaultAsicVoltage(1250);
+
 }
 
 bool NerdQaxePlus::initBoard()
@@ -222,8 +245,8 @@ bool NerdQaxePlus::selfTest(){
     #define CORE_VOLTAGE_TARGET_MIN 1.1 //mV
     #define CORE_VOLTAGE_TARGET_MAX 1.4 //mV
 
-    char logString[300]; 
-    
+    char logString[300];
+
     // Initialize the display
     DisplayDriver *temp_display;
     temp_display = new DisplayDriver();
@@ -239,7 +262,7 @@ bool NerdQaxePlus::selfTest(){
     bool powerOK = (power > m_minPin) && (power < m_maxPin);
     bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
     bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
-    
+
     //Warning! This test only ensures Asic is properly soldered
     snprintf(logString, sizeof(logString),  "\nTest result:\r\n"
                                             "- Asics detected [%d/%d]\n"
@@ -250,10 +273,10 @@ bool NerdQaxePlus::selfTest(){
                                             powerOK ? "OK" : "Warning", power,
                                             VrOK ? "OK" : "Warning", Vout,
                                             (allAsicsDetected) ? "OOOOOOOO TEST OK!!! OOOOOOO" : "XXXXXXXXX TEST KO XXXXXXXXX");
-    temp_display->logMessage(logString);   
+    temp_display->logMessage(logString);
 
-    //Update SelfTest flag                                                              
-    if(allAsicsDetected) nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);                                                                        
+    //Update SelfTest flag
+    if(allAsicsDetected) nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);
 
     return true;
 }

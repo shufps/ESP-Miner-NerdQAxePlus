@@ -25,6 +25,7 @@
 #define ALLOC(s) malloc(s)
 #endif
 
+//#define SAFE_FREE(a) { if (a) { free(a); a=nullptr; }}
 // fallback can nicely be tested with netcat
 // mkfifo /tmp/ncpipe
 // nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
@@ -456,7 +457,10 @@ void StratumManager::dispatch(int pool, const char *line)
 
     memset(m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
 
-    StratumApi::parse(m_stratum_api_v1_message, line);
+    if (!StratumApi::parse(m_stratum_api_v1_message, line)) {
+        ESP_LOGE(m_tag, "error in stratum");
+        return;
+    }
 
     switch (m_stratum_api_v1_message->method) {
     case MINING_NOTIFY: {
@@ -471,7 +475,11 @@ void StratumManager::dispatch(int pool, const char *line)
         create_job_mining_notify(m_stratum_api_v1_message->mining_notification);
 
         // free notify
-        StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
+        if (m_stratum_api_v1_message->mining_notification) {
+            StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
+            free(m_stratum_api_v1_message->mining_notification);
+            m_stratum_api_v1_message->mining_notification = nullptr;
+        }
         break;
     }
 

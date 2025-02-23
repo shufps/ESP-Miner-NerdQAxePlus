@@ -168,6 +168,19 @@ void *create_jobs_task(void *pvParameters)
         char extranonce_2_str[extranonce_2_len * 2 + 1]; // +1 zero termination
         snprintf(extranonce_2_str, sizeof(extranonce_2_str), "%0*lx", (int) extranonce_2_len * 2, extranonce_2);
 
+        if (!current_job.coinbase_1) {
+            ESP_LOGE(TAG, "coinb1");
+        }
+
+        if (!extranonce_str) {
+            ESP_LOGE(TAG, "extranonce_str");
+        }
+
+
+        if (!current_job.coinbase_2) {
+            ESP_LOGE(TAG, "coinb2");
+        }
+
         // generate coinbase tx
         int coinbase_tx_len =
             strlen(current_job.coinbase_1) + strlen(extranonce_str) + strlen(extranonce_2_str) + strlen(current_job.coinbase_2);

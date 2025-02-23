@@ -1,6 +1,6 @@
 idf_component_register(
 SRCS
-    "influx.c"
+    "influx.cpp"
 
 INCLUDE_DIRS
     "include"

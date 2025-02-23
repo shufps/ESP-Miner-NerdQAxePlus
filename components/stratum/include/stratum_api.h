@@ -1,8 +1,9 @@
 #pragma once
 
-#include "cJSON.h"
+#include <cstddef>
 #include <stdbool.h>
 #include <stdint.h>
+#include "ArduinoJson.h"
 
 #define MAX_MERKLE_BRANCHES 32
 #define HASH_SIZE 32
@@ -82,6 +83,9 @@ class StratumApi {
     // Helper: checks whether the socket is still connected.
     static int isSocketConnected(int socket);
 
+    static bool parseMethods(JsonDocument &doc, const char* method_str, StratumApiV1Message *message);
+    static bool parseResponses(JsonDocument &doc, StratumApiV1Message *message);
+
   public:
     StratumApi();
     ~StratumApi();
@@ -112,11 +116,8 @@ class StratumApi {
     // clear the message buffer
     void clearBuffer();
 
-    // Parses a subscribe result message.
-    int parseSubscribeResultMessage(const char *result_json_str, char **extranonce, int *extranonce2_len);
-
     // Parses a received JSON string into a StratumApiV1Message.
-    static void parse(StratumApiV1Message *message, const char *stratum_json);
+    static bool parse(StratumApiV1Message* message, const char* stratum_json);
 
     // Frees a mining_notify structure allocated in parse().
     static void freeMiningNotify(mining_notify *params);
