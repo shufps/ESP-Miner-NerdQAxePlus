@@ -1,5 +1,7 @@
 import os
 import subprocess
+import sys
+
 from jinja2 import Environment, FileSystemLoader
 
 # Function to process each theme directory and convert PNG files to C files
@@ -7,10 +9,12 @@ def process_theme(theme, rpath):
     theme_path = os.path.join("../themes", theme)
     os.chdir(theme_path)
 
-    for screen in ["initscreen2", "miningscreen2", "portalscreen", "btcscreen", "settingsscreen", "splashscreen2"]:
+    for screen in ["initscreen2", "miningscreen2", "portalscreen", "btcscreen", "settingsscreen", "splashscreen2" , "globalStats"]:
         image_path = f"./Raw Images/{screen}.png"
         # Run the convert_single.py script to generate the C files for each image
-        subprocess.run(["python3", f"{rpath}/convert_single.py", theme, image_path, screen], check=True)
+        #subprocess.run(["python3", f"{rpath}/convert_single.py", theme, image_path, screen], check=True)
+        subprocess.run([sys.executable, os.path.join(rpath, "convert_single.py"), theme, image_path, screen], check=True)
+
 
     os.chdir(rpath)
 
@@ -44,7 +48,7 @@ def main():
             process_theme(theme_name, rpath)
 
     # Context for Jinja2 templates
-    screens = ["initscreen2", "miningscreen2", "portalscreen", "btcscreen", "settingsscreen", "splashscreen2"]
+    screens = ["initscreen2", "miningscreen2", "portalscreen", "btcscreen", "settingsscreen", "splashscreen2", "globalStats"]
     context = {
         'themes': theme_dirs,
         'screens': screens

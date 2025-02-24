@@ -41,7 +41,7 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_asicMinDifficulty = 512;
 
 #ifdef NERDAXEGAMMA
-    m_theme = new ThemeNerdaxe();
+    m_theme = new ThemeNerdaxegamma();
 #endif
     m_asics = new BM1370();
 }

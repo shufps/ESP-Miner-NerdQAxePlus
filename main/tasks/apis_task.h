@@ -5,12 +5,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-class BitcoinPriceFetcher {
+class APIsFetcher {
 private:
-    const char *TAG = "BitcoinFetcher";
+    const char *TAG = "APIsFetcher";
     static constexpr int BUFFER_SIZE = 256;
 
     uint32_t m_bitcoinPrice;
+    uint32_t m_blockHeigh;
 
     char m_responseBuffer[BUFFER_SIZE]; // Buffer to store response
     int m_responseLength;
@@ -18,9 +19,10 @@ private:
     static esp_err_t http_event_handler(esp_http_client_event_t *evt);
 
     bool fetchBitcoinPrice();
+    bool fetchBlockHeight();
 
 public:
-    BitcoinPriceFetcher();
+    APIsFetcher();
     static void taskWrapper(void *pvParameters);
     void task();
 

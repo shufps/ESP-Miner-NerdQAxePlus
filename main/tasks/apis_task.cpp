@@ -1,4 +1,4 @@
-#include "btc_task.h"
+#include "apis_task.h"
 #include "cJSON.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
@@ -7,26 +7,27 @@
 //#include "mbedtls/platform.h"
 #include <cstring>
 
-static const char *TAG = "BitcoinFetcher";
+static const char *TAG = "APIsFetcher";
 #define getBTCAPI "https://mempool.space/api/v1/prices"
+#define getBLOCKHEIGHT "https://mempool.space/api/blocks/tip/height"
 
 #define MIN(a, b) ((a)<(b))?(a):(b)
 
 // Constructor
-BitcoinPriceFetcher::BitcoinPriceFetcher() {
+APIsFetcher::APIsFetcher() {
     m_bitcoinPrice = 0;
     m_responseLength = 0;
-
+    m_blockHeigh = 0;
 }
 
 // Get latest Bitcoin price
-uint32_t BitcoinPriceFetcher::getPrice() {
+uint32_t APIsFetcher::getPrice() {
     return m_bitcoinPrice;
 }
 
 // HTTP event handler
-esp_err_t BitcoinPriceFetcher::http_event_handler(esp_http_client_event_t *evt) {
-    BitcoinPriceFetcher *instance = static_cast<BitcoinPriceFetcher *>(evt->user_data);
+esp_err_t APIsFetcher::http_event_handler(esp_http_client_event_t *evt) {
+    APIsFetcher *instance = static_cast<APIsFetcher *>(evt->user_data);
 
     switch (evt->event_id) {
         case HTTP_EVENT_ON_DATA:
@@ -46,7 +47,7 @@ esp_err_t BitcoinPriceFetcher::http_event_handler(esp_http_client_event_t *evt) 
 }
 
 // Fetch Bitcoin price
-bool BitcoinPriceFetcher::fetchBitcoinPrice() {
+bool APIsFetcher::fetchBitcoinPrice() {
     m_responseLength = 0; // Reset buffer
 
     esp_http_client_config_t config;
@@ -98,20 +99,73 @@ bool BitcoinPriceFetcher::fetchBitcoinPrice() {
     return true;
 }
 
+bool APIsFetcher::fetchBlockHeight(void){
+    
+    m_responseLength = 0; // Reset buffer
+
+    esp_http_client_config_t config;
+    memset(&config, 0, sizeof(esp_http_client_config_t));
+
+    config.url = getBLOCKHEIGHT;
+    config.event_handler = http_event_handler;
+    config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.user_data = this;
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (!client) {
+        ESP_LOGE(TAG, "Failed to initialize HTTP client.");
+        return false;
+    }
+
+    esp_err_t err = esp_http_client_perform(client);
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "HTTP Status = %d, Content-Length = %lld", esp_http_client_get_status_code(client),
+                 esp_http_client_get_content_length(client));
+
+        if (m_responseLength > 0) {
+            ESP_LOGI(TAG, "Received JSON: %s", m_responseBuffer);
+
+            // Parse JSON response
+            cJSON *json = cJSON_Parse(m_responseBuffer);
+            if (json) {
+                if (cJSON_IsNumber(json)) {
+                    m_blockHeigh = (uint32_t) json->valuedouble;
+                    ESP_LOGI(TAG, "Current block: %lu", m_blockHeigh);
+                } else {
+                    ESP_LOGE(TAG, "Height block field missing or invalid.");
+                }
+                cJSON_Delete(json);
+            } else {
+                ESP_LOGE(TAG, "JSON parsing failed!");
+            }
+        } else {
+            ESP_LOGE(TAG, "Empty response received!");
+        }
+    } else {
+        ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
+        esp_http_client_cleanup(client);
+        return false;
+    }
+
+    esp_http_client_cleanup(client);
+    return true;
+}
+
 // FreeRTOS task wrapper (must be static)
-void BitcoinPriceFetcher::taskWrapper(void *pvParameters) {
-    BitcoinPriceFetcher *instance = static_cast<BitcoinPriceFetcher *>(pvParameters);
+void APIsFetcher::taskWrapper(void *pvParameters) {
+    APIsFetcher *instance = static_cast<APIsFetcher *>(pvParameters);
     instance->task();
 }
 
 // FreeRTOS task function
-void BitcoinPriceFetcher::task() {
+void APIsFetcher::task() {
     ESP_LOGI(TAG, "Bitcoin Price Fetcher started...");
     while (true) {
         if (!fetchBitcoinPrice()) {
-            ESP_LOGW(TAG, "Failed to fetch price. Retrying in 10s...");
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
-            continue;
+            ESP_LOGW(TAG, "Failed to fetch price");
+        }
+        if(!fetchBlockHeight()) {
+            ESP_LOGW(TAG, "Failed to fetch Block Height");
         }
         vTaskDelay(60000 / portTICK_PERIOD_MS);
     }

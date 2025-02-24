@@ -162,6 +162,11 @@ void DisplayDriver::changeScreen(void) {
         ESP_LOGI("UI", "New Screen BTCprice displayed");
     } else if (m_screenStatus == SCREEN_BTCPRICE) {
         enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        m_screenStatus = SCREEN_GLBSTATS;
+        ESP_LOGI("UI", "New Screen Global Stats displayed");
+    } else if (m_screenStatus == SCREEN_GLBSTATS) {
+        enableLvglAnimations(true);
         _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
         m_screenStatus = SCREEN_MINING;
         ESP_LOGI("UI", "New Screen Mining displayed");
@@ -270,7 +275,9 @@ void DisplayDriver::lvglTimerTask(void *param)
                 if (m_ui->ui_SettingsScreen == NULL)
                     m_ui->settingsScreenInit();
                 if (m_ui->ui_BTCScreen == NULL)
-                    m_ui->bTCScreenInit();
+                    m_ui->bTCScreenInit(); 
+                if (m_ui->ui_GlobalStats == NULL)
+                    m_ui->globalStatsScreenInit();
                 enableLvglAnimations(true);
                 _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
                 if (m_ui->ui_Splash2) {
@@ -515,7 +522,7 @@ void DisplayDriver::updateBTCprice(void)
     if ((m_screenStatus != SCREEN_BTCPRICE) && (m_btcPrice != 0))
         return;
 
-    m_btcPrice = BTC_PRICE_FETCHER.getPrice();
+    m_btcPrice = APIs_FETCHER.getPrice();
     snprintf(price_str, sizeof(price_str), "%u$", m_btcPrice);
     lv_label_set_text(m_ui->ui_lblBTCPrice, price_str); // Update label
 }
@@ -587,6 +594,8 @@ void DisplayDriver::miningScreen(void)
         m_ui->settingsScreenInit();
     if (m_ui->ui_BTCScreen == NULL)
         m_ui->bTCScreenInit();
+    if (m_ui->ui_GlobalStats == NULL)
+        m_ui->globalStatsScreenInit();
     m_nextScreen = SCREEN_MINING;
 }
 

@@ -63,6 +63,16 @@ protected:
     lv_obj_t *ui_lblHashPrice = nullptr;
     lv_obj_t *ui_lblTempPrice = nullptr;
     lv_obj_t *ui_errOverlayContainer = nullptr;
+    lv_obj_t *ui_GlobalStats;
+    lv_obj_t *ui_Image5;
+    lv_obj_t *ui_lblHalvingPercent;
+    lv_obj_t *ui_lblBlock;
+    lv_obj_t *ui_lblBlocksToHalving;
+    lv_obj_t *ui_lblDifficulty;
+    lv_obj_t *ui_lblGlobalHash;
+    lv_obj_t *ui_lbllowFee;
+    lv_obj_t *ui_lblmedFee;
+    lv_obj_t *ui_lblhighFee;
 
     Board* m_board;
     Theme* m_theme;
@@ -84,6 +94,7 @@ public:
     void portalScreenInit(void);
     void logScreenInit(void);
     void bTCScreenInit(void);
+    void globalStatsScreenInit(void);
 
     void showErrorOverlay(const char *error_message, uint32_t error_code);
     void hideErrorOverlay();

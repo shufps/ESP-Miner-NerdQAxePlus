@@ -61,6 +61,7 @@
 #define SCREEN_BTCPRICE 5 // BTC price screen
 #define SCREEN_SETTINGS 6 // Settings screen
 #define SCREEN_LOG 7      // Log screen
+#define SCREEN_GLBSTATS 8 // Global Mining stats screen
 
 /* CLASS DECLARATION -----------------------------------------------------*/
 class System;
