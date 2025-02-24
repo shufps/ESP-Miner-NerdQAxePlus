@@ -1,20 +1,3 @@
-@import "app/layout/styles/layout/layout.scss";
-@import "app/layout/styles/theme/vela-blue/theme.css";
-
-@import "../node_modules/primeicons/primeicons.css";
-@import "../node_modules/primeng/resources/primeng.min.css";
-
-@import "../node_modules/primeflex/primeflex.min.css";
-
-
 /* You can add global styles to this file, and also import other style files */
-p-chart>div {
-    position: relative;
-    min-height: 40vh;
-}
 
-.card {
-    &.chart {
-        padding: 10px;
-    }
-}
+

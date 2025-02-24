@@ -1,12 +1,12 @@
 import { HttpClient, HttpEvent } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { delay, Observable, of } from 'rxjs';
-import { eASICModel } from 'src/models/enum/eASICModel';
-import { ISystemInfo } from 'src/models/ISystemInfo';
-import { IHistory } from 'src/models/IHistory';
+import { eASICModel } from '../models/enum/eASICModel';
+import { ISystemInfo } from '../models/ISystemInfo';
+import { IHistory } from '../models/IHistory';
 
 import { environment } from '../../environments/environment';
-import { IInfluxDB } from 'src/models/IInfluxDB';
+import { IInfluxDB } from '../models/IInfluxDB';
 
 const defaultInfo: ISystemInfo = {
   power: 11.670000076293945,
@@ -120,7 +120,7 @@ export class SystemService {
 
 
   public restart(uri: string = '') {
-    return this.httpClient.post(`${uri}/api/system/restart`, {});
+    return this.httpClient.post(`${uri}/api/system/restart`, {}, { responseType: 'text' });
   }
 
   public updateSystem(uri: string = '', update: any) {
@@ -147,14 +147,13 @@ export class SystemService {
             'Content-Type': 'application/octet-stream', // Set the content type
           },
         }).subscribe({
-          next: (e) => {
-
+          next: (event) => {
+            subscriber.next(event);
           },
           error: (err) => {
             subscriber.error(err)
           },
           complete: () => {
-            subscriber.next()
             subscriber.complete();
           }
         });
@@ -162,6 +161,7 @@ export class SystemService {
       reader.readAsArrayBuffer(file);
     });
   }
+
 
   public performOTAUpdate(file: File | Blob) {
     return this.otaUpdate(file, `/api/system/OTA`);

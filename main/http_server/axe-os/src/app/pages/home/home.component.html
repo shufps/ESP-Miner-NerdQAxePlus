@@ -1,0 +1,196 @@
+<ng-template #loading>
+  <h4>Loading...</h4>
+</ng-template>
+
+<div>
+  <div *ngIf="info$ | async as info; else loading">
+    <div class="row d-flex align-items-stretch">
+      <!-- Hash Rate Card -->
+      <div class="col-12 col-lg-6 col-xl-3">
+        <nb-card class="h-100">
+          <nb-card-header>
+            <span class="text-hint">Hash Rate</span>
+          </nb-card-header>
+          <nb-card-body>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <div class="font-weight-bold text-lg">
+                  {{ info.hashRate_10m | number: '1.2-2' }}
+                  <small>Gh/s</small>
+                </div>
+              </div>
+              <div class="d-flex align-items-center justify-content-center bg-orange-100 rounded-circle"
+                style="width: 2.5rem; height: 2.5rem;">
+                <nb-icon icon="flash-outline" pack="eva" class="orange-500"></nb-icon>
+              </div>
+            </div>
+            <ng-container *ngIf="expectedHashRate$ | async as expectedHashRate">
+              <span class="text-success">{{ expectedHashRate }} <small>Gh/s</small></span>
+              <span class="text-hint">&nbsp;expected</span>
+            </ng-container>
+          </nb-card-body>
+        </nb-card>
+      </div>
+
+      <!-- Shares Card -->
+      <div class="col-12 col-lg-6 col-xl-3">
+        <nb-card class="h-100">
+          <nb-card-header>
+            <span class="text-hint">Shares</span>
+          </nb-card-header>
+          <nb-card-body>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <div class="font-weight-bold text-lg">{{ info.sharesAccepted }}</div>
+              </div>
+              <div class="d-flex align-items-center justify-content-center bg-blue-100 rounded-circle"
+                style="width: 2.5rem; height: 2.5rem;">
+                <nb-icon icon="navigation-2-outline" pack="eva" class="blue-500"></nb-icon>
+              </div>
+            </div>
+            <span class="text-danger">{{ info.sharesRejected }}</span>
+            <span class="text-hint">&nbsp;rejected</span>&nbsp;
+            <span class="text-hint">({{(info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2'}}%)</span>
+          </nb-card-body>
+        </nb-card>
+      </div>
+
+      <!-- Efficiency Card -->
+      <div class="col-12 col-lg-6 col-xl-3">
+        <nb-card class="h-100">
+          <nb-card-header>
+            <span class="text-hint">Efficiency</span>
+          </nb-card-header>
+          <nb-card-body>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <div class="font-weight-bold text-lg">
+                  {{ info.power / (info.hashRate_10m / 1000) | number: '1.2-2' }}
+                  <small>J/Th</small>
+                </div>
+              </div>
+              <div class="d-flex align-items-center justify-content-center bg-orange-100 rounded-circle"
+                style="width: 2.5rem; height: 2.5rem;">
+                <nb-icon icon="checkmark-outline" pack="eva" class="orange-500"></nb-icon>
+              </div>
+            </div>
+          </nb-card-body>
+        </nb-card>
+      </div>
+
+      <!-- Best Difficulty Card -->
+      <div class="col-12 col-lg-6 col-xl-3">
+        <nb-card class="h-100">
+          <nb-card-header>
+            <span class="text-hint">Best Difficulty</span>
+          </nb-card-header>
+          <nb-card-body>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <div class="font-weight-bold text-lg">
+                  {{ info.bestDiff }}
+                  <small class="text-hint">all-time best</small>
+                </div>
+              </div>
+              <div class="d-flex align-items-center justify-content-center bg-orange-100 rounded-circle"
+                style="width: 2.5rem; height: 2.5rem;">
+                <nb-icon icon="star" pack="eva" class="orange-500"></nb-icon>
+              </div>
+            </div>
+            <span class="font-weight-bold">{{ info.bestSessionDiff }}</span>
+            <span class="text-hint">&nbsp;since system boot</span>
+          </nb-card-body>
+        </nb-card>
+      </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <nb-card>
+          <nb-card-header>
+            <span class="text-hint">Hash Rate Chart</span>
+          </nb-card-header>
+          <nb-card-body>
+            <canvas #myChart width="400" height="400"></canvas>
+          </nb-card-body>
+        </nb-card>
+      </div>
+    </div>
+
+    <div class="row d-flex align-items-stretch">
+      <!-- Power Section -->
+      <div class="col-12 col-lg-4">
+        <nb-card class="h-100">
+          <nb-card-header>
+            <span class="text-hint">Power</span>
+          </nb-card-header>
+          <nb-card-body class="no-scroll">
+            <div class="row text-center">
+              <div class="col-4">
+                <app-gauge [value]="info.power" [min]="info.minPower" [max]="info.maxPower" [unit]="'W'"
+                  [label]="'Power'" [format]="'1.1-1'"></app-gauge>
+              </div>
+              <div class="col-4">
+                <app-gauge [value]="info.voltage" [format]="'1.1-1'" [min]="info.minVoltage" [max]="info.maxVoltage" [unit]="'V'"
+                  [label]="'Input Voltage'"></app-gauge>
+              </div>
+              <div class="col-4">
+                <app-gauge [value]="info.coreVoltage" [min]="0.9" [max]="1.8" [unit]="'V'"
+                  [label]="'ASIC Voltage'"></app-gauge>
+              </div>
+            </div>
+          </nb-card-body>
+        </nb-card>
+      </div>
+
+      <!-- Heat Section -->
+      <div class="col-12 col-lg-4">
+        <nb-card class="h-100">
+          <nb-card-header>
+            <span class="text-hint">Heat</span>
+          </nb-card-header>
+          <nb-card-body class="no-scroll">
+            <div class="row text-center">
+              <div class="col-6">
+                <app-gauge [value]="info.temp" [min]="20" [max]="75" [format]="'1.1-1'" [unit]="'°C'" [label]="'ASIC Temp'"></app-gauge>
+              </div>
+              <div class="col-6" *ngIf="info.vrTemp > 0">
+                <app-gauge [value]="info.vrTemp" [min]="20" [max]="145" [format]="'1.1-1'" [unit]="'°C'" [label]="'VR Temp'"></app-gauge>
+              </div>
+              <div class="col-6">
+                <app-gauge [value]="info.fanspeed" [min]="0" [format]="'1.0-0'" [max]="100" [unit]="'%'" [label]="'Fan Speed'"></app-gauge>
+              </div>
+              <div class="col-6">
+                <app-gauge [value]="info.fanrpm" [format]="'1.0-0'" [min]="0" [max]="20000" [unit]="'RPM'" [label]="'Fan RPM'"></app-gauge>
+              </div>
+            </div>
+          </nb-card-body>
+        </nb-card>
+      </div>
+
+      <!-- Performance Section -->
+      <div class="col-12 col-lg-4">
+        <nb-card class="h-100">
+          <nb-card-header>
+            <span class="text-hint">Performance</span>
+          </nb-card-header>
+          <nb-card-body class="no-scroll">
+            <div class="row text-center">
+              <div class="col-6">
+                <app-gauge [value]="info.frequency" [format]="'1.0-0'" [min]="100" [max]="800" [unit]="'MHz'"
+                  [label]="'ASIC Frequency'"></app-gauge>
+              </div>
+              <div class="col-6">
+                <app-gauge [value]="info.coreVoltageActual" [min]="0.9" [max]="1.8" [unit]="'V'"
+                  [label]="'ASIC Voltage Measured'"></app-gauge>
+              </div>
+            </div>
+          </nb-card-body>
+        </nb-card>
+      </div>
+    </div>
+
+
+  </div>
+</div>

@@ -1,0 +1,16 @@
+@import '../../styles/themes.scss';
+
+@include nb-install-component() {
+    nb-card {
+        max-width: 400px !important;
+        min-width: 400px !important;
+
+        max-height: 400px !important;
+        min-height: 350px !important;
+    }
+
+    button[nbButton] svg {
+        margin-right: 0.4rem;
+    }
+
+}
