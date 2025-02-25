@@ -37,6 +37,7 @@ DisplayDriver::DisplayDriver() {
     m_countdownActive = false;
     m_countdownStartTime = 0;
     m_btcPrice = 0;
+    m_blockHeight = 0;
 }
 
 bool DisplayDriver::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
@@ -527,6 +528,25 @@ void DisplayDriver::updateBTCprice(void)
     lv_label_set_text(m_ui->ui_lblBTCPrice, price_str); // Update label
 }
 
+void DisplayDriver::updateGlobalMiningStats(void)
+{
+    char strData[32];
+
+    if ((m_screenStatus != SCREEN_GLBSTATS) && (m_blockHeight != 0))
+        return;
+
+
+    m_blockHeight = APIs_FETCHER.getBlockHeight();
+    snprintf(strData, sizeof(strData), "%lu", m_blockHeight);
+    lv_label_set_text(m_ui->ui_lblBlock, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%llu", APIs_FETCHER.getNetHash());
+    lv_label_set_text(m_ui->ui_lblGlobalHash, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lluT", APIs_FETCHER.getNetDifficulty());
+    lv_label_set_text(m_ui->ui_lblDifficulty, strData); // Update label
+}
+
 void DisplayDriver::updateGlobalState()
 {
     char strData[20];
@@ -557,6 +577,7 @@ void DisplayDriver::updateGlobalState()
     updateShares(&SYSTEM_MODULE);
     updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.getPower());
     updateBTCprice();
+    updateGlobalMiningStats();
 
     Board *board = SYSTEM_MODULE.getBoard();
     uint16_t vcore = (int) (board->getVout() * 1000.0f);

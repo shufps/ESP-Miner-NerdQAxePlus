@@ -482,7 +482,7 @@ void UI::globalStatsScreenInit(void)
     lv_obj_set_y(ui_lblHalvingPercent, 36);
     lv_obj_set_align(ui_lblHalvingPercent, LV_ALIGN_CENTER);
     lv_label_set_text(ui_lblHalvingPercent, "95%");
-    lv_obj_set_style_text_color(ui_lblHalvingPercent, lv_color_hex(0xDECE08), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_lblHalvingPercent, lv_color_hex(0xC6C6C5), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lblHalvingPercent, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lblHalvingPercent, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lblHalvingPercent, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -506,7 +506,7 @@ void UI::globalStatsScreenInit(void)
     lv_obj_set_y(ui_lblBlocksToHalving, 68);
     lv_obj_set_align(ui_lblBlocksToHalving, LV_ALIGN_CENTER);
     lv_label_set_text(ui_lblBlocksToHalving, "210.000");
-    lv_obj_set_style_text_color(ui_lblBlocksToHalving, lv_color_hex(0xDECE08), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_lblBlocksToHalving, lv_color_hex(0xC6C6C5), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lblBlocksToHalving, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lblBlocksToHalving, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lblBlocksToHalving, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);

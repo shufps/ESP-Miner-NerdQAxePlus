@@ -8,10 +8,12 @@
 class APIsFetcher {
 private:
     const char *TAG = "APIsFetcher";
-    static constexpr int BUFFER_SIZE = 256;
+    static constexpr int BUFFER_SIZE = 1024;
 
     uint32_t m_bitcoinPrice;
     uint32_t m_blockHeigh;
+    uint64_t m_netHash;
+    uint64_t m_netDifficulty;
 
     char m_responseBuffer[BUFFER_SIZE]; // Buffer to store response
     int m_responseLength;
@@ -20,6 +22,7 @@ private:
 
     bool fetchBitcoinPrice();
     bool fetchBlockHeight();
+    bool fetchNetHash();
 
 public:
     APIsFetcher();
@@ -27,6 +30,9 @@ public:
     void task();
 
     uint32_t getPrice();
+    uint32_t getBlockHeight();
+    uint64_t getNetHash();
+    uint64_t getNetDifficulty();
 };
 
 
