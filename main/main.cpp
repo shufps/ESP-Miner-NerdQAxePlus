@@ -16,6 +16,7 @@
 #include "boards/nerdqaxeplus2.h"
 #include "boards/nerdaxe.h"
 #include "boards/nerdaxegamma.h"
+#include "boards/nerdhaxegamma.h"
 #include "create_jobs_task.h"
 #include "global_state.h"
 #include "history.h"
@@ -148,6 +149,9 @@ extern "C" void app_main(void)
 #endif
 #ifdef NERDAXEGAMMA
     Board *board = new NerdaxeGamma();
+#endif
+#ifdef NERDHAXEGAMMA
+    Board *board = new NerdHaxeGamma();
 #endif
 
     // initialize everything non-asic-specific like

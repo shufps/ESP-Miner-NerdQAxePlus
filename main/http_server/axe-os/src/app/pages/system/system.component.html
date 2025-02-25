@@ -1,0 +1,52 @@
+<ng-container *ngIf="info$ | async as info">
+    <nb-card>
+        <nb-card-header>Overview</nb-card-header>
+        <nb-card-body>
+            <table class="overview-table">
+                <tr>
+                    <td><b>Model:</b></td>
+                    <td>{{ info.deviceModel }} ({{ info.ASICModel }})</td>
+                </tr>
+                <tr>
+                    <td><b>Uptime:</b></td>
+                    <td>{{ info.uptimeSeconds | dateAgo }}&nbsp;&nbsp;&nbsp;<button nbButton size="small"
+                            (click)="restart()" status="danger">Restart</button></td>
+                </tr>
+                <tr>
+                    <td><b>Last Reset Reason:</b></td>
+                    <td>{{ info.lastResetReason }}</td>
+                </tr>
+                <tr>
+                    <td><b>WiFi Status:</b></td>
+                    <td>{{ info.wifiStatus }}</td>
+                </tr>
+                <tr>
+                    <td><b>Free Heap Memory:</b></td>
+                    <td>{{ info.freeHeap }}</td>
+                </tr>
+                <tr>
+                    <td><b>Version:</b></td>
+                    <td>{{ info.version }}</td>
+                </tr>
+            </table>
+        </nb-card-body>
+    </nb-card>
+
+    <nb-card class="mt-4">
+        <nb-card-header>
+            Realtime Logs
+            <button nbButton size="small" status="primary" (click)="toggleLogs()" style="margin-left: 15px;">
+                {{ showLogs ? 'Hide' : 'Show' }} Logs
+            </button>
+            <button nbButton size="small" status="warning" (click)="stopScroll = !stopScroll" *ngIf="showLogs"
+                style="margin-left: 15px;">
+                {{ stopScroll ? 'Start' : 'Stop' }} Scrolling
+            </button>
+        </nb-card-header>
+        <nb-card-body *ngIf="showLogs">
+            <div id="logs" #scrollContainer>
+                <div class="log-entry" *ngFor="let log of logs" [innerHTML]="'₿ ' + (log | ANSI)"></div>
+            </div>
+        </nb-card-body>
+    </nb-card>
+</ng-container>

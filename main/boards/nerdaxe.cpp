@@ -113,6 +113,10 @@ bool NerdAxe::initBoard()
     return true;
 }
 
+void NerdAxe::shutdown() {
+    // NOP / TODO
+}
+
 bool NerdAxe::initAsics()
 {
     // disable buck (disables EN pin)

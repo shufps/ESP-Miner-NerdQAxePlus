@@ -145,6 +145,7 @@ public:
     }
 };
 
+
 // class  for theme NerdOctaxeGamma
 class ThemeNerdoctaxegamma : public Theme {
 public:
@@ -198,6 +199,19 @@ public:
         setSettingsscreen(&ui_img_NerdQaxePlus2_settingsscreen_png);
         setSplashscreen2(&ui_img_NerdQaxePlus2_splashscreen2_png);
         setGlobalstats(&ui_img_NerdQaxePlus2_globalStats_png);
+    }
+};
+
+// class  for theme NerdHaxeGamma
+class ThemeNerdhaxegamma : public Theme {
+public:
+    ThemeNerdhaxegamma() {
+        setInitscreen2(&ui_img_NerdHaxeGamma_initscreen2_png);
+        setMiningscreen2(&ui_img_NerdHaxeGamma_miningscreen2_png);
+        setPortalscreen(&ui_img_NerdHaxeGamma_portalscreen_png);
+        setBtcscreen(&ui_img_NerdHaxeGamma_btcscreen_png);
+        setSettingsscreen(&ui_img_NerdHaxeGamma_settingsscreen_png);
+        setSplashscreen2(&ui_img_NerdHaxeGamma_splashscreen2_png);
     }
 };
 

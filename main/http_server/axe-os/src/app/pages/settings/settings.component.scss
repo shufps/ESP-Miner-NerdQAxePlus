@@ -1,0 +1,92 @@
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="range"] {
+    min-width: 250px;
+    max-width: 90%;
+}
+
+select {
+    min-width: 268px;
+    max-width: 90%;
+}
+
+.restart {
+    margin-bottom: 1.5rem;
+
+}
+
+@media only screen and (min-width:900px) {
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="range"] {
+        min-width: 500px
+    }
+
+    select {
+        min-width: 518px
+    }
+}
+
+a {
+    color: white;
+}
+
+.pro-mode-warning {
+    background-color: #ffcccb;
+    color: #b22222;
+    border: 1px solid #b22222;
+    padding: 10px;
+    margin: 10px 0;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 5px;
+  }
+
+
+  .cards-container {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap; /* Ensures cards wrap on smaller screens */
+  }
+  .card-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 300px; /* Prevents cards from getting too narrow */
+  }
+  .card-item nb-card-body {
+    flex: 1; /* Makes the card body fill available vertical space */
+  }
+
+  .action-buttons button {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .upload-overlay {
+    position: fixed; /* changed from absolute to fixed */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.8); /* semi-transparent overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* high z-index to ensure it's on top */
+  }
+
+  .progress-box {
+    text-align: center;
+    width: 300px;
+  }
+
+  .progress-text {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+    margin-top: 10px;
+  }

@@ -20,7 +20,7 @@
 static const char *TAG = "power_management";
 
 PowerManagementTask::PowerManagementTask() {
-    // NOP
+    m_mutex = PTHREAD_MUTEX_INITIALIZER;
 }
 
 // Set the fan speed between 20% min and 100% max based on chip temperature as input.
@@ -52,6 +52,21 @@ void PowerManagementTask::taskWrapper(void *pvParameters) {
     powerManagementTask->task();
 }
 
+void PowerManagementTask::restart() {
+    ESP_LOGW(TAG, "Shutdown requested ...");
+    // stops the main task
+    pthread_mutex_lock(&m_mutex);
+
+    ESP_LOGW(TAG, "HW lock acquired!");
+    // shutdown asics and LDOs before reset
+    Board* board = SYSTEM_MODULE.getBoard();
+    board->shutdown();
+
+    ESP_LOGW(TAG, "restart");
+    esp_restart();
+    pthread_mutex_unlock(&m_mutex);
+}
+
 void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
@@ -65,6 +80,7 @@ void PowerManagementTask::task()
     uint16_t last_asic_frequency = 0;
     uint64_t last_temp_request = esp_timer_get_time();
     while (1) {
+        pthread_mutex_lock(&m_mutex);
         // the asics are initialized after this task starts
         Asic* asics = board->getAsics();
 
@@ -145,6 +161,7 @@ void PowerManagementTask::task()
             m_fanPerc = fs;
             board->setFanSpeed((float) fs / 100);
         }
+        pthread_mutex_unlock(&m_mutex);
 
         vTaskDelay(POLL_RATE / portTICK_PERIOD_MS);
     }
