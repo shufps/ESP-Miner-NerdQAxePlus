@@ -18,6 +18,14 @@
 #include "./NerdAxeGamma/ui_img_splashscreen2_png.c"
 #include "./NerdAxeGamma/ui_img_globalStats_png.c"
 
+#include "./NerdHaxeGamma/ui_img_initscreen2_png.c"
+#include "./NerdHaxeGamma/ui_img_miningscreen2_png.c"
+#include "./NerdHaxeGamma/ui_img_portalscreen_png.c"
+#include "./NerdHaxeGamma/ui_img_btcscreen_png.c"
+#include "./NerdHaxeGamma/ui_img_settingsscreen_png.c"
+#include "./NerdHaxeGamma/ui_img_splashscreen2_png.c"
+#include "./NerdHaxeGamma/ui_img_globalStats_png.c"
+
 #include "./NerdOctaxeGamma/ui_img_initscreen2_png.c"
 #include "./NerdOctaxeGamma/ui_img_miningscreen2_png.c"
 #include "./NerdOctaxeGamma/ui_img_portalscreen_png.c"
@@ -49,11 +57,4 @@
 #include "./NerdQaxePlus2/ui_img_settingsscreen_png.c"
 #include "./NerdQaxePlus2/ui_img_splashscreen2_png.c"
 #include "./NerdQaxePlus2/ui_img_globalStats_png.c"
-
-#include "./NerdHaxeGamma/ui_img_initscreen2_png.c"
-#include "./NerdHaxeGamma/ui_img_miningscreen2_png.c"
-#include "./NerdHaxeGamma/ui_img_portalscreen_png.c"
-#include "./NerdHaxeGamma/ui_img_btcscreen_png.c"
-#include "./NerdHaxeGamma/ui_img_settingsscreen_png.c"
-#include "./NerdHaxeGamma/ui_img_splashscreen2_png.c"
 

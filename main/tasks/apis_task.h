@@ -31,7 +31,9 @@ private:
 
     // Fetches Bitcoin price via HTTP request
     bool fetchBitcoinPrice();
+    // Fetches BlockHeight via HTTP request
     bool fetchBlockHeight();
+    // Fetches Network hash via HTTP request
     bool fetchNetHash();
 
 public:
@@ -41,10 +43,10 @@ public:
     // Main FreeRTOS task function
     void task();
 
-    // Enables Bitcoin price fetching
+    // Enables APIs fetching
     void enableFetching();
 
-    // Disables Bitcoin price fetching
+    // Disables APIs fetching
     void disableFetching();
 
     // Returns the last fetched Bitcoin price

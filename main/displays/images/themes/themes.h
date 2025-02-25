@@ -80,6 +80,15 @@ LV_IMG_DECLARE(ui_img_NerdAxeGamma_settingsscreen_png);
 LV_IMG_DECLARE(ui_img_NerdAxeGamma_splashscreen2_png);
 LV_IMG_DECLARE(ui_img_NerdAxeGamma_globalStats_png);
 
+// image files for theme NerdHaxeGamma
+LV_IMG_DECLARE(ui_img_NerdHaxeGamma_initscreen2_png);
+LV_IMG_DECLARE(ui_img_NerdHaxeGamma_miningscreen2_png);
+LV_IMG_DECLARE(ui_img_NerdHaxeGamma_portalscreen_png);
+LV_IMG_DECLARE(ui_img_NerdHaxeGamma_btcscreen_png);
+LV_IMG_DECLARE(ui_img_NerdHaxeGamma_settingsscreen_png);
+LV_IMG_DECLARE(ui_img_NerdHaxeGamma_splashscreen2_png);
+LV_IMG_DECLARE(ui_img_NerdHaxeGamma_globalStats_png);
+
 // image files for theme NerdOctaxeGamma
 LV_IMG_DECLARE(ui_img_NerdOctaxeGamma_initscreen2_png);
 LV_IMG_DECLARE(ui_img_NerdOctaxeGamma_miningscreen2_png);
@@ -145,6 +154,19 @@ public:
     }
 };
 
+// class  for theme NerdHaxeGamma
+class ThemeNerdhaxegamma : public Theme {
+public:
+    ThemeNerdhaxegamma() {
+        setInitscreen2(&ui_img_NerdHaxeGamma_initscreen2_png);
+        setMiningscreen2(&ui_img_NerdHaxeGamma_miningscreen2_png);
+        setPortalscreen(&ui_img_NerdHaxeGamma_portalscreen_png);
+        setBtcscreen(&ui_img_NerdHaxeGamma_btcscreen_png);
+        setSettingsscreen(&ui_img_NerdHaxeGamma_settingsscreen_png);
+        setSplashscreen2(&ui_img_NerdHaxeGamma_splashscreen2_png);
+        setGlobalstats(&ui_img_NerdHaxeGamma_globalStats_png);
+    }
+};
 
 // class  for theme NerdOctaxeGamma
 class ThemeNerdoctaxegamma : public Theme {
@@ -199,19 +221,6 @@ public:
         setSettingsscreen(&ui_img_NerdQaxePlus2_settingsscreen_png);
         setSplashscreen2(&ui_img_NerdQaxePlus2_splashscreen2_png);
         setGlobalstats(&ui_img_NerdQaxePlus2_globalStats_png);
-    }
-};
-
-// class  for theme NerdHaxeGamma
-class ThemeNerdhaxegamma : public Theme {
-public:
-    ThemeNerdhaxegamma() {
-        setInitscreen2(&ui_img_NerdHaxeGamma_initscreen2_png);
-        setMiningscreen2(&ui_img_NerdHaxeGamma_miningscreen2_png);
-        setPortalscreen(&ui_img_NerdHaxeGamma_portalscreen_png);
-        setBtcscreen(&ui_img_NerdHaxeGamma_btcscreen_png);
-        setSettingsscreen(&ui_img_NerdHaxeGamma_settingsscreen_png);
-        setSplashscreen2(&ui_img_NerdHaxeGamma_splashscreen2_png);
     }
 };
 

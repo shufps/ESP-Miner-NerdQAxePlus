@@ -4,6 +4,7 @@
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "freertos/event_groups.h"
 //#include "mbedtls/platform.h"
 #include <cstring>
 
@@ -16,6 +17,8 @@ static const char *TAG = "APIsFetcher";
 
 #define MIN(a, b) ((a)<(b))?(a):(b)
 
+#define FETCH_EVENT_BIT (1 << 0)
+
 // Constructor
 APIsFetcher::APIsFetcher() {
     m_bitcoinPrice = 0;
@@ -23,6 +26,25 @@ APIsFetcher::APIsFetcher() {
     m_blockHeigh = 0;
     m_netHash = 0;
     m_netDifficulty = 0;
+
+    // Initialize mutex and condition variable
+    pthread_mutex_init(&m_mutex, nullptr);
+    pthread_cond_init(&m_cond, nullptr);
+}
+
+// Enable fetching - Wakes up the fetcher thread immediately
+void APIsFetcher::enableFetching()
+{
+    pthread_mutex_lock(&m_mutex);
+    m_enabled = true;
+    pthread_cond_signal(&m_cond); // Wake up thread immediately
+    pthread_mutex_unlock(&m_mutex);
+}
+
+// Disable fetching - Stops the fetching process
+void APIsFetcher::disableFetching()
+{
+    m_enabled = false;
 }
 
 // Get latest Bitcoin price
@@ -242,18 +264,25 @@ void APIsFetcher::taskWrapper(void *pvParameters) {
 
 // FreeRTOS task function
 void APIsFetcher::task() {
-    ESP_LOGI(TAG, "Bitcoin Price Fetcher started...");
+    ESP_LOGI(TAG, "APIs Fetcher started...");
+
+    // initial price fetching
+    fetchBitcoinPrice();
+    fetchBlockHeight();
+    fetchNetHash();
+
     while (true) {
-        if (!fetchBitcoinPrice()) {
-            ESP_LOGW(TAG, "Failed to fetch price");
-        }
-        if (!fetchBlockHeight()) {
-            ESP_LOGW(TAG, "Failed to fetch Block Height");
-        }
-        if (!fetchNetHash()) {
-            ESP_LOGW(TAG, "Failed to fetch Net Hash");
-        }
-        vTaskDelay(60000 / portTICK_PERIOD_MS);
+        pthread_mutex_lock(&m_mutex);
+        pthread_cond_wait(&m_cond, &m_mutex); // Wait for enable signal
+        pthread_mutex_unlock(&m_mutex);
+
+        do{
+            fetchBitcoinPrice();
+            fetchBlockHeight();
+            fetchNetHash();
+
+            vTaskDelay(60000 / portTICK_PERIOD_MS);
+        }while (m_enabled);
     }
 }
 
