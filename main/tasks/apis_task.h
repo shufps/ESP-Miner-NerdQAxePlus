@@ -13,10 +13,20 @@ private:
     const char *TAG = "APIsFetcher";
     static constexpr int BUFFER_SIZE = 1024;
 
+    enum ApiType {
+        APItype_PRICE,
+        APItype_BLOCK_HEIGHT,
+        APItype_HASHRATE,
+        APItype_FEES
+    };
+
     uint32_t m_bitcoinPrice;
     uint32_t m_blockHeigh;
     uint64_t m_netHash;
     uint64_t m_netDifficulty;
+    uint32_t m_hourFee;
+    uint32_t m_halfHourFee;
+    uint32_t m_fastestFee;
 
     char m_responseBuffer[BUFFER_SIZE]; // Buffer to store response
     int m_responseLength;               // Length of the HTTP response
@@ -29,12 +39,16 @@ private:
     // HTTP event handler to process HTTP responses
     static esp_err_t http_event_handler(esp_http_client_event_t *evt);
 
-    // Fetches Bitcoin price via HTTP request
-    bool fetchBitcoinPrice();
-    // Fetches BlockHeight via HTTP request
-    bool fetchBlockHeight();
-    // Fetches Network hash via HTTP request
-    bool fetchNetHash();
+    bool fetchData(const char* apiUrl, ApiType type);
+
+    // Parses Json Bitcoin price via HTTP request
+    bool parseBitcoinPrice(const char* jsonData);
+    // Parses Json BlockHeight via HTTP request
+    bool parseBlockHeight(const char* jsonData);
+    // Parses Json Hashrate via HTTP request
+    bool parseHashrate(const char* jsonData);
+    // Parses Json Fees via HTTP request
+    bool parseFees(const char* jsonData);
 
 public:
     APIsFetcher();
@@ -52,8 +66,13 @@ public:
     // Returns the last fetched Bitcoin price
     uint32_t getPrice();
     uint32_t getBlockHeight();
+    uint32_t getBlocksToHalving();
+    uint32_t getHalvingPercent(); 
     uint64_t getNetHash();
     uint64_t getNetDifficulty();
+    uint32_t getLowestFee();
+    uint32_t getMidFee();
+    uint32_t getFastestFee();
 };
 
 

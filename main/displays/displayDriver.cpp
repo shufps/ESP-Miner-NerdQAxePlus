@@ -542,11 +542,26 @@ void DisplayDriver::updateGlobalMiningStats(void)
     snprintf(strData, sizeof(strData), "%lu", m_blockHeight);
     lv_label_set_text(m_ui->ui_lblBlock, strData); // Update label
 
+    snprintf(strData, sizeof(strData), "%lu", APIs_FETCHER.getBlocksToHalving());
+    lv_label_set_text(m_ui->ui_lblBlocksToHalving, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu%%", APIs_FETCHER.getHalvingPercent());
+    lv_label_set_text(m_ui->ui_lblHalvingPercent, strData); // Update label
+
     snprintf(strData, sizeof(strData), "%llu", APIs_FETCHER.getNetHash());
     lv_label_set_text(m_ui->ui_lblGlobalHash, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%lluT", APIs_FETCHER.getNetDifficulty());
     lv_label_set_text(m_ui->ui_lblDifficulty, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu", APIs_FETCHER.getLowestFee());
+    lv_label_set_text(m_ui->ui_lbllowFee, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu", APIs_FETCHER.getMidFee());
+    lv_label_set_text(m_ui->ui_lblmedFee, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu", APIs_FETCHER.getFastestFee());
+    lv_label_set_text(m_ui->ui_lblhighFee, strData); // Update label
 }
 
 void DisplayDriver::updateGlobalState()
