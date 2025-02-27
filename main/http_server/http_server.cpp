@@ -112,44 +112,43 @@ static esp_err_t ip_in_private_range(uint32_t address) {
     return ESP_FAIL;
 }
 
-static uint32_t resolve_origin_ip_addr(char *origin)
+static uint32_t get_origin_ip(const char *host)
 {
-    char host[64];     // Buffer for the extracted host (IP or hostname)
     uint32_t origin_ip_addr = 0;
-    struct hostent *he;
 
-    // Find the start of the hostname/IP in the Origin header
+    // Convert the IP address string to uint32_t
+    origin_ip_addr = inet_addr(host);
+    if (origin_ip_addr == INADDR_NONE) {
+        ESP_LOGW(CORS_TAG, "Invalid IP address: %s", host);
+    } else {
+        ESP_LOGI(CORS_TAG, "Extracted IP address %lu", origin_ip_addr);
+    }
+    return origin_ip_addr;
+}
+
+
+static const char* extract_origin_host(char *origin)
+{
     const char *prefix = "http://";
-    char *host_start = strstr(origin, prefix);
-    if (host_start) {
-        host_start += strlen(prefix); // Move past "http://"
 
-        // Extract the host part (everything before the first '/')
-        char *host_end = strchr(host_start, '/');
-        size_t host_len = host_end ? (size_t)(host_end - host_start) : strlen(host_start);
-
-        // Ensure extracted string fits within host buffer
-        if (host_len >= sizeof(host)) {
-            ESP_LOGW(CORS_TAG, "Hostname is too long: %s", host_start);
-            return 0;
-        }
-
-        // Copy hostname/IP into `host` buffer and null-terminate it
-        strncpy(host, host_start, host_len);
-        host[host_len] = '\0';
-
-        // Directly resolve using gethostbyname()
-        he = gethostbyname(host);
-        if (he && he->h_addr_list[0]) {
-            origin_ip_addr = *(uint32_t *)he->h_addr_list[0];
-            ESP_LOGI(CORS_TAG, "Resolved %s to IP %s", host, inet_ntoa(*(struct in_addr*)&origin_ip_addr));
-        } else {
-            ESP_LOGW(CORS_TAG, "Failed to resolve hostname: %s", host);
-            origin_ip_addr = 0;
-        }
+    origin = strstr(origin, prefix);
+    if (!origin) {
+        return nullptr;
     }
 
-    return origin_ip_addr;
+    // skip prefix
+    char *host = &origin[strlen(prefix)];
+
+    // find the slash
+    char *prefix_end = strchr(host, '/');
+
+    // if we have one, we just terminate the string
+    if (prefix_end) {
+        *prefix_end = 0;
+    }
+
+    // in the other case we keep the previous zero termination
+    return (const char*) host;
 }
 
 static esp_err_t is_network_allowed(httpd_req_t * req)
@@ -182,7 +181,21 @@ static esp_err_t is_network_allowed(httpd_req_t * req)
     uint32_t origin_ip_addr;
     if (httpd_req_get_hdr_value_str(req, "Origin", origin, sizeof(origin)) == ESP_OK) {
         ESP_LOGD(CORS_TAG, "Origin header: %s", origin);
-        origin_ip_addr = resolve_origin_ip_addr(origin);
+        const char *host = extract_origin_host(origin);
+        if (!host) {
+            ESP_LOGW(CORS_TAG, "couldn't extract origin host: %s", origin);
+            return ESP_FAIL;
+        }
+        ESP_LOGI(CORS_TAG, "extracted origin host: %s", host);
+
+        // check if origin is hostname
+        const char *hostname = SYSTEM_MODULE.getHostname();
+        if (!(strncmp(host, hostname, strlen(hostname)))) {
+            ESP_LOGI(CORS_TAG, "origin equals hostname");
+            return ESP_OK;
+        }
+
+        origin_ip_addr = get_origin_ip(host);
     } else {
         ESP_LOGD(CORS_TAG, "No origin header found.");
         origin_ip_addr = request_ip_addr;
@@ -1082,6 +1095,7 @@ esp_err_t start_rest_server(void * pvParameters)
     config.max_uri_handlers = 20;
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
+    config.stack_size = 8192;
 
     ESP_LOGI(TAG, "Starting HTTP Server");
     if (httpd_start(&server, &config) != ESP_OK) {

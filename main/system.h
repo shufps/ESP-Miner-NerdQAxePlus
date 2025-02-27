@@ -43,6 +43,7 @@ class System {
     char m_ssid[33];           // WiFi SSID (+1 for null terminator)
     char m_wifiStatus[20];     // WiFi status string
     bool m_apState;
+    char *m_hostname;
 
     StratumConfig m_stratumConfig[2];
 
@@ -225,6 +226,10 @@ class System {
 
     const char* getLastResetReason() {
         return m_lastResetReason;
+    }
+
+    const char* getHostname() {
+        return (const char*) m_hostname;
     }
 
 };

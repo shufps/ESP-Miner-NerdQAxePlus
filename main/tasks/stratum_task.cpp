@@ -277,6 +277,7 @@ void StratumTask::stratumLoop()
         // if stop is requested, don't dispatch anything
         // and break the loop
         if (m_stopFlag) {
+            free(line);
             break;
         }
         m_manager->dispatch(m_index, line);
