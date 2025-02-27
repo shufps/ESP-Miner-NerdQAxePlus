@@ -15,7 +15,17 @@
 @import "bootstrap/scss/helpers";
 @import "bootstrap/scss/utilities/api";
 
-@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap');
+// doesn't work in AP mode and layout / stylesheets break
+//@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap');
+
+/* open-sans-regular - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/assets/open-sans-v40-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
 
 // loading progress bar theme
 @import './pace.theme';

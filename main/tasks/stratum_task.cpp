@@ -255,13 +255,13 @@ void StratumTask::stratumLoop()
     while (1) {
         if (!is_socket_connected(m_sock)) {
             ESP_LOGE(m_tag, "Socket is not connected ...");
-            return;
+            break;
         }
 
-        char *line = m_stratumAPI.receiveJsonRpcLine(m_sock);
+        char* line = m_stratumAPI.receiveJsonRpcLine(m_sock);
         if (!line) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
-            return;
+            break;
         }
 
         // we wait for some kind of response from the server to be sure we are
@@ -277,6 +277,7 @@ void StratumTask::stratumLoop()
         // if stop is requested, don't dispatch anything
         // and break the loop
         if (m_stopFlag) {
+            free(line);
             break;
         }
         m_manager->dispatch(m_index, line);
