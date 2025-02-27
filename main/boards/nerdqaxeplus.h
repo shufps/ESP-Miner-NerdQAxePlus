@@ -7,7 +7,6 @@
 
 class NerdQaxePlus : public Board {
   protected:
-    BoardParameters m_params;
     int m_numPhases;
     int m_imax;
     float m_ifault;

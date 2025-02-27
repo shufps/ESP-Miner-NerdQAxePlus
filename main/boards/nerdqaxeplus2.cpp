@@ -17,10 +17,20 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_asicVoltage = 1.15; // default voltage
     m_initVoltage = 1.20;
 
-    m_maxPin = 100.0;
-    m_minPin = 52.0;
-    m_maxVin = 13.0;
-    m_minVin = 11.0;
+    // board params that are passed to the web UI
+    m_params.maxPin = 100.0;
+    m_params.minPin = 52.0;
+    m_params.maxVin = 13.0;
+    m_params.minVin = 11.0;
+
+    // bm1368 values
+    int frequencies[] = {500, 525, 550, 575, 590, 600};
+    int voltages[] = {1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200};
+    m_params.setFrequencies(frequencies, sizeof(frequencies)/sizeof(int));
+    m_params.setAsicVoltages(voltages, sizeof(voltages)/sizeof(int));
+
+    m_params.defaultFrequency = 600;
+    m_params.defaultAsicVoltage = 1150;
 
     m_asicMaxDifficulty = 2048;
     m_asicMinDifficulty = 512;

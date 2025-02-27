@@ -4,10 +4,13 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "nvs_config.h"
+#include "board-params.h"
 
 class Board {
   protected:
     // general board information
+    BoardParameters m_params;
+
     const char *m_deviceModel;
     int m_version;
     const char *m_asicModel;
@@ -30,12 +33,6 @@ class Board {
     // fans
     bool m_fanInvertPolarity;
     float m_fanPerc;
-
-    // max power settings
-    float m_maxPin;
-    float m_minPin;
-    float m_maxVin;
-    float m_minVin;
 
     // display m_theme
     Theme *m_theme = nullptr;
@@ -108,28 +105,12 @@ class Board {
         return m_isInitialized ? m_asics : nullptr;
     }
 
-    float getMinPin()
-    {
-        return m_minPin;
-    }
-
-    float getMaxPin()
-    {
-        return m_maxPin;
-    }
-
-    float getMinVin()
-    {
-        return m_minVin;
-    }
-
-    float getMaxVin()
-    {
-        return m_maxVin;
-	}
-
     float getVrMaxTemp()
     {
         return m_vr_maxTemp;
+    }
+
+    BoardParameters *getParams() {
+        return &m_params;
     }
 };

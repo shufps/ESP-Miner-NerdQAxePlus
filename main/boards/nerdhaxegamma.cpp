@@ -16,10 +16,10 @@ NerdHaxeGamma::NerdHaxeGamma() : NerdQaxePlus2() {
     // use m_asicVoltage for init
     m_initVoltage = 0.0;
 
-    m_maxPin = 250.0;
-    m_minPin = 75.0;
-    m_maxVin = 13.0;
-    m_minVin = 11.0;
+    m_params.maxPin = 150.0;
+    m_params.minPin = 75.0;
+    m_params.maxVin = 13.0;
+    m_params.minVin = 11.0;
 
     m_asicMaxDifficulty = 4096;
     m_asicMinDifficulty = 1024;

@@ -180,6 +180,7 @@ static esp_err_t is_network_allowed(httpd_req_t * req)
 
     // Attempt to get the Origin header.
     char origin[128];
+
     uint32_t origin_ip_addr;
     if (httpd_req_get_hdr_value_str(req, "Origin", origin, sizeof(origin)) == ESP_OK) {
         ESP_LOGD(CORS_TAG, "Origin header: %s", origin);
@@ -521,26 +522,26 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
             nvs_config_set_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, jobInterval);
         }
     }
-    if (doc["flipscreen"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, doc["flipscreen"].as<uint16_t>());
+    if (doc["flipscreen"].is<bool>()) {
+        nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, (uint16_t) doc["flipscreen"].as<bool>());
     }
     if (doc["overheat_temp"].is<uint16_t>()) {
         nvs_config_set_u16(NVS_CONFIG_OVERHEAT_TEMP, doc["overheat_temp"].as<uint16_t>());
     }
-    if (doc["invertscreen"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_INVERT_SCREEN, doc["invertscreen"].as<uint16_t>());
+    if (doc["invertscreen"].is<bool>()) {
+        nvs_config_set_u16(NVS_CONFIG_INVERT_SCREEN, (uint16_t) doc["invertscreen"].as<bool>());
     }
-    if (doc["invertfanpolarity"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_INVERT_FAN_POLARITY, doc["invertfanpolarity"].as<uint16_t>());
+    if (doc["invertfanpolarity"].is<bool>()) {
+        nvs_config_set_u16(NVS_CONFIG_INVERT_FAN_POLARITY, (uint16_t) doc["invertfanpolarity"].as<bool>());
     }
-    if (doc["autofanspeed"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, doc["autofanspeed"].as<uint16_t>());
+    if (doc["autofanspeed"].is<bool>()) {
+        nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, (uint16_t) doc["autofanspeed"].as<bool>());
     }
     if (doc["fanspeed"].is<uint16_t>()) {
         nvs_config_set_u16(NVS_CONFIG_FAN_SPEED, doc["fanspeed"].as<uint16_t>());
     }
-    if (doc["autoscreenoff"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, doc["autoscreenoff"].as<uint16_t>());
+    if (doc["autoscreenoff"].is<bool>()) {
+        nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, (uint16_t) doc["autoscreenoff"].as<bool>());
     }
 
     doc.clear();
@@ -599,8 +600,8 @@ static esp_err_t PATCH_update_influx(httpd_req_t *req)
     }
 
     // Check and apply each setting if the key exists and has the correct type
-    if (doc["influxEnable"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, doc["influxEnable"].as<uint16_t>());
+    if (doc["influxEnable"].is<bool>()) {
+        nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, (uint16_t) doc["influxEnable"].as<bool>());
     }
     if (doc["influxURL"].is<const char*>()) {
         nvs_config_set_string(NVS_CONFIG_INFLUX_URL, doc["influxURL"].as<const char*>());
@@ -687,6 +688,8 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     // Parse optional query parameters
     uint64_t start_timestamp = 0;
     uint64_t current_timestamp = 0;
+    int page = 0;   // compatibility, all fields
+
     bool history_requested = false;
     char query_str[128];
     if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
@@ -701,7 +704,19 @@ static esp_err_t GET_system_info(httpd_req_t *req)
             current_timestamp = strtoull(param, NULL, 10);
             ESP_LOGI(TAG, "cur: %llu", current_timestamp);
         }
+
+        // do we have a page parameter?
+        if (httpd_query_key_value(query_str, "page", param, sizeof(param)) == ESP_OK) {
+            page = strtol(param, NULL, 10);
+        }
     }
+
+
+    Board* board   = SYSTEM_MODULE.getBoard();
+    History* history = SYSTEM_MODULE.getHistory();
+
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
 
     // Get configuration strings from NVS
     char *ssid               = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, CONFIG_ESP_WIFI_SSID);
@@ -711,70 +726,84 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     char *fallbackStratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_URL, CONFIG_STRATUM_FALLBACK_URL);
     char *fallbackStratumUser= nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_USER, CONFIG_STRATUM_FALLBACK_USER);
 
-    Board* board   = SYSTEM_MODULE.getBoard();
-    History* history = SYSTEM_MODULE.getHistory();
+    // dashboard
+    if (!page || page == 1) {
+        // static
+        doc["asicCount"]          = board->getAsicCount();
+        doc["smallCoreCount"]     = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
+        doc["deviceModel"]        = board->getDeviceModel();
 
-    PSRAMAllocator allocator;
-    JsonDocument doc(&allocator);
+        // dashboard
+        doc["power"]              = POWER_MANAGEMENT_MODULE.getPower();
+        doc["maxPower"]           = board->getParams()->maxPin;
+        doc["minPower"]           = board->getParams()->minPin;
+        doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
+        doc["maxVoltage"]         = board->getParams()->maxVin;
+        doc["minVoltage"]         = board->getParams()->minVin;
+        doc["current"]            = POWER_MANAGEMENT_MODULE.getCurrent();
+        doc["temp"]               = POWER_MANAGEMENT_MODULE.getAvgChipTemp();
+        doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVrTemp();
+        doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
+        doc["hashRate"]           = history->getCurrentHashrate10m();
+        doc["hashRate_10m"]       = history->getCurrentHashrate10m();
+        doc["hashRate_1h"]        = history->getCurrentHashrate1h();
+        doc["hashRate_1d"]        = history->getCurrentHashrate1d();
+        doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
+        doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
+        doc["coreVoltage"]        = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
+        doc["coreVoltageActual"]  = (int)(board->getVout() * 1000.0f);
+        doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
+        doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
+        doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
+        doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
+        doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
 
-    // Fill in the JSON object with system info
-    doc["power"]              = POWER_MANAGEMENT_MODULE.getPower();
-    doc["maxPower"]           = board->getMaxPin();
-    doc["minPower"]           = board->getMinPin();
-    doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
-    doc["maxVoltage"]         = board->getMaxVin();
-    doc["minVoltage"]         = board->getMinVin();
-    doc["current"]            = POWER_MANAGEMENT_MODULE.getCurrent();
-    doc["temp"]               = POWER_MANAGEMENT_MODULE.getAvgChipTemp();
-    doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVrTemp();
-    doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
-    doc["hashRate"]           = history->getCurrentHashrate10m();
-    doc["hashRate_10m"]       = history->getCurrentHashrate10m();
-    doc["hashRate_1h"]        = history->getCurrentHashrate1h();
-    doc["hashRate_1d"]        = history->getCurrentHashrate1d();
-    doc["jobInterval"]        = board->getAsicJobIntervalMs();
-    doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
-    doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
-    doc["freeHeap"]           = esp_get_free_heap_size();
-    doc["coreVoltage"]        = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
-    doc["coreVoltageActual"]  = (int)(board->getVout() * 1000.0f);
-    doc["frequency"]          = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
-    doc["ssid"]               = ssid;
-    doc["hostname"]           = hostname;
-    doc["wifiStatus"]         = SYSTEM_MODULE.getWifiStatus();
-    doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
-    doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
-    doc["uptimeSeconds"]      = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
-    doc["asicCount"]          = board->getAsicCount();
-    doc["smallCoreCount"]     = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
-    doc["ASICModel"]          = board->getAsicModel();
-    doc["deviceModel"]        = board->getDeviceModel();
-    doc["stratumURL"]         = stratumURL;
-    doc["stratumPort"]        = nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT);
-    doc["stratumUser"]        = stratumUser;
-    doc["fallbackStratumURL"] = fallbackStratumURL;
-    doc["fallbackStratumPort"]= nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT);
-    doc["fallbackStratumUser"] = fallbackStratumUser;
-    doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
-    doc["version"]            = esp_app_get_description()->version;
-    doc["runningPartition"]   = esp_ota_get_running_partition()->label;
-    doc["flipscreen"]         = nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 1);
-    doc["overheat_temp"]      = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, 0);
-    doc["invertscreen"]       = nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0);
-    doc["autoscreenoff"]      = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0);
-    doc["invertfanpolarity"]  = nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1);
-    doc["autofanspeed"]       = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
-    doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
-    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
-    doc["lastResetReason"]    = SYSTEM_MODULE.getLastResetReason();
-
-    // If history was requested, add the history data as a nested object
-    if (history_requested) {
-        uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour later
-        JsonObject json_history = doc["history"].as<JsonObject>();
-        fillHistoryData(json_history, start_timestamp, end_timestamp, current_timestamp);
+        // If history was requested, add the history data as a nested object
+        if (history_requested) {
+            uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour later
+            JsonObject json_history = doc["history"].to<JsonObject>();
+            fillHistoryData(json_history, start_timestamp, end_timestamp, current_timestamp);
+        }
     }
 
+    // settings page
+    if (!page || page == 2) {
+        doc["hostname"]           = hostname;
+        doc["ssid"]               = ssid;
+        doc["stratumURL"]         = stratumURL;
+        doc["stratumPort"]        = nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT);
+        doc["stratumUser"]        = stratumUser;
+        doc["fallbackStratumURL"] = fallbackStratumURL;
+        doc["fallbackStratumPort"]= nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT);
+        doc["fallbackStratumUser"] = fallbackStratumUser;
+        doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
+        doc["frequency"]          = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
+        doc["jobInterval"]        = board->getAsicJobIntervalMs();
+        doc["overheat_temp"]      = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, 0);
+        doc["flipscreen"]         = nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 1);
+        doc["invertscreen"]       = nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0);
+        doc["autoscreenoff"]      = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0);
+        doc["invertfanpolarity"]  = nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1);
+        doc["autofanspeed"]       = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
+    }
+
+    // system page
+    if (!page || page == 3) {
+        // system screen
+        doc["ASICModel"]          = board->getAsicModel();
+        doc["uptimeSeconds"]      = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
+        doc["lastResetReason"]    = SYSTEM_MODULE.getLastResetReason();
+        doc["wifiStatus"]         = SYSTEM_MODULE.getWifiStatus();
+        doc["freeHeap"]           = esp_get_free_heap_size();
+        doc["version"]            = esp_app_get_description()->version;
+        doc["runningPartition"]   = esp_ota_get_running_partition()->label;
+    }
+
+    ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+
+    // Serialize the JSON document to a String and send it
+    esp_err_t ret = sendJsonResponse(req, doc);
+    doc.clear();
 
     // Free temporary strings
     free(ssid);
@@ -784,11 +813,6 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     free(fallbackStratumURL);
     free(fallbackStratumUser);
 
-    ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
-
-    // Serialize the JSON document to a String and send it
-    esp_err_t ret = sendJsonResponse(req, doc);
-    doc.clear();
     return ret;
 }
 
@@ -861,10 +885,10 @@ static void fillHistoryData(JsonObject &json_history, uint64_t start_timestamp, 
     }
 
     // Create arrays for history samples using the new method
-    JsonArray hashrate_10m = json_history["hashrate_10m"].as<JsonArray>();
-    JsonArray hashrate_1h  = json_history["hashrate_1h"].as<JsonArray>();
-    JsonArray hashrate_1d  = json_history["hashrate_1d"].as<JsonArray>();
-    JsonArray timestamps   = json_history["timestamps"].as<JsonArray>();
+    JsonArray hashrate_10m = json_history["hashrate_10m"].to<JsonArray>();
+    JsonArray hashrate_1h  = json_history["hashrate_1h"].to<JsonArray>();
+    JsonArray hashrate_1d  = json_history["hashrate_1d"].to<JsonArray>();
+    JsonArray timestamps   = json_history["timestamps"].to<JsonArray>();
 
     for (int i = start_index; i < start_index + num_samples; i++) {
         uint64_t sample_timestamp = history->getTimestampSample(i);

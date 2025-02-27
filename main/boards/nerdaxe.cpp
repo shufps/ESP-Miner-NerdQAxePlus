@@ -43,10 +43,10 @@ NerdAxe::NerdAxe() : Board() {
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
 
-    m_maxPin = 15.0;
-    m_minPin = 5.0;
-    m_maxVin = 5.5;
-    m_minVin = 4.5;
+    m_params.maxPin = 15.0;
+    m_params.minPin = 5.0;
+    m_params.maxVin = 5.5;
+    m_params.minVin = 4.5;
 
     m_asicMaxDifficulty = 256;
     m_asicMinDifficulty = 64;
@@ -223,8 +223,8 @@ bool NerdAxe::selfTest(){
     #define CORE_VOLTAGE_TARGET_MIN 1.0 //mV
     #define CORE_VOLTAGE_TARGET_MAX 1.35 //mV
 
-    char logString[300]; 
-    
+    char logString[300];
+
     // Initialize the display
     DisplayDriver *temp_display;
     temp_display = new DisplayDriver();
@@ -237,10 +237,10 @@ bool NerdAxe::selfTest(){
     initAsics();
     float power = getPin();
     float Vout = getVout();
-    bool powerOK = (power > m_minPin) && (power < m_maxPin);
+    bool powerOK = (power > m_params.minPin) && (power < m_params.maxPin);
     bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
     bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
-    
+
     //Warning! This test only ensures Asic is properly soldered
     snprintf(logString, sizeof(logString),  "\nTest result:\r\n"
                                             "- Asics detected [%d/%d]\n"
@@ -251,9 +251,9 @@ bool NerdAxe::selfTest(){
                                             powerOK ? "OK" : "Warning", power,
                                             VrOK ? "OK" : "Warning", Vout,
                                             (allAsicsDetected) ? "OOOOOOOO TEST OK!!! OOOOOOO" : "XXXXXXXXX TEST KO XXXXXXXXX");
-    temp_display->logMessage(logString);             
+    temp_display->logMessage(logString);
 
-    //Update SelfTest flag                                                              
+    //Update SelfTest flag
     if(allAsicsDetected) nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);
 
     return allAsicsDetected;

@@ -37,10 +37,33 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_imax = m_numPhases * 30;
     m_ifault = (float) (m_imax - 5);
 
-    m_maxPin = 70.0;
-    m_minPin = 30.0;
-    m_maxVin = 13.0;
-    m_minVin = 11.0;
+    // board params that are passed to the web UI
+    m_params.maxPin = 70.0;
+    m_params.minPin = 30.0;
+    m_params.maxVin = 13.0;
+    m_params.minVin = 11.0;
+
+    m_params.minAsicShutdownTemp = 40.0f;
+    m_params.maxAsicShutdownTemp = 90.0f;
+
+    m_params.minVRShutdownTemp = 40.0f;
+    m_params.maxVRShutdownTemp = 90.0f;
+
+    // absolute values
+    m_params.absMinAsicVoltage = 1005;
+    m_params.absMaxAsicVoltage = 1400;
+
+    m_params.absMinFrequency = 200;
+    m_params.absMaxFrequency = 1000;
+
+    // bm1368 values
+    int frequencies[] = {400, 425, 450, 475, 490, 500, 525, 550, 575};
+    int voltages[] = {1100, 1150, 1200, 1250, 1300, 1350};
+    m_params.setFrequencies(frequencies, sizeof(frequencies)/sizeof(int));
+    m_params.setAsicVoltages(voltages, sizeof(voltages)/sizeof(int));
+
+    m_params.defaultFrequency = 490;
+    m_params.defaultAsicVoltage = 1250;
 
     m_asicMaxDifficulty = 1024;
     m_asicMinDifficulty = 256;
@@ -51,27 +74,6 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
 
     m_asics = new BM1368();
 
-    m_params.setMinAsicShutdownTemp(40.0f);
-    m_params.setMaxAsicShutdownTemp(90.0f);
-
-    m_params.setMinVRShutdownTemp(40.0f);
-    m_params.setMaxVRShutdownTemp(90.0f);
-
-    // absolute values
-    m_params.setAbsMinAsicVoltage(1005);
-    m_params.setAbsMaxAsicVoltage(1400);
-
-    m_params.setAbsMinFrequency(200);
-    m_params.setAbsMaxFrequency(1000);
-
-    // bm1368 values
-    int frequencies[] = {400, 425, 450, 475, 490, 500, 525, 550, 575};
-    int voltages[] = {1100, 1150, 1200, 1250, 1300, 1350};
-    m_params.setFrequencies(frequencies, sizeof(frequencies)/sizeof(int));
-    m_params.setAsicVoltages(voltages, sizeof(voltages)/sizeof(int));
-
-    m_params.setDefaultFrequency(490);
-    m_params.setDefaultAsicVoltage(1250);
 
 }
 
@@ -259,7 +261,7 @@ bool NerdQaxePlus::selfTest(){
     initAsics();
     float power = getPin();
     float Vout = getVout();
-    bool powerOK = (power > m_minPin) && (power < m_maxPin);
+    bool powerOK = (power > m_params.minPin) && (power < m_params.maxPin);
     bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
     bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
 

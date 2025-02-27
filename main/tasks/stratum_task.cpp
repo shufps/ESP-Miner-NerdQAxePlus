@@ -256,13 +256,13 @@ void StratumTask::stratumLoop()
     while (1) {
         if (!is_socket_connected(m_sock)) {
             ESP_LOGE(m_tag, "Socket is not connected ...");
-            return;
+            break;
         }
 
-        char *line = m_stratumAPI.receiveJsonRpcLine(m_sock);
+        char* line = m_stratumAPI.receiveJsonRpcLine(m_sock);
         if (!line) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
-            return;
+            break;
         }
 
         // we wait for some kind of response from the server to be sure we are
@@ -281,7 +281,14 @@ void StratumTask::stratumLoop()
             free(line);
             break;
         }
-        m_manager->dispatch(m_index, line);
+
+        // parse the line
+        if (!m_manager->dispatch(m_index, line)) {
+            ESP_LOGE(m_tag, "error parsing json, disconnecting ...");
+            free(line);
+            break;
+        }
+
         free(line);
     }
 }
@@ -444,11 +451,11 @@ int StratumManager::getCurrentPoolPort()
     return m_stratumTasks[m_selected]->getPort();
 }
 
-void StratumManager::dispatch(int pool, const char *line)
+bool StratumManager::dispatch(int pool, const char *line)
 {
     // only accept data from the selected pool
     if (pool != m_selected) {
-        return;
+        return false;
     }
 
     StratumTask *selected = m_stratumTasks[m_selected];
@@ -459,7 +466,7 @@ void StratumManager::dispatch(int pool, const char *line)
 
     if (!StratumApi::parse(m_stratum_api_v1_message, line)) {
         ESP_LOGE(m_tag, "error in stratum");
-        return;
+        return false;
     }
 
     switch (m_stratum_api_v1_message->method) {
@@ -507,7 +514,7 @@ void StratumManager::dispatch(int pool, const char *line)
 
     case CLIENT_RECONNECT: {
         ESP_LOGE(tag, "Pool requested client reconnect ...");
-        return;
+        return false;
     }
 
     case STRATUM_RESULT: {
@@ -535,6 +542,7 @@ void StratumManager::dispatch(int pool, const char *line)
         // NOP
     }
     }
+    return true;
 }
 
 void StratumManager::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,

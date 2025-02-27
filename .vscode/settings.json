@@ -37,7 +37,8 @@
         "initializer_list": "cpp",
         "regex": "cpp",
         "utility": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "cstring": "cpp"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

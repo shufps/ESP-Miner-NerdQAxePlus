@@ -14,10 +14,10 @@ NerdOctaxePlus::NerdOctaxePlus() : NerdQaxePlus() {
     m_asicMaxDifficulty = 2048;
     m_asicMinDifficulty = 512;
 
-    m_maxPin = 130.0;
-    m_minPin = 70.0;
-    m_maxVin = 13.0;
-    m_minVin = 11.0;
+    m_params.maxPin = 130.0;
+    m_params.minPin = 70.0;
+    m_params.maxVin = 13.0;
+    m_params.minVin = 11.0;
 
 #ifdef NERDOCTAXEPLUS
     m_theme = new ThemeNerdoctaxeplus();
