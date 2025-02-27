@@ -79,10 +79,15 @@ menu "InfluxDB Configuration"
     # Enable or disable the InfluxDB integration
     config INFLUX_ENABLE
         bool "Enable InfluxDB"
-        default y
+        default n
         help
             Enable or disable the InfluxDB integration in the firmware.
             When enabled, the firmware will send data to the specified InfluxDB server.
+
+    config INFLUX_ENABLE_VALUE
+        int
+        default 1 if INFLUX_ENABLE
+        default 0
 
     # Specify the URL of the InfluxDB server
     config INFLUX_URL

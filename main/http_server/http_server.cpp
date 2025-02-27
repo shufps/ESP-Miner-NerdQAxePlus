@@ -190,6 +190,7 @@ static esp_err_t is_network_allowed(httpd_req_t * req)
 
         // check if origin is hostname
         const char *hostname = SYSTEM_MODULE.getHostname();
+        ESP_LOGI(CORS_TAG, "hostname: %s", hostname);
         if (!(strncmp(host, hostname, strlen(hostname)))) {
             ESP_LOGI(CORS_TAG, "origin equals hostname");
             return ESP_OK;
@@ -707,12 +708,12 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "isUsingFallbackStratum", STRATUM_MANAGER.isUsingFallback());
     cJSON_AddStringToObject(root, "version", esp_ota_get_app_description()->version);
     cJSON_AddStringToObject(root, "runningPartition", esp_ota_get_running_partition()->label);
-    cJSON_AddNumberToObject(root, "flipscreen", nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 1));
-    cJSON_AddNumberToObject(root, "overheat_temp", nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, 0));
+    cJSON_AddNumberToObject(root, "flipscreen", nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 0));
+    cJSON_AddNumberToObject(root, "overheat_temp", nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, 70));
     cJSON_AddNumberToObject(root, "invertscreen", nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0));
     cJSON_AddNumberToObject(root, "autoscreenoff", nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0));
-    cJSON_AddNumberToObject(root, "invertfanpolarity", nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
-    cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1));
+    cJSON_AddNumberToObject(root, "invertfanpolarity", nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 0));
+    cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 0));
     cJSON_AddNumberToObject(root, "fanspeed", POWER_MANAGEMENT_MODULE.getFanPerc());
     cJSON_AddNumberToObject(root, "fanrpm", POWER_MANAGEMENT_MODULE.getFanRPM());
     cJSON_AddStringToObject(root, "lastResetReason", SYSTEM_MODULE.getLastResetReason());
@@ -765,7 +766,7 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
     cJSON_AddStringToObject(root, "influxBucket", influxBucket);
     cJSON_AddStringToObject(root, "influxOrg", influxOrg);
     cJSON_AddStringToObject(root, "influxPrefix", influxPrefix);
-    cJSON_AddNumberToObject(root, "influxEnable", nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, 1));
+    cJSON_AddNumberToObject(root, "influxEnable", nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, 0));
 
     free(influxURL);
     free(influxBucket);
