@@ -178,7 +178,6 @@ static esp_err_t is_network_allowed(httpd_req_t * req)
 
     // Attempt to get the Origin header.
     char origin[128];
-
     uint32_t origin_ip_addr;
     if (httpd_req_get_hdr_value_str(req, "Origin", origin, sizeof(origin)) == ESP_OK) {
         ESP_LOGD(CORS_TAG, "Origin header: %s", origin);
