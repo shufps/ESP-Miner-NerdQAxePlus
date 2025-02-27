@@ -13,7 +13,7 @@
 #define STRATUM_USER CONFIG_STRATUM_USER
 #define DIFF_STRING_SIZE 12 // Maximum size of the difficulty string
 #define MAX_ASIC_JOBS 128   // Maximum number of ASIC jobs allowed
-#define OVERHEAT_DEFAULT 70 // Default overheat threshold in degrees Celsius
+//#define OVERHEAT_DEFAULT 70 // Default overheat threshold in degrees Celsius
 
 class System {
   protected:
