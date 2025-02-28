@@ -11,10 +11,33 @@
 
 #include "influx.h"
 
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
+static int allocs = 0;
+static int deallocs = 0;
+static int reallocs = 0;
+
 static const char *TAG = "InfluxDB";
 
 static char auth_header[128];
 static char big_buffer[4096];
+
+struct PSRAMAllocator : ArduinoJson::Allocator {
+  void* allocate(size_t size) override {
+    allocs++;
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+  }
+
+  void deallocate(void* pointer) override {
+    deallocs++;
+    heap_caps_free(pointer);
+  }
+
+  void* reallocate(void* ptr, size_t new_size) override {
+    reallocs++;
+    return heap_caps_realloc(ptr, new_size, MALLOC_CAP_SPIRAM);
+  }
+};
 
 bool influx_ping(Influx *influx)
 {
@@ -89,26 +112,30 @@ bool bucket_exists(Influx *influx)
         ESP_LOGD(TAG, "Response: %s", big_buffer);
 
         if (esp_http_client_get_status_code(client) == 200) {
-            cJSON *json = cJSON_Parse(big_buffer);
-            if (json == NULL) {
-                ESP_LOGE(TAG, "Failed to parse JSON response");
+            PSRAMAllocator allocator;
+            JsonDocument doc(&allocator);
+
+            // Deserialize JSON
+            DeserializationError error = deserializeJson(doc, big_buffer);
+            if (error) {
+                ESP_LOGE(TAG, "Failed to parse JSON response: %s", error.c_str());
                 esp_http_client_close(client);
                 esp_http_client_cleanup(client);
                 return false;
             }
 
-            cJSON *buckets = cJSON_GetObjectItem(json, "buckets");
-            if (buckets != NULL && cJSON_IsArray(buckets) && cJSON_GetArraySize(buckets) > 0) {
+            ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+
+            // Extract "buckets" array
+            JsonArray buckets = doc["buckets"].as<JsonArray>();
+            if (!buckets.isNull() && buckets.size() > 0) {
                 // If we get here, the bucket exists
-                cJSON_Delete(json);
                 esp_http_client_close(client);
                 esp_http_client_cleanup(client);
                 return true;
             } else {
                 ESP_LOGW(TAG, "Bucket not found");
             }
-
-            cJSON_Delete(json);
         } else if (esp_http_client_get_status_code(client) == 404) {
             ESP_LOGI(TAG, "Bucket not found");
         } else {

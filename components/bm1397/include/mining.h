@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "stratum_api.h"
 
 typedef struct
@@ -42,6 +38,3 @@ double test_nonce_value(const bm_job *job, const uint32_t nonce, const uint32_t 
 
 char *extranonce_2_generate(uint32_t extranonce_2, uint32_t length);
 
-#ifdef __cplusplus
-}
-#endif
