@@ -44,6 +44,7 @@ class System {
     char m_wifiStatus[20];     // WiFi status string
     bool m_apState;
     char *m_hostname;
+    char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
 
     StratumConfig m_stratumConfig[2];
 
@@ -232,4 +233,7 @@ class System {
         return (const char*) m_hostname;
     }
 
+    const char* getIPAddress() {
+        return (const char*) m_ipAddress;
+    }
 };
