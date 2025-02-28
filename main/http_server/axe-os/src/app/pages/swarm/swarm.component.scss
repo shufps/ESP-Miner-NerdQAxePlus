@@ -15,7 +15,8 @@ table {
 }
 th {
     text-align: right;
-    background-color: var(--card-header-primary-background-color);
+    /*background-color: var(--card-header-primary-background-color);*/
+    background-color: var(--button-filled-info-background-color);
 }
 
 th, td {
@@ -165,5 +166,11 @@ nb-slider {
 .text-green-500 {
     color: var(--bs-green);
 }
+
+.swarm-table {
+    font-weight: bold;
+    color: var(--button-filled-primary-text-color);
+}
+
 }
 
