@@ -1,4 +1,5 @@
-#include <cJSON.h>
+#include "ArduinoJson.h"
+#include "psram_allocator.h"
 #include <esp_http_client.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
@@ -13,31 +14,10 @@
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
-static int allocs = 0;
-static int deallocs = 0;
-static int reallocs = 0;
-
 static const char *TAG = "InfluxDB";
 
 static char auth_header[128];
 static char big_buffer[4096];
-
-struct PSRAMAllocator : ArduinoJson::Allocator {
-  void* allocate(size_t size) override {
-    allocs++;
-    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-  }
-
-  void deallocate(void* pointer) override {
-    deallocs++;
-    heap_caps_free(pointer);
-  }
-
-  void* reallocate(void* ptr, size_t new_size) override {
-    reallocs++;
-    return heap_caps_realloc(ptr, new_size, MALLOC_CAP_SPIRAM);
-  }
-};
 
 bool influx_ping(Influx *influx)
 {
@@ -124,7 +104,7 @@ bool bucket_exists(Influx *influx)
                 return false;
             }
 
-            ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+            //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 
             // Extract "buckets" array
             JsonArray buckets = doc["buckets"].as<JsonArray>();

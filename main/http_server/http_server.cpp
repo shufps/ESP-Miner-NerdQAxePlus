@@ -4,7 +4,8 @@
 #include <sys/param.h>
 #include <netdb.h>
 
-#include <ArduinoJson.h>
+#include "ArduinoJson.h"
+#include "psram_allocator.h"
 #include "esp_chip_info.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -71,27 +72,6 @@ typedef struct rest_server_context
 #define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
 
 static void fillHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
-
-static int allocs = 0;
-static int deallocs = 0;
-static int reallocs = 0;
-
-struct PSRAMAllocator : ArduinoJson::Allocator {
-  void* allocate(size_t size) override {
-    allocs++;
-    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-  }
-
-  void deallocate(void* pointer) override {
-    deallocs++;
-    heap_caps_free(pointer);
-  }
-
-  void* reallocate(void* ptr, size_t new_size) override {
-    reallocs++;
-    return heap_caps_realloc(ptr, new_size, MALLOC_CAP_SPIRAM);
-  }
-};
 
 static esp_err_t ip_in_private_range(uint32_t address) {
     uint32_t ip_address = ntohl(address);
@@ -711,10 +691,6 @@ static esp_err_t GET_system_info(httpd_req_t *req)
         }
     }
 
-    // Gather system info as before
-    char *ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, CONFIG_ESP_WIFI_SSID);
-    char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, CONFIG_LWIP_LOCAL_HOSTNAME);
-
     Board* board   = SYSTEM_MODULE.getBoard();
     History* history = SYSTEM_MODULE.getHistory();
 
@@ -737,11 +713,11 @@ static esp_err_t GET_system_info(httpd_req_t *req)
 
     // dashboard
     doc["power"]              = POWER_MANAGEMENT_MODULE.getPower();
-    doc["maxPower"]           = board->getParams()->maxPin;
-    doc["minPower"]           = board->getParams()->minPin;
+    doc["maxPower"]           = board->getMaxPin();
+    doc["minPower"]           = board->getMinPin();
     doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
-    doc["maxVoltage"]         = board->getParams()->maxVin;
-    doc["minVoltage"]         = board->getParams()->minVin;
+    doc["maxVoltage"]         = board->getMaxVin();
+    doc["minVoltage"]         = board->getMinVin();
     doc["current"]            = POWER_MANAGEMENT_MODULE.getCurrent();
     doc["temp"]               = POWER_MANAGEMENT_MODULE.getAvgChipTemp();
     doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVrTemp();
@@ -794,7 +770,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["version"]            = esp_app_get_description()->version;
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
 
-    ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+    //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 
     // Serialize the JSON document to a String and send it
     esp_err_t ret = sendJsonResponse(req, doc);

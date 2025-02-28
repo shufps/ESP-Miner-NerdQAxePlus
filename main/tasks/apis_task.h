@@ -1,7 +1,7 @@
 #pragma once
 
 #include <pthread.h>
-
+#include "ArduinoJson.h"
 #include "esp_err.h"
 #include "esp_http_client.h"
 #include "freertos/FreeRTOS.h"
@@ -42,13 +42,13 @@ private:
     bool fetchData(const char* apiUrl, ApiType type);
 
     // Parses Json Bitcoin price via HTTP request
-    bool parseBitcoinPrice(const char* jsonData);
+    bool parseBitcoinPrice(JsonDocument &doc);
     // Parses Json BlockHeight via HTTP request
-    bool parseBlockHeight(const char* jsonData);
+    bool parseBlockHeight(JsonDocument &doc);
     // Parses Json Hashrate via HTTP request
-    bool parseHashrate(const char* jsonData);
+    bool parseHashrate(JsonDocument &doc);
     // Parses Json Fees via HTTP request
-    bool parseFees(const char* jsonData);
+    bool parseFees(JsonDocument &doc);
 
 public:
     APIsFetcher();
@@ -67,7 +67,7 @@ public:
     uint32_t getPrice();
     uint32_t getBlockHeight();
     uint32_t getBlocksToHalving();
-    uint32_t getHalvingPercent(); 
+    uint32_t getHalvingPercent();
     uint64_t getNetHash();
     uint64_t getNetDifficulty();
     uint32_t getLowestFee();

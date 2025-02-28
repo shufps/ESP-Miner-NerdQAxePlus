@@ -9,6 +9,7 @@
 #include "stratum_api.h" // Assumes that types like StratumApiV1Message,
                          // mining_notify, STRATUM_ID_SUBSCRIBE, etc., are defined here.
 #include "ArduinoJson.h"
+#include "psram_allocator.h"
 
 #include "esp_log.h"
 #include "esp_ota_ops.h"
@@ -26,31 +27,6 @@ static const char *TAG = "stratum_api";
 #else
 #define ALLOC(s) malloc(s)
 #endif
-
-static int allocs = 0;
-static int deallocs = 0;
-static int reallocs = 0;
-
-struct PSRAMAllocator : ArduinoJson::Allocator
-{
-    void *allocate(size_t size) override
-    {
-        allocs++;
-        return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-    }
-
-    void deallocate(void *pointer) override
-    {
-        deallocs++;
-        heap_caps_free(pointer);
-    }
-
-    void *reallocate(void *ptr, size_t new_size) override
-    {
-        reallocs++;
-        return heap_caps_realloc(ptr, new_size, MALLOC_CAP_SPIRAM);
-    }
-};
 
 StratumApi::StratumApi() : m_len(0), m_send_uid(1)
 {
@@ -245,7 +221,7 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char* method_str, Stratum
         break;
     }
 
-    ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+    //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
     return true;
 }
 
