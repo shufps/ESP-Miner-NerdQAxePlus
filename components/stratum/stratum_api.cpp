@@ -28,6 +28,13 @@ static const char *TAG = "stratum_api";
 #define ALLOC(s) malloc(s)
 #endif
 
+void safe_free(char*& ptr) {
+    if (ptr) {        // Check if pointer is not null
+        free(ptr);    // Free memory
+        ptr = nullptr; // Set pointer to null to prevent dangling pointer issues
+    }
+}
+
 StratumApi::StratumApi() : m_len(0), m_send_uid(1)
 {
     m_buffer = (char *) ALLOC(BIG_BUFFER_SIZE);
@@ -221,7 +228,7 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char* method_str, Stratum
         break;
     }
 
-    //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+    ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
     return true;
 }
 
@@ -297,6 +304,11 @@ bool StratumApi::parse(StratumApiV1Message *message, const char *stratum_json)
         return false;
     }
 
+    return parse(message, doc);
+}
+
+bool StratumApi::parse(StratumApiV1Message *message, JsonDocument &doc)
+{
     // Extract message ID
     message->message_id = doc["id"].is<int>() ? doc["id"].as<int>() : -1;
 
@@ -315,20 +327,9 @@ bool StratumApi::parse(StratumApiV1Message *message, const char *stratum_json)
 //--------------------------------------------------------------------
 void StratumApi::freeMiningNotify(mining_notify *params)
 {
-    if (params->job_id) {
-        free(params->job_id);
-        params->job_id = nullptr;
-    }
-
-    if (params->coinbase_1) {
-        free(params->coinbase_1);
-        params->coinbase_1 = nullptr;
-    }
-
-    if (params->coinbase_2) {
-        free(params->coinbase_2);
-        params->coinbase_2 = nullptr;
-    }
+    safe_free(params->job_id);
+    safe_free(params->coinbase_1);
+    safe_free(params->coinbase_2);
 }
 
 //--------------------------------------------------------------------
