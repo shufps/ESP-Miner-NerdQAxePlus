@@ -505,7 +505,7 @@ bool StratumManager::dispatch(int pool, JsonDocument &doc)
         // free notify
         if (m_stratum_api_v1_message->mining_notification) {
             StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
-            safe_free(m_stratum_api_v1_message->mining_notification);
+            free(m_stratum_api_v1_message->mining_notification);
         }
         break;
     }
