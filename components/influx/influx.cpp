@@ -1,4 +1,5 @@
-#include <cJSON.h>
+#include "ArduinoJson.h"
+#include "psram_allocator.h"
 #include <esp_http_client.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
@@ -10,6 +11,8 @@
 #include <time.h>
 
 #include "influx.h"
+
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
 static const char *TAG = "InfluxDB";
 
@@ -89,26 +92,30 @@ bool bucket_exists(Influx *influx)
         ESP_LOGD(TAG, "Response: %s", big_buffer);
 
         if (esp_http_client_get_status_code(client) == 200) {
-            cJSON *json = cJSON_Parse(big_buffer);
-            if (json == NULL) {
-                ESP_LOGE(TAG, "Failed to parse JSON response");
+            PSRAMAllocator allocator;
+            JsonDocument doc(&allocator);
+
+            // Deserialize JSON
+            DeserializationError error = deserializeJson(doc, big_buffer);
+            if (error) {
+                ESP_LOGE(TAG, "Failed to parse JSON response: %s", error.c_str());
                 esp_http_client_close(client);
                 esp_http_client_cleanup(client);
                 return false;
             }
 
-            cJSON *buckets = cJSON_GetObjectItem(json, "buckets");
-            if (buckets != NULL && cJSON_IsArray(buckets) && cJSON_GetArraySize(buckets) > 0) {
+            //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+
+            // Extract "buckets" array
+            JsonArray buckets = doc["buckets"].as<JsonArray>();
+            if (!buckets.isNull() && buckets.size() > 0) {
                 // If we get here, the bucket exists
-                cJSON_Delete(json);
                 esp_http_client_close(client);
                 esp_http_client_cleanup(client);
                 return true;
             } else {
                 ESP_LOGW(TAG, "Bucket not found");
             }
-
-            cJSON_Delete(json);
         } else if (esp_http_client_get_status_code(client) == 404) {
             ESP_LOGI(TAG, "Bucket not found");
         } else {

@@ -280,7 +280,14 @@ void StratumTask::stratumLoop()
             free(line);
             break;
         }
-        m_manager->dispatch(m_index, line);
+
+        // parse the line
+        if (!m_manager->dispatch(m_index, line)) {
+            ESP_LOGE(m_tag, "error parsing json, disconnecting ...");
+            free(line);
+            break;
+        }
+
         free(line);
     }
 }
@@ -443,11 +450,11 @@ int StratumManager::getCurrentPoolPort()
     return m_stratumTasks[m_selected]->getPort();
 }
 
-void StratumManager::dispatch(int pool, const char *line)
+bool StratumManager::dispatch(int pool, const char *line)
 {
     // only accept data from the selected pool
     if (pool != m_selected) {
-        return;
+        return false;
     }
 
     StratumTask *selected = m_stratumTasks[m_selected];
@@ -456,7 +463,10 @@ void StratumManager::dispatch(int pool, const char *line)
 
     memset(m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
 
-    StratumApi::parse(m_stratum_api_v1_message, line);
+    if (!StratumApi::parse(m_stratum_api_v1_message, line)) {
+        ESP_LOGE(m_tag, "error in stratum");
+        return false;
+    }
 
     switch (m_stratum_api_v1_message->method) {
     case MINING_NOTIFY: {
@@ -471,7 +481,11 @@ void StratumManager::dispatch(int pool, const char *line)
         create_job_mining_notify(m_stratum_api_v1_message->mining_notification);
 
         // free notify
-        StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
+        if (m_stratum_api_v1_message->mining_notification) {
+            StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
+            free(m_stratum_api_v1_message->mining_notification);
+            m_stratum_api_v1_message->mining_notification = nullptr;
+        }
         break;
     }
 
@@ -499,7 +513,7 @@ void StratumManager::dispatch(int pool, const char *line)
 
     case CLIENT_RECONNECT: {
         ESP_LOGE(tag, "Pool requested client reconnect ...");
-        return;
+        return false;
     }
 
     case STRATUM_RESULT: {
@@ -527,6 +541,7 @@ void StratumManager::dispatch(int pool, const char *line)
         // NOP
     }
     }
+    return true;
 }
 
 void StratumManager::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
