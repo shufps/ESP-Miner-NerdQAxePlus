@@ -228,7 +228,7 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char* method_str, Stratum
         break;
     }
 
-    ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+    //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
     return true;
 }
 
