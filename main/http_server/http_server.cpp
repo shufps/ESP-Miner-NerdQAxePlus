@@ -325,7 +325,10 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
         }
     }
 
-    if (req->uri[strlen(req->uri) - 1] != '/') {
+    if (strstr(req->uri, ".woff2")) {
+        httpd_resp_set_hdr(req, "Content-Type", "font/woff2");
+        httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=31536000, immutable");
+    } else if (req->uri[strlen(req->uri) - 1] != '/') {
         httpd_resp_set_hdr(req, "Cache-Control", "max-age=2592000");
     }
 
@@ -684,13 +687,13 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "jobInterval", board->getAsicJobIntervalMs());
     cJSON_AddStringToObject(root, "bestDiff", SYSTEM_MODULE.getBestDiffString());
     cJSON_AddStringToObject(root, "bestSessionDiff", SYSTEM_MODULE.getBestSessionDiffString());
-
     cJSON_AddNumberToObject(root, "freeHeap", esp_get_free_heap_size());
     cJSON_AddNumberToObject(root, "coreVoltage", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
     cJSON_AddNumberToObject(root, "coreVoltageActual", (int) (board->getVout() * 1000.0f));
     cJSON_AddNumberToObject(root, "frequency", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
     cJSON_AddStringToObject(root, "ssid", ssid);
     cJSON_AddStringToObject(root, "hostname", hostname);
+    cJSON_AddStringToObject(root, "hostip", SYSTEM_MODULE.getIPAddress());
     cJSON_AddStringToObject(root, "wifiStatus", SYSTEM_MODULE.getWifiStatus());
     cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.getSharesAccepted());
     cJSON_AddNumberToObject(root, "sharesRejected", SYSTEM_MODULE.getSharesRejected());

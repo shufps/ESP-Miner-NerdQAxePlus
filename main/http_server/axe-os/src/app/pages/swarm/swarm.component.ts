@@ -6,6 +6,7 @@ import { LocalStorageService } from '../../services/local-storage.service';
 import { SystemService } from 'src/app/services/system.service';
 import { NbToastrService } from '@nebular/theme';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
+import { LoadingService } from '../../services/loading.service';
 
 const SWARM_DATA = 'SWARM_DATA'
 const SWARM_REFRESH_TIME = 'SWARM_REFRESH_TIME';
@@ -35,10 +36,13 @@ export class SwarmComponent implements OnInit, OnDestroy {
 
   public refreshIntervalControl: FormControl;
 
+  public ipAddress: string;
+
   constructor(
     private fb: FormBuilder,
     private systemService: SystemService,
     private toastrService: NbToastrService,
+    private loadingService: LoadingService,
     private localStorageService: LocalStorageService,
     private httpClient: HttpClient
   ) {
@@ -57,19 +61,36 @@ export class SwarmComponent implements OnInit, OnDestroy {
       this.refreshTimeSet = value;
       this.localStorageService.setNumber(SWARM_REFRESH_TIME, value);
     });
-
   }
 
   ngOnInit(): void {
-    const swarmData = this.localStorageService.getObject(SWARM_DATA);
+    this.systemService.getInfo(0)
+      .pipe(this.loadingService.lockUIUntilComplete())
+      .subscribe({
+        next: (info) => {
+          this.ipAddress = info.hostip;
+          console.log("ip: "+this.ipAddress);
 
-    if (swarmData == null) {
-      this.scanNetwork();
-    } else {
-      this.swarm = swarmData;
-      this.refreshList();
-    }
+          const swarmData = this.localStorageService.getObject(SWARM_DATA);
 
+          if (swarmData == null) {
+            this.scanNetwork();
+          } else {
+            this.swarm = swarmData;
+            this.refreshList();
+          }
+
+          this.startRefreshInterval();
+        },
+        error: (error) => {
+          console.error('Failed to fetch system info:', error);
+          this.startRefreshInterval(); // Start periodic refresh even if info request fails
+        }
+      });
+  }
+
+
+  private startRefreshInterval(): void {
     this.refreshIntervalRef = window.setInterval(() => {
       if (!this.scanning && !this.isRefreshing) {
         this.refreshIntervalTime--;
@@ -79,6 +100,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
       }
     }, 1000);
   }
+
 
   ngOnDestroy(): void {
     window.clearInterval(this.refreshIntervalRef);
@@ -104,7 +126,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
   scanNetwork() {
     this.scanning = true;
 
-    const { start, end } = this.calculateIpRange(window.location.hostname, '255.255.255.0');
+    const { start, end } = this.calculateIpRange(this.ipAddress, '255.255.255.0');
     const ips = Array.from({ length: end - start + 1 }, (_, i) => this.intToIp(start + i));
     from(ips).pipe(
       mergeMap(ipAddr =>

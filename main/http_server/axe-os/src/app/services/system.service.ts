@@ -29,6 +29,7 @@ const defaultInfo: ISystemInfo = {
   coreVoltage: 1200,
   coreVoltageActual: 1200,
   hostname: "Bitaxe",
+  hostip: "192.168.0.123",
   ssid: "default",
   wifiPass: "password",
   wifiStatus: "Connected!",

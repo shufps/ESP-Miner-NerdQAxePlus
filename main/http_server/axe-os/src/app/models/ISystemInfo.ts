@@ -25,6 +25,7 @@ export interface ISystemInfo {
     freeHeap: number,
     coreVoltage: number,
     hostname: string,
+    hostip: string,
     ssid: string,
     wifiPass: string,
     wifiStatus: string,

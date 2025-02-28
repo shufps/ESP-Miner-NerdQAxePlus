@@ -271,17 +271,16 @@ void System::task() {
     m_display->miningScreen();
 
     uint8_t countCycle = 10;
-    char ipAddressStr[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
     bool validIp = false;
 
     // show initial 0.0.0.0
-    m_display->updateIpAddress(ipAddressStr);
+    m_display->updateIpAddress(m_ipAddress);
 
     while (1) {
         // update IP on the screen if it is available
-        if (!validIp && connect_get_ip_addr(ipAddressStr, sizeof(ipAddressStr))) {
-            ESP_LOGI(TAG, "ip address: %s", ipAddressStr);
-            m_display->updateIpAddress(ipAddressStr);
+        if (!validIp && connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
+            ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
+            m_display->updateIpAddress(m_ipAddress);
             validIp = true;
         }
 
