@@ -31,6 +31,9 @@ add_compile_definitions(LV_MEM_CUSTOM_REALLOC=lv_psram_realloc)
 # access to main include files
 include_directories("./main")
 
+# this are only header files
+include_directories("./components/arduinojson")
+
 # (Not part of the boilerplate)
 # This example uses an extra component for common functions such as Wi-Fi and Ethernet connection.
 # set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components/protocol_examples_common)
