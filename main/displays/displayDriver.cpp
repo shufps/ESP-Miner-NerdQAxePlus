@@ -37,6 +37,7 @@ DisplayDriver::DisplayDriver() {
     m_countdownActive = false;
     m_countdownStartTime = 0;
     m_btcPrice = 0;
+    m_blockHeight = 0;
 }
 
 bool DisplayDriver::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
@@ -150,6 +151,7 @@ void DisplayDriver::hideError() {
 }
 
 void DisplayDriver::changeScreen(void) {
+    APIs_FETCHER.disableFetching();
     if (m_screenStatus == SCREEN_MINING) {
         enableLvglAnimations(true);
         _ui_screen_change(m_ui->ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
@@ -159,8 +161,14 @@ void DisplayDriver::changeScreen(void) {
         enableLvglAnimations(true);
         _ui_screen_change(m_ui->ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         m_screenStatus = SCREEN_BTCPRICE;
+        APIs_FETCHER.enableFetching();
         ESP_LOGI("UI", "New Screen BTCprice displayed");
     } else if (m_screenStatus == SCREEN_BTCPRICE) {
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        m_screenStatus = SCREEN_GLBSTATS;
+        ESP_LOGI("UI", "New Screen Global Stats displayed");
+    } else if (m_screenStatus == SCREEN_GLBSTATS) {
         enableLvglAnimations(true);
         _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
         m_screenStatus = SCREEN_MINING;
@@ -176,7 +184,7 @@ void DisplayDriver::lvglTimerTaskWrapper(void *param) {
 void DisplayDriver::lvglTimerTask(void *param)
 {
     int64_t myLastTime = esp_timer_get_time();
-    uint8_t autoOffEnabled = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0);
+    uint8_t autoOffEnabled = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE);
     // int64_t current_time = esp_timer_get_time();
 
     // Check if screen is changing to avoid problems during change
@@ -271,6 +279,8 @@ void DisplayDriver::lvglTimerTask(void *param)
                     m_ui->settingsScreenInit();
                 if (m_ui->ui_BTCScreen == NULL)
                     m_ui->bTCScreenInit();
+                if (m_ui->ui_GlobalStats == NULL)
+                    m_ui->globalStatsScreenInit();
                 enableLvglAnimations(true);
                 _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
                 if (m_ui->ui_Splash2) {
@@ -374,7 +384,7 @@ lv_obj_t *DisplayDriver::initTDisplayS3(void)
 
     esp_lcd_panel_swap_xy(panel_handle, true);
 
-    if (!nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 0)) {
+    if (!nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, CONFIG_FLIP_SCREEN_VALUE)) {
         esp_lcd_panel_mirror(panel_handle, true, false);
     } else {
         esp_lcd_panel_mirror(panel_handle, false, true);
@@ -498,7 +508,7 @@ void DisplayDriver::updateCurrentSettings()
     snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
     lv_label_set_text(m_ui->ui_lbVcoreSet, strData); // Update label
 
-    uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
+    uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE);
     if (auto_fan_speed == 1)
         lv_label_set_text(m_ui->ui_lbFanSet, "AUTO"); // Update label
     else {
@@ -515,9 +525,43 @@ void DisplayDriver::updateBTCprice(void)
     if ((m_screenStatus != SCREEN_BTCPRICE) && (m_btcPrice != 0))
         return;
 
-    m_btcPrice = BTC_PRICE_FETCHER.getPrice();
+    m_btcPrice = APIs_FETCHER.getPrice();
     snprintf(price_str, sizeof(price_str), "%u$", m_btcPrice);
     lv_label_set_text(m_ui->ui_lblBTCPrice, price_str); // Update label
+}
+
+void DisplayDriver::updateGlobalMiningStats(void)
+{
+    char strData[32];
+
+    if ((m_screenStatus != SCREEN_GLBSTATS) && (m_blockHeight != 0))
+        return;
+
+
+    m_blockHeight = APIs_FETCHER.getBlockHeight();
+    snprintf(strData, sizeof(strData), "%lu", m_blockHeight);
+    lv_label_set_text(m_ui->ui_lblBlock, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu", APIs_FETCHER.getBlocksToHalving());
+    lv_label_set_text(m_ui->ui_lblBlocksToHalving, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu%%", APIs_FETCHER.getHalvingPercent());
+    lv_label_set_text(m_ui->ui_lblHalvingPercent, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%llu", APIs_FETCHER.getNetHash());
+    lv_label_set_text(m_ui->ui_lblGlobalHash, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lluT", APIs_FETCHER.getNetDifficulty());
+    lv_label_set_text(m_ui->ui_lblDifficulty, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu", APIs_FETCHER.getLowestFee());
+    lv_label_set_text(m_ui->ui_lbllowFee, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu", APIs_FETCHER.getMidFee());
+    lv_label_set_text(m_ui->ui_lblmedFee, strData); // Update label
+
+    snprintf(strData, sizeof(strData), "%lu", APIs_FETCHER.getFastestFee());
+    lv_label_set_text(m_ui->ui_lblhighFee, strData); // Update label
 }
 
 void DisplayDriver::updateGlobalState()
@@ -550,6 +594,7 @@ void DisplayDriver::updateGlobalState()
     updateShares(&SYSTEM_MODULE);
     updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.getPower());
     updateBTCprice();
+    updateGlobalMiningStats();
 
     Board *board = SYSTEM_MODULE.getBoard();
     uint16_t vcore = (int) (board->getVout() * 1000.0f);
@@ -587,6 +632,8 @@ void DisplayDriver::miningScreen(void)
         m_ui->settingsScreenInit();
     if (m_ui->ui_BTCScreen == NULL)
         m_ui->bTCScreenInit();
+    if (m_ui->ui_GlobalStats == NULL)
+        m_ui->globalStatsScreenInit();
     m_nextScreen = SCREEN_MINING;
 }
 

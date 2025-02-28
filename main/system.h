@@ -13,7 +13,7 @@
 #define STRATUM_USER CONFIG_STRATUM_USER
 #define DIFF_STRING_SIZE 12 // Maximum size of the difficulty string
 #define MAX_ASIC_JOBS 128   // Maximum number of ASIC jobs allowed
-#define OVERHEAT_DEFAULT 70 // Default overheat threshold in degrees Celsius
+//#define OVERHEAT_DEFAULT 70 // Default overheat threshold in degrees Celsius
 
 class System {
   protected:
@@ -43,6 +43,8 @@ class System {
     char m_ssid[33];           // WiFi SSID (+1 for null terminator)
     char m_wifiStatus[20];     // WiFi status string
     bool m_apState;
+    char *m_hostname;
+    char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
 
     StratumConfig m_stratumConfig[2];
 
@@ -227,4 +229,11 @@ class System {
         return m_lastResetReason;
     }
 
+    const char* getHostname() {
+        return (const char*) m_hostname;
+    }
+
+    const char* getIPAddress() {
+        return (const char*) m_ipAddress;
+    }
 };

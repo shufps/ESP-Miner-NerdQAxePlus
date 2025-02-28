@@ -41,7 +41,7 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_asicMinDifficulty = 512;
 
 #ifdef NERDAXEGAMMA
-    m_theme = new ThemeNerdaxe();
+    m_theme = new ThemeNerdaxegamma();
 #endif
     m_asics = new BM1370();
 }
@@ -77,6 +77,10 @@ bool NerdaxeGamma::initBoard()
     return true;
 }
 
+void NerdaxeGamma::shutdown() {
+    // NOP / TODO
+}
+
 bool NerdaxeGamma::initAsics() {
 
     // set output voltage
@@ -105,7 +109,8 @@ bool NerdaxeGamma::initAsics() {
     vTaskDelay(250 / portTICK_PERIOD_MS);
 
     SERIAL_clear_buffer();
-    if (!m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty)) {
+    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty);
+    if (!m_chipsDetected) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;
     }

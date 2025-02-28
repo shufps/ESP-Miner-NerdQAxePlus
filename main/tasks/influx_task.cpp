@@ -99,7 +99,7 @@ void influx_task(void *pvParameters)
 {
     System *module = &SYSTEM_MODULE;
 
-    int influxEnable = nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE);
+    int influxEnable = nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE);
 
     if (!influxEnable) {
         ESP_LOGI(TAG, "InfluxDB is not enabled.");

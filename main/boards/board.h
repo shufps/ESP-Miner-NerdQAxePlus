@@ -13,6 +13,7 @@ class Board {
     const char *m_asicModel;
     const char *m_miningAgent;
     int m_asicCount;
+    int m_chipsDetected = 0;
 
     // asic settings
     float m_asicJobIntervalMs;
@@ -75,9 +76,13 @@ class Board {
 
     virtual void requestBuckTelemtry() = 0;
 
+    virtual void shutdown() = 0;
+
     virtual bool getPSUFault() {
         return false;
     }
+
+    virtual bool selfTest();
 
     Theme *getTheme()
     {

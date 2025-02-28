@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/param.h>
+#include <netdb.h>
 
 #include "cJSON.h"
 #include "esp_chip_info.h"
@@ -111,45 +112,43 @@ static esp_err_t ip_in_private_range(uint32_t address) {
     return ESP_FAIL;
 }
 
-static uint32_t extract_origin_ip_addr(httpd_req_t *req)
+static uint32_t get_origin_ip(const char *host)
 {
-    char origin[128];
-    char ip_str[16];
     uint32_t origin_ip_addr = 0;
 
-    // Attempt to get the Origin header.
-    if (httpd_req_get_hdr_value_str(req, "Origin", origin, sizeof(origin)) != ESP_OK) {
-        ESP_LOGD(CORS_TAG, "No origin header found.");
-        return 0;
+    // Convert the IP address string to uint32_t
+    origin_ip_addr = inet_addr(host);
+    if (origin_ip_addr == INADDR_NONE) {
+        ESP_LOGW(CORS_TAG, "Invalid IP address: %s", host);
+    } else {
+        ESP_LOGI(CORS_TAG, "Extracted IP address %lu", origin_ip_addr);
     }
-    ESP_LOGD(CORS_TAG, "Origin header: %s", origin);
-
-    // Find the start of the IP address in the Origin header
-    const char *prefix = "http://";
-    char *ip_start = strstr(origin, prefix);
-    if (ip_start) {
-        ip_start += strlen(prefix); // Move past "http://"
-
-        // Extract the IP address portion (up to the next '/')
-        char *ip_end = strchr(ip_start, '/');
-        size_t ip_len = ip_end ? (size_t)(ip_end - ip_start) : strlen(ip_start);
-        if (ip_len < sizeof(ip_str)) {
-            strncpy(ip_str, ip_start, ip_len);
-            ip_str[ip_len] = '\0'; // Null-terminate the string
-
-            // Convert the IP address string to uint32_t
-            origin_ip_addr = inet_addr(ip_str);
-            if (origin_ip_addr == INADDR_NONE) {
-                ESP_LOGW(CORS_TAG, "Invalid IP address: %s", ip_str);
-            } else {
-                ESP_LOGD(CORS_TAG, "Extracted IP address %lu", origin_ip_addr);
-            }
-        } else {
-            ESP_LOGW(CORS_TAG, "IP address string is too long: %s", ip_start);
-        }
-    }
-
     return origin_ip_addr;
+}
+
+
+static const char* extract_origin_host(char *origin)
+{
+    const char *prefix = "http://";
+
+    origin = strstr(origin, prefix);
+    if (!origin) {
+        return nullptr;
+    }
+
+    // skip prefix
+    char *host = &origin[strlen(prefix)];
+
+    // find the slash
+    char *prefix_end = strchr(host, '/');
+
+    // if we have one, we just terminate the string
+    if (prefix_end) {
+        *prefix_end = 0;
+    }
+
+    // in the other case we keep the previous zero termination
+    return (const char*) host;
 }
 
 static esp_err_t is_network_allowed(httpd_req_t * req)
@@ -177,8 +176,29 @@ static esp_err_t is_network_allowed(httpd_req_t * req)
     // Convert to IPv4 string
     inet_ntop(AF_INET, &request_ip_addr, ipstr, sizeof(ipstr));
 
-    uint32_t origin_ip_addr = extract_origin_ip_addr(req);
-    if (origin_ip_addr == 0) {
+    // Attempt to get the Origin header.
+    char origin[128];
+    uint32_t origin_ip_addr;
+    if (httpd_req_get_hdr_value_str(req, "Origin", origin, sizeof(origin)) == ESP_OK) {
+        ESP_LOGD(CORS_TAG, "Origin header: %s", origin);
+        const char *host = extract_origin_host(origin);
+        if (!host) {
+            ESP_LOGW(CORS_TAG, "couldn't extract origin host: %s", origin);
+            return ESP_FAIL;
+        }
+        ESP_LOGI(CORS_TAG, "extracted origin host: %s", host);
+
+        // check if origin is hostname
+        const char *hostname = SYSTEM_MODULE.getHostname();
+        ESP_LOGI(CORS_TAG, "hostname: %s", hostname);
+        if (!(strncmp(host, hostname, strlen(hostname)))) {
+            ESP_LOGI(CORS_TAG, "origin equals hostname");
+            return ESP_OK;
+        }
+
+        origin_ip_addr = get_origin_ip(host);
+    } else {
+        ESP_LOGD(CORS_TAG, "No origin header found.");
         origin_ip_addr = request_ip_addr;
     }
 
@@ -270,31 +290,45 @@ static esp_err_t rest_recovery_handler(httpd_req_t *req)
 static esp_err_t rest_common_get_handler(httpd_req_t *req)
 {
     char filepath[FILE_PATH_MAX];
-    uint8_t filePathLength = sizeof(filepath);
+    size_t filePathLength = sizeof(filepath);  // Fixed size type
 
     rest_server_context_t *rest_context = (rest_server_context_t *) req->user_ctx;
     strlcpy(filepath, rest_context->base_path, filePathLength);
+
     if (req->uri[strlen(req->uri) - 1] == '/') {
         strlcat(filepath, "/index.html", filePathLength);
     } else {
+        if (strlen(filepath) + strlen(req->uri) + 1 > filePathLength) {
+            ESP_LOGE(TAG, "File path too long!");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "File path too long");
+            return ESP_FAIL;
+        }
         strlcat(filepath, req->uri, filePathLength);
     }
+
     set_content_type_from_file(req, filepath);
-    strcat(filepath, ".gz");
+    strlcat(filepath, ".gz", filePathLength);  // Append .gz extension
+
     int fd = open(filepath, O_RDONLY, 0);
     if (fd == -1) {
-        // Set status
-        httpd_resp_set_status(req, "302 Temporary Redirect");
-        // Redirect to the "/" root directory
-        httpd_resp_set_hdr(req, "Location", "/");
-        // iOS requires content in the response to detect a captive portal, simply redirecting is not sufficient.
-        httpd_resp_send(req, "Redirect to the captive portal", HTTPD_RESP_USE_STRLEN);
+        ESP_LOGE(TAG, "Failed to open file: %s, errno: %d", filepath, errno);
 
-        ESP_LOGI(TAG, "Redirecting to root");
-        return ESP_OK;
+        if (errno == ENOENT) {
+            httpd_resp_set_status(req, "302 Temporary Redirect");
+            httpd_resp_set_hdr(req, "Location", "/");
+            httpd_resp_send(req, "Redirect to the captive portal", HTTPD_RESP_USE_STRLEN);
+            ESP_LOGI(TAG, "Redirecting to root");
+            return ESP_OK;
+        } else {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open file");
+            return ESP_FAIL;
+        }
     }
 
-    if (req->uri[strlen(req->uri) - 1] != '/') {
+    if (strstr(req->uri, ".woff2")) {
+        httpd_resp_set_hdr(req, "Content-Type", "font/woff2");
+        httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=31536000, immutable");
+    } else if (req->uri[strlen(req->uri) - 1] != '/') {
         httpd_resp_set_hdr(req, "Cache-Control", "max-age=2592000");
     }
 
@@ -303,30 +337,28 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
     char *chunk = rest_context->scratch;
     ssize_t read_bytes;
     do {
-        /* Read file in chunks into the scratch buffer */
         read_bytes = read(fd, chunk, SCRATCH_BUFSIZE);
         if (read_bytes == -1) {
-            ESP_LOGE(TAG, "Failed to read file : %s", filepath);
+            ESP_LOGE(TAG, "Failed to read file: %s", filepath);
+            close(fd);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Read error");
+            return ESP_FAIL;
         } else if (read_bytes > 0) {
-            /* Send the buffer contents as HTTP response chunk */
             if (httpd_resp_send_chunk(req, chunk, read_bytes) != ESP_OK) {
-                close(fd);
                 ESP_LOGE(TAG, "File sending failed!");
-                /* Abort sending file */
-                httpd_resp_sendstr_chunk(req, NULL);
-                /* Respond with 500 Internal Server Error */
+                close(fd);
                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
                 return ESP_FAIL;
             }
         }
     } while (read_bytes > 0);
-    /* Close file after sending complete */
+
     close(fd);
     ESP_LOGI(TAG, "File sending complete");
-    /* Respond with an empty chunk to signal HTTP response completion */
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
+
 
 static esp_err_t PATCH_update_swarm(httpd_req_t *req)
 {
@@ -564,7 +596,7 @@ static esp_err_t POST_restart(httpd_req_t *req)
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     // Restart the system
-    esp_restart();
+    POWER_MANAGEMENT_MODULE.restart();
 
     // This return statement will never be reached, but it's good practice to include it
     return ESP_OK;
@@ -655,13 +687,13 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "jobInterval", board->getAsicJobIntervalMs());
     cJSON_AddStringToObject(root, "bestDiff", SYSTEM_MODULE.getBestDiffString());
     cJSON_AddStringToObject(root, "bestSessionDiff", SYSTEM_MODULE.getBestSessionDiffString());
-
     cJSON_AddNumberToObject(root, "freeHeap", esp_get_free_heap_size());
     cJSON_AddNumberToObject(root, "coreVoltage", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
     cJSON_AddNumberToObject(root, "coreVoltageActual", (int) (board->getVout() * 1000.0f));
     cJSON_AddNumberToObject(root, "frequency", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
     cJSON_AddStringToObject(root, "ssid", ssid);
     cJSON_AddStringToObject(root, "hostname", hostname);
+    cJSON_AddStringToObject(root, "hostip", SYSTEM_MODULE.getIPAddress());
     cJSON_AddStringToObject(root, "wifiStatus", SYSTEM_MODULE.getWifiStatus());
     cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.getSharesAccepted());
     cJSON_AddNumberToObject(root, "sharesRejected", SYSTEM_MODULE.getSharesRejected());
@@ -679,12 +711,12 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "isUsingFallbackStratum", STRATUM_MANAGER.isUsingFallback());
     cJSON_AddStringToObject(root, "version", esp_ota_get_app_description()->version);
     cJSON_AddStringToObject(root, "runningPartition", esp_ota_get_running_partition()->label);
-    cJSON_AddNumberToObject(root, "flipscreen", nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, 1));
-    cJSON_AddNumberToObject(root, "overheat_temp", nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, 0));
-    cJSON_AddNumberToObject(root, "invertscreen", nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0));
-    cJSON_AddNumberToObject(root, "autoscreenoff", nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, 0));
-    cJSON_AddNumberToObject(root, "invertfanpolarity", nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
-    cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1));
+    cJSON_AddNumberToObject(root, "flipscreen", nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, CONFIG_FLIP_SCREEN_VALUE));
+    cJSON_AddNumberToObject(root, "overheat_temp", nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP));
+    cJSON_AddNumberToObject(root, "invertscreen", nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0)); // unused?
+    cJSON_AddNumberToObject(root, "autoscreenoff", nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE));
+    cJSON_AddNumberToObject(root, "invertfanpolarity", nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, CONFIG_INVERT_POLARITY_VALUE));
+    cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE));
     cJSON_AddNumberToObject(root, "fanspeed", POWER_MANAGEMENT_MODULE.getFanPerc());
     cJSON_AddNumberToObject(root, "fanrpm", POWER_MANAGEMENT_MODULE.getFanRPM());
     cJSON_AddStringToObject(root, "lastResetReason", SYSTEM_MODULE.getLastResetReason());
@@ -737,7 +769,7 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
     cJSON_AddStringToObject(root, "influxBucket", influxBucket);
     cJSON_AddStringToObject(root, "influxOrg", influxOrg);
     cJSON_AddStringToObject(root, "influxPrefix", influxPrefix);
-    cJSON_AddNumberToObject(root, "influxEnable", nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, 1));
+    cJSON_AddNumberToObject(root, "influxEnable", nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE));
 
     free(influxURL);
     free(influxBucket);
@@ -813,7 +845,6 @@ static esp_err_t POST_WWW_update(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
 
-    char buf[1000];
     int remaining = req->content_len;
 
     const esp_partition_t *www_partition =
@@ -832,23 +863,30 @@ static esp_err_t POST_WWW_update(httpd_req_t *req)
     // Erase the entire www partition before writing
     ESP_ERROR_CHECK(esp_partition_erase_range(www_partition, 0, www_partition->size));
 
+    // don't put it on the stack
+    char *buf = (char*) malloc(2048);
+
     while (remaining > 0) {
-        int recv_len = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)));
+        int recv_len = httpd_req_recv(req, buf, MIN(remaining, 2048));
 
         if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
             continue;
         } else if (recv_len <= 0) {
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
+            free(buf);
             return ESP_FAIL;
         }
 
         if (esp_partition_write(www_partition, www_partition->size - remaining, (const void *) buf, recv_len) != ESP_OK) {
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Write Error");
+            free(buf);
             return ESP_FAIL;
         }
 
         remaining -= recv_len;
     }
+
+    free(buf);
 
     httpd_resp_sendstr(req, "WWW update complete\n");
     return ESP_OK;
@@ -863,15 +901,17 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
 
-    char buf[1000];
     esp_ota_handle_t ota_handle;
     int remaining = req->content_len;
 
     const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
     ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
 
+    // don't put it on the stack
+    char *buf = (char*) malloc(2048);
+
     while (remaining > 0) {
-        int recv_len = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)));
+        int recv_len = httpd_req_recv(req, buf, MIN(remaining, 2048));
 
         // Timeout Error: Just retry
         if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
@@ -880,6 +920,7 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
             // Serious Error: Abort OTA
         } else if (recv_len <= 0) {
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
+            free(buf);
             return ESP_FAIL;
         }
 
@@ -887,11 +928,14 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
         if (esp_ota_write(ota_handle, (const void *) buf, recv_len) != ESP_OK) {
             esp_ota_abort(ota_handle);
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Flash Error");
+            free(buf);
             return ESP_FAIL;
         }
 
         remaining -= recv_len;
     }
+
+    free(buf);
 
     // Validate and switch to new OTA image and reboot
     if (esp_ota_end(ota_handle) != ESP_OK || esp_ota_set_boot_partition(ota_partition) != ESP_OK) {
@@ -902,7 +946,7 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
     httpd_resp_sendstr(req, "Firmware update complete, rebooting now!\n");
     ESP_LOGI(TAG, "Restarting System because of Firmware update complete");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    esp_restart();
+    POWER_MANAGEMENT_MODULE.restart();
 
     return ESP_OK;
 }
@@ -976,7 +1020,6 @@ static esp_err_t echo_handler(httpd_req_t *req)
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
-
     if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "Handshake done, the new connection was opened");
         fd = httpd_req_to_sockfd(req);
@@ -1054,6 +1097,9 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.max_uri_handlers = 20;
+    config.lru_purge_enable = true;
+    config.max_open_sockets = 10;
+    config.stack_size = 8192;
 
     ESP_LOGI(TAG, "Starting HTTP Server");
     if (httpd_start(&server, &config) != ESP_OK) {

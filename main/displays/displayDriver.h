@@ -61,6 +61,7 @@
 #define SCREEN_BTCPRICE 5 // BTC price screen
 #define SCREEN_SETTINGS 6 // Settings screen
 #define SCREEN_LOG 7      // Log screen
+#define SCREEN_GLBSTATS 8 // Global Mining stats screen
 
 /* CLASS DECLARATION -----------------------------------------------------*/
 class System;
@@ -81,6 +82,7 @@ class DisplayDriver {
     int64_t m_countdownStartTime = 0;     // Start time for the countdown
 
     unsigned int m_btcPrice; // Current Bitcoin price
+    uint32_t m_blockHeight; // Current Bitcoin price
 
     UI *m_ui;
 
@@ -109,6 +111,7 @@ class DisplayDriver {
     // Screen switching logic
     void changeScreen();   // Change between screens
     void updateBtcPrice(); // Update Bitcoin price on the screen
+    void updateGlobalMiningStats(); // Update Global mining stats
 
     // LVGL task handling
     void mainCreatSysteTasks();                    // Creates system tasks for LVGL

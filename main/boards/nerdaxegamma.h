@@ -8,12 +8,14 @@
 class NerdaxeGamma : public NerdAxe {
   protected:
     float m_initVoltage;
-    
+
   public:
     NerdaxeGamma();
 
     virtual bool initBoard();
     virtual bool initAsics();
+
+    virtual void shutdown();
 
 // abstract common methos
     virtual bool setVoltage(float core_voltage);

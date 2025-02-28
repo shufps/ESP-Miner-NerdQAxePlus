@@ -1,0 +1,9 @@
+<nb-card [size]="'medium'" class="help-card">
+    <nb-card-header>HELP</nb-card-header>
+    <nb-card-body>
+        <p [innerHtml]="key | translate"></p>
+    </nb-card-body>
+    <nb-card-footer>
+        <button type="button" class="btn btn-success" (click)="dismiss()"> {{'BUTTONS.close' | translate}} </button>
+    </nb-card-footer>
+</nb-card>

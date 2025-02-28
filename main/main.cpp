@@ -16,6 +16,7 @@
 #include "boards/nerdqaxeplus2.h"
 #include "boards/nerdaxe.h"
 #include "boards/nerdaxegamma.h"
+#include "boards/nerdhaxegamma.h"
 #include "create_jobs_task.h"
 #include "global_state.h"
 #include "history.h"
@@ -26,7 +27,7 @@
 #include "serial.h"
 #include "stratum_task.h"
 #include "system.h"
-#include "btc_task.h"
+#include "apis_task.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -34,7 +35,7 @@ System SYSTEM_MODULE;
 
 PowerManagementTask POWER_MANAGEMENT_MODULE;
 StratumManager STRATUM_MANAGER;
-BitcoinPriceFetcher BTC_PRICE_FETCHER;
+APIsFetcher APIs_FETCHER;
 
 AsicJobs asicJobs;
 
@@ -149,6 +150,9 @@ extern "C" void app_main(void)
 #ifdef NERDAXEGAMMA
     Board *board = new NerdaxeGamma();
 #endif
+#ifdef NERDHAXEGAMMA
+    Board *board = new NerdHaxeGamma();
+#endif
 
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
@@ -166,7 +170,7 @@ extern "C" void app_main(void)
     uint64_t best_diff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
     uint16_t should_self_test = nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0);
     if (should_self_test == 1 && best_diff < 1) {
-        self_test(NULL);
+        board->selfTest();
         vTaskDelay(60 * 60 * 1000 / portTICK_PERIOD_MS);
     }
 
@@ -195,7 +199,7 @@ extern "C" void app_main(void)
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
 
-        xTaskCreate(BTC_PRICE_FETCHER.taskWrapper, "btc ticker", 4096, (void*) &BTC_PRICE_FETCHER, 5, NULL);
+        xTaskCreate(APIs_FETCHER.taskWrapper, "apis ticker", 4096, (void*) &APIs_FETCHER, 5, NULL);
 
         initWatchdog(stratum_manager_handle);
     }

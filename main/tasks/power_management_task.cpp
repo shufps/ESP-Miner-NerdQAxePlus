@@ -20,7 +20,7 @@
 static const char *TAG = "power_management";
 
 PowerManagementTask::PowerManagementTask() {
-    // NOP
+    m_mutex = PTHREAD_MUTEX_INITIALIZER;
 }
 
 // Set the fan speed between 20% min and 100% max based on chip temperature as input.
@@ -52,12 +52,27 @@ void PowerManagementTask::taskWrapper(void *pvParameters) {
     powerManagementTask->task();
 }
 
+void PowerManagementTask::restart() {
+    ESP_LOGW(TAG, "Shutdown requested ...");
+    // stops the main task
+    pthread_mutex_lock(&m_mutex);
+
+    ESP_LOGW(TAG, "HW lock acquired!");
+    // shutdown asics and LDOs before reset
+    Board* board = SYSTEM_MODULE.getBoard();
+    board->shutdown();
+
+    ESP_LOGW(TAG, "restart");
+    esp_restart();
+    pthread_mutex_unlock(&m_mutex);
+}
+
 void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
 
 
-    uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, 1);
+    uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE);
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
@@ -65,12 +80,13 @@ void PowerManagementTask::task()
     uint16_t last_asic_frequency = 0;
     uint64_t last_temp_request = esp_timer_get_time();
     while (1) {
+        pthread_mutex_lock(&m_mutex);
         // the asics are initialized after this task starts
         Asic* asics = board->getAsics();
 
         uint16_t core_voltage = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
         uint16_t asic_frequency = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
-        uint16_t asic_overheat_temp = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, OVERHEAT_DEFAULT);
+        uint16_t asic_overheat_temp = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP);
 
         if (core_voltage != last_core_voltage) {
             ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
@@ -145,6 +161,7 @@ void PowerManagementTask::task()
             m_fanPerc = fs;
             board->setFanSpeed((float) fs / 100);
         }
+        pthread_mutex_unlock(&m_mutex);
 
         vTaskDelay(POLL_RATE / portTICK_PERIOD_MS);
     }

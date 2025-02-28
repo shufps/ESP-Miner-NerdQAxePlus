@@ -1,4 +1,5 @@
-menu "NerdAxe+ Configuration"
+menu "Miner Configuration"
+
     config ASIC_VOLTAGE
         int "ASIC Core Voltage (mV)"
         range 1000 1800
@@ -11,7 +12,66 @@ menu "NerdAxe+ Configuration"
         range 50 800
         default 490
         help
-            The BM1368 hash frequency
+            The BM1368 hash frequency.
+
+    config INVERT_POLARITY
+        bool "Invert fan polarity"
+        default n
+        help
+            If enabled, the fan PWM polarity will be inverted.
+
+    config INVERT_POLARITY_VALUE
+        int
+        default 1 if INVERT_POLARITY
+        default 0
+
+    config FLIP_SCREEN
+        bool "Flip screen orientation"
+        default n
+        help
+            If enabled, the screen display will be flipped.
+
+    config FLIP_SCREEN_VALUE
+        int
+        default 1 if FLIP_SCREEN
+        default 0
+
+    config AUTO_SCREEN_OFF
+        bool "Screen auto-off"
+        default n
+        help
+            Screen turns automatically off
+
+    config AUTO_SCREEN_OFF_VALUE
+        int
+        default 1 if AUTO_SCREEN_OFF
+        default 0
+
+    config OVERHEAT_TEMP
+        int "Overheat temperature threshold (°C)"
+        range 50 90
+        default 70
+        help
+            The temperature at which the system will trigger an overheat shutdown.
+
+    config AUTO_FAN_SPEED
+        bool "Enable automatic fan speed control"
+        default n
+        help
+            If enabled, the firmware will automatically adjust the fan speed based on temperature.
+
+    config AUTO_FAN_SPEED_VALUE
+        int
+        default 1 if AUTO_FAN_SPEED
+        default 0
+
+    config FAN_SPEED
+        int "Manual fan speed percentage (if auto control is off)"
+        range 0 100
+        default 100
+        help
+            Fan speed in percentage. Only used if auto fan speed is disabled.
+
 endmenu
 
 menu "Stratum Configuration"
@@ -79,10 +139,15 @@ menu "InfluxDB Configuration"
     # Enable or disable the InfluxDB integration
     config INFLUX_ENABLE
         bool "Enable InfluxDB"
-        default y
+        default n
         help
             Enable or disable the InfluxDB integration in the firmware.
             When enabled, the firmware will send data to the specified InfluxDB server.
+
+    config INFLUX_ENABLE_VALUE
+        int
+        default 1 if INFLUX_ENABLE
+        default 0
 
     # Specify the URL of the InfluxDB server
     config INFLUX_URL
