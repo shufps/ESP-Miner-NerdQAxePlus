@@ -89,7 +89,7 @@ static void influx_task_fetch_from_system_module(System *module)
 
 static void forever()
 {
-    ESP_LOGE(TAG, "halting influx_task");
+    ESP_LOGI(TAG, "halting influx_task");
     while (1) {
         vTaskDelay(15000 / portTICK_PERIOD_MS);
     }
