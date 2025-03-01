@@ -37,7 +37,7 @@ void System::initSystem() {
     m_screenPage = 0;
     m_sharesAccepted = 0;
     m_sharesRejected = 0;
-    m_bestNonceDiff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
+    m_bestNonceDiff = Config::getBestDiff();
     m_bestSessionNonceDiff = 0;
     m_startTime = esp_timer_get_time();
     m_foundBlock = false;
@@ -47,18 +47,18 @@ void System::initSystem() {
 
     m_stratumConfig[0] = {
         true,
-        nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL),
-        nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT),
-        nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER),
-        nvs_config_get_string(NVS_CONFIG_STRATUM_PASS, CONFIG_STRATUM_PW)
+        Config::getStratumURL(),
+        Config::getStratumPortNumber(),
+        Config::getStratumUser(),
+        Config::getStratumPass()
     };
 
     m_stratumConfig[1] = {
         false,
-        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_URL, CONFIG_STRATUM_FALLBACK_URL),
-        nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT),
-        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_USER, CONFIG_STRATUM_FALLBACK_USER),
-        nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_PASS, CONFIG_STRATUM_FALLBACK_PW)
+        Config::getStratumFallbackURL(),
+        Config::getStratumFallbackPortNumber(),
+        Config::getStratumFallbackUser(),
+        Config::getStratumFallbackPass()
     };
 
 
@@ -91,7 +91,7 @@ void System::initSystem() {
 
     m_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 
-    m_hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, HOSTNAME);
+    m_hostname = Config::getHostname();
 
     m_history = new History();
     if (!m_history->init(m_board->getAsicCount())) {
@@ -140,7 +140,7 @@ void System::checkForBestDiff(double diff, uint32_t nbits) {
     }
     m_bestNonceDiff = (uint64_t)diff;
 
-    nvs_config_set_u64(NVS_CONFIG_BEST_DIFF, m_bestNonceDiff);
+    Config::setBestDiff(m_bestNonceDiff);
 
     // Make the best_nonce_diff into a string
     suffixString((uint64_t)diff, m_bestDiffString, DIFF_STRING_SIZE, 0);

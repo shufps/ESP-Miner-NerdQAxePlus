@@ -184,7 +184,7 @@ void DisplayDriver::lvglTimerTaskWrapper(void *param) {
 void DisplayDriver::lvglTimerTask(void *param)
 {
     int64_t myLastTime = esp_timer_get_time();
-    uint8_t autoOffEnabled = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE);
+    bool autoOffEnabled = Config::isAutoScreenOffEnabled();
     // int64_t current_time = esp_timer_get_time();
 
     // Check if screen is changing to avoid problems during change
@@ -384,7 +384,7 @@ lv_obj_t *DisplayDriver::initTDisplayS3(void)
 
     esp_lcd_panel_swap_xy(panel_handle, true);
 
-    if (!nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, CONFIG_FLIP_SCREEN_VALUE)) {
+    if (!Config::isFlipScreenEnabled()) {
         esp_lcd_panel_mirror(panel_handle, true, false);
     } else {
         esp_lcd_panel_mirror(panel_handle, false, true);
@@ -502,17 +502,17 @@ void DisplayDriver::updateCurrentSettings()
     snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER.getCurrentPoolPort());
     lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
+    snprintf(strData, sizeof(strData), "%d", Config::getAsicFrequency());
     lv_label_set_text(m_ui->ui_lbFreqSet, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
+    snprintf(strData, sizeof(strData), "%d", Config::getAsicVoltage());
     lv_label_set_text(m_ui->ui_lbVcoreSet, strData); // Update label
 
-    uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE);
+    bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
     if (auto_fan_speed == 1)
         lv_label_set_text(m_ui->ui_lbFanSet, "AUTO"); // Update label
     else {
-        snprintf(strData, sizeof(strData), "%d", nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100));
+        snprintf(strData, sizeof(strData), "%d", Config::getFanSpeed());
         lv_label_set_text(m_ui->ui_lbFanSet, strData); // Update label
     }
 }

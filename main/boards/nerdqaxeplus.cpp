@@ -222,8 +222,8 @@ bool NerdQaxePlus::selfTest(){
     #define CORE_VOLTAGE_TARGET_MIN 1.1 //mV
     #define CORE_VOLTAGE_TARGET_MAX 1.4 //mV
 
-    char logString[300]; 
-    
+    char logString[300];
+
     // Initialize the display
     DisplayDriver *temp_display;
     temp_display = new DisplayDriver();
@@ -239,7 +239,7 @@ bool NerdQaxePlus::selfTest(){
     bool powerOK = (power > m_minPin) && (power < m_maxPin);
     bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
     bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
-    
+
     //Warning! This test only ensures Asic is properly soldered
     snprintf(logString, sizeof(logString),  "\nTest result:\r\n"
                                             "- Asics detected [%d/%d]\n"
@@ -250,10 +250,12 @@ bool NerdQaxePlus::selfTest(){
                                             powerOK ? "OK" : "Warning", power,
                                             VrOK ? "OK" : "Warning", Vout,
                                             (allAsicsDetected) ? "OOOOOOOO TEST OK!!! OOOOOOO" : "XXXXXXXXX TEST KO XXXXXXXXX");
-    temp_display->logMessage(logString);   
+    temp_display->logMessage(logString);
 
-    //Update SelfTest flag                                                              
-    if(allAsicsDetected) nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);                                                                        
+    //Update SelfTest flag
+    if(allAsicsDetected) {
+        Config::setSelfTest(false);
+    }
 
     return true;
 }

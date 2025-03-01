@@ -45,9 +45,9 @@ static const char *TAG = "bitaxe";
 static void setup_wifi()
 {
     // pull the wifi credentials and hostname out of NVS
-    char *wifi_ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, WIFI_SSID);
-    char *wifi_pass = nvs_config_get_string(NVS_CONFIG_WIFI_PASS, WIFI_PASS);
-    char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, HOSTNAME);
+    char *wifi_ssid = Config::getWifiSSID();
+    char *wifi_pass = Config::getWifiPass();
+    char *hostname = Config::getHostname();
 
     // copy the wifi ssid to the global state
     SYSTEM_MODULE.setSsid(wifi_ssid);
@@ -167,9 +167,9 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "Found Device Model: %s", board->getDeviceModel());
     ESP_LOGI(TAG, "Found Board Version: %d", board->getVersion());
 
-    uint64_t best_diff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
-    uint16_t should_self_test = nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0);
-    if (should_self_test == 1 && best_diff < 1) {
+    uint64_t best_diff = Config::getBestDiff();
+    bool should_self_test = Config::isSelfTestEnabled();
+    if (should_self_test && !best_diff) {
         board->selfTest();
         vTaskDelay(60 * 60 * 1000 / portTICK_PERIOD_MS);
     }
@@ -182,9 +182,8 @@ extern "C" void app_main(void)
     // set the startup_done flag
     SYSTEM_MODULE.setStartupDone();
 
-    // if a username is configured we assume we have a valid configuration and disable the AP
-    const char *username = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL);
-    if (username) {
+    // when we have a best diff we assume that wifi is configured
+    if (best_diff) {
         wifi_softap_off();
 
         if (!board->initAsics()) {
@@ -204,10 +203,14 @@ extern "C" void app_main(void)
         initWatchdog(stratum_manager_handle);
     }
 
+    //char* taskList = (char*) malloc(8192);
     while (1) {
         vTaskDelay(10000 / portTICK_PERIOD_MS);
         size_t free_internal_heap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
         ESP_LOGI(TAG, "Free internal heap: %d bytes", free_internal_heap);
+
+        //vTaskList(taskList);
+        //ESP_LOGI(TAG, "%s", taskList);
     }
 }
 
