@@ -84,9 +84,9 @@ void PowerManagementTask::task()
         // the asics are initialized after this task starts
         Asic* asics = board->getAsics();
 
-        uint16_t core_voltage = Config::getAsicVoltage();
-        uint16_t asic_frequency = Config::getAsicFrequency();;
-        uint16_t asic_overheat_temp = Config::getOverheatTemp();;
+        uint16_t core_voltage = board->getAsicVoltage();
+        uint16_t asic_frequency = board->getAsicFrequency();
+        uint16_t asic_overheat_temp = Config::getOverheatTemp();
 
         if (core_voltage != last_core_voltage) {
             ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);

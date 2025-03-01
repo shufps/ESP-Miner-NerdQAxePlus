@@ -108,6 +108,14 @@ class Board {
         return m_isInitialized ? m_asics : nullptr;
     }
 
+    float getAsicVoltage() {
+        return m_asicVoltage;
+    }
+
+    float getAsicFrequency() {
+        return m_asicFrequency;
+    }
+
     float getMinPin()
     {
         return m_minPin;
