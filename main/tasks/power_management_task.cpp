@@ -72,7 +72,7 @@ void PowerManagementTask::task()
     Board* board = SYSTEM_MODULE.getBoard();
 
 
-    uint16_t auto_fan_speed = Config::isAutoFanSpeedEnabled() ? 1 : 0;
+    bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
@@ -154,7 +154,7 @@ void PowerManagementTask::task()
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
-        if (auto_fan_speed == 1) {
+        if (auto_fan_speed) {
             m_fanPerc = (float) automaticFanSpeed(board, m_chipTempAvg);
         } else {
             float fs = (float) Config::getFanSpeed();
