@@ -14,7 +14,7 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
     m_ifault = 140.0;
 
     // use m_asicVoltage for init
-    m_initVoltage = 0.0;
+    m_initVoltageMillis = 0;
 
     m_maxPin = 200.0;
     m_minPin = 100.0;

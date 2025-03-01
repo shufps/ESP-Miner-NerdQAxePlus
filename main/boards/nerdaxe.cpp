@@ -38,8 +38,8 @@ NerdAxe::NerdAxe() : Board() {
     m_asicModel = "BM1366";
     m_asicCount = 1;
     m_asicJobIntervalMs = 1500;
-    m_asicFrequency = 485.0;
-    m_asicVoltage = 1.20;
+    m_asicFrequency = 485;
+    m_asicVoltageMillis = 1200;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
 
@@ -129,7 +129,7 @@ bool NerdAxe::initAsics()
     vTaskDelay(250 / portTICK_PERIOD_MS);
 
      // set output voltage
-    setVoltage(m_asicVoltage);
+    setVoltage((float) m_asicVoltageMillis / 1000.0f);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);

@@ -728,7 +728,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
     doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
     doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
-    doc["coreVoltage"]        = (int) (board->getAsicVoltage() * 1000.0f);
+    doc["coreVoltage"]        = board->getAsicVoltageMillis();
     doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
     doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
     doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();

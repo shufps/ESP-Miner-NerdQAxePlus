@@ -17,6 +17,8 @@ bool tempinit = false;
 
 static const char* TAG="nerdaxeGamma";
 
+#define MAX(a,b) ((a)>(b)?(a):(b))
+
 NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_deviceModel = "NerdAxeGamma";
     m_miningAgent = "NerdAxe";
@@ -25,9 +27,9 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_asicCount = 1;
 
     m_asicJobIntervalMs = 1500;
-    m_asicFrequency = 525.0;
-    m_asicVoltage = 1.15;
-    m_initVoltage = 1.15;
+    m_asicFrequency = 525;
+    m_asicVoltageMillis = 1150;
+    m_initVoltageMillis = 1150;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
     m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
@@ -97,7 +99,7 @@ bool NerdaxeGamma::initAsics() {
 
     // set the init voltage
     // use the higher voltage for initialization
-    setVoltage(fmaxf(m_initVoltage, m_asicVoltage));
+    setVoltage((float) MAX(m_initVoltageMillis, m_asicVoltageMillis) / 1000.0f);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);

@@ -21,12 +21,12 @@ void Board::loadSettings()
     uint16_t nvsAsicJobInterval = Config::getAsicJobInterval();
 
     m_asicFrequency = nvsAsicFrequency ? nvsAsicFrequency : m_asicFrequency;
-    m_asicVoltage = nvsAsicVoltage ? ((float) nvsAsicVoltage / 1000.0f) : m_asicVoltage;
+    m_asicVoltageMillis = nvsAsicVoltage ? nvsAsicVoltage : m_asicVoltageMillis;
     m_asicJobIntervalMs = nvsAsicJobInterval ? nvsAsicJobInterval : m_asicJobIntervalMs;
 
-    ESP_LOGI(TAG, "ASIC Frequency: %.3f", (float) m_asicFrequency);
-    ESP_LOGI(TAG, "ASIC voltage: %.3f", (float) m_asicVoltage);
-    ESP_LOGI(TAG, "ASIC job interval: %d", m_asicJobIntervalMs);
+    ESP_LOGI(TAG, "ASIC Frequency: %dMHz", m_asicFrequency);
+    ESP_LOGI(TAG, "ASIC voltage: %dmV", m_asicVoltageMillis);
+    ESP_LOGI(TAG, "ASIC job interval: %dms", m_asicJobIntervalMs);
     ESP_LOGI(TAG, "invert fan polarity: %s", m_fanInvertPolarity ? "true" : "false");
     ESP_LOGI(TAG, "fan speed: %d%%", (int) m_fanPerc);
 }

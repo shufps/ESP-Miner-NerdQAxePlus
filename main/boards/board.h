@@ -17,8 +17,8 @@ class Board {
 
     // asic settings
     int m_asicJobIntervalMs;
-    float m_asicFrequency;
-    float m_asicVoltage;
+    int m_asicFrequency;
+    int m_asicVoltageMillis;
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
@@ -108,11 +108,11 @@ class Board {
         return m_isInitialized ? m_asics : nullptr;
     }
 
-    float getAsicVoltage() {
-        return m_asicVoltage;
+    int getAsicVoltageMillis() {
+        return m_asicVoltageMillis;
     }
 
-    float getAsicFrequency() {
+    int getAsicFrequency() {
         return m_asicFrequency;
     }
 

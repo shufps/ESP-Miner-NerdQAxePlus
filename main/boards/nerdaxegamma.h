@@ -7,7 +7,7 @@
 
 class NerdaxeGamma : public NerdAxe {
   protected:
-    float m_initVoltage;
+    int m_initVoltageMillis;
 
   public:
     NerdaxeGamma();

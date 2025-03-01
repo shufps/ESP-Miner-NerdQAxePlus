@@ -17,7 +17,7 @@
 #include "TMP1075.h"
 #include "TPS53647.h"
 
-
+#define MAX(a,b) ((a)>(b)?(a):(b))
 
 static const char* TAG="nerdqaxe+";
 
@@ -28,9 +28,9 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicModel = "BM1368";
     m_asicCount = 4;
     m_asicJobIntervalMs = 1200;
-    m_asicFrequency = 490.0;
-    m_asicVoltage = 1.25; // default voltage
-    m_initVoltage = 1.25;
+    m_asicFrequency = 490;
+    m_asicVoltageMillis = 1250; // default voltage
+    m_initVoltageMillis = 1250;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
     m_numPhases = 2;
@@ -116,7 +116,7 @@ bool NerdQaxePlus::initAsics()
 
     // set the init voltage
     // use the higher voltage for initialization
-    setVoltage(fmaxf(m_initVoltage, m_asicVoltage));
+    setVoltage((float) MAX(m_initVoltageMillis, m_asicVoltageMillis) / 1000.0f);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -139,7 +139,7 @@ bool NerdQaxePlus::initAsics()
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     // set final output voltage
-    setVoltage(m_asicVoltage);
+    setVoltage((float) m_asicVoltageMillis / 1000.0f);
 
     m_isInitialized = true;
     return true;
