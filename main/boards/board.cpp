@@ -17,7 +17,7 @@ void Board::loadSettings()
     m_fanPerc = Config::getFanSpeed();
 
     // was initialized with board specific default value in the constructor
-    m_asicJobIntervalMs = Config::nvs_config_get_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, m_asicJobIntervalMs); // TODO
+    m_asicJobIntervalMs = Config::getAsicJobInterval(m_asicJobIntervalMs);
 
     ESP_LOGI(TAG, "NVS_CONFIG_ASIC_FREQ %.3f", (float) m_asicFrequency);
     ESP_LOGI(TAG, "NVS_CONFIG_ASIC_VOLTAGE %.3f", (float) m_asicVoltage);
