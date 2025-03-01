@@ -26,7 +26,7 @@ void Board::loadSettings()
 
     ESP_LOGI(TAG, "ASIC Frequency: %.3f", (float) m_asicFrequency);
     ESP_LOGI(TAG, "ASIC voltage: %.3f", (float) m_asicVoltage);
-    ESP_LOGI(TAG, "ASIC job interval: %d", (int) m_asicJobIntervalMs);
+    ESP_LOGI(TAG, "ASIC job interval: %d", m_asicJobIntervalMs);
     ESP_LOGI(TAG, "invert fan polarity: %s", m_fanInvertPolarity ? "true" : "false");
     ESP_LOGI(TAG, "fan speed: %d%%", (int) m_fanPerc);
 }
@@ -56,7 +56,7 @@ int Board::getAsicCount()
     return m_asicCount;
 }
 
-double Board::getAsicJobIntervalMs()
+int Board::getAsicJobIntervalMs()
 {
     return m_asicJobIntervalMs;
 }

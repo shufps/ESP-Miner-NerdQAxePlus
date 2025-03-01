@@ -16,7 +16,7 @@ class Board {
     int m_chipsDetected = 0;
 
     // asic settings
-    float m_asicJobIntervalMs;
+    int m_asicJobIntervalMs;
     float m_asicFrequency;
     float m_asicVoltage;
 
@@ -56,7 +56,7 @@ class Board {
     int getVersion();
     const char *getAsicModel();
     int getAsicCount();
-    double getAsicJobIntervalMs();
+    int getAsicJobIntervalMs();
     uint32_t getInitialASICDifficulty();
 
     // abstract common methos
