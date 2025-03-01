@@ -66,7 +66,7 @@ void self_test(void *pvParameters)
     ESP_LOGI(TAG, "I2C initialized successfully");
 
     VCORE_init(GLOBAL_STATE);
-    VCORE_set_voltage(nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE) / 1000.0, GLOBAL_STATE);
+    VCORE_set_voltage(Config::getAsicVoltage() / 1000.0, GLOBAL_STATE);
 
 
     }
@@ -167,6 +167,6 @@ void self_test(void *pvParameters)
 
     display_msg("           PASS", GLOBAL_STATE);
     display_log_message("Test result: OK PASS");
-    nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);
+    Config::setSelfTest(false);
 #endif
 }

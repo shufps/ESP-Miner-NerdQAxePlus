@@ -6,6 +6,8 @@
 
 #define NVS_CONFIG_NAMESPACE "main"
 
+namespace Config {
+
 static const char *TAG = "nvs_config";
 
 char *nvs_config_get_string(const char *key, const char *default_value)
@@ -132,4 +134,6 @@ void nvs_config_set_u64(const char *key, const uint64_t value)
         ESP_LOGW(TAG, "Could not write nvs key: %s, value: %llu", key, value);
     }
     nvs_close(handle);
+}
+
 }

@@ -389,7 +389,7 @@ static esp_err_t PATCH_update_swarm(httpd_req_t *req)
     }
     buf[total_len] = '\0';
 
-    nvs_config_set_string(NVS_CONFIG_SWARM, buf);
+    Config::setSwarmConfig(buf);
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
@@ -457,76 +457,76 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
 
     // Update settings if each key exists in the JSON object.
     if (doc["stratumURL"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_URL, doc["stratumURL"].as<const char*>());
+        Config::setStratumURL(doc["stratumURL"].as<const char*>());
     }
     if (doc["stratumUser"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_USER, doc["stratumUser"].as<const char*>());
+        Config::setStratumUser(doc["stratumUser"].as<const char*>());
     }
     if (doc["stratumPassword"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_PASS, doc["stratumPassword"].as<const char*>());
+        Config::setStratumPass(doc["stratumPassword"].as<const char*>());
     }
     if (doc["stratumPort"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_STRATUM_PORT, doc["stratumPort"].as<uint16_t>());
+        Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
     }
     if (doc["fallbackStratumURL"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_URL, doc["fallbackStratumURL"].as<const char*>());
+        Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
     }
     if (doc["fallbackStratumUser"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_USER, doc["fallbackStratumUser"].as<const char*>());
+        Config::setStratumFallbackUser(doc["fallbackStratumUser"].as<const char*>());
     }
     if (doc["fallbackStratumPassword"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_PASS, doc["fallbackStratumPassword"].as<const char*>());
+        Config::setStratumFallbackPass(doc["fallbackStratumPassword"].as<const char*>());
     }
     if (doc["fallbackStratumPort"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, doc["fallbackStratumPort"].as<uint16_t>());
+        Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
     }
     if (doc["ssid"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_WIFI_SSID, doc["ssid"].as<const char*>());
+        Config::setWifiSSID(doc["ssid"].as<const char*>());
     }
     if (doc["wifiPass"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_WIFI_PASS, doc["wifiPass"].as<const char*>());
+        Config::setWifiPass(doc["wifiPass"].as<const char*>());
     }
     if (doc["hostname"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_HOSTNAME, doc["hostname"].as<const char*>());
+        Config::setHostname(doc["hostname"].as<const char*>());
     }
     if (doc["coreVoltage"].is<uint16_t>()) {
         uint16_t coreVoltage = doc["coreVoltage"].as<uint16_t>();
         if (coreVoltage > 0) {
-            nvs_config_set_u16(NVS_CONFIG_ASIC_VOLTAGE, coreVoltage);
+            Config::setAsicVoltage(coreVoltage);
         }
     }
     if (doc["frequency"].is<uint16_t>()) {
         uint16_t frequency = doc["frequency"].as<uint16_t>();
         if (frequency > 0) {
-            nvs_config_set_u16(NVS_CONFIG_ASIC_FREQ, frequency);
+            Config::setAsicFrequency(frequency);
         }
     }
     if (doc["jobInterval"].is<uint16_t>()) {
         uint16_t jobInterval = doc["jobInterval"].as<uint16_t>();
         if (jobInterval > 0) {
-            nvs_config_set_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, jobInterval);
+            Config::setAsicJobInterval(jobInterval);
         }
     }
     if (doc["flipscreen"].is<bool>()) {
-        nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, (uint16_t) doc["flipscreen"].as<bool>());
+        Config::setFlipScreen(doc["flipscreen"].as<bool>());
     }
     if (doc["overheat_temp"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_OVERHEAT_TEMP, doc["overheat_temp"].as<uint16_t>());
+        Config::setOverheatTemp(doc["overheat_temp"].as<uint16_t>());
     }
     if (doc["invertscreen"].is<bool>()) {
-        nvs_config_set_u16(NVS_CONFIG_INVERT_SCREEN, (uint16_t) doc["invertscreen"].as<bool>());
+        Config::setInvertScreen(doc["invertscreen"].as<bool>());
     }
     if (doc["invertfanpolarity"].is<bool>()) {
-        nvs_config_set_u16(NVS_CONFIG_INVERT_FAN_POLARITY, (uint16_t) doc["invertfanpolarity"].as<bool>());
+        Config::setInvertFanPolarity(doc["invertfanpolarity"].as<bool>());
     }
     if (doc["autofanspeed"].is<bool>()) {
-        nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, (uint16_t) doc["autofanspeed"].as<bool>());
+        Config::setAutoFanSpeed(doc["autofanspeed"].as<bool>());
     }
     if (doc["fanspeed"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_FAN_SPEED, doc["fanspeed"].as<uint16_t>());
+        Config::setFanSpeed(doc["fanspeed"].as<uint16_t>());
     }
     if (doc["autoscreenoff"].is<bool>()) {
-        nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, (uint16_t) doc["autoscreenoff"].as<bool>());
+        Config::setAutoScreenOff(doc["autoscreenoff"].as<bool>());
     }
 
     doc.clear();
@@ -588,25 +588,25 @@ static esp_err_t PATCH_update_influx(httpd_req_t *req)
 
     // Check and apply each setting if the key exists and has the correct type
     if (doc["influxEnable"].is<bool>()) {
-        nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, (uint16_t) doc["influxEnable"].as<bool>());
+        Config::setInfluxEnabled(doc["influxEnable"].as<bool>());
     }
     if (doc["influxURL"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_URL, doc["influxURL"].as<const char*>());
+        Config::setInfluxURL(doc["influxURL"].as<const char*>());
     }
     if (doc["influxPort"].is<uint16_t>()) {
-        nvs_config_set_u16(NVS_CONFIG_INFLUX_PORT, doc["influxPort"].as<uint16_t>());
+        Config::setInfluxPort(doc["influxPort"].as<uint16_t>());
     }
     if (doc["influxToken"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_TOKEN, doc["influxToken"].as<const char*>());
+        Config::setInfluxToken(doc["influxToken"].as<const char*>());
     }
     if (doc["influxBucket"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_BUCKET, doc["influxBucket"].as<const char*>());
+        Config::setInfluxBucket(doc["influxBucket"].as<const char*>());
     }
     if (doc["influxOrg"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_ORG, doc["influxOrg"].as<const char*>());
+        Config::setInfluxOrg(doc["influxOrg"].as<const char*>());
     }
     if (doc["influxPrefix"].is<const char*>()) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_PREFIX, doc["influxPrefix"].as<const char*>());
+        Config::setInfluxPrefix(doc["influxPrefix"].as<const char*>());
     }
 
     doc.clear();
@@ -651,7 +651,7 @@ static esp_err_t GET_swarm(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    char *swarm_config = nvs_config_get_string(NVS_CONFIG_SWARM, "[]");
+    char *swarm_config = Config::getSwarmConfig();
     httpd_resp_sendstr(req, swarm_config);
     free(swarm_config);
     return ESP_OK;
@@ -698,12 +698,12 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     JsonDocument doc(&allocator);
 
     // Get configuration strings from NVS
-    char *ssid               = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, CONFIG_ESP_WIFI_SSID);
-    char *hostname           = nvs_config_get_string(NVS_CONFIG_HOSTNAME, CONFIG_LWIP_LOCAL_HOSTNAME);
-    char *stratumURL         = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
-    char *stratumUser        = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
-    char *fallbackStratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_URL, CONFIG_STRATUM_FALLBACK_URL);
-    char *fallbackStratumUser= nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_USER, CONFIG_STRATUM_FALLBACK_USER);
+    char *ssid               = Config::getWifiSSID();
+    char *hostname           = Config::getHostname();
+    char *stratumURL         = Config::getStratumURL();
+    char *stratumUser        = Config::getStratumUser();
+    char *fallbackStratumURL = Config::getStratumFallbackURL();
+    char *fallbackStratumUser= Config::getStratumFallbackUser();
 
     // static
     doc["asicCount"]          = board->getAsicCount();
@@ -728,8 +728,8 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
     doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
     doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
-    doc["coreVoltage"]        = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
-    doc["coreVoltageActual"]  = (int)(board->getVout() * 1000.0f);
+    doc["coreVoltage"]        = board->getAsicVoltageMillis();
+    doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
     doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
     doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
     doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
@@ -746,20 +746,20 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["hostname"]           = hostname;
     doc["ssid"]               = ssid;
     doc["stratumURL"]         = stratumURL;
-    doc["stratumPort"]        = nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT);
+    doc["stratumPort"]        = Config::getStratumPortNumber();
     doc["stratumUser"]        = stratumUser;
     doc["fallbackStratumURL"] = fallbackStratumURL;
-    doc["fallbackStratumPort"]= nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT);
+    doc["fallbackStratumPort"]= Config::getStratumFallbackPortNumber();
     doc["fallbackStratumUser"] = fallbackStratumUser;
     doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
-    doc["frequency"]          = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
+    doc["frequency"]          = board->getAsicFrequency();
     doc["jobInterval"]        = board->getAsicJobIntervalMs();
-    doc["overheat_temp"]      = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP);
-    doc["flipscreen"]         = nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, CONFIG_FLIP_SCREEN_VALUE);
-    doc["invertscreen"]       = nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0); // unused?
-    doc["autoscreenoff"]      = nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE);
-    doc["invertfanpolarity"]  = nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, CONFIG_INVERT_POLARITY_VALUE);
-    doc["autofanspeed"]       = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE);
+    doc["overheat_temp"]      = Config::getOverheatTemp();
+    doc["flipscreen"]         = Config::isFlipScreenEnabled() ? 1 : 0;
+    doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
+    doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
+    doc["invertfanpolarity"]  = Config::isInvertFanPolarityEnabled() ? 1 : 0;
+    doc["autofanspeed"]       = Config::isAutoFanSpeedEnabled() ? 1 : 0;
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -804,21 +804,21 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
     }
 
     // Retrieve configuration strings from NVS
-    char *influxURL    = nvs_config_get_string(NVS_CONFIG_INFLUX_URL, CONFIG_INFLUX_URL);
-    char *influxBucket = nvs_config_get_string(NVS_CONFIG_INFLUX_BUCKET, CONFIG_INFLUX_BUCKET);
-    char *influxOrg    = nvs_config_get_string(NVS_CONFIG_INFLUX_ORG, CONFIG_INFLUX_ORG);
-    char *influxPrefix = nvs_config_get_string(NVS_CONFIG_INFLUX_PREFIX, CONFIG_INFLUX_PREFIX);
+    char *influxURL    = Config::getInfluxURL();
+    char *influxBucket = Config::getInfluxBucket();
+    char *influxOrg    = Config::getInfluxOrg();
+    char *influxPrefix = Config::getInfluxPrefix();
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
     // Fill the JSON object with values
     doc["influxURL"]    = influxURL;
-    doc["influxPort"]   = nvs_config_get_u16(NVS_CONFIG_INFLUX_PORT, CONFIG_INFLUX_PORT);
+    doc["influxPort"]   = Config::getInfluxPort();
     doc["influxBucket"] = influxBucket;
     doc["influxOrg"]    = influxOrg;
     doc["influxPrefix"] = influxPrefix;
-    doc["influxEnable"] = nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE);
+    doc["influxEnable"] = Config::isInfluxEnabled() ? 1 : 0;
 
     // Serialize the JSON document into a string (using Arduino's String type)
     esp_err_t ret = sendJsonResponse(req, doc);

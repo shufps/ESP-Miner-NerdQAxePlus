@@ -17,7 +17,7 @@
 #include "TMP1075.h"
 #include "TPS53647.h"
 
-
+#define MAX(a,b) ((a)>(b)?(a):(b))
 
 static const char* TAG="nerdqaxe+";
 
@@ -28,9 +28,9 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicModel = "BM1368";
     m_asicCount = 4;
     m_asicJobIntervalMs = 1200;
-    m_asicFrequency = 490.0;
-    m_asicVoltage = 1.25; // default voltage
-    m_initVoltage = 1.25;
+    m_asicFrequency = 490;
+    m_asicVoltageMillis = 1250; // default voltage
+    m_initVoltageMillis = 1250;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
     m_numPhases = 2;
@@ -116,7 +116,7 @@ bool NerdQaxePlus::initAsics()
 
     // set the init voltage
     // use the higher voltage for initialization
-    setVoltage(fmaxf(m_initVoltage, m_asicVoltage));
+    setVoltage((float) MAX(m_initVoltageMillis, m_asicVoltageMillis) / 1000.0f);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -139,7 +139,7 @@ bool NerdQaxePlus::initAsics()
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     // set final output voltage
-    setVoltage(m_asicVoltage);
+    setVoltage((float) m_asicVoltageMillis / 1000.0f);
 
     m_isInitialized = true;
     return true;
@@ -222,8 +222,8 @@ bool NerdQaxePlus::selfTest(){
     #define CORE_VOLTAGE_TARGET_MIN 1.1 //mV
     #define CORE_VOLTAGE_TARGET_MAX 1.4 //mV
 
-    char logString[300]; 
-    
+    char logString[300];
+
     // Initialize the display
     DisplayDriver *temp_display;
     temp_display = new DisplayDriver();
@@ -239,7 +239,7 @@ bool NerdQaxePlus::selfTest(){
     bool powerOK = (power > m_minPin) && (power < m_maxPin);
     bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
     bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
-    
+
     //Warning! This test only ensures Asic is properly soldered
     snprintf(logString, sizeof(logString),  "\nTest result:\r\n"
                                             "- Asics detected [%d/%d]\n"
@@ -250,10 +250,12 @@ bool NerdQaxePlus::selfTest(){
                                             powerOK ? "OK" : "Warning", power,
                                             VrOK ? "OK" : "Warning", Vout,
                                             (allAsicsDetected) ? "OOOOOOOO TEST OK!!! OOOOOOO" : "XXXXXXXXX TEST KO XXXXXXXXX");
-    temp_display->logMessage(logString);   
+    temp_display->logMessage(logString);
 
-    //Update SelfTest flag                                                              
-    if(allAsicsDetected) nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);                                                                        
+    //Update SelfTest flag
+    if(allAsicsDetected) {
+        Config::setSelfTest(false);
+    }
 
     return true;
 }

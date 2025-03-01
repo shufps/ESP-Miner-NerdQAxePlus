@@ -16,9 +16,9 @@ class Board {
     int m_chipsDetected = 0;
 
     // asic settings
-    float m_asicJobIntervalMs;
-    float m_asicFrequency;
-    float m_asicVoltage;
+    int m_asicJobIntervalMs;
+    int m_asicFrequency;
+    int m_asicVoltageMillis;
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
@@ -56,7 +56,7 @@ class Board {
     int getVersion();
     const char *getAsicModel();
     int getAsicCount();
-    double getAsicJobIntervalMs();
+    int getAsicJobIntervalMs();
     uint32_t getInitialASICDifficulty();
 
     // abstract common methos
@@ -106,6 +106,14 @@ class Board {
     virtual Asic *getAsics()
     {
         return m_isInitialized ? m_asics : nullptr;
+    }
+
+    int getAsicVoltageMillis() {
+        return m_asicVoltageMillis;
+    }
+
+    int getAsicFrequency() {
+        return m_asicFrequency;
     }
 
     float getMinPin()

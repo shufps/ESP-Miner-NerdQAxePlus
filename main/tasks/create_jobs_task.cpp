@@ -112,7 +112,7 @@ void *create_jobs_task(void *pvParameters)
     Board *board = SYSTEM_MODULE.getBoard();
     Asic *asics = board->getAsics();
 
-    ESP_LOGI(TAG, "ASIC Job Interval: %.2f ms", board->getAsicJobIntervalMs());
+    ESP_LOGI(TAG, "ASIC Job Interval: %d ms", board->getAsicJobIntervalMs());
     SYSTEM_MODULE.notifyMiningStarted();
     ESP_LOGI(TAG, "ASIC Ready!");
 
