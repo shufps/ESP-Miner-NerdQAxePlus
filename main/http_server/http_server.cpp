@@ -728,8 +728,8 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
     doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
     doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
-    doc["coreVoltage"]        = Config::getAsicVoltage();
-    doc["coreVoltageActual"]  = (int)(board->getVout() * 1000.0f);
+    doc["coreVoltage"]        = (int) (board->getAsicVoltage() * 1000.0f);
+    doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
     doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
     doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
     doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
@@ -752,7 +752,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["fallbackStratumPort"]= Config::getStratumFallbackPortNumber();
     doc["fallbackStratumUser"] = fallbackStratumUser;
     doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
-    doc["frequency"]          = Config::getAsicFrequency();
+    doc["frequency"]          = board->getAsicFrequency();
     doc["jobInterval"]        = board->getAsicJobIntervalMs();
     doc["overheat_temp"]      = Config::getOverheatTemp();
     doc["flipscreen"]         = Config::isFlipScreenEnabled() ? 1 : 0;
