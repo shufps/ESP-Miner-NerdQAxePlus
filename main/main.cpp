@@ -54,34 +54,37 @@ static void setup_wifi()
 
     // init and connect to wifi
     wifi_init(wifi_ssid, wifi_pass, hostname);
+
+    free(wifi_ssid);
+    free(wifi_pass);
+    free(hostname);
+
+    // start rest server
     start_rest_server(NULL);
+
+    // connect
     EventBits_t result_bits = wifi_connect();
 
     if (result_bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to SSID: %s", wifi_ssid);
         SYSTEM_MODULE.setWifiStatus("Connected!");
-    } else if (result_bits & WIFI_FAIL_BIT) {
-        ESP_LOGE(TAG, "Failed to connect to SSID: %s", wifi_ssid);
+        return;
+    }
 
+    if (result_bits & WIFI_FAIL_BIT) {
+        ESP_LOGE(TAG, "Failed to connect to SSID: %s", wifi_ssid);
         SYSTEM_MODULE.setWifiStatus("Failed to connect");
-        // User might be trying to configure with AP, just chill here
-        ESP_LOGI(TAG, "Finished, waiting for user input.");
-        while (1) {
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
     } else {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
         SYSTEM_MODULE.setWifiStatus("unexpected error");
-        // User might be trying to configure with AP, just chill here
-        ESP_LOGI(TAG, "Finished, waiting for user input.");
-        while (1) {
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
     }
 
-    free(wifi_ssid);
-    free(wifi_pass);
-    free(hostname);
+    // User might be trying to configure with AP, just chill here
+    ESP_LOGI(TAG, "Finished, waiting for user input.");
+
+    while (1) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 }
 
 // Function to configure the Task Watchdog Timer (TWDT)
@@ -182,10 +185,13 @@ extern "C" void app_main(void)
     // set the startup_done flag
     SYSTEM_MODULE.setStartupDone();
 
-    // when we have a best diff we assume that wifi is configured
-    if (best_diff) {
+    // when a username is configured we will continue with startup and start mining
+    const char *username = Config::nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL);    // TODO
+    if (username) {
+        // wifi is connected, switch the AP off
         wifi_softap_off();
 
+        // and continue with initialization
         if (!board->initAsics()) {
             ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
         }
@@ -193,11 +199,9 @@ extern "C" void app_main(void)
         TaskHandle_t stratum_manager_handle;
 
         xTaskCreate(STRATUM_MANAGER.taskWrapper, "stratum manager", 8192, (void *) &STRATUM_MANAGER, 5, &stratum_manager_handle);
-
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
-
         xTaskCreate(APIs_FETCHER.taskWrapper, "apis ticker", 4096, (void*) &APIs_FETCHER, 5, NULL);
 
         initWatchdog(stratum_manager_handle);
