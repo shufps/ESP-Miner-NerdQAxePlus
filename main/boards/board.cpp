@@ -11,19 +11,24 @@ Board::Board() {
 
 void Board::loadSettings()
 {
-    m_asicFrequency = Config::getAsicFrequency();
-    m_asicVoltage = Config::getAsicVoltage() / 1000.0f;
     m_fanInvertPolarity = Config::isInvertFanPolarityEnabled();
     m_fanPerc = Config::getFanSpeed();
 
-    // was initialized with board specific default value in the constructor
-    m_asicJobIntervalMs = Config::getAsicJobInterval(m_asicJobIntervalMs);
+    // the variables were initialized with board specific default values in the constructor
+    // if we have settings in the NVS then we use it
+    uint16_t nvsAsicFrequency = Config::getAsicFrequency();
+    uint16_t nvsAsicVoltage = Config::getAsicVoltage();
+    uint16_t nvsAsicJobInterval = Config::getAsicJobInterval();
 
-    ESP_LOGI(TAG, "NVS_CONFIG_ASIC_FREQ %.3f", (float) m_asicFrequency);
-    ESP_LOGI(TAG, "NVS_CONFIG_ASIC_VOLTAGE %.3f", (float) m_asicVoltage);
-    ESP_LOGI(TAG, "NVS_CONFIG_ASIC_JOB_INTERVAL %d", (int) m_asicJobIntervalMs);
-    ESP_LOGI(TAG, "NVS_CONFIG_INVERT_FAN_POLARITY %s", m_fanInvertPolarity ? "true" : "false");
-    ESP_LOGI(TAG, "NVS_CONFIG_FAN_SPEED %d%%", (int) m_fanPerc);
+    m_asicFrequency = nvsAsicFrequency ? nvsAsicFrequency : m_asicFrequency;
+    m_asicVoltage = nvsAsicVoltage ? ((float) nvsAsicVoltage / 1000.0f) : m_asicVoltage;
+    m_asicJobIntervalMs = nvsAsicJobInterval ? nvsAsicJobInterval : m_asicJobIntervalMs;
+
+    ESP_LOGI(TAG, "ASIC Frequency: %.3f", (float) m_asicFrequency);
+    ESP_LOGI(TAG, "ASIC voltage: %.3f", (float) m_asicVoltage);
+    ESP_LOGI(TAG, "ASIC job interval: %d", (int) m_asicJobIntervalMs);
+    ESP_LOGI(TAG, "invert fan polarity: %s", m_fanInvertPolarity ? "true" : "false");
+    ESP_LOGI(TAG, "fan speed: %d%%", (int) m_fanPerc);
 }
 
 const char *Board::getDeviceModel()

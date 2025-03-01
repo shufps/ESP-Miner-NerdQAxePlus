@@ -86,10 +86,9 @@ namespace Config {
     inline void setSwarmConfig(const char* value) { nvs_config_set_string(NVS_CONFIG_SWARM, value); }
 
     // ---- uint16_t Getters ----
-    inline uint16_t getAsicFrequency() { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY); }
-    inline uint16_t getAsicVoltage() { return nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE); }
-    //inline uint16_t getAsicJobInterval() { return nvs_config_get_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, 0); }
-    inline uint16_t getAsicJobInterval(uint16_t defaultValue) { return nvs_config_get_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, defaultValue); }
+    inline uint16_t getAsicFrequency() { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, 0); }
+    inline uint16_t getAsicVoltage() { return nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, 0); }
+    inline uint16_t getAsicJobInterval() { return nvs_config_get_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, 0); }
     inline uint16_t getStratumPortNumber() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT); }
     inline uint16_t getStratumFallbackPortNumber() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT); }
     inline uint16_t getFanSpeed() { return nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, CONFIG_FAN_SPEED); }
