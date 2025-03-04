@@ -104,7 +104,7 @@ class StratumManager {
     bool isConnected(int index); ///< Check if a pool is connected
 
     // Handles incoming Stratum responses
-    bool dispatch(int pool, JsonDocument &doc);
+    void dispatch(int pool, JsonDocument &doc);
 
     // Core Stratum management task
     void task();

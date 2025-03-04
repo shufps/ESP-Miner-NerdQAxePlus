@@ -2,10 +2,6 @@
 #include <sys/types.h>
 #include <time.h>
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 #include "global_state.h"
 #include "esp_log.h"
 #include "esp_sntp.h"
@@ -306,10 +302,7 @@ void StratumTask::stratumLoop()
         }
 
         // parse the line
-        if (!m_manager->dispatch(m_index, doc)) {
-            ESP_LOGE(m_tag, "error parsing json, disconnecting ...");
-            break;
-        }
+        m_manager->dispatch(m_index, doc);
 
         // sets line to nullptr too
         safe_free(line);
@@ -476,11 +469,11 @@ int StratumManager::getCurrentPoolPort()
     return m_stratumTasks[m_selected]->getPort();
 }
 
-bool StratumManager::dispatch(int pool, JsonDocument &doc)
+void StratumManager::dispatch(int pool, JsonDocument &doc)
 {
     // only accept data from the selected pool
     if (pool != m_selected) {
-        return false;
+        return;
     }
 
     StratumTask *selected = m_stratumTasks[m_selected];
@@ -491,7 +484,7 @@ bool StratumManager::dispatch(int pool, JsonDocument &doc)
 
     if (!StratumApi::parse(m_stratum_api_v1_message, doc)) {
         ESP_LOGE(m_tag, "error in stratum");
-        return false;
+        return;
     }
 
     switch (m_stratum_api_v1_message->method) {
@@ -538,7 +531,6 @@ bool StratumManager::dispatch(int pool, JsonDocument &doc)
 
     case CLIENT_RECONNECT: {
         ESP_LOGE(tag, "Pool requested client reconnect ...");
-        return false;
     }
 
     case STRATUM_RESULT: {
@@ -566,7 +558,6 @@ bool StratumManager::dispatch(int pool, JsonDocument &doc)
         // NOP
     }
     }
-    return true;
 }
 
 void StratumManager::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
