@@ -531,6 +531,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     case CLIENT_RECONNECT: {
         ESP_LOGE(tag, "Pool requested client reconnect ...");
+        break;
     }
 
     case STRATUM_RESULT: {
