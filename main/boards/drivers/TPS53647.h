@@ -22,8 +22,8 @@
 #define TPS53647_INIT_VOUT_MAX 1.4
 
 // temperature
-#define TPS53647_INIT_OT_WARN_LIMIT 105  // degrees C
-#define TPS53647_INIT_OT_FAULT_LIMIT 145 // degrees C
+#define TPS53647_INIT_OT_WARN_LIMIT 95.0  // degrees C (default)
+#define TPS53647_INIT_OT_FAULT_LIMIT 125.0 // degrees C (default)
 
 /* public functions */
 int TPS53647_init(int num_phases, int imax, float ifault);

@@ -191,82 +191,32 @@ static float slinear11_2_float(uint16_t value)
 }
 
 /**
- * @brief Convert an SLINEAR11 value into an int
- */
-static int slinear11_2_int(uint16_t value)
-{
-    return (int) slinear11_2_float(value);
-}
-
-/**
- * @brief Convert an int value into an SLINEAR11
- */
-static uint16_t int_2_slinear11(int value)
-{
-    int mantissa;
-    int exponent = 0;
-    uint16_t result = 0;
-    int i;
-
-    // First see if the exponent is positive or negative
-    if (value >= 0) {
-        // exponent is positive
-        for (i = 0; i <= 15; i++) {
-            mantissa = value / powf(2.0, i);
-            if (mantissa < 1024) {
-                exponent = i;
-                break;
-            }
-        }
-        if (i == 16) {
-            ESP_LOGI(TAG, "Could not find a solution");
-            return 0;
-        }
-    } else {
-        // value is negative
-        ESP_LOGI(TAG, "No negative numbers at this time");
-        return 0;
-    }
-
-    result = ((exponent << 11) & 0xF800) + mantissa;
-
-    return result;
-}
-
-/**
  * @brief Convert a float value into an SLINEAR11
  */
-static uint16_t float_2_slinear11(float value)
-{
-    int mantissa;
-    int exponent = 0;
-    uint16_t result = 0;
-    int i;
-
-    // First see if the exponent is positive or negative
-    if (value > 0) {
-        // exponent is negative
-        for (i = 0; i <= 15; i++) {
-            mantissa = value * powf(2.0, i);
-            if (mantissa >= 1024) {
-                exponent = i - 1;
-                mantissa = value * powf(2.0, exponent);
-                break;
-            }
-        }
-        if (i == 16) {
-            ESP_LOGI(TAG, "Could not find a solution");
-            return 0;
-        }
-    } else {
-        // value is negative
+uint16_t float_2_slinear11(float x) {
+    if (x <= 0.0f) {
         ESP_LOGI(TAG, "No negative numbers at this time");
         return 0;
     }
-
-    result = (((~exponent + 1) << 11) & 0xF800) + mantissa;
-
-    return result;
+    int32_t e = -16;
+    int32_t m;
+    while (e <= 15) {
+        float scale = powf(2.0f, (float) e);
+        float temp = x / scale;
+        m = (int32_t) roundf(temp);
+        if (m >= 0 && m <= 1023) {
+            break;
+        }
+        e++;
+    }
+    if (e > 15) {
+        ESP_LOGI(TAG, "Could not find a solution");
+        return 0;
+    }
+    uint16_t mantissa_bits = (uint16_t) m & 0x7FF;
+    uint16_t exponent_bits = (uint16_t)(e & 0x1F);
+    uint16_t value = (exponent_bits << 11) | mantissa_bits;
+    return value;
 }
 
 void TPS53647_status()
@@ -335,8 +285,8 @@ int TPS53647_init(int num_phases, int imax, float ifault)
     set_phases(num_phases);
 
     // temperature
-    smb_write_word(PMBUS_OT_WARN_LIMIT, int_2_slinear11(TPS53647_INIT_OT_WARN_LIMIT));
-    smb_write_word(PMBUS_OT_FAULT_LIMIT, int_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
+    smb_write_word(PMBUS_OT_WARN_LIMIT, float_2_slinear11(TPS53647_INIT_OT_WARN_LIMIT));
+    smb_write_word(PMBUS_OT_FAULT_LIMIT, float_2_slinear11(TPS53647_INIT_OT_FAULT_LIMIT));
 
     // iout current
     // set warn and fault to the same value
