@@ -2,6 +2,10 @@
 #include <sys/types.h>
 #include <time.h>
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 #include "global_state.h"
 #include "esp_log.h"
 #include "esp_sntp.h"

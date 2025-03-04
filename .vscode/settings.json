@@ -34,6 +34,7 @@
         "influx_task.h": "c",
         "cmath": "c",
         "*.ipp": "cpp",
+        "glob": "cpp",
         "*.mjs": "cpp"
     },
     "editor.formatOnSave": false,
