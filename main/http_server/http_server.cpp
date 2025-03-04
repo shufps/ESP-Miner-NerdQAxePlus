@@ -720,7 +720,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["minVoltage"]         = board->getMinVin();
     doc["current"]            = POWER_MANAGEMENT_MODULE.getCurrent();
     doc["temp"]               = POWER_MANAGEMENT_MODULE.getAvgChipTemp();
-    doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVrTemp();
+    doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
     doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
     doc["hashRate"]           = history->getCurrentHashrate10m();
     doc["hashRate_10m"]       = history->getCurrentHashrate10m();

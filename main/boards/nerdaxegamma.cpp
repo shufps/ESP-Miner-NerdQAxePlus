@@ -133,22 +133,27 @@ bool NerdaxeGamma::setVoltage(float core_voltage)
     return true;
 }
 
-float NerdaxeGamma::readTemperature(int index) {
+float NerdaxeGamma::getTemperature(int index) {
 
-    if (!m_isInitialized) return EMC2101_get_internal_temp() + 5;
-
-    if (!index) {
-        //Reading ASIC temp
-        float asic_temp = EMC2101_get_external_temp();
-        ESP_LOGI(TAG, "Read ASIC temp = %.3fºC", asic_temp);
-        return asic_temp; //External board Temp
-    } else
-    {   //Reading voltage regulator temp
-        float vr_temp = (float)TPS546_get_temperature();
-        ESP_LOGI(TAG, "Read vr temp = %.3fºC", vr_temp);
-        return vr_temp; //- vr_temp (voltage regulator temp)
+    if (!m_isInitialized) {
+        return EMC2101_get_internal_temp() + 5;
     }
 
+    if (index > 0) {
+        return 0.0f;
+    }
+
+    //Reading ASIC temp
+    float asic_temp = EMC2101_get_external_temp();
+    ESP_LOGI(TAG, "Read ASIC temp = %.3fºC", asic_temp);
+    return asic_temp; //External board Temp
+}
+
+float NerdaxeGamma::getVRTemp() {
+    //Reading voltage regulator temp
+    float vr_temp = (float)TPS546_get_temperature();
+    ESP_LOGI(TAG, "Read vr temp = %.3fºC", vr_temp);
+    return vr_temp; //- vr_temp (voltage regulator temp)
 }
 
 float NerdaxeGamma::getVin() {

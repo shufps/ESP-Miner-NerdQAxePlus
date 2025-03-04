@@ -21,6 +21,8 @@
 
 static const char* TAG="nerdqaxe+";
 
+#define VR_TEMP1075_ADDR   0x1
+
 NerdQaxePlus::NerdQaxePlus() : Board() {
     m_deviceModel = "NerdQAxe+";
     m_miningAgent = m_deviceModel;
@@ -61,6 +63,11 @@ bool NerdQaxePlus::initBoard()
         ESP_LOGE(TAG, "I2C initializing failed");
         return false;
     }
+
+    // detect how many TMP1075 we have
+    m_numTempSensors = detectNumTempSensors();
+
+    ESP_LOGI(TAG, "found %d ASIC temp measuring sensors", m_numTempSensors);
 
     EMC2302_init(m_fanInvertPolarity);
     setFanSpeed(m_fanPerc);
@@ -177,8 +184,41 @@ void NerdQaxePlus::getFanSpeed(uint16_t* rpm) {
     EMC2302_get_fan_speed(rpm);
 }
 
-float NerdQaxePlus::readTemperature(int index) {
-    return TMP1075_read_temperature(index);
+// return the number of asic temp measuring sensors
+// skips the VR temp sensor
+int NerdQaxePlus::detectNumTempSensors() {
+    int found = 0;
+    for (int i = 0; i < 4; i++) {
+        // don't count the VR sensor on the back
+        if (i == VR_TEMP1075_ADDR) {
+            continue;
+        }
+        if (!TMP1075_read_temperature(i)) {
+            break;
+        }
+        ESP_LOGI(TAG, "found asic temp sensor %d", i);
+        found++;
+    }
+    return found;
+}
+
+float NerdQaxePlus::getTemperature(int index) {
+    if (index >= getNumTempSensors()) {
+        return 0.0;
+    }
+
+    // read temp and skip index 1
+    return TMP1075_read_temperature(index + !!index);
+}
+
+float NerdQaxePlus::getVRTemp() {
+    float vrTemp = TPS53647_get_temperature();
+
+    // test
+    float tmp = TMP1075_read_temperature(1);
+    ESP_LOGI(TAG, "tmp1075 vs tps: %.2f vs %.2f (diff: %.2f)", tmp, vrTemp, vrTemp - tmp);
+
+    return tmp;
 }
 
 float NerdQaxePlus::getVin() {

@@ -14,6 +14,8 @@ class NerdQaxePlus : public Board {
     void LDO_enable();
     void LDO_disable();
 
+    int detectNumTempSensors();
+
   public:
     NerdQaxePlus();
 
@@ -28,7 +30,8 @@ class NerdQaxePlus : public Board {
     virtual void setFanSpeed(float perc);
     virtual void getFanSpeed(uint16_t *rpm);
 
-    virtual float readTemperature(int index);
+    virtual float getTemperature(int index);
+    virtual float getVRTemp();
 
     virtual float getVin();
     virtual float getIin();

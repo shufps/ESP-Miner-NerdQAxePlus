@@ -42,6 +42,7 @@ NerdAxe::NerdAxe() : Board() {
     m_asicVoltageMillis = 1200;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
+    m_numTempSensors = 1;
 
     m_maxPin = 15.0;
     m_minPin = 5.0;
@@ -185,13 +186,15 @@ void NerdAxe::getFanSpeed(uint16_t* rpm) {
     *rpm = EMC2101_get_fan_speed();
 }
 
-float NerdAxe::readTemperature(int index) {
-    if (!index) {
-        return EMC2101_get_internal_temp() + 5;
-    } else {
-        return 0.0;
+float NerdAxe::getTemperature(int index) {
+    if (index > 0) {
+        return 0.0f;
     }
+    return EMC2101_get_internal_temp() + 5;
+}
 
+float NerdAxe::getVRTemp() {
+    return 0.0f;
 }
 
 float NerdAxe::getVin() {

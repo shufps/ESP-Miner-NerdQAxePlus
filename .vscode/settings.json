@@ -33,7 +33,8 @@
         "system.h": "c",
         "influx_task.h": "c",
         "cmath": "c",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "*.mjs": "cpp"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [
