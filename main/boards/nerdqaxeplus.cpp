@@ -115,8 +115,8 @@ bool NerdQaxePlus::initAsics()
     // enable LDOs
     LDO_enable();
 
-    // wait 100ms
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    // wait 250ms
+    vTaskDelay(250 / portTICK_PERIOD_MS);
 
     // init buck and enable output
     TPS53647_init(m_numPhases, m_imax, m_ifault);

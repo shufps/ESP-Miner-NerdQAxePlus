@@ -54,7 +54,7 @@ float TMP1075_read_temperature(int device_index)
         ESP_LOGI(TAG, "Temperature %d: %.2f C", device_index, temperature);
         return temperature;
     } else {
-        ESP_LOGI(TAG, "Failed to read temperature from TMP1075");
+        ESP_LOGE(TAG, "Failed to read temperature from TMP1075");
         return 0.0f;
     }
 }
