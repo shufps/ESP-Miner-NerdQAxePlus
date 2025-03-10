@@ -67,7 +67,7 @@ class StratumApi {
     enum
     {
         BUFFER_SIZE = 1024,
-        BIG_BUFFER_SIZE = 4096,
+        BIG_BUFFER_SIZE = 16384,
     };
     char *m_buffer;
     size_t m_len;   // Current length of valid data in m_buffer.
