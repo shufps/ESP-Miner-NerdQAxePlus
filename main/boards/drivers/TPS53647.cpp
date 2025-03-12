@@ -135,11 +135,14 @@ static esp_err_t smb_write_word(uint8_t command, uint16_t data)
 void set_phases(int num_phases)
 {
     if (num_phases < 1 || num_phases > 6) {
-        ESP_LOGW(TAG, "number of phases out of range: %d", num_phases);
+        ESP_LOGE(TAG, "number of phases out of range: %d", num_phases);
         return;
     }
     ESP_LOGI(TAG, "setting %d phases", num_phases);
     smb_write_byte(PMBUS_MFR_SPECIFIC_20, (uint8_t) (num_phases - 1));
+#ifdef NERDEKO                                  // Phil31 hack
+       smb_write_byte(PMBUS_MFR_SPECIFIC_24, 0);    // NerEKO TPS53667 enable all phases
+#endif
 }
 
 uint8_t volt_to_vid(float volts)
@@ -153,7 +156,7 @@ uint8_t volt_to_vid(float volts)
     // Ensure the register value is within the valid range (0x01 to 0xFF)
     if (register_value > 0xFF) {
         printf("Error: Calculated register value out of range.\n");
-        ESP_LOGI(TAG, "ERR - vout register value out of range %d", register_value);
+        ESP_LOGE(TAG, "ERR - vout register value out of range %d", register_value);
         return 0;
     }
     ESP_LOGD(TAG, "volt_to_vid: %.3f -> 0x%04x", volts, register_value);
@@ -236,8 +239,8 @@ void TPS53647_status()
     smb_read_byte(PMBUS_STATUS_INPUT, &status_input);
     smb_read_byte(PMBUS_STATUS_MFR_SPECIFIC, &status_mfr_specific);
 
-    ESP_LOGI(TAG, "bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x", status_byte, status_word,
-             status_vout, status_iout, status_input, status_mfr_specific);
+    ESP_LOGI(TAG, "TPS536X7_status  bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x",
+                    status_byte, status_word, status_vout, status_iout, status_input, status_mfr_specific);
 }
 
 // Set up the TPS53647 regulator and turn it on
@@ -251,8 +254,13 @@ int TPS53647_init(int num_phases, int imax, float ifault)
 
     ESP_LOGI(TAG, "Device Code: %04x", device_code);
 
-    if (device_code != 0x01f0) {
-        ESP_LOGI(TAG, "ERROR- cannot find TPS53647 regulator");
+    if (device_code == 0x01f0) {
+        ESP_LOGI(TAG, "find TPS53647 controller");
+
+    } else if (device_code == 0x01f8) {
+        ESP_LOGI(TAG, "find TPS53667 controller");
+    } else {
+        ESP_LOGE(TAG, "ERROR- cannot find TPS536x7 buck controller");
         return -1;
     }
 
@@ -274,8 +282,12 @@ int TPS53647_init(int num_phases, int imax, float ifault)
     // Slew Rate 0.68mV/us
     smb_write_byte(PMBUS_MFR_SPECIFIC_13, 0x89); // default value
 
-    set_phases(num_phases);
-
+#ifdef NERDEKO
+    // Phil31 hack
+    smb_write_word(PMBUS_VOUT_MAX, (uint16_t) volt_to_vid(1.30));   // to do better !
+    smb_write_byte(PMBUS_MFR_SPECIFIC_16, 0x02);                    // threshold for the VIN Undervoltage UVLO 8.1V threshold
+    smb_write_word(PMBUS_MFR_SPECIFIC_19, 0x0003);
+#endif
     // set up the ON_OFF_CONFIG
     smb_write_byte(PMBUS_ON_OFF_CONFIG, TPS53647_INIT_ON_OFF_CONFIG);
 
@@ -459,7 +471,7 @@ void TPS53647_set_vout(float volts)
 
     // make sure we're in range
     if ((volts < TPS53647_INIT_VOUT_MIN) || (volts > TPS53647_INIT_VOUT_MAX)) {
-        ESP_LOGI(TAG, "ERR- Voltage requested (%f V) is out of range", volts);
+        ESP_LOGE(TAG, "ERR- Voltage requested (%f V) is out of range", volts);
         return;
     }
 

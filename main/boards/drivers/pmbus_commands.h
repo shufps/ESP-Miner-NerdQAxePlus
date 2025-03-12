@@ -65,3 +65,11 @@
 #define PMBUS_MFR_SPECIFIC_20 0xE4
 #define PMBUS_MFR_SPECIFIC_44 0xFC
 
+// Phil31 hack
+/* Manufacturer Specific PMBUS commands used by the TPS53667 */  
+#define PMBUS_MFR_SPECIFIC_19 0xE3
+#define PMBUS_MFR_SPECIFIC_20 0xE4
+#define PMBUS_MFR_SPECIFIC_21 0xE5
+#define PMBUS_MFR_SPECIFIC_22 0xE6
+#define PMBUS_MFR_SPECIFIC_23 0xE7
+#define PMBUS_MFR_SPECIFIC_24 0xE8

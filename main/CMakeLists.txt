@@ -11,6 +11,7 @@ SRCS
     "boards/nerdoctaxeplus.cpp"
     "boards/nerdoctaxegamma.cpp"
     "boards/nerdhaxegamma.cpp"
+    "boards/nerdeko.cpp"
     "boards/drivers/EMC2302.cpp"
     "boards/drivers/TMP1075.cpp"
     "boards/drivers/TPS53647.cpp"
