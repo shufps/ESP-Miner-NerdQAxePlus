@@ -110,6 +110,11 @@ void PowerManagementTask::task()
             board->requestBuckTelemtry();
             last_temp_request = esp_timer_get_time();
         }
+        //Get the readed MaxChipTemp of all chainged chips after
+        //calling requestChipTemp() 
+        //IMPORTANT: this value only makes sense with BM1368 ASIC, with other Asics will remain at 0
+        float m_MaxChipTemp = 0.0;
+        if (asics) m_MaxChipTemp = asics->getMaxChipTemp();
 
         float vin = board->getVin();
         float iin = board->getIin();
@@ -152,6 +157,9 @@ void PowerManagementTask::task()
             }
         }
         m_chipTempAvg = tempCount ? (tempSum / (float) tempCount) : 0.0f;
+
+        // Uses the worst case between board temp sensor or Asic temp read command
+        m_chipTempAvg = std::max(m_chipTempAvg, m_MaxChipTemp);
 
         influx_task_set_temperature(m_chipTempAvg, m_vrTemp);
 

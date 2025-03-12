@@ -26,7 +26,7 @@ static const char *TAG = "bm1368Module";
 static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x68, 0x00, 0x00};
 
 BM1368::BM1368() : Asic() {
-    // NOP
+    //NOP
 }
 
 const uint8_t* BM1368::getChipId() {
@@ -120,6 +120,13 @@ int BM1368::setMaxBaud(void)
 }
 
 void BM1368::requestChipTemp() {
+
+    //Reset new initial temp measurement
+    if(m_tempRequest_ACK) {
+        m_maxAsic_temp = 0.0;
+        m_tempRequest_ACK = false;
+    }
+
     send2(CMD_READ_ALL, 0x00, 0xB4);
     send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x80, 0x00, 0x00, 0x00);
     send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x00, 0x02, 0x00, 0x00);

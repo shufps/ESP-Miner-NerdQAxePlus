@@ -35,6 +35,14 @@ const static char* TAG = "asic";
 
 Asic::Asic() {
     m_current_frequency = 56.25;
+    m_maxAsic_temp = 0.0;
+    m_tempRequest_ACK = false;
+}
+
+//Returns the readed MaxChipTemp of all chained chips
+//requires a previous call to requestChipTemp()
+float Asic::getMaxChipTemp(){
+    return m_maxAsic_temp;
 }
 
 uint16_t Asic::reverseUint16(uint16_t num)
