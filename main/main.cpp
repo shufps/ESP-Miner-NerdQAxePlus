@@ -39,7 +39,7 @@ APIsFetcher APIs_FETCHER;
 
 AsicJobs asicJobs;
 
-static const char *TAG = "bitaxe";
+static const char *TAG = "nerd*axe";
 // static const double NONCE_SPACE = 4294967296.0; //  2^32
 
 static void setup_wifi()
@@ -129,7 +129,7 @@ extern "C" void app_main(void)
     // use PSRAM because TLS costs a lot of internal RAM
     mbedtls_platform_set_calloc_free(psram_calloc, free_psram);
 
-    ESP_LOGI(TAG, "Welcome to the bitaxe - hack the planet!");
+    ESP_LOGI(TAG, "Welcome to the Nerd*Axe - hack the planet!");
     ESP_ERROR_CHECK(nvs_flash_init());
 
     // shows and saves last reset reason
