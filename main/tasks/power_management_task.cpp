@@ -88,6 +88,12 @@ void PowerManagementTask::task()
         uint16_t asic_frequency = board->getAsicFrequency();
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
 
+        // overwrite previously allowed 0 value to disable
+        // over-temp shutdown
+        if (!asic_overheat_temp) {
+            asic_overheat_temp = 70;
+        }
+
         if (core_voltage != last_core_voltage) {
             ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
             board->setVoltage((float) core_voltage / 1000.0);
@@ -125,7 +131,7 @@ void PowerManagementTask::task()
 
         m_vrTemp = board->getVRTemp();
 
-        ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, temp: %.2f",
+        ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f",
             vin, iin, pin, vout, iout, pout, m_vrTemp);
 
         influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
