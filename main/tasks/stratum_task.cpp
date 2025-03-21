@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include "global_state.h"
 #include "esp_log.h"
 #include "esp_sntp.h"
 #include "esp_task_wdt.h"
@@ -10,7 +11,7 @@
 #include "lwip/dns.h"
 
 #include "connect.h"
-
+#include "psram_allocator.h"
 #include "asic_jobs.h"
 #include "boards/board.h"
 #include "create_jobs_task.h"
@@ -34,6 +35,14 @@ enum Selected
     PRIMARY = 0,
     SECONDARY = 1
 };
+
+static void safe_free(char*& ptr) {
+    if (ptr) {        // Check if pointer is not null
+        free(ptr);    // Free memory
+        ptr = nullptr; // Set pointer to null to prevent dangling pointer issues
+    }
+}
+
 
 int is_socket_connected(int socket)
 {
@@ -252,37 +261,54 @@ void StratumTask::stratumLoop()
     // but we make sure to clear the jobs on the first job
     m_firstJob = true;
 
+    char *line = nullptr;
+
     while (1) {
         if (!is_socket_connected(m_sock)) {
             ESP_LOGE(m_tag, "Socket is not connected ...");
-            return;
+            break;
         }
 
-        char *line = m_stratumAPI.receiveJsonRpcLine(m_sock);
+        line = m_stratumAPI.receiveJsonRpcLine(m_sock);
         if (!line) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
-            return;
+            break;
         }
 
-        // we wait for some kind of response from the server to be sure we are
-        // connected and it is alive
-        // when we arrived here, we got some
+        ESP_LOGI(m_tag, "rx: %s", line); // debug incoming stratum messages
+
+        PSRAMAllocator allocator;
+        JsonDocument doc(&allocator);
+
+        // Deserialize JSON
+        // we want to know if it's valid json before the connected callback is executed
+        DeserializationError error = deserializeJson(doc, line);
+        if (error) {
+            ESP_LOGE(m_tag, "Unable to parse JSON: %s", error.c_str());
+            break;
+        }
+
+        // we are pretty confident now that we have valid json and we can
+        // call the connected callback
         if (!m_isConnected) {
             m_manager->connectedCallback(m_index);
             m_isConnected = true;
         }
 
-        ESP_LOGI(m_tag, "rx: %s", line); // debug incoming stratum messages
-
         // if stop is requested, don't dispatch anything
         // and break the loop
         if (m_stopFlag) {
-            free(line);
             break;
         }
-        m_manager->dispatch(m_index, line);
-        free(line);
+
+        // parse the line
+        m_manager->dispatch(m_index, doc);
+
+        // sets line to nullptr too
+        safe_free(line);
     }
+
+    safe_free(line);
 }
 
 void StratumTask::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
@@ -443,7 +469,7 @@ int StratumManager::getCurrentPoolPort()
     return m_stratumTasks[m_selected]->getPort();
 }
 
-void StratumManager::dispatch(int pool, const char *line)
+void StratumManager::dispatch(int pool, JsonDocument &doc)
 {
     // only accept data from the selected pool
     if (pool != m_selected) {
@@ -456,7 +482,10 @@ void StratumManager::dispatch(int pool, const char *line)
 
     memset(m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
 
-    StratumApi::parse(m_stratum_api_v1_message, line);
+    if (!StratumApi::parse(m_stratum_api_v1_message, doc)) {
+        ESP_LOGE(m_tag, "error in stratum");
+        return;
+    }
 
     switch (m_stratum_api_v1_message->method) {
     case MINING_NOTIFY: {
@@ -471,7 +500,10 @@ void StratumManager::dispatch(int pool, const char *line)
         create_job_mining_notify(m_stratum_api_v1_message->mining_notification);
 
         // free notify
-        StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
+        if (m_stratum_api_v1_message->mining_notification) {
+            StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
+            free(m_stratum_api_v1_message->mining_notification);
+        }
         break;
     }
 
@@ -499,7 +531,7 @@ void StratumManager::dispatch(int pool, const char *line)
 
     case CLIENT_RECONNECT: {
         ESP_LOGE(tag, "Pool requested client reconnect ...");
-        return;
+        break;
     }
 
     case STRATUM_RESULT: {

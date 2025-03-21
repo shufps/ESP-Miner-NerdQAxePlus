@@ -14,11 +14,12 @@ class Board {
     const char *m_miningAgent;
     int m_asicCount;
     int m_chipsDetected = 0;
+    int m_numTempSensors = 0;
 
     // asic settings
-    float m_asicJobIntervalMs;
-    float m_asicFrequency;
-    float m_asicVoltage;
+    int m_asicJobIntervalMs;
+    int m_asicFrequency;
+    int m_asicVoltageMillis;
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
@@ -56,7 +57,7 @@ class Board {
     int getVersion();
     const char *getAsicModel();
     int getAsicCount();
-    double getAsicJobIntervalMs();
+    int getAsicJobIntervalMs();
     uint32_t getInitialASICDifficulty();
 
     // abstract common methos
@@ -65,7 +66,8 @@ class Board {
     virtual void setFanSpeed(float perc) = 0;
     virtual void getFanSpeed(uint16_t *rpm) = 0;
 
-    virtual float readTemperature(int index) = 0;
+    virtual float getTemperature(int index) = 0;
+    virtual float getVRTemp() = 0;
 
     virtual float getVin() = 0;
     virtual float getIin() = 0;
@@ -108,6 +110,14 @@ class Board {
         return m_isInitialized ? m_asics : nullptr;
     }
 
+    int getAsicVoltageMillis() {
+        return m_asicVoltageMillis;
+    }
+
+    int getAsicFrequency() {
+        return m_asicFrequency;
+    }
+
     float getMinPin()
     {
         return m_minPin;
@@ -131,5 +141,9 @@ class Board {
     float getVrMaxTemp()
     {
         return m_vr_maxTemp;
+    }
+
+    int getNumTempSensors() {
+        return m_numTempSensors;
     }
 };

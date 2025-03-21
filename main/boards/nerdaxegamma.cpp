@@ -17,6 +17,8 @@ bool tempinit = false;
 
 static const char* TAG="nerdaxeGamma";
 
+#define MAX(a,b) ((a)>(b)?(a):(b))
+
 NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_deviceModel = "NerdAxeGamma";
     m_miningAgent = "NerdAxe";
@@ -25,9 +27,9 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_asicCount = 1;
 
     m_asicJobIntervalMs = 1500;
-    m_asicFrequency = 525.0;
-    m_asicVoltage = 1.15;
-    m_initVoltage = 1.15;
+    m_asicFrequency = 525;
+    m_asicVoltageMillis = 1150;
+    m_initVoltageMillis = 1150;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
     m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
@@ -97,7 +99,7 @@ bool NerdaxeGamma::initAsics() {
 
     // set the init voltage
     // use the higher voltage for initialization
-    setVoltage(fmaxf(m_initVoltage, m_asicVoltage));
+    setVoltage((float) MAX(m_initVoltageMillis, m_asicVoltageMillis) / 1000.0f);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -131,22 +133,27 @@ bool NerdaxeGamma::setVoltage(float core_voltage)
     return true;
 }
 
-float NerdaxeGamma::readTemperature(int index) {
+float NerdaxeGamma::getTemperature(int index) {
 
-    if (!m_isInitialized) return EMC2101_get_internal_temp() + 5;
-
-    if (!index) {
-        //Reading ASIC temp
-        float asic_temp = EMC2101_get_external_temp();
-        ESP_LOGI(TAG, "Read ASIC temp = %.3fºC", asic_temp);
-        return asic_temp; //External board Temp
-    } else
-    {   //Reading voltage regulator temp
-        float vr_temp = (float)TPS546_get_temperature();
-        ESP_LOGI(TAG, "Read vr temp = %.3fºC", vr_temp);
-        return vr_temp; //- vr_temp (voltage regulator temp)
+    if (!m_isInitialized) {
+        return EMC2101_get_internal_temp() + 5;
     }
 
+    if (index > 0) {
+        return 0.0f;
+    }
+
+    //Reading ASIC temp
+    float asic_temp = EMC2101_get_external_temp();
+    ESP_LOGI(TAG, "Read ASIC temp = %.3fºC", asic_temp);
+    return asic_temp; //External board Temp
+}
+
+float NerdaxeGamma::getVRTemp() {
+    //Reading voltage regulator temp
+    float vr_temp = (float)TPS546_get_temperature();
+    ESP_LOGI(TAG, "Read vr temp = %.3fºC", vr_temp);
+    return vr_temp; //- vr_temp (voltage regulator temp)
 }
 
 float NerdaxeGamma::getVin() {

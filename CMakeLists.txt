@@ -27,9 +27,15 @@ add_compile_definitions(LV_MEM_CUSTOM_REALLOC=lv_psram_realloc)
 #enable memory tracker
 #add_definitions(-DDEBUG_MEMORY_LOGGING)
 
+#add_compile_definitions(CONFIG_FREERTOS_USE_TRACE_FACILITY=1)
+#add_compile_definitions(CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=1)
+
 # adds -I./main; needed for components to have
 # access to main include files
 include_directories("./main")
+
+# this are only header files
+include_directories("./components/arduinojson")
 
 # (Not part of the boilerplate)
 # This example uses an extra component for common functions such as Wi-Fi and Ethernet connection.

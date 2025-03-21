@@ -4,7 +4,8 @@
 #include <sys/param.h>
 #include <netdb.h>
 
-#include "cJSON.h"
+#include "ArduinoJson.h"
+#include "psram_allocator.h"
 #include "esp_chip_info.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -37,7 +38,6 @@
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
-#pragma GCC diagnostic error "-Wmissing-prototypes"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
 #define max(a,b) ((a)>(b))?(a):(b)
@@ -71,25 +71,7 @@ typedef struct rest_server_context
 
 #define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
 
-static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
-
-static void *psram_malloc(size_t size)
-{
-    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-}
-
-static void psram_free(void *ptr)
-{
-    heap_caps_free(ptr);
-}
-
-static void configure_cjson_for_psram()
-{
-    cJSON_Hooks hooks;
-    hooks.malloc_fn = psram_malloc;
-    hooks.free_fn = psram_free;
-    cJSON_InitHooks(&hooks);
-}
+static void fillHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
 
 static esp_err_t ip_in_private_range(uint32_t address) {
     uint32_t ip_address = ntohl(address);
@@ -359,6 +341,25 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+static esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc) {
+    // Measure the size needed for the JSON text
+    size_t jsonLength = measureJson(doc);
+    // Allocate a buffer from PSRAM (or regular heap if you prefer)
+    char *jsonOutput = (char*) heap_caps_malloc(jsonLength + 1, MALLOC_CAP_SPIRAM);
+    if (!jsonOutput) {
+        ESP_LOGE(TAG, "Failed to allocate memory for JSON output");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation error");
+        return ESP_FAIL;
+    }
+    // Serialize the JSON document into the allocated buffer
+    serializeJson(doc, jsonOutput, jsonLength + 1);
+    // Send the response
+    esp_err_t ret = httpd_resp_sendstr(req, jsonOutput);
+    // Free the allocated buffer
+    heap_caps_free(jsonOutput);
+    return ret;
+}
+
 
 static esp_err_t PATCH_update_swarm(httpd_req_t *req)
 {
@@ -388,7 +389,7 @@ static esp_err_t PATCH_update_swarm(httpd_req_t *req)
     }
     buf[total_len] = '\0';
 
-    nvs_config_set_string(NVS_CONFIG_SWARM, buf);
+    Config::setSwarmConfig(buf);
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
@@ -443,76 +444,97 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
     buf[total_len] = '\0';
 
-    cJSON *root = cJSON_Parse(buf);
-    cJSON *item;
-    if ((item = cJSON_GetObjectItem(root, "stratumURL")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_URL, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "stratumUser")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_USER, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "stratumPassword")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_PASS, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "stratumPort")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_STRATUM_PORT, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "fallbackStratumURL")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_URL, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "fallbackStratumUser")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_USER, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "fallbackStratumPassword")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_STRATUM_FALLBACK_PASS, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "fallbackStratumPort")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "ssid")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_WIFI_SSID, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "wifiPass")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_WIFI_PASS, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "hostname")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_HOSTNAME, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "coreVoltage")) != NULL && item->valueint > 0) {
-        nvs_config_set_u16(NVS_CONFIG_ASIC_VOLTAGE, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "frequency")) != NULL && item->valueint > 0) {
-        nvs_config_set_u16(NVS_CONFIG_ASIC_FREQ, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "jobInterval")) != NULL && item->valueint > 0) {
-        nvs_config_set_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "flipscreen")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "overheat_temp")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_OVERHEAT_TEMP, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "invertscreen")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_INVERT_SCREEN, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "invertfanpolarity")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_INVERT_FAN_POLARITY, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "autofanspeed")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "fanspeed")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_FAN_SPEED, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "autoscreenoff")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, item->valueint);
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+
+    // Parse the JSON payload
+    DeserializationError error = deserializeJson(doc, buf);
+    if (error) {
+        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
     }
 
-    cJSON_Delete(root);
+    // Update settings if each key exists in the JSON object.
+    if (doc["stratumURL"].is<const char*>()) {
+        Config::setStratumURL(doc["stratumURL"].as<const char*>());
+    }
+    if (doc["stratumUser"].is<const char*>()) {
+        Config::setStratumUser(doc["stratumUser"].as<const char*>());
+    }
+    if (doc["stratumPassword"].is<const char*>()) {
+        Config::setStratumPass(doc["stratumPassword"].as<const char*>());
+    }
+    if (doc["stratumPort"].is<uint16_t>()) {
+        Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
+    }
+    if (doc["fallbackStratumURL"].is<const char*>()) {
+        Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
+    }
+    if (doc["fallbackStratumUser"].is<const char*>()) {
+        Config::setStratumFallbackUser(doc["fallbackStratumUser"].as<const char*>());
+    }
+    if (doc["fallbackStratumPassword"].is<const char*>()) {
+        Config::setStratumFallbackPass(doc["fallbackStratumPassword"].as<const char*>());
+    }
+    if (doc["fallbackStratumPort"].is<uint16_t>()) {
+        Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
+    }
+    if (doc["ssid"].is<const char*>()) {
+        Config::setWifiSSID(doc["ssid"].as<const char*>());
+    }
+    if (doc["wifiPass"].is<const char*>()) {
+        Config::setWifiPass(doc["wifiPass"].as<const char*>());
+    }
+    if (doc["hostname"].is<const char*>()) {
+        Config::setHostname(doc["hostname"].as<const char*>());
+    }
+    if (doc["coreVoltage"].is<uint16_t>()) {
+        uint16_t coreVoltage = doc["coreVoltage"].as<uint16_t>();
+        if (coreVoltage > 0) {
+            Config::setAsicVoltage(coreVoltage);
+        }
+    }
+    if (doc["frequency"].is<uint16_t>()) {
+        uint16_t frequency = doc["frequency"].as<uint16_t>();
+        if (frequency > 0) {
+            Config::setAsicFrequency(frequency);
+        }
+    }
+    if (doc["jobInterval"].is<uint16_t>()) {
+        uint16_t jobInterval = doc["jobInterval"].as<uint16_t>();
+        if (jobInterval > 0) {
+            Config::setAsicJobInterval(jobInterval);
+        }
+    }
+    if (doc["flipscreen"].is<bool>()) {
+        Config::setFlipScreen(doc["flipscreen"].as<bool>());
+    }
+    if (doc["overheat_temp"].is<uint16_t>()) {
+        Config::setOverheatTemp(doc["overheat_temp"].as<uint16_t>());
+    }
+    if (doc["invertscreen"].is<bool>()) {
+        Config::setInvertScreen(doc["invertscreen"].as<bool>());
+    }
+    if (doc["invertfanpolarity"].is<bool>()) {
+        Config::setInvertFanPolarity(doc["invertfanpolarity"].as<bool>());
+    }
+    if (doc["autofanspeed"].is<bool>()) {
+        Config::setAutoFanSpeed(doc["autofanspeed"].as<bool>());
+    }
+    if (doc["fanspeed"].is<uint16_t>()) {
+        Config::setFanSpeed(doc["fanspeed"].as<uint16_t>());
+    }
+    if (doc["autoscreenoff"].is<bool>()) {
+        Config::setAutoScreenOff(doc["autoscreenoff"].as<bool>());
+    }
+
+    doc.clear();
+
+    // Signal the end of the response
     httpd_resp_send_chunk(req, NULL, 0);
 
-    // reload settings
+    // Reload settings after update
     Board* board = SYSTEM_MODULE.getBoard();
     board->loadSettings();
 
@@ -533,13 +555,15 @@ static esp_err_t PATCH_update_influx(httpd_req_t *req)
 
     int total_len = req->content_len;
     int cur_len = 0;
-    char *buf = ((rest_server_context_t *) (req->user_ctx))->scratch;
+    char *buf = ((rest_server_context_t *)(req->user_ctx))->scratch;
     int received = 0;
+
     if (total_len >= SCRATCH_BUFSIZE) {
         /* Respond with 500 Internal Server Error */
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
         return ESP_FAIL;
     }
+
     while (cur_len < total_len) {
         received = httpd_req_recv(req, buf + cur_len, total_len);
         if (received <= 0) {
@@ -551,31 +575,42 @@ static esp_err_t PATCH_update_influx(httpd_req_t *req)
     }
     buf[total_len] = '\0';
 
-    cJSON *root = cJSON_Parse(buf);
-    cJSON *item;
-    if ((item = cJSON_GetObjectItem(root, "influxEnable")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "influxURL")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_URL, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "influxPort")) != NULL) {
-        nvs_config_set_u16(NVS_CONFIG_INFLUX_PORT, item->valueint);
-    }
-    if ((item = cJSON_GetObjectItem(root, "influxToken")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_TOKEN, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "influxBucket")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_BUCKET, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "influxOrg")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_ORG, item->valuestring);
-    }
-    if ((item = cJSON_GetObjectItem(root, "influxPrefix")) != NULL) {
-        nvs_config_set_string(NVS_CONFIG_INFLUX_PREFIX, item->valuestring);
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+
+    // Parse the JSON payload
+    DeserializationError error = deserializeJson(doc, buf);
+    if (error) {
+        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
     }
 
-    cJSON_Delete(root);
+    // Check and apply each setting if the key exists and has the correct type
+    if (doc["influxEnable"].is<bool>()) {
+        Config::setInfluxEnabled(doc["influxEnable"].as<bool>());
+    }
+    if (doc["influxURL"].is<const char*>()) {
+        Config::setInfluxURL(doc["influxURL"].as<const char*>());
+    }
+    if (doc["influxPort"].is<uint16_t>()) {
+        Config::setInfluxPort(doc["influxPort"].as<uint16_t>());
+    }
+    if (doc["influxToken"].is<const char*>()) {
+        Config::setInfluxToken(doc["influxToken"].as<const char*>());
+    }
+    if (doc["influxBucket"].is<const char*>()) {
+        Config::setInfluxBucket(doc["influxBucket"].as<const char*>());
+    }
+    if (doc["influxOrg"].is<const char*>()) {
+        Config::setInfluxOrg(doc["influxOrg"].as<const char*>());
+    }
+    if (doc["influxPrefix"].is<const char*>()) {
+        Config::setInfluxPrefix(doc["influxPrefix"].as<const char*>());
+    }
+
+    doc.clear();
+
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
@@ -616,7 +651,7 @@ static esp_err_t GET_swarm(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    char *swarm_config = nvs_config_get_string(NVS_CONFIG_SWARM, "[]");
+    char *swarm_config = Config::getSwarmConfig();
     httpd_resp_sendstr(req, swarm_config);
     free(swarm_config);
     return ESP_OK;
@@ -656,77 +691,92 @@ static esp_err_t GET_system_info(httpd_req_t *req)
         }
     }
 
-    // Gather system info as before
-    char *ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, CONFIG_ESP_WIFI_SSID);
-    char *hostname = nvs_config_get_string(NVS_CONFIG_HOSTNAME, CONFIG_LWIP_LOCAL_HOSTNAME);
-
-    char *stratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_URL, CONFIG_STRATUM_URL);
-    char *stratumUser = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, CONFIG_STRATUM_USER);
-
-    char *fallbackStratumURL = nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_URL, CONFIG_STRATUM_FALLBACK_URL);
-    char *fallbackStratumUser = nvs_config_get_string(NVS_CONFIG_STRATUM_FALLBACK_USER, CONFIG_STRATUM_FALLBACK_USER);
-
-    Board* board = SYSTEM_MODULE.getBoard();
+    Board* board   = SYSTEM_MODULE.getBoard();
     History* history = SYSTEM_MODULE.getHistory();
 
-    cJSON *root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "power", POWER_MANAGEMENT_MODULE.getPower());
-    cJSON_AddNumberToObject(root, "maxPower", board->getMaxPin());
-    cJSON_AddNumberToObject(root, "minPower", board->getMinPin());
-    cJSON_AddNumberToObject(root, "voltage", POWER_MANAGEMENT_MODULE.getVoltage());
-    cJSON_AddNumberToObject(root, "maxVoltage", board->getMaxVin());
-    cJSON_AddNumberToObject(root, "minVoltage", board->getMinVin());
-    cJSON_AddNumberToObject(root, "current", POWER_MANAGEMENT_MODULE.getCurrent());
-    cJSON_AddNumberToObject(root, "temp", POWER_MANAGEMENT_MODULE.getAvgChipTemp());
-    cJSON_AddNumberToObject(root, "vrTemp", POWER_MANAGEMENT_MODULE.getVrTemp());
-    cJSON_AddNumberToObject(root, "hashRateTimestamp", history->getCurrentTimestamp());
-    cJSON_AddNumberToObject(root, "hashRate", history->getCurrentHashrate10m());
-    cJSON_AddNumberToObject(root, "hashRate_10m", history->getCurrentHashrate10m());
-    cJSON_AddNumberToObject(root, "hashRate_1h", history->getCurrentHashrate1h());
-    cJSON_AddNumberToObject(root, "hashRate_1d", history->getCurrentHashrate1d());
-    cJSON_AddNumberToObject(root, "jobInterval", board->getAsicJobIntervalMs());
-    cJSON_AddStringToObject(root, "bestDiff", SYSTEM_MODULE.getBestDiffString());
-    cJSON_AddStringToObject(root, "bestSessionDiff", SYSTEM_MODULE.getBestSessionDiffString());
-    cJSON_AddNumberToObject(root, "freeHeap", esp_get_free_heap_size());
-    cJSON_AddNumberToObject(root, "coreVoltage", nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE));
-    cJSON_AddNumberToObject(root, "coreVoltageActual", (int) (board->getVout() * 1000.0f));
-    cJSON_AddNumberToObject(root, "frequency", nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY));
-    cJSON_AddStringToObject(root, "ssid", ssid);
-    cJSON_AddStringToObject(root, "hostname", hostname);
-    cJSON_AddStringToObject(root, "hostip", SYSTEM_MODULE.getIPAddress());
-    cJSON_AddStringToObject(root, "wifiStatus", SYSTEM_MODULE.getWifiStatus());
-    cJSON_AddNumberToObject(root, "sharesAccepted", SYSTEM_MODULE.getSharesAccepted());
-    cJSON_AddNumberToObject(root, "sharesRejected", SYSTEM_MODULE.getSharesRejected());
-    cJSON_AddNumberToObject(root, "uptimeSeconds", (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000);
-    cJSON_AddNumberToObject(root, "asicCount", board->getAsicCount());
-    cJSON_AddNumberToObject(root, "smallCoreCount", (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0);
-    cJSON_AddStringToObject(root, "ASICModel", board->getAsicModel());
-    cJSON_AddStringToObject(root, "deviceModel", board->getDeviceModel());
-    cJSON_AddStringToObject(root, "stratumURL", stratumURL);
-    cJSON_AddNumberToObject(root, "stratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT));
-    cJSON_AddStringToObject(root, "stratumUser", stratumUser);
-    cJSON_AddStringToObject(root, "fallbackStratumURL", fallbackStratumURL);
-    cJSON_AddNumberToObject(root, "fallbackStratumPort", nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT));
-    cJSON_AddStringToObject(root, "fallbackStratumUser", fallbackStratumUser);
-    cJSON_AddNumberToObject(root, "isUsingFallbackStratum", STRATUM_MANAGER.isUsingFallback());
-    cJSON_AddStringToObject(root, "version", esp_ota_get_app_description()->version);
-    cJSON_AddStringToObject(root, "runningPartition", esp_ota_get_running_partition()->label);
-    cJSON_AddNumberToObject(root, "flipscreen", nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, CONFIG_FLIP_SCREEN_VALUE));
-    cJSON_AddNumberToObject(root, "overheat_temp", nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP));
-    cJSON_AddNumberToObject(root, "invertscreen", nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0)); // unused?
-    cJSON_AddNumberToObject(root, "autoscreenoff", nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE));
-    cJSON_AddNumberToObject(root, "invertfanpolarity", nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, CONFIG_INVERT_POLARITY_VALUE));
-    cJSON_AddNumberToObject(root, "autofanspeed", nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE));
-    cJSON_AddNumberToObject(root, "fanspeed", POWER_MANAGEMENT_MODULE.getFanPerc());
-    cJSON_AddNumberToObject(root, "fanrpm", POWER_MANAGEMENT_MODULE.getFanRPM());
-    cJSON_AddStringToObject(root, "lastResetReason", SYSTEM_MODULE.getLastResetReason());
-    // If start_timestamp is provided, include history data
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+
+    // Get configuration strings from NVS
+    char *ssid               = Config::getWifiSSID();
+    char *hostname           = Config::getHostname();
+    char *stratumURL         = Config::getStratumURL();
+    char *stratumUser        = Config::getStratumUser();
+    char *fallbackStratumURL = Config::getStratumFallbackURL();
+    char *fallbackStratumUser= Config::getStratumFallbackUser();
+
+    // static
+    doc["asicCount"]          = board->getAsicCount();
+    doc["smallCoreCount"]     = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
+    doc["deviceModel"]        = board->getDeviceModel();
+    doc["hostip"]             = SYSTEM_MODULE.getIPAddress();
+
+    // dashboard
+    doc["power"]              = POWER_MANAGEMENT_MODULE.getPower();
+    doc["maxPower"]           = board->getMaxPin();
+    doc["minPower"]           = board->getMinPin();
+    doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
+    doc["maxVoltage"]         = board->getMaxVin();
+    doc["minVoltage"]         = board->getMinVin();
+    doc["current"]            = POWER_MANAGEMENT_MODULE.getCurrent();
+    doc["temp"]               = POWER_MANAGEMENT_MODULE.getAvgChipTemp();
+    doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
+    doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
+    doc["hashRate"]           = history->getCurrentHashrate10m();
+    doc["hashRate_10m"]       = history->getCurrentHashrate10m();
+    doc["hashRate_1h"]        = history->getCurrentHashrate1h();
+    doc["hashRate_1d"]        = history->getCurrentHashrate1d();
+    doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
+    doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
+    doc["coreVoltage"]        = board->getAsicVoltageMillis();
+    doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
+    doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
+    doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
+    doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
+    doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
+    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
+
+    // If history was requested, add the history data as a nested object
     if (history_requested) {
-        uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour after start_timestamp
-        cJSON *history = get_history_data(start_timestamp, end_timestamp, current_timestamp);
-        cJSON_AddItemToObject(root, "history", history);
+        uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour later
+        JsonObject json_history = doc["history"].to<JsonObject>();
+        fillHistoryData(json_history, start_timestamp, end_timestamp, current_timestamp);
     }
 
+    doc["hostname"]           = hostname;
+    doc["ssid"]               = ssid;
+    doc["stratumURL"]         = stratumURL;
+    doc["stratumPort"]        = Config::getStratumPortNumber();
+    doc["stratumUser"]        = stratumUser;
+    doc["fallbackStratumURL"] = fallbackStratumURL;
+    doc["fallbackStratumPort"]= Config::getStratumFallbackPortNumber();
+    doc["fallbackStratumUser"] = fallbackStratumUser;
+    doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
+    doc["frequency"]          = board->getAsicFrequency();
+    doc["jobInterval"]        = board->getAsicJobIntervalMs();
+    doc["overheat_temp"]      = Config::getOverheatTemp();
+    doc["flipscreen"]         = Config::isFlipScreenEnabled() ? 1 : 0;
+    doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
+    doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
+    doc["invertfanpolarity"]  = Config::isInvertFanPolarityEnabled() ? 1 : 0;
+    doc["autofanspeed"]       = Config::isAutoFanSpeedEnabled() ? 1 : 0;
+
+    // system screen
+    doc["ASICModel"]          = board->getAsicModel();
+    doc["uptimeSeconds"]      = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
+    doc["lastResetReason"]    = SYSTEM_MODULE.getLastResetReason();
+    doc["wifiStatus"]         = SYSTEM_MODULE.getWifiStatus();
+    doc["freeHeap"]           = esp_get_free_heap_size();
+    doc["version"]            = esp_app_get_description()->version;
+    doc["runningPartition"]   = esp_ota_get_running_partition()->label;
+
+    //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+
+    // Serialize the JSON document to a String and send it
+    esp_err_t ret = sendJsonResponse(req, doc);
+    doc.clear();
+
+    // Free temporary strings
     free(ssid);
     free(hostname);
     free(stratumURL);
@@ -734,11 +784,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     free(fallbackStratumURL);
     free(fallbackStratumUser);
 
-    const char *sys_info = cJSON_PrintUnformatted(root);
-    httpd_resp_sendstr(req, sys_info);
-    free((void*) sys_info);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return ret;
 }
 
 
@@ -757,87 +803,87 @@ static esp_err_t GET_influx_info(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    char *influxURL = nvs_config_get_string(NVS_CONFIG_INFLUX_URL, CONFIG_INFLUX_URL);
-    char *influxBucket = nvs_config_get_string(NVS_CONFIG_INFLUX_BUCKET, CONFIG_INFLUX_BUCKET);
-    char *influxOrg = nvs_config_get_string(NVS_CONFIG_INFLUX_ORG, CONFIG_INFLUX_ORG);
-    char *influxPrefix = nvs_config_get_string(NVS_CONFIG_INFLUX_PREFIX, CONFIG_INFLUX_PREFIX);
+    // Retrieve configuration strings from NVS
+    char *influxURL    = Config::getInfluxURL();
+    char *influxBucket = Config::getInfluxBucket();
+    char *influxOrg    = Config::getInfluxOrg();
+    char *influxPrefix = Config::getInfluxPrefix();
 
-    cJSON *root = cJSON_CreateObject();
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
 
-    cJSON_AddStringToObject(root, "influxURL", influxURL);
-    cJSON_AddNumberToObject(root, "influxPort", nvs_config_get_u16(NVS_CONFIG_INFLUX_PORT, CONFIG_INFLUX_PORT));
-    cJSON_AddStringToObject(root, "influxBucket", influxBucket);
-    cJSON_AddStringToObject(root, "influxOrg", influxOrg);
-    cJSON_AddStringToObject(root, "influxPrefix", influxPrefix);
-    cJSON_AddNumberToObject(root, "influxEnable", nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE));
+    // Fill the JSON object with values
+    doc["influxURL"]    = influxURL;
+    doc["influxPort"]   = Config::getInfluxPort();
+    doc["influxBucket"] = influxBucket;
+    doc["influxOrg"]    = influxOrg;
+    doc["influxPrefix"] = influxPrefix;
+    doc["influxEnable"] = Config::isInfluxEnabled() ? 1 : 0;
 
+    // Serialize the JSON document into a string (using Arduino's String type)
+    esp_err_t ret = sendJsonResponse(req, doc);
+
+    doc.clear();
+
+    // Free temporary strings from NVS retrieval
     free(influxURL);
     free(influxBucket);
     free(influxOrg);
     free(influxPrefix);
 
-    const char *influx_info = cJSON_PrintUnformatted(root);
-    httpd_resp_sendstr(req, influx_info);
-    free((char*) influx_info);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return ret;
 }
 
-static cJSON *get_history_data(uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp)
-{
+// Helper: fills a JsonObject with history data using ArduinoJson
+static void fillHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp) {
     History *history = SYSTEM_MODULE.getHistory();
 
     // Ensure consistency
     history->lock();
 
     int64_t rel_start = (int64_t) start_timestamp - (int64_t) current_timestamp;
-    int64_t rel_end = (int64_t) end_timestamp - (int64_t) current_timestamp;
+    int64_t rel_end   = (int64_t) end_timestamp - (int64_t) current_timestamp;
 
-    // get current system timestamp since system boot in ms
-    uint64_t sys_timestamp = esp_timer_get_time() / 1000llu;
+    // Get current system timestamp (in ms)
+    uint64_t sys_timestamp = esp_timer_get_time() / 1000ULL;
     int64_t sys_start = (int64_t) sys_timestamp + rel_start;
-    int64_t sys_end = (int64_t) sys_timestamp + rel_end;
+    int64_t sys_end   = (int64_t) sys_timestamp + rel_end;
 
     int start_index = history->searchNearestTimestamp(sys_start);
-    int end_index = history->searchNearestTimestamp(sys_end);
+    int end_index   = history->searchNearestTimestamp(sys_end);
     int num_samples = end_index - start_index + 1;
 
-    cJSON *json_history = cJSON_CreateObject();
-
-    if (!history->isAvailable() || start_index == -1 || end_index == -1 || num_samples <= 0 || (end_index < start_index)) {
+    if (!history->isAvailable() || start_index == -1 || end_index == -1 ||
+        num_samples <= 0 || (end_index < start_index)) {
         ESP_LOGW(TAG, "Invalid history indices or history not (yet) available");
         // If the data is invalid, return an empty object
         num_samples = 0;
     }
 
-    cJSON *json_hashrate_10m = cJSON_CreateArray();
-    cJSON *json_hashrate_1h = cJSON_CreateArray();
-    cJSON *json_hashrate_1d = cJSON_CreateArray();
-    cJSON *json_timestamps = cJSON_CreateArray();
+    // Create arrays for history samples using the new method
+    JsonArray hashrate_10m = json_history["hashrate_10m"].to<JsonArray>();
+    JsonArray hashrate_1h  = json_history["hashrate_1h"].to<JsonArray>();
+    JsonArray hashrate_1d  = json_history["hashrate_1d"].to<JsonArray>();
+    JsonArray timestamps   = json_history["timestamps"].to<JsonArray>();
 
     for (int i = start_index; i < start_index + num_samples; i++) {
         uint64_t sample_timestamp = history->getTimestampSample(i);
-
         if ((int64_t) sample_timestamp < sys_start) {
             continue;
         }
-
-        cJSON_AddItemToArray(json_hashrate_10m, cJSON_CreateNumber((int)(history->getHashrate10mSample(i) * 100.0)));
-        cJSON_AddItemToArray(json_hashrate_1h, cJSON_CreateNumber((int)(history->getHashrate1hSample(i) * 100.0)));
-        cJSON_AddItemToArray(json_hashrate_1d, cJSON_CreateNumber((int)(history->getHashrate1dSample(i) * 100.0)));
-        cJSON_AddItemToArray(json_timestamps, cJSON_CreateNumber((int64_t) sample_timestamp - sys_start));
+        // Multiply by 100.0 and cast to int as in the original code
+        hashrate_10m.add((int)(history->getHashrate10mSample(i) * 100.0));
+        hashrate_1h.add((int)(history->getHashrate1hSample(i) * 100.0));
+        hashrate_1d.add((int)(history->getHashrate1dSample(i) * 100.0));
+        timestamps.add((int64_t) sample_timestamp - sys_start);
     }
 
-    cJSON_AddItemToObject(json_history, "hashrate_10m", json_hashrate_10m);
-    cJSON_AddItemToObject(json_history, "hashrate_1h", json_hashrate_1h);
-    cJSON_AddItemToObject(json_history, "hashrate_1d", json_hashrate_1d);
-    cJSON_AddItemToObject(json_history, "timestamps", json_timestamps);
-    cJSON_AddNumberToObject(json_history, "timestampBase", start_timestamp);
+    // Add base timestamp for reference
+    json_history["timestampBase"] = start_timestamp;
 
     history->unlock();
-
-    return json_history;
 }
+
 
 static esp_err_t POST_WWW_update(httpd_req_t *req)
 {
@@ -1068,8 +1114,6 @@ static void websocket_log_handler(void* param)
 
 esp_err_t start_rest_server(void * pvParameters)
 {
-    configure_cjson_for_psram();
-
     const char *base_path = "";
 
     bool enter_recovery = false;

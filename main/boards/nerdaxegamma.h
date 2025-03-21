@@ -7,7 +7,7 @@
 
 class NerdaxeGamma : public NerdAxe {
   protected:
-    float m_initVoltage;
+    int m_initVoltageMillis;
 
   public:
     NerdaxeGamma();
@@ -20,7 +20,8 @@ class NerdaxeGamma : public NerdAxe {
 // abstract common methos
     virtual bool setVoltage(float core_voltage);
 
-    virtual float readTemperature(int index);
+    virtual float getTemperature(int index);
+    virtual float getVRTemp();
 
     virtual float getVin();
     virtual float getIin();

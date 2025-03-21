@@ -17,9 +17,11 @@
 #include "TMP1075.h"
 #include "TPS53647.h"
 
-
+#define MAX(a,b) ((a)>(b)?(a):(b))
 
 static const char* TAG="nerdqaxe+";
+
+#define VR_TEMP1075_ADDR   0x1
 
 NerdQaxePlus::NerdQaxePlus() : Board() {
     m_deviceModel = "NerdQAxe+";
@@ -28,9 +30,9 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicModel = "BM1368";
     m_asicCount = 4;
     m_asicJobIntervalMs = 1200;
-    m_asicFrequency = 490.0;
-    m_asicVoltage = 1.25; // default voltage
-    m_initVoltage = 1.25;
+    m_asicFrequency = 490;
+    m_asicVoltageMillis = 1250; // default voltage
+    m_initVoltageMillis = 1250;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
     m_numPhases = 2;
@@ -61,6 +63,11 @@ bool NerdQaxePlus::initBoard()
         ESP_LOGE(TAG, "I2C initializing failed");
         return false;
     }
+
+    // detect how many TMP1075 we have
+    m_numTempSensors = detectNumTempSensors();
+
+    ESP_LOGI(TAG, "found %d ASIC temp measuring sensors", m_numTempSensors);
 
     EMC2302_init(m_fanInvertPolarity);
     setFanSpeed(m_fanPerc);
@@ -116,7 +123,7 @@ bool NerdQaxePlus::initAsics()
 
     // set the init voltage
     // use the higher voltage for initialization
-    setVoltage(fmaxf(m_initVoltage, m_asicVoltage));
+    setVoltage((float) MAX(m_initVoltageMillis, m_asicVoltageMillis) / 1000.0f);
 
     // wait 500ms
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -139,7 +146,7 @@ bool NerdQaxePlus::initAsics()
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     // set final output voltage
-    setVoltage(m_asicVoltage);
+    setVoltage((float) m_asicVoltageMillis / 1000.0f);
 
     m_isInitialized = true;
     return true;
@@ -177,8 +184,41 @@ void NerdQaxePlus::getFanSpeed(uint16_t* rpm) {
     EMC2302_get_fan_speed(rpm);
 }
 
-float NerdQaxePlus::readTemperature(int index) {
-    return TMP1075_read_temperature(index);
+// return the number of asic temp measuring sensors
+// skips the VR temp sensor
+int NerdQaxePlus::detectNumTempSensors() {
+    int found = 0;
+    for (int i = 0; i < 4; i++) {
+        // don't count the VR sensor on the back
+        if (i == VR_TEMP1075_ADDR) {
+            continue;
+        }
+        if (!TMP1075_read_temperature(i)) {
+            break;
+        }
+        ESP_LOGI(TAG, "found asic temp sensor %d", i);
+        found++;
+    }
+    return found;
+}
+
+float NerdQaxePlus::getTemperature(int index) {
+    if (index >= getNumTempSensors()) {
+        return 0.0;
+    }
+
+    // read temp and skip index 1
+    return TMP1075_read_temperature(index + !!index);
+}
+
+float NerdQaxePlus::getVRTemp() {
+    float vrTemp = TPS53647_get_temperature();
+
+    // test
+    float tmp = TMP1075_read_temperature(1);
+    ESP_LOGI(TAG, "tmp1075 vs tps: %.2f vs %.2f (diff: %.2f)", tmp, vrTemp, vrTemp - tmp);
+
+    return tmp;
 }
 
 float NerdQaxePlus::getVin() {
@@ -222,8 +262,8 @@ bool NerdQaxePlus::selfTest(){
     #define CORE_VOLTAGE_TARGET_MIN 1.1 //mV
     #define CORE_VOLTAGE_TARGET_MAX 1.4 //mV
 
-    char logString[300]; 
-    
+    char logString[300];
+
     // Initialize the display
     DisplayDriver *temp_display;
     temp_display = new DisplayDriver();
@@ -239,7 +279,7 @@ bool NerdQaxePlus::selfTest(){
     bool powerOK = (power > m_minPin) && (power < m_maxPin);
     bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
     bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
-    
+
     //Warning! This test only ensures Asic is properly soldered
     snprintf(logString, sizeof(logString),  "\nTest result:\r\n"
                                             "- Asics detected [%d/%d]\n"
@@ -250,10 +290,12 @@ bool NerdQaxePlus::selfTest(){
                                             powerOK ? "OK" : "Warning", power,
                                             VrOK ? "OK" : "Warning", Vout,
                                             (allAsicsDetected) ? "OOOOOOOO TEST OK!!! OOOOOOO" : "XXXXXXXXX TEST KO XXXXXXXXX");
-    temp_display->logMessage(logString);   
+    temp_display->logMessage(logString);
 
-    //Update SelfTest flag                                                              
-    if(allAsicsDetected) nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);                                                                        
+    //Update SelfTest flag
+    if(allAsicsDetected) {
+        Config::setSelfTest(false);
+    }
 
     return true;
 }

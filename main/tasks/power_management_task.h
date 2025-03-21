@@ -42,7 +42,7 @@ class PowerManagementTask {
     {
         return m_chipTempAvg;
     };
-    float getVrTemp()
+    float getVRTemp()
     {
         return m_vrTemp;
     };

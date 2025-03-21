@@ -72,7 +72,7 @@ void PowerManagementTask::task()
     Board* board = SYSTEM_MODULE.getBoard();
 
 
-    uint16_t auto_fan_speed = nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE);
+    bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
@@ -84,13 +84,19 @@ void PowerManagementTask::task()
         // the asics are initialized after this task starts
         Asic* asics = board->getAsics();
 
-        uint16_t core_voltage = nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE);
-        uint16_t asic_frequency = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
-        uint16_t asic_overheat_temp = nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP);
+        uint16_t core_voltage = board->getAsicVoltageMillis();
+        uint16_t asic_frequency = board->getAsicFrequency();
+        uint16_t asic_overheat_temp = Config::getOverheatTemp();
+
+        // overwrite previously allowed 0 value to disable
+        // over-temp shutdown
+        if (!asic_overheat_temp) {
+            asic_overheat_temp = 70;
+        }
 
         if (core_voltage != last_core_voltage) {
             ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
-            board->setVoltage((double) core_voltage / 1000.0);
+            board->setVoltage((float) core_voltage / 1000.0);
             last_core_voltage = core_voltage;
         }
 
@@ -110,6 +116,11 @@ void PowerManagementTask::task()
             board->requestBuckTelemtry();
             last_temp_request = esp_timer_get_time();
         }
+        //Get the readed MaxChipTemp of all chainged chips after
+        //calling requestChipTemp() 
+        //IMPORTANT: this value only makes sense with BM1368 ASIC, with other Asics will remain at 0
+        float m_MaxChipTemp = 0.0;
+        if (asics) m_MaxChipTemp = asics->getMaxChipTemp();
 
         float vin = board->getVin();
         float iin = board->getIin();
@@ -117,6 +128,11 @@ void PowerManagementTask::task()
         float pout = board->getPout();
         float vout = board->getVout();
         float iout = board->getIout();
+
+        m_vrTemp = board->getVRTemp();
+
+        ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f",
+            vin, iin, pin, vout, iout, pout, m_vrTemp);
 
         influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
@@ -136,8 +152,21 @@ void PowerManagementTask::task()
         m_power = pin;
         board->getFanSpeed(&m_fanRPM);
 
-        m_chipTempAvg = board->readTemperature(0);
-        m_vrTemp = board->readTemperature(1);
+        // calculate the average of ASICs measuring temp sensors
+        float tempSum = 0.0;
+        int tempCount = 0;
+        for (int i=0; i < board->getNumTempSensors(); i++) {
+            float tmp = board->getTemperature(i);
+            if (tmp) {
+                tempSum += tmp;
+                tempCount++;
+            }
+        }
+        m_chipTempAvg = tempCount ? (tempSum / (float) tempCount) : 0.0f;
+
+        // Uses the worst case between board temp sensor or Asic temp read command
+        m_chipTempAvg = std::max(m_chipTempAvg, m_MaxChipTemp);
+
         influx_task_set_temperature(m_chipTempAvg, m_vrTemp);
 
         float vr_maxTemp = asic_overheat_temp;
@@ -154,10 +183,10 @@ void PowerManagementTask::task()
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
-        if (auto_fan_speed == 1) {
+        if (auto_fan_speed) {
             m_fanPerc = (float) automaticFanSpeed(board, m_chipTempAvg);
         } else {
-            float fs = (float) nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, 100);
+            float fs = (float) Config::getFanSpeed();
             m_fanPerc = fs;
             board->setFanSpeed((float) fs / 100);
         }

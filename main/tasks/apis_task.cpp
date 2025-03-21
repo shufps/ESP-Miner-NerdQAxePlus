@@ -1,5 +1,6 @@
 #include "apis_task.h"
-#include "cJSON.h"
+#include "ArduinoJson.h"
+#include "psram_allocator.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -153,15 +154,24 @@ bool APIsFetcher::fetchData(const char* apiUrl, ApiType type)
 
     ESP_LOGI(TAG, "Received JSON: %s", m_responseBuffer);
 
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+
+    DeserializationError error = deserializeJson(doc, m_responseBuffer);
+    if (error) {
+        ESP_LOGE(TAG, "JSON parsing failed!");
+        return false;
+    }
+
     switch (type) {
         case APItype_PRICE:
-            return parseBitcoinPrice(m_responseBuffer);
+            return parseBitcoinPrice(doc);
         case APItype_BLOCK_HEIGHT:
-            return parseBlockHeight(m_responseBuffer);
+            return parseBlockHeight(doc);
         case APItype_HASHRATE:
-            return parseHashrate(m_responseBuffer);
+            return parseHashrate(doc);
         case APItype_FEES:
-            return parseFees(m_responseBuffer);
+            return parseFees(doc);
         default:
             ESP_LOGE(TAG, "Unknown API type.");
             return false;
@@ -169,117 +179,40 @@ bool APIsFetcher::fetchData(const char* apiUrl, ApiType type)
 }
 
 // Parse Bitcoin price
-bool APIsFetcher::parseBitcoinPrice(const char* jsonData) {
-    // Parse JSON response
-    cJSON *json = cJSON_Parse(jsonData);
-    
-    if (!json) {
-        ESP_LOGE(TAG, "JSON parsing failed!");
-        return false;
-    }
-    
-    cJSON *usd = cJSON_GetObjectItem(json, "USD");
-    if (!usd && !cJSON_IsNumber(usd)) {
-        ESP_LOGE(TAG, "USD field missing or invalid.");
-        return false;
-    }
-
-    m_bitcoinPrice = static_cast<uint32_t>(usd->valuedouble);
+bool APIsFetcher::parseBitcoinPrice(JsonDocument &doc) {
+    m_bitcoinPrice = doc["USD"].as<uint32_t>();
     ESP_LOGI(TAG, "Bitcoin price in USD: %lu", m_bitcoinPrice);
-
-    cJSON_Delete(json);
-
     return true;
 }
 
 // Parse Bloack Height
-bool APIsFetcher::parseBlockHeight(const char* jsonData) {
-    // Parse JSON response
-    cJSON *json = cJSON_Parse(jsonData);
-    
-    if (!json) {
-        ESP_LOGE(TAG, "JSON parsing failed!");
-        return false;
-    }
-    
-    if (!cJSON_IsNumber(json)) {
-        ESP_LOGE(TAG, "Height block field missing or invalid.");
-        return false;
-    }
-
-    m_blockHeigh = static_cast<uint32_t>(json->valuedouble);
+bool APIsFetcher::parseBlockHeight(JsonDocument &doc) {
+    m_blockHeigh = doc.as<uint32_t>();
     ESP_LOGI(TAG, "Current block: %lu", m_blockHeigh);
+    return true;
+}
 
-    cJSON_Delete(json);
+bool APIsFetcher::parseHashrate(JsonDocument &doc) {
+    double rawHash = doc["currentHashrate"].as<double>();  // Read as floating point
+    double rawDiff = doc["currentDifficulty"].as<double>();  // Read as floating point
+
+    m_netHash = static_cast<uint64_t>(rawHash / 1e18); // Convert to EH/s
+    m_netDifficulty = static_cast<uint64_t>(rawDiff / 1e12); // Convert to T
+
+    ESP_LOGI(TAG, "Network hash: %llu EH/s", m_netHash);
+    ESP_LOGI(TAG, "Network difficulty: %llu T", m_netDifficulty);
 
     return true;
 }
 
-bool APIsFetcher::parseHashrate(const char* jsonData) {
-    // Parse JSON response
-    cJSON *json = cJSON_Parse(jsonData);
-    
-    if (!json) {
-        ESP_LOGE(TAG, "JSON parsing failed!");
-        return false;
-    }
-    
-    cJSON *netHash = cJSON_GetObjectItem(json, "currentHashrate");
-    if (netHash && cJSON_IsNumber(netHash)) {
-        double rawHash = netHash->valuedouble; // Convertir a uint64_t
-        m_netHash = static_cast<uint64_t>(rawHash / 1e18); // Convertir a EH/s
-        ESP_LOGI(TAG, "Network hash: %llu EH/s", m_netHash);
-    } else {
-        ESP_LOGE(TAG, "Network hash field missing or invalid.");
-        return false;
-    }
 
-    cJSON *netDiff = cJSON_GetObjectItem(json, "currentDifficulty");
-    if (netDiff && cJSON_IsNumber(netDiff)) {
-        double rawDiff = netDiff->valuedouble; // Convertir a uint64_t
-        m_netDifficulty =  (uint64_t)(rawDiff / 1e12); // Convertir a Teras
-        ESP_LOGI(TAG, "Network difficulty: %llu T", m_netDifficulty);
-    } else {
-        ESP_LOGE(TAG, "Network difficulty field missing or invalid.");
-        return false;
-    }
-
-    cJSON_Delete(json);
-
-    return true;
-} 
-
-bool APIsFetcher::parseFees(const char* jsonData) {
-    // Parse JSON response
-    cJSON *json = cJSON_Parse(jsonData);
-    
-    if (!json) {
-        ESP_LOGE(TAG, "JSON parsing failed!");
-        return false;
-    }
-    
-    cJSON *hourFee = cJSON_GetObjectItem(json, "hourFee");
-    if (hourFee && cJSON_IsNumber(hourFee)) {
-        m_hourFee = static_cast<uint32_t>(hourFee->valuedouble); 
-    } 
-
-    cJSON *halfHourFee = cJSON_GetObjectItem(json, "halfHourFee");
-    if (halfHourFee && cJSON_IsNumber(halfHourFee)) {
-        m_halfHourFee = static_cast<uint32_t>(halfHourFee->valuedouble); 
-    } 
-
-    cJSON *fastestFee = cJSON_GetObjectItem(json, "fastestFee");
-    if (fastestFee && cJSON_IsNumber(fastestFee)) {
-        m_fastestFee = static_cast<uint32_t>(fastestFee->valuedouble); 
-    } 
-
-
+bool APIsFetcher::parseFees(JsonDocument &doc) {
+    m_hourFee = doc["hourFee"].as<uint32_t>();
+    m_halfHourFee = doc["halfHourFee"].as<uint32_t>();
+    m_fastestFee = doc["fastestFee"].as<uint32_t>();
     ESP_LOGI(TAG, "Network fees: %lu, %lu, %lu", m_hourFee, m_halfHourFee, m_fastestFee);
-
-    cJSON_Delete(json);
-
     return true;
-} 
+}
 
 
 // FreeRTOS task wrapper (must be static)

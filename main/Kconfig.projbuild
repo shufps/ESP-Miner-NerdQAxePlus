@@ -1,19 +1,4 @@
 menu "Miner Configuration"
-
-    config ASIC_VOLTAGE
-        int "ASIC Core Voltage (mV)"
-        range 1000 1800
-        default 1200
-        help
-            The core voltage to set the ASIC to. 1200 for BM1368.
-
-    config ASIC_FREQUENCY
-        int "ASIC Hash Frequency (MHz)"
-        range 50 800
-        default 490
-        help
-            The BM1368 hash frequency.
-
     config INVERT_POLARITY
         bool "Invert fan polarity"
         default n
