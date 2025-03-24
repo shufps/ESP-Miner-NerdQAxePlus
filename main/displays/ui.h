@@ -18,6 +18,8 @@ LV_FONT_DECLARE(ui_font_vt323_21);
 
 #define TDISPLAYS3_LVGL_TICK_PERIOD_MS 30
 
+LV_IMG_DECLARE(ui_img_found_block_png);
+
 class DisplayDriver;
 
 class UI {
@@ -63,6 +65,7 @@ protected:
     lv_obj_t *ui_lblHashPrice = nullptr;
     lv_obj_t *ui_lblTempPrice = nullptr;
     lv_obj_t *ui_errOverlayContainer = nullptr;
+    lv_obj_t *ui_imageOverlayContainer = nullptr;
     lv_obj_t *ui_GlobalStats = nullptr;
     lv_obj_t *ui_Image5 = nullptr;
     lv_obj_t *ui_lblHalvingPercent = nullptr;
@@ -81,6 +84,9 @@ protected:
 
     void changeScreen(void);
     void manual_lvgl_update();
+
+    void showImageOverlay(const lv_img_dsc_t *img);
+    void hideImageOverlay();
 
 public:
     UI();

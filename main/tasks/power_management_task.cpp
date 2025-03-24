@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include <algorithm>
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -71,9 +72,6 @@ void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
 
-
-    bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
-
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
     uint16_t last_core_voltage = 0.0;
@@ -87,6 +85,7 @@ void PowerManagementTask::task()
         uint16_t core_voltage = board->getAsicVoltageMillis();
         uint16_t asic_frequency = board->getAsicFrequency();
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
+        bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
 
         // overwrite previously allowed 0 value to disable
         // over-temp shutdown
@@ -117,7 +116,7 @@ void PowerManagementTask::task()
             last_temp_request = esp_timer_get_time();
         }
         //Get the readed MaxChipTemp of all chainged chips after
-        //calling requestChipTemp() 
+        //calling requestChipTemp()
         //IMPORTANT: this value only makes sense with BM1368 ASIC, with other Asics will remain at 0
         float m_MaxChipTemp = 0.0;
         if (asics) m_MaxChipTemp = asics->getMaxChipTemp();

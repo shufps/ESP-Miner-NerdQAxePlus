@@ -633,6 +633,38 @@ void UI::hideErrorOverlay()
     }
 }
 
+// Function to show the overlay with a centered image
+void UI::showImageOverlay(const lv_img_dsc_t *image)
+{
+    // Get the currently active screen
+    lv_obj_t *current_screen = lv_scr_act();
+
+    // Create a container for the overlay
+    ui_imageOverlayContainer = lv_obj_create(current_screen);
+    lv_obj_set_size(ui_imageOverlayContainer, LV_SIZE_CONTENT, LV_SIZE_CONTENT); // Size will fit image
+    lv_obj_align(ui_imageOverlayContainer, LV_ALIGN_CENTER, 0, 0); // Center the overlay on the screen
+
+    // Disable scrollbars for the container
+    lv_obj_clear_flag(ui_imageOverlayContainer, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Optional: make background transparent or keep style minimal
+    lv_obj_set_style_bg_opa(ui_imageOverlayContainer, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(ui_imageOverlayContainer, 0, LV_PART_MAIN);
+
+    // Create an image inside the container
+    lv_obj_t *img = lv_img_create(ui_imageOverlayContainer);
+    lv_img_set_src(img, image);
+    lv_obj_align(img, LV_ALIGN_CENTER, 0, 0); // Center the image inside the container
+}
+
+void UI::hideImageOverlay()
+{
+    if (ui_imageOverlayContainer != NULL) {
+        lv_obj_del(ui_imageOverlayContainer);
+        ui_imageOverlayContainer = NULL;
+    }
+}
+
 void UI::init(Board* board)
 {
     m_board = board;

@@ -75,6 +75,7 @@ class DisplayDriver {
     bool m_displayIsOn;         // Flag indicating if the display is currently on
     int m_screenStatus;         // Current screen status
     int m_nextScreen;           // The next screen to display
+    bool m_isActiveOverlay;     // flag if we have an overlay. LED light is forced to be on
     char m_portalWifiName[30];  // WiFi name displayed on the portal screen
 
     lv_obj_t *m_countdownLabel = nullptr; // Label object for the countdown timer
@@ -141,4 +142,7 @@ class DisplayDriver {
     void updateWifiStatus(const char *message);                     // Update the WiFi status on the display
     void showError(const char *error_message, uint32_t error_code); // Show generic error
     void hideError();                                               // Hide error overlay
+
+    void showFoundBlockOverlay();
+    void hideFoundBlockOverlay();
 };
