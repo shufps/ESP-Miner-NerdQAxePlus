@@ -25,6 +25,8 @@ typedef enum
 
 static const int STRATUM_ID_SUBSCRIBE = 1;
 static const int STRATUM_ID_CONFIGURE = 2;
+static const int STRATUM_ID_AUTHORIZE = 3;
+static const int STRATUM_ID_SUGGEST_DIFFICULTY = 4;
 
 typedef struct
 {
@@ -70,6 +72,7 @@ class StratumApi {
         BIG_BUFFER_SIZE = 16384,
     };
     char *m_buffer;
+    char *m_requestBuffer;
     size_t m_len;   // Current length of valid data in m_buffer.
     int m_send_uid; // Message ID counter (each message gets a unique ID).
 
@@ -85,7 +88,10 @@ class StratumApi {
 
     static bool parseMethods(JsonDocument &doc, const char* method_str, StratumApiV1Message *message);
     static bool parseResponses(JsonDocument &doc, StratumApiV1Message *message);
+    static bool parseSetupResponses(JsonDocument &doc, StratumApiV1Message *message);
+    static bool parseResult(JsonDocument &doc);
 
+    bool send(int socket, const char* message);
   public:
     StratumApi();
     ~StratumApi();
@@ -95,20 +101,20 @@ class StratumApi {
     char *receiveJsonRpcLine(int sockfd);
 
     // Sends a subscribe message.
-    int subscribe(int socket, const char *device, const char *asic);
+    bool subscribe(int socket, const char *device, const char *asic);
 
     // Sends a suggest-difficulty message.
-    int suggestDifficulty(int socket, uint32_t difficulty);
+    bool suggestDifficulty(int socket, uint32_t difficulty);
 
     // Sends an authentication message.
-    int authenticate(int socket, const char *username, const char *pass);
+    bool authenticate(int socket, const char *username, const char *pass);
 
     // Submits a share.
-    void submitShare(int socket, const char *username, const char *jobid, const char *extranonce_2, uint32_t ntime, uint32_t nonce,
+    bool submitShare(int socket, const char *username, const char *jobid, const char *extranonce_2, uint32_t ntime, uint32_t nonce,
                      uint32_t version);
 
     // Sends a configure-version-rolling message.
-    void configureVersionRolling(int socket);
+    bool configureVersionRolling(int socket);
 
     // Resets the message ID counter.
     void resetUid();
