@@ -42,6 +42,7 @@ SRCS
     "./displays/images/ui_font_OpenSansBold45.c"
     "./displays/images/ui_font_vt323_21.c"
     "./displays/images/ui_font_vt323_35.c"
+    "./displays/images/ui_img_found_block_png.c"
     "./displays/images/themes/themes.c"
 
 

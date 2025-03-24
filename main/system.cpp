@@ -292,6 +292,10 @@ void System::task() {
             showError("PSU ERROR", 0x15);
         }
 
+        if (m_foundBlock) {
+            m_display->showFoundBlockOverlay();
+        }
+
         m_display->updateGlobalState();
         m_display->updateCurrentSettings();
         m_display->refreshScreen();

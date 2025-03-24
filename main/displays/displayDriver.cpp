@@ -38,6 +38,7 @@ DisplayDriver::DisplayDriver() {
     m_countdownStartTime = 0;
     m_btcPrice = 0;
     m_blockHeight = 0;
+    m_isActiveOverlay = false;
 }
 
 bool DisplayDriver::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
@@ -142,12 +143,30 @@ void DisplayDriver::showError(const char *error_message, uint32_t error_code) {
 
     // now show the (new) error overlay
     m_ui->showErrorOverlay(error_message, error_code);
+    m_isActiveOverlay = true;
     refreshScreen();
 }
 
 void DisplayDriver::hideError() {
     // hide the overlay and free the memory
     m_ui->hideErrorOverlay();
+    m_isActiveOverlay = false;
+}
+
+void DisplayDriver::showFoundBlockOverlay() {
+    // hide the overlay and free the memory in case it was open
+    m_ui->hideImageOverlay();
+
+    // now show the (new) image overlay
+    m_ui->showImageOverlay(&ui_img_found_block_png);
+    m_isActiveOverlay = true;
+    refreshScreen();
+}
+
+void DisplayDriver::hideFoundBlockOverlay() {
+    // hide the overlay and free the memory
+    m_ui->hideImageOverlay();
+    m_isActiveOverlay = false;
 }
 
 void DisplayDriver::changeScreen(void) {
@@ -223,9 +242,13 @@ void DisplayDriver::lvglTimerTask(void *param)
                 displayTurnOn();
         }
 
-        // Check if screen need to be turned off
-        if (autoOffEnabled)
+        // Check if we have a screen turned-on override
+        if (m_isActiveOverlay) {
+            displayTurnOn();
+        } else if (autoOffEnabled) {
+            // Check if screen need to be turned off
             checkAutoTurnOffScreen();
+        }
 
         if ((m_screenStatus > STATE_INIT_OK))
             continue; // Doesn't need to do the initial animation screens
