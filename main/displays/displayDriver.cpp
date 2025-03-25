@@ -31,7 +31,7 @@ DisplayDriver::DisplayDriver() {
     m_button1PressedFlag = false;
     m_button2PressedFlag = false;
     m_lastKeypressTime = 0;
-    m_displayIsOn = true;
+    m_displayIsOn = false;
     m_screenStatus = STATE_ONINIT;
     m_nextScreen = 0;
     m_countdownActive = false;
@@ -60,6 +60,9 @@ void DisplayDriver::lvglFlushCallback(lv_disp_drv_t* drv, const lv_area_t* area,
 
 /************ DISPLAY TURN ON/OFF FUNCTIONS *************/
 void DisplayDriver::displayTurnOff(void) {
+    if (!m_displayIsOn) {
+        return;
+    }
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_OFF_LEVEL);
     gpio_set_level(TDISPLAYS3_PIN_PWR, false);
     ESP_LOGI(TAG, "Screen off");
@@ -67,6 +70,9 @@ void DisplayDriver::displayTurnOff(void) {
 }
 
 void DisplayDriver::displayTurnOn(void) {
+    if (m_displayIsOn) {
+        return;
+    }
     gpio_set_level(TDISPLAYS3_PIN_PWR, true);
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_ON_LEVEL);
     ESP_LOGI(TAG, "Screen on");
