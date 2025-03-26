@@ -17,6 +17,8 @@
 #define NVS_CONFIG_STRATUM_FALLBACK_PORT "fbstratumport"
 #define NVS_CONFIG_STRATUM_FALLBACK_USER "fbstratumuser"
 #define NVS_CONFIG_STRATUM_FALLBACK_PASS "fbstratumpass"
+#define NVS_CONFIG_STRATUM_DIFFICULTY "stratumdiff"
+
 #define NVS_CONFIG_ASIC_FREQ "asicfrequency"
 #define NVS_CONFIG_ASIC_VOLTAGE "asicvoltage"
 #define NVS_CONFIG_ASIC_JOB_INTERVAL "asicjobinterval"
@@ -104,6 +106,7 @@ namespace Config {
 
     // ---- uint64_t Getters ----
     inline uint64_t getBestDiff() { return nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0); }
+    inline uint32_t getStratumDifficulty() { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_STRATUM_DIFFICULTY, CONFIG_STRATUM_DIFFICULTY); }
 
     // ---- uint64_t Setters ----
     inline void setBestDiff(uint64_t value) { nvs_config_set_u64(NVS_CONFIG_BEST_DIFF, value); }
