@@ -6,23 +6,22 @@
 const static char* TAG = "board";
 
 Board::Board() {
-    // NOP
+    // afc settings
+    m_afcMinTemp = 45.0f;
+    m_afcMinFanSpeed = 35.0f;
+    m_afcMaxTemp = 65.0f;
 }
 
 void Board::loadSettings()
 {
-    m_fanInvertPolarity = Config::isInvertFanPolarityEnabled();
     m_fanPerc = Config::getFanSpeed();
 
-    // the variables were initialized with board specific default values in the constructor
-    // if we have settings in the NVS then we use it
-    uint16_t nvsAsicFrequency = Config::getAsicFrequency();
-    uint16_t nvsAsicVoltage = Config::getAsicVoltage();
-    uint16_t nvsAsicJobInterval = Config::getAsicJobInterval();
-
-    m_asicFrequency = nvsAsicFrequency ? nvsAsicFrequency : m_asicFrequency;
-    m_asicVoltageMillis = nvsAsicVoltage ? nvsAsicVoltage : m_asicVoltageMillis;
-    m_asicJobIntervalMs = nvsAsicJobInterval ? nvsAsicJobInterval : m_asicJobIntervalMs;
+    // default values are initialized in the constructor of each board
+    m_asicFrequency = Config::getAsicFrequency(m_asicFrequency);
+    m_asicVoltageMillis = Config::getAsicVoltage(m_asicVoltageMillis);
+    m_asicJobIntervalMs = Config::getAsicJobInterval(m_asicJobIntervalMs);
+    m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
+    m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
 
     ESP_LOGI(TAG, "ASIC Frequency: %dMHz", m_asicFrequency);
     ESP_LOGI(TAG, "ASIC voltage: %dmV", m_asicVoltageMillis);
@@ -74,3 +73,26 @@ bool Board::selfTest(){
 
     return false;
 }
+
+// Adjust the fan speed based on chip temperature, scaling smoothly from m_afcMinFanSpeed up to 100%.
+// The fan starts ramping up once the temperature exceeds m_afcMinTemp and reaches full speed at m_afcMaxTemp.
+float Board::automaticFanSpeed(float temp)
+{
+    float result = 0.0;
+
+    if (temp < m_afcMinTemp) {
+        result = m_afcMinFanSpeed;
+    } else if (temp >= m_afcMaxTemp) {
+        result = 100;
+    } else {
+        float temp_range = m_afcMaxTemp - m_afcMinTemp;
+        float fan_range = 100.0f - m_afcMinFanSpeed;
+        result = ((temp - m_afcMinTemp) / temp_range) * fan_range + m_afcMinFanSpeed;
+    }
+
+    float perc = (float) result / 100.0f;
+    m_fanPerc = perc;
+    setFanSpeed(perc);
+    return result;
+}
+

@@ -40,8 +40,9 @@ NerdAxe::NerdAxe() : Board() {
     m_asicJobIntervalMs = 1500;
     m_asicFrequency = 485;
     m_asicVoltageMillis = 1200;
-    m_fanInvertPolarity = false;
+    m_fanInvertPolarity = true;
     m_fanPerc = 100;
+    m_flipScreen = true;
     m_numTempSensors = 1;
 
     m_maxPin = 15.0;

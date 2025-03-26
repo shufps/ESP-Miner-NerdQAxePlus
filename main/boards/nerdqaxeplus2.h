@@ -12,4 +12,5 @@ class NerdQaxePlus2 : public NerdQaxePlus {
 
   public:
     NerdQaxePlus2();
+    float getTemperature(int index);
 };

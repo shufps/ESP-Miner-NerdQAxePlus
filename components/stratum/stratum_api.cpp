@@ -121,7 +121,7 @@ char *StratumApi::receiveJsonRpcLine(int sockfd)
         int nbytes = recv(sockfd, m_buffer + m_len, available, 0);
         if (nbytes == -1) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                ESP_LOGW(TAG, "No transmission from Stratum server. Checking socket ...");
+                ESP_LOGI(TAG, "No transmission from Stratum server. Checking socket ...");
                 if (isSocketConnected(sockfd)) {
                     ESP_LOGI(TAG, "Socket is still connected.");
                     continue; // Retry recv() until data arrives.
