@@ -74,8 +74,8 @@ bool Board::selfTest(){
     return false;
 }
 
-// Set the fan speed between 20% min and 100% max based on chip temperature as input.
-// The fan speed increases from 20% to 100% proportionally to the temperature increase from 50 and THROTTLE_TEMP
+// Adjust the fan speed based on chip temperature, scaling smoothly from m_afcMinFanSpeed up to 100%.
+// The fan starts ramping up once the temperature exceeds m_afcMinTemp and reaches full speed at m_afcMaxTemp.
 float Board::automaticFanSpeed(float temp)
 {
     float result = 0.0;
