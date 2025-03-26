@@ -719,7 +719,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["maxVoltage"]         = board->getMaxVin();
     doc["minVoltage"]         = board->getMinVin();
     doc["current"]            = POWER_MANAGEMENT_MODULE.getCurrent();
-    doc["temp"]               = POWER_MANAGEMENT_MODULE.getAvgChipTemp();
+    doc["temp"]               = POWER_MANAGEMENT_MODULE.getChipTempMax();
     doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
     doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
     doc["hashRate"]           = history->getCurrentHashrate10m();
@@ -755,10 +755,10 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["frequency"]          = board->getAsicFrequency();
     doc["jobInterval"]        = board->getAsicJobIntervalMs();
     doc["overheat_temp"]      = Config::getOverheatTemp();
-    doc["flipscreen"]         = Config::isFlipScreenEnabled() ? 1 : 0;
+    doc["flipscreen"]         = board->isFlipScreenEnabled() ? 1 : 0;
     doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
     doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
-    doc["invertfanpolarity"]  = Config::isInvertFanPolarityEnabled() ? 1 : 0;
+    doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::isAutoFanSpeedEnabled() ? 1 : 0;
 
     // system screen

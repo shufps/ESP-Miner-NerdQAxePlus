@@ -8,7 +8,7 @@ class PowerManagementTask {
     pthread_mutex_t m_mutex;
     uint16_t m_fanPerc;
     uint16_t m_fanRPM;
-    float m_chipTempAvg;
+    float m_chipTempMax;
     float m_vrTemp;
     float m_voltage;
     float m_power;
@@ -38,9 +38,9 @@ class PowerManagementTask {
     {
         return m_current;
     };
-    float getAvgChipTemp()
+    float getChipTempMax()
     {
-        return m_chipTempAvg;
+        return m_chipTempMax;
     };
     float getVRTemp()
     {

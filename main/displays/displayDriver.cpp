@@ -413,7 +413,8 @@ lv_obj_t *DisplayDriver::initTDisplayS3(void)
 
     esp_lcd_panel_swap_xy(panel_handle, true);
 
-    if (!Config::isFlipScreenEnabled()) {
+    Board *board = SYSTEM_MODULE.getBoard();
+    if (!board->isFlipScreenEnabled()) {
         esp_lcd_panel_mirror(panel_handle, true, false);
     } else {
         esp_lcd_panel_mirror(panel_handle, false, true);
@@ -526,15 +527,17 @@ void DisplayDriver::updateCurrentSettings()
     if (m_ui->ui_SettingsScreen == NULL)
         return;
 
+    Board *board = SYSTEM_MODULE.getBoard();
+
     lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER.getCurrentPoolHost()); // Update label
 
     snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER.getCurrentPoolPort());
     lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", Config::getAsicFrequency());
+    snprintf(strData, sizeof(strData), "%d", board->getAsicFrequency());
     lv_label_set_text(m_ui->ui_lbFreqSet, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", Config::getAsicVoltage());
+    snprintf(strData, sizeof(strData), "%d", board->getAsicVoltageMillis());
     lv_label_set_text(m_ui->ui_lbVcoreSet, strData); // Update label
 
     bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
@@ -603,7 +606,7 @@ void DisplayDriver::updateGlobalState()
         return;
 
     // snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp);
-    snprintf(strData, sizeof(strData), "%.0f", POWER_MANAGEMENT_MODULE.getAvgChipTemp());
+    snprintf(strData, sizeof(strData), "%.0f", POWER_MANAGEMENT_MODULE.getChipTempMax());
     lv_label_set_text(m_ui->ui_lbTemp, strData);       // Update label
     lv_label_set_text(m_ui->ui_lblTempPrice, strData); // Update label
 

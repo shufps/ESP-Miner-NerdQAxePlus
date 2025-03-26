@@ -32,11 +32,19 @@ class Board {
     bool m_fanInvertPolarity;
     float m_fanPerc;
 
+    // flip screen
+    bool m_flipScreen;
+
     // max power settings
     float m_maxPin;
     float m_minPin;
     float m_maxVin;
     float m_minVin;
+
+    // automatic fan control settings
+    float m_afcMinTemp;
+    float m_afcMinFanSpeed;
+    float m_afcMaxTemp;
 
     // display m_theme
     Theme *m_theme = nullptr;
@@ -77,6 +85,8 @@ class Board {
     virtual float getPout() = 0;
 
     virtual void requestBuckTelemtry() = 0;
+
+    virtual float automaticFanSpeed(float temp);
 
     virtual void shutdown() = 0;
 
@@ -145,5 +155,13 @@ class Board {
 
     int getNumTempSensors() {
         return m_numTempSensors;
+    }
+
+    bool isFlipScreenEnabled() {
+        return m_flipScreen;
+    }
+
+    bool isInvertFanPolarityEnabled() {
+        return m_fanInvertPolarity;
     }
 };

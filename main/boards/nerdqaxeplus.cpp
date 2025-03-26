@@ -35,9 +35,15 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_initVoltageMillis = 1250;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
+    m_flipScreen = false;
     m_numPhases = 2;
     m_imax = m_numPhases * 30;
     m_ifault = (float) (m_imax - 5);
+
+    // afc settings
+    m_afcMinTemp = 45.0f;
+    m_afcMinFanSpeed = 55.0f;
+    m_afcMaxTemp = 65.0f;
 
     m_maxPin = 70.0;
     m_minPin = 30.0;

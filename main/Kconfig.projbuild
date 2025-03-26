@@ -1,26 +1,4 @@
 menu "Miner Configuration"
-    config INVERT_POLARITY
-        bool "Invert fan polarity"
-        default n
-        help
-            If enabled, the fan PWM polarity will be inverted.
-
-    config INVERT_POLARITY_VALUE
-        int
-        default 1 if INVERT_POLARITY
-        default 0
-
-    config FLIP_SCREEN
-        bool "Flip screen orientation"
-        default n
-        help
-            If enabled, the screen display will be flipped.
-
-    config FLIP_SCREEN_VALUE
-        int
-        default 1 if FLIP_SCREEN
-        default 0
-
     config AUTO_SCREEN_OFF
         bool "Screen auto-off"
         default n
