@@ -54,7 +54,7 @@ menu "Stratum Configuration"
 
     config STRATUM_USER
         string "Stratum username"
-        default "bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.bitaxe"
+        default "bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.nerdqaxe"
         help
             Stratum user to use with pool
 
@@ -124,7 +124,7 @@ menu "InfluxDB Configuration"
     config INFLUX_PORT
         int "InfluxDB Port"
         range 0 65535
-        default 21496
+        default 8086
         help
             The port number used to connect to the InfluxDB server.
             Ensure that this port is open and correctly configured on your server.
@@ -132,7 +132,7 @@ menu "InfluxDB Configuration"
     # Token used for authentication with InfluxDB
     config INFLUX_TOKEN
         string "InfluxDB Token"
-        default "x"
+        default "f37fh783hf8hq"
         help
             The authentication token required to connect to your InfluxDB instance.
             This token must have appropriate permissions to write data to the specified bucket.
@@ -140,7 +140,7 @@ menu "InfluxDB Configuration"
     # Specify the InfluxDB bucket where data will be stored
     config INFLUX_BUCKET
         string "InfluxDB Bucket"
-        default "nerdqaxe"
+        default "nerdqaxeplus"
         help
             The bucket in InfluxDB where your data will be stored.
             A bucket is a named location in InfluxDB that stores data, similar to a database in other systems.
@@ -148,7 +148,7 @@ menu "InfluxDB Configuration"
     # Specify the organization in InfluxDB
     config INFLUX_ORG
         string "InfluxDB Org"
-        default "nerdqaxe"
+        default "nerdqaxeplus"
         help
             The organization in InfluxDB that owns the specified bucket.
             Organizations are used to logically separate data and resources within InfluxDB.

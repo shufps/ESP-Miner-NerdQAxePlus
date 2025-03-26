@@ -1,25 +1,113 @@
 key,type,encoding,value
 main,namespace,,
-hostname,data,string,bitaxe
-wifissid,data,string,myssid
-wifipass,data,string,mypass
-stratumurl,data,string,public-pool.io
-stratumport,data,u16,21496
-stratumuser,data,string,bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.nerdqaxe
-stratumpass,data,string,x
-asicfrequency,data,u16,490
-asicvoltage,data,u16,1200
-flipscreen,data,u16,0
-invertfanpol,data,u16,0
-autofanspeed,data,u16,0
-fanspeed,data,u16,100
-selftest,data,u16,0
-overheat_temp,data,u16,70
-influx_enable,data,u16,0
-influx_url,data,string,http://192.168.0.123
-influx_port,data,u16,8086
-influx_token,data,string,f37fh783hf8hq
-influx_bucket,data,string,nerdqaxeplus
-influx_org,data,string,nerdqaxeplus
-influx_prefix,data,string,mainnet_stats
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ↓↓↓ NETWORK & STRATUM CONFIG – Must override when using config file ↓↓↓
+# These values are also available in menuconfig (Kconfig), but are meant to be
+# overridden here when provisioning or deploying individual devices.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Device hostname on the local network
+hostname,data,string,bitaxe
+
+# Wi-Fi SSID – name of your wireless network
+wifissid,data,string,myssid
+
+# Wi-Fi password – yep, plain text (use secure provisioning if possible!)
+wifipass,data,string,mypass
+
+# Stratum server URL – mining pool or stratum proxy
+stratumurl,data,string,public-pool.io
+
+# Stratum port – usually defined by your pool (default varies)
+stratumport,data,u16,21496
+
+# Stratum username – usually your wallet address + optional worker ID
+stratumuser,data,string,bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.nerdqaxe
+
+# Stratum password – often just "x"
+stratumpass,data,string,x
+
+# Initial suggested Stratum difficulty
+stratumdiff,data,u64,1000
+
+# ─── Optional fallback configuration (enabled only if defined) ────────────────
+
+# Fallback Stratum server URL – used if primary connection fails
+#fbstratumurl,data,string,backup-pool.io
+
+# Fallback Stratum port – typically same as primary
+#fbstratumport,data,u16,21496
+
+# Fallback Stratum user – can match primary or use a backup worker ID
+#fbstratumuser,data,string,bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.backupaxe
+
+# Fallback Stratum password – usually same as primary
+#fbstratumpass,data,string,x
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ↓↓↓ BOARD-DEPENDENT SETTINGS – Already tuned per board, no need to touch ↓↓↓
+# These values have sensible defaults tailored to each supported board.
+# Unless you're debugging or optimizing for edge cases, just leave them be.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Default ASIC frequency in MHz – tweak for performance or efficiency
+#asicfrequency,data,u16,485
+
+# Default ASIC core voltage in mV – be cautious, this affects stability & heat
+#asicvoltage,data,u16,1200
+
+# Interval (ms) between jobs sent to ASIC – smaller = faster job switching
+#asicjobinterval,data,u16,1200
+
+# Flip screen orientation – 0: normal, 1: rotated
+#flipscreen,data,u16,0
+
+# Invert fan control signal polarity – set to 1 if fan behaves weirdly
+#invertfanpol,data,u16,0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ↓↓↓ MENUCONFIG DEFAULTS – Board-independent, set via Kconfig at build time ↓↓↓
+# These values come from your firmware's Kconfig (menuconfig) setup.
+# They're consistent across boards unless explicitly overridden.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Enable automatic fan speed control – 1: on, 0: manual
+#autofanspeed,data,u16,0
+
+# Manual fan speed in % (if autofanspeed = 0)
+#fanspeed,data,u16,100
+
+# Run ASIC self-test on startup – 1: yes, 0: no
+#selftest,data,u16,0
+
+# Temperature threshold (°C) to trigger thermal protection
+#overheat_temp,data,u16,70
+
+# Automatically turn off screen – 1: on, 0: nff
+#autoscreenoff,data,u16,0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ↓↓↓ INFLUXDB TELEMETRY SETTINGS – Enable and configure stats reporting ↓↓↓
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Enable stats upload to InfluxDB – 1: enable, 0: disable
+#influx_enable,data,u16,0
+
+# InfluxDB server URL (no trailing slash)
+#influx_url,data,string,http://192.168.0.123
+
+# InfluxDB HTTP API port (default: 8086)
+#influx_port,data,u16,8086
+
+# InfluxDB access token (default is the same as used by the monitoring docker setup)
+#influx_token,data,string,f37fh783hf8hq
+
+# InfluxDB bucket name – where your data lands
+#influx_bucket,data,string,nerdqaxeplus
+
+# InfluxDB organization name – required for v2 API
+#influx_org,data,string,nerdqaxeplus
+
+# Measurement prefix – helps identify data source in dashboards
+#influx_prefix,data,string,mainnet_stats

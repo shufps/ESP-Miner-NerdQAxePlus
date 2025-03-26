@@ -255,7 +255,7 @@ void StratumTask::stratumLoop()
     success = success && m_stratumAPI.authenticate(m_sock, m_config->user, m_config->password);
 
     // mining.suggest_difficulty - ID: 4
-    success = success && m_stratumAPI.suggestDifficulty(m_sock, CONFIG_STRATUM_DIFFICULTY);
+    success = success && m_stratumAPI.suggestDifficulty(m_sock, Config::getStratumDifficulty());
 
     // clang-format on
     if (!success) {
