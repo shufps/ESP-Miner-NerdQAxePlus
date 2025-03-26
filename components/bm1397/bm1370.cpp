@@ -51,7 +51,11 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
     int chip_counter = count_asics();
-    ESP_LOGI(TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
+    if (chip_counter != asic_count ) {
+        ESP_LOGE(TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
+    } else  {
+        ESP_LOGI(TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
+    }
 
     // enable and set version rolling mask to 0xFFFF (again)
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
