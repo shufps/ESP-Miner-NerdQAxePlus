@@ -30,3 +30,12 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
 #endif
     m_asics = new BM1370();
 }
+
+float NerdQaxePlus2::getTemperature(int index) {
+    float temp = NerdQaxePlus::getTemperature(index);
+    if (!temp) {
+        return 0.0;
+    }
+    // we can't read the real chip temps but this should be about right
+    return temp + 10.0f; // offset of 10°C
+}

@@ -48,13 +48,9 @@ float TMP1075_read_temperature(int device_index)
     uint16_t temp_raw;
     int ret = TMP1075_smb_read_word(device_index, TMP1075_TEMP_REG, &temp_raw);
 
-    if (ret == ESP_OK) {
-        temp_raw >>= 4;                         // Right-shift to discard the unused bits (12-bit data)
-        float temperature = temp_raw * 0.0625f; // Each bit represents 0.0625°C
-        ESP_LOGI(TAG, "Temperature %d: %.2f C", device_index, temperature);
-        return temperature;
-    } else {
+    if (ret != ESP_OK) {
         ESP_LOGI(TAG, "Failed to read temperature from TMP1075");
         return 0.0f;
     }
+    return (temp_raw >> 4) * 0.0625f; // Each bit represents 0.0625°C
 }

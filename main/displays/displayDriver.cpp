@@ -31,13 +31,14 @@ DisplayDriver::DisplayDriver() {
     m_button1PressedFlag = false;
     m_button2PressedFlag = false;
     m_lastKeypressTime = 0;
-    m_displayIsOn = true;
+    m_displayIsOn = false;
     m_screenStatus = STATE_ONINIT;
     m_nextScreen = 0;
     m_countdownActive = false;
     m_countdownStartTime = 0;
     m_btcPrice = 0;
     m_blockHeight = 0;
+    m_isActiveOverlay = false;
 }
 
 bool DisplayDriver::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
@@ -59,6 +60,9 @@ void DisplayDriver::lvglFlushCallback(lv_disp_drv_t* drv, const lv_area_t* area,
 
 /************ DISPLAY TURN ON/OFF FUNCTIONS *************/
 void DisplayDriver::displayTurnOff(void) {
+    if (!m_displayIsOn) {
+        return;
+    }
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_OFF_LEVEL);
     gpio_set_level(TDISPLAYS3_PIN_PWR, false);
     ESP_LOGI(TAG, "Screen off");
@@ -66,6 +70,9 @@ void DisplayDriver::displayTurnOff(void) {
 }
 
 void DisplayDriver::displayTurnOn(void) {
+    if (m_displayIsOn) {
+        return;
+    }
     gpio_set_level(TDISPLAYS3_PIN_PWR, true);
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_ON_LEVEL);
     ESP_LOGI(TAG, "Screen on");
@@ -142,12 +149,30 @@ void DisplayDriver::showError(const char *error_message, uint32_t error_code) {
 
     // now show the (new) error overlay
     m_ui->showErrorOverlay(error_message, error_code);
+    m_isActiveOverlay = true;
     refreshScreen();
 }
 
 void DisplayDriver::hideError() {
     // hide the overlay and free the memory
     m_ui->hideErrorOverlay();
+    m_isActiveOverlay = false;
+}
+
+void DisplayDriver::showFoundBlockOverlay() {
+    // hide the overlay and free the memory in case it was open
+    m_ui->hideImageOverlay();
+
+    // now show the (new) image overlay
+    m_ui->showImageOverlay(&ui_img_found_block_png);
+    m_isActiveOverlay = true;
+    refreshScreen();
+}
+
+void DisplayDriver::hideFoundBlockOverlay() {
+    // hide the overlay and free the memory
+    m_ui->hideImageOverlay();
+    m_isActiveOverlay = false;
 }
 
 void DisplayDriver::changeScreen(void) {
@@ -223,9 +248,13 @@ void DisplayDriver::lvglTimerTask(void *param)
                 displayTurnOn();
         }
 
-        // Check if screen need to be turned off
-        if (autoOffEnabled)
+        // Check if we have a screen turned-on override
+        if (m_isActiveOverlay) {
+            displayTurnOn();
+        } else if (autoOffEnabled) {
+            // Check if screen need to be turned off
             checkAutoTurnOffScreen();
+        }
 
         if ((m_screenStatus > STATE_INIT_OK))
             continue; // Doesn't need to do the initial animation screens
@@ -384,7 +413,8 @@ lv_obj_t *DisplayDriver::initTDisplayS3(void)
 
     esp_lcd_panel_swap_xy(panel_handle, true);
 
-    if (!Config::isFlipScreenEnabled()) {
+    Board *board = SYSTEM_MODULE.getBoard();
+    if (!board->isFlipScreenEnabled()) {
         esp_lcd_panel_mirror(panel_handle, true, false);
     } else {
         esp_lcd_panel_mirror(panel_handle, false, true);
@@ -497,15 +527,17 @@ void DisplayDriver::updateCurrentSettings()
     if (m_ui->ui_SettingsScreen == NULL)
         return;
 
+    Board *board = SYSTEM_MODULE.getBoard();
+
     lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER.getCurrentPoolHost()); // Update label
 
     snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER.getCurrentPoolPort());
     lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", Config::getAsicFrequency());
+    snprintf(strData, sizeof(strData), "%d", board->getAsicFrequency());
     lv_label_set_text(m_ui->ui_lbFreqSet, strData); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", Config::getAsicVoltage());
+    snprintf(strData, sizeof(strData), "%d", board->getAsicVoltageMillis());
     lv_label_set_text(m_ui->ui_lbVcoreSet, strData); // Update label
 
     bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
@@ -574,7 +606,7 @@ void DisplayDriver::updateGlobalState()
         return;
 
     // snprintf(strData, sizeof(strData), "%.0f", power_management->chip_temp);
-    snprintf(strData, sizeof(strData), "%.0f", POWER_MANAGEMENT_MODULE.getAvgChipTemp());
+    snprintf(strData, sizeof(strData), "%.0f", POWER_MANAGEMENT_MODULE.getChipTempMax());
     lv_label_set_text(m_ui->ui_lbTemp, strData);       // Update label
     lv_label_set_text(m_ui->ui_lblTempPrice, strData); // Update label
 

@@ -2,21 +2,21 @@
 #include <sys/types.h>
 #include <time.h>
 
-#include "global_state.h"
 #include "esp_log.h"
 #include "esp_sntp.h"
 #include "esp_task_wdt.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
+#include "global_state.h"
 #include "lwip/dns.h"
 
-#include "connect.h"
-#include "psram_allocator.h"
 #include "asic_jobs.h"
 #include "boards/board.h"
+#include "connect.h"
 #include "create_jobs_task.h"
 #include "global_state.h"
 #include "nvs_config.h"
+#include "psram_allocator.h"
 #include "stratum_task.h"
 #include "system.h"
 
@@ -36,13 +36,13 @@ enum Selected
     SECONDARY = 1
 };
 
-static void safe_free(char*& ptr) {
-    if (ptr) {        // Check if pointer is not null
-        free(ptr);    // Free memory
+static void safe_free(char *&ptr)
+{
+    if (ptr) {         // Check if pointer is not null
+        free(ptr);     // Free memory
         ptr = nullptr; // Set pointer to null to prevent dangling pointer issues
     }
 }
-
 
 int is_socket_connected(int socket)
 {
@@ -246,16 +246,22 @@ void StratumTask::stratumLoop()
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1
-    m_stratumAPI.subscribe(m_sock, board->getMiningAgent(), board->getAsicModel());
+    bool success = m_stratumAPI.subscribe(m_sock, board->getMiningAgent(), board->getAsicModel());
 
     // mining.configure - ID: 2
-    m_stratumAPI.configureVersionRolling(m_sock);
+    success = success && m_stratumAPI.configureVersionRolling(m_sock);
 
     // mining.authorize - ID: 3
-    m_stratumAPI.authenticate(m_sock, m_config->user, m_config->password);
+    success = success && m_stratumAPI.authenticate(m_sock, m_config->user, m_config->password);
 
     // mining.suggest_difficulty - ID: 4
-    m_stratumAPI.suggestDifficulty(m_sock, CONFIG_STRATUM_DIFFICULTY);
+    success = success && m_stratumAPI.suggestDifficulty(m_sock, Config::getStratumDifficulty());
+
+    // clang-format on
+    if (!success) {
+        ESP_LOGE(m_tag, "Error sending Stratum setup commands!");
+        return;
+    }
 
     // All Stratum servers should send the first job with clear flag,
     // but we make sure to clear the jobs on the first job

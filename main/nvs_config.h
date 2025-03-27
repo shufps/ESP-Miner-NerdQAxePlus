@@ -17,6 +17,8 @@
 #define NVS_CONFIG_STRATUM_FALLBACK_PORT "fbstratumport"
 #define NVS_CONFIG_STRATUM_FALLBACK_USER "fbstratumuser"
 #define NVS_CONFIG_STRATUM_FALLBACK_PASS "fbstratumpass"
+#define NVS_CONFIG_STRATUM_DIFFICULTY "stratumdiff"
+
 #define NVS_CONFIG_ASIC_FREQ "asicfrequency"
 #define NVS_CONFIG_ASIC_VOLTAGE "asicvoltage"
 #define NVS_CONFIG_ASIC_JOB_INTERVAL "asicjobinterval"
@@ -86,9 +88,6 @@ namespace Config {
     inline void setSwarmConfig(const char* value) { nvs_config_set_string(NVS_CONFIG_SWARM, value); }
 
     // ---- uint16_t Getters ----
-    inline uint16_t getAsicFrequency() { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, 0); }
-    inline uint16_t getAsicVoltage() { return nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, 0); }
-    inline uint16_t getAsicJobInterval() { return nvs_config_get_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, 0); }
     inline uint16_t getStratumPortNumber() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT); }
     inline uint16_t getStratumFallbackPortNumber() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT); }
     inline uint16_t getFanSpeed() { return nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, CONFIG_FAN_SPEED); }
@@ -107,14 +106,13 @@ namespace Config {
 
     // ---- uint64_t Getters ----
     inline uint64_t getBestDiff() { return nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0); }
+    inline uint32_t getStratumDifficulty() { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_STRATUM_DIFFICULTY, CONFIG_STRATUM_DIFFICULTY); }
 
     // ---- uint64_t Setters ----
     inline void setBestDiff(uint64_t value) { nvs_config_set_u64(NVS_CONFIG_BEST_DIFF, value); }
 
     // ---- Boolean Getters (Stored as uint16_t but used as bool) ----
-    inline bool isFlipScreenEnabled() { return nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, CONFIG_FLIP_SCREEN_VALUE) != 0; }
     inline bool isInvertScreenEnabled() { return nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0) != 0; } // todo unused?
-    inline bool isInvertFanPolarityEnabled() { return nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, CONFIG_INVERT_POLARITY_VALUE) != 0; }
     inline bool isAutoFanSpeedEnabled() { return nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE) != 0; }
     inline bool isSelfTestEnabled() { return nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0) != 0; }
     inline bool isAutoScreenOffEnabled() { return nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE) != 0; }
@@ -129,4 +127,11 @@ namespace Config {
     inline void setAutoScreenOff(bool value) { nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, value ? 1 : 0); }
     inline void setInfluxEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, value ? 1 : 0); }
 
+
+    // with board specific default values
+    inline uint16_t getAsicFrequency(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, d); }
+    inline uint16_t getAsicVoltage(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, d); }
+    inline uint16_t getAsicJobInterval(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, d); }
+    inline bool isFlipScreenEnabled(bool d) { return nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, d ? 1 : 0) != 0; }
+    inline bool isInvertFanPolarityEnabled(bool d) { return nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, d ? 1 : 0) != 0; }
 }

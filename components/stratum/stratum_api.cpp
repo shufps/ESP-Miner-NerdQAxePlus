@@ -28,9 +28,10 @@ static const char *TAG = "stratum_api";
 #define ALLOC(s) malloc(s)
 #endif
 
-void safe_free(char*& ptr) {
-    if (ptr) {        // Check if pointer is not null
-        free(ptr);    // Free memory
+void safe_free(char *&ptr)
+{
+    if (ptr) {         // Check if pointer is not null
+        free(ptr);     // Free memory
         ptr = nullptr; // Set pointer to null to prevent dangling pointer issues
     }
 }
@@ -38,6 +39,7 @@ void safe_free(char*& ptr) {
 StratumApi::StratumApi() : m_len(0), m_send_uid(1)
 {
     m_buffer = (char *) ALLOC(BIG_BUFFER_SIZE);
+    m_requestBuffer = (char *) ALLOC(BUFFER_SIZE);
     clearBuffer();
 }
 
@@ -119,7 +121,7 @@ char *StratumApi::receiveJsonRpcLine(int sockfd)
         int nbytes = recv(sockfd, m_buffer + m_len, available, 0);
         if (nbytes == -1) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                ESP_LOGW(TAG, "No transmission from Stratum server. Checking socket ...");
+                ESP_LOGI(TAG, "No transmission from Stratum server. Checking socket ...");
                 if (isSocketConnected(sockfd)) {
                     ESP_LOGI(TAG, "Socket is still connected.");
                     continue; // Retry recv() until data arrives.
@@ -168,7 +170,8 @@ char *StratumApi::receiveJsonRpcLine(int sockfd)
     return line;
 }
 
-bool StratumApi::parseMethods(JsonDocument &doc, const char* method_str, StratumApiV1Message *message) {
+bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, StratumApiV1Message *message)
+{
     message->method = STRATUM_UNKNOWN;
 
     if (strcmp(method_str, "mining.notify") == 0) {
@@ -228,13 +231,11 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char* method_str, Stratum
         break;
     }
 
-    //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+    // ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
     return true;
 }
 
-bool StratumApi::parseResponses(JsonDocument &doc, StratumApiV1Message *message) {
-    message->method = STRATUM_UNKNOWN;
-
+bool StratumApi::parseResult(JsonDocument &doc) {
     JsonVariant result_json = doc["result"];
     JsonVariant error_json = doc["error"];
 
@@ -242,16 +243,27 @@ bool StratumApi::parseResponses(JsonDocument &doc, StratumApiV1Message *message)
         return false;
     }
 
-    // this catches
-    // {"result":true/false,"error":null,"id":x}
-    // messages
-    if (!result_json.isNull() && result_json.is<bool>()) {
-        message->method = (message->message_id < 5) ? STRATUM_RESULT_SETUP : STRATUM_RESULT;
-        message->response_success = result_json.is<bool>() ? result_json.as<bool>() : false;
-        return true;
+    if (!result_json.isNull()) {
+        return result_json.is<bool>() ? result_json.as<bool>() : false;
     }
 
+    return false;
+}
+
+bool StratumApi::parseResponses(JsonDocument &doc, StratumApiV1Message *message)
+{
+    message->method = STRATUM_RESULT;
+    message->response_success = parseResult(doc);
+    return true;
+}
+
+bool StratumApi::parseSetupResponses(JsonDocument &doc, StratumApiV1Message *message)
+{
     // first messages are responses to our mining setup requests
+    message->method = STRATUM_UNKNOWN;
+
+    JsonVariant result_json = doc["result"];
+
     switch (message->message_id) {
     case STRATUM_ID_SUBSCRIBE: {
         message->method = STRATUM_RESULT_SUBSCRIBE;
@@ -272,7 +284,7 @@ bool StratumApi::parseResponses(JsonDocument &doc, StratumApiV1Message *message)
 
         ESP_LOGI(TAG, "extranonce_str: %s", message->extranonce_str);
         ESP_LOGI(TAG, "extranonce_2_len: %d", message->extranonce_2_len);
-        return true;
+        break;
     }
     case STRATUM_ID_CONFIGURE: {
         message->method = STRATUM_RESULT_VERSION_MASK;
@@ -283,7 +295,17 @@ bool StratumApi::parseResponses(JsonDocument &doc, StratumApiV1Message *message)
         }
         message->version_mask = strtoul(mask, NULL, 16);
         ESP_LOGI(TAG, "Set version mask: %08lx", message->version_mask);
-        return true;
+        break;
+    }
+    case STRATUM_ID_AUTHORIZE: {
+        message->method = STRATUM_RESULT_SETUP;
+        message->response_success = parseResult(doc);
+        break;
+    }
+    case STRATUM_ID_SUGGEST_DIFFICULTY: {
+        message->method = STRATUM_RESULT_SETUP;
+        message->response_success = parseResult(doc);
+        break;
     }
     default:
         ESP_LOGW(TAG, "unhandled ID");
@@ -318,6 +340,9 @@ bool StratumApi::parse(StratumApiV1Message *message, JsonDocument &doc)
     if (method_str) {
         return parseMethods(doc, method_str, message);
     } else {
+        if (message->message_id < 5) {
+            return parseSetupResponses(doc, message);
+        }
         return parseResponses(doc, message);
     }
 }
@@ -333,79 +358,84 @@ void StratumApi::freeMiningNotify(mining_notify *params)
 }
 
 //--------------------------------------------------------------------
+// send()
+//--------------------------------------------------------------------
+bool StratumApi::send(int socket, const char *message)
+{
+    debugTx(message);
+
+    if (!isSocketConnected(socket)) {
+        ESP_LOGI(TAG, "Socket not connected. Cannot send message.");
+        return false;
+    }
+
+    ssize_t bytes_written = write(socket, message, strlen(message));
+    if (bytes_written == -1) {
+        ESP_LOGE(TAG, "Error writing to socket: %s", strerror(errno));
+        return false;
+    }
+    return true;
+}
+
+//--------------------------------------------------------------------
 // subscribe()
 //--------------------------------------------------------------------
-int StratumApi::subscribe(int socket, const char *device, const char *asic)
+bool StratumApi::subscribe(int socket, const char *device, const char *asic)
 {
-    char subscribe_msg[BUFFER_SIZE];
     const esp_app_desc_t *app_desc = esp_ota_get_app_description();
     const char *version = app_desc->version;
-    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"%s/%s/%s\"]}\n", m_send_uid++, device,
-            asic, version);
-    debugTx(subscribe_msg);
-    write(socket, subscribe_msg, strlen(subscribe_msg));
-    return 1;
+    snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"%s/%s/%s\"]}\n",
+             m_send_uid++, device, asic, version);
+
+    return send(socket, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
 // suggestDifficulty()
 //--------------------------------------------------------------------
-int StratumApi::suggestDifficulty(int socket, uint32_t difficulty)
+bool StratumApi::suggestDifficulty(int socket, uint32_t difficulty)
 {
-    char difficulty_msg[BUFFER_SIZE];
-    sprintf(difficulty_msg, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%ld]}\n", m_send_uid++,
-            difficulty);
-    debugTx(difficulty_msg);
-    write(socket, difficulty_msg, strlen(difficulty_msg));
-    return 1;
+    snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%ld]}\n",
+             m_send_uid++, difficulty);
+
+    return send(socket, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
 // authenticate()
 //--------------------------------------------------------------------
-int StratumApi::authenticate(int socket, const char *username, const char *pass)
+bool StratumApi::authenticate(int socket, const char *username, const char *pass)
 {
-    char authorize_msg[BUFFER_SIZE];
-    sprintf(authorize_msg, "{\"id\": %d, \"method\": \"mining.authorize\", \"params\": [\"%s\", \"%s\"]}\n", m_send_uid++, username,
-            pass);
-    debugTx(authorize_msg);
-    write(socket, authorize_msg, strlen(authorize_msg));
-    return 1;
+    snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.authorize\", \"params\": [\"%s\", \"%s\"]}\n",
+             m_send_uid++, username, pass);
+
+    return send(socket, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
 // submitShare()
 //--------------------------------------------------------------------
-void StratumApi::submitShare(int socket, const char *username, const char *jobid, const char *extranonce_2, uint32_t ntime,
+bool StratumApi::submitShare(int socket, const char *username, const char *jobid, const char *extranonce_2, uint32_t ntime,
                              uint32_t nonce, uint32_t version)
 {
-    char submit_msg[BUFFER_SIZE];
-    if (!isSocketConnected(socket)) {
-        ESP_LOGI(TAG, "Socket not connected. Cannot send message.");
-        return;
-    }
-    sprintf(submit_msg,
-            "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
-            m_send_uid++, username, jobid, extranonce_2, ntime, nonce, version);
-    debugTx(submit_msg);
-    ssize_t bytes_written = write(socket, submit_msg, strlen(submit_msg));
-    if (bytes_written == -1) {
-        ESP_LOGE(TAG, "Error writing to socket: %s", strerror(errno));
-    }
+    snprintf(m_requestBuffer, BUFFER_SIZE,
+             "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
+             m_send_uid++, username, jobid, extranonce_2, ntime, nonce, version);
+
+    return send(socket, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
 // configureVersionRolling()
 //--------------------------------------------------------------------
-void StratumApi::configureVersionRolling(int socket)
+bool StratumApi::configureVersionRolling(int socket)
 {
-    char configure_msg[BUFFER_SIZE * 2];
-    sprintf(configure_msg,
-            "{\"id\": %d, \"method\": \"mining.configure\", \"params\": [[\"version-rolling\"], {\"version-rolling.mask\": "
-            "\"ffffffff\"}]}\n",
-            m_send_uid++);
-    debugTx(configure_msg);
-    write(socket, configure_msg, strlen(configure_msg));
+    snprintf(m_requestBuffer, BUFFER_SIZE,
+             "{\"id\": %d, \"method\": \"mining.configure\", \"params\": [[\"version-rolling\"], {\"version-rolling.mask\": "
+             "\"1fffe000\"}]}\n",
+             m_send_uid++);
+
+    return send(socket, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------

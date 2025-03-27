@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include <algorithm>
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -15,36 +16,11 @@
 #include "boards/board.h"
 
 #define POLL_RATE 2000
-#define THROTTLE_TEMP 65.0
 
 static const char *TAG = "power_management";
 
 PowerManagementTask::PowerManagementTask() {
     m_mutex = PTHREAD_MUTEX_INITIALIZER;
-}
-
-// Set the fan speed between 20% min and 100% max based on chip temperature as input.
-// The fan speed increases from 20% to 100% proportionally to the temperature increase from 50 and THROTTLE_TEMP
-double PowerManagementTask::automaticFanSpeed(Board* board, float chip_temp)
-{
-    double result = 0.0;
-    double min_temp = 45.0;
-    double min_fan_speed = 35.0;
-
-    if (chip_temp < min_temp) {
-        result = min_fan_speed;
-    } else if (chip_temp >= THROTTLE_TEMP) {
-        result = 100;
-    } else {
-        double temp_range = THROTTLE_TEMP - min_temp;
-        double fan_range = 100 - min_fan_speed;
-        result = ((chip_temp - min_temp) / temp_range) * fan_range + min_fan_speed;
-    }
-
-    float perc = (float) result / 100;
-    m_fanPerc = perc;
-    board->setFanSpeed(perc);
-    return result;
 }
 
 void PowerManagementTask::taskWrapper(void *pvParameters) {
@@ -71,9 +47,6 @@ void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
 
-
-    bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
-
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
     uint16_t last_core_voltage = 0.0;
@@ -87,6 +60,7 @@ void PowerManagementTask::task()
         uint16_t core_voltage = board->getAsicVoltageMillis();
         uint16_t asic_frequency = board->getAsicFrequency();
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
+        bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
 
         // overwrite previously allowed 0 value to disable
         // over-temp shutdown
@@ -116,11 +90,6 @@ void PowerManagementTask::task()
             board->requestBuckTelemtry();
             last_temp_request = esp_timer_get_time();
         }
-        //Get the readed MaxChipTemp of all chainged chips after
-        //calling requestChipTemp() 
-        //IMPORTANT: this value only makes sense with BM1368 ASIC, with other Asics will remain at 0
-        float m_MaxChipTemp = 0.0;
-        if (asics) m_MaxChipTemp = asics->getMaxChipTemp();
 
         float vin = board->getVin();
         float iin = board->getIin();
@@ -152,22 +121,26 @@ void PowerManagementTask::task()
         m_power = pin;
         board->getFanSpeed(&m_fanRPM);
 
-        // calculate the average of ASICs measuring temp sensors
-        float tempSum = 0.0;
-        int tempCount = 0;
+        // collect temperatures
+        // get the max of all asic measuring temp sensors
+        float tmp1075Max = 0.0f;
         for (int i=0; i < board->getNumTempSensors(); i++) {
             float tmp = board->getTemperature(i);
             if (tmp) {
-                tempSum += tmp;
-                tempCount++;
+                ESP_LOGI(TAG, "Temperature %d: %.2f C", i, tmp);
             }
+            tmp1075Max = std::max(tmp1075Max, tmp);
         }
-        m_chipTempAvg = tempCount ? (tempSum / (float) tempCount) : 0.0f;
+
+        //Get the readed MaxChipTemp of all chained chips after
+        //calling requestChipTemp()
+        //IMPORTANT: this value only makes sense with BM1368 ASIC, with other Asics will remain at 0
+        float intChipTempMax = asics ? asics->getMaxChipTemp() : 0.0f;
 
         // Uses the worst case between board temp sensor or Asic temp read command
-        m_chipTempAvg = std::max(m_chipTempAvg, m_MaxChipTemp);
+        m_chipTempMax = std::max(tmp1075Max, intChipTempMax);
 
-        influx_task_set_temperature(m_chipTempAvg, m_vrTemp);
+        influx_task_set_temperature(m_chipTempMax, m_vrTemp);
 
         float vr_maxTemp = asic_overheat_temp;
         if(board->getVrMaxTemp()) {
@@ -175,7 +148,7 @@ void PowerManagementTask::task()
         }
 
         if (asic_overheat_temp &&
-            (m_chipTempAvg > asic_overheat_temp || m_vrTemp > vr_maxTemp)) {
+            (m_chipTempMax > asic_overheat_temp || m_vrTemp > vr_maxTemp)) {
             // over temperature
             SYSTEM_MODULE.setOverheated(true);
             // disables the buck
@@ -184,11 +157,10 @@ void PowerManagementTask::task()
         }
 
         if (auto_fan_speed) {
-            m_fanPerc = (float) automaticFanSpeed(board, m_chipTempAvg);
+            m_fanPerc = board->automaticFanSpeed(m_chipTempMax);
         } else {
-            float fs = (float) Config::getFanSpeed();
-            m_fanPerc = fs;
-            board->setFanSpeed((float) fs / 100);
+            m_fanPerc = (float) Config::getFanSpeed();
+            board->setFanSpeed(m_fanPerc / 100.0f);
         }
         pthread_mutex_unlock(&m_mutex);
 

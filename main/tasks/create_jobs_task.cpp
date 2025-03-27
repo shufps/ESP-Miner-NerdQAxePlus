@@ -201,13 +201,13 @@ void *create_jobs_task(void *pvParameters)
 
         uint64_t current_time = esp_timer_get_time();
         if (last_submit_time) {
-            ESP_LOGI(TAG, "job interval %dms", (int) ((current_time - last_submit_time) / 1e3));
+            ESP_LOGD(TAG, "job interval %dms", (int) ((current_time - last_submit_time) / 1e3));
         }
         last_submit_time = current_time;
 
         int asic_job_id = asics->sendWork(extranonce_2, next_job);
 
-        ESP_LOGI(TAG, "Sent Job: %02X", asic_job_id);
+        ESP_LOGD(TAG, "Sent Job: %02X", asic_job_id);
 
         // save job
         asicJobs.storeJob(next_job, asic_job_id);
