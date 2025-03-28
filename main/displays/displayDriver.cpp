@@ -212,6 +212,8 @@ void DisplayDriver::lvglTimerTask(void *param)
     bool autoOffEnabled = Config::isAutoScreenOffEnabled();
     // int64_t current_time = esp_timer_get_time();
 
+    displayTurnOn();
+
     // Check if screen is changing to avoid problems during change
     // if ((current_time - last_screen_change_time) < 1500000) return; // 1500000 microsegundos = 1500 ms = 1.5s - No cambies
     // pantalla last_screen_change_time = current_time;
