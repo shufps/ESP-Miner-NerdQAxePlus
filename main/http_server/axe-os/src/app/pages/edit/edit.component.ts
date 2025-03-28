@@ -32,6 +32,9 @@ export class EditComponent implements OnInit {
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
 
+  public defaultFrequency: number = 0;
+  public defaultCoreVoltage: number = 0;
+
   @Input() uri = '';
 
   constructor(
@@ -49,9 +52,12 @@ export class EditComponent implements OnInit {
       .subscribe(info => {
         this.ASICModel = info.ASICModel;
 
+        this.defaultFrequency = info.defaultFrequency ?? 0;
+        this.defaultCoreVoltage = info.defaultCoreVoltage ?? 0;
+
         // Assemble dropdown options
-        this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(), info.frequency);
-        this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(), info.coreVoltage);
+        this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(this.defaultFrequency), info.frequency);
+        this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(this.defaultCoreVoltage), info.coreVoltage);
 
         // fix setting where we allowed to disable temp shutdown
         if (info.overheat_temp == 0) {
@@ -164,17 +170,17 @@ export class EditComponent implements OnInit {
   public setDevToolsOpen(state: boolean) {
     this.devToolsOpen = state;
     console.log('Advanced Mode:', state); // Debugging output
-    this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(), this.form.controls['frequency'].value);
-    this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(), this.form.controls['coreVoltage'].value);
+    this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(this.defaultFrequency), this.form.controls['frequency'].value);
+    this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(this.defaultCoreVoltage), this.form.controls['coreVoltage'].value);
   }
 
   public isVoltageTooHigh(): boolean {
-    const maxVoltage = Math.max(...this.getPredefinedVoltages().map(v => v.value));
+    const maxVoltage = Math.max(...this.getPredefinedVoltages(this.defaultCoreVoltage).map(v => v.value));
     return this.form?.controls['coreVoltage'].value > maxVoltage;
   }
 
   public isFrequencyTooHigh(): boolean {
-    const maxFrequency = Math.max(...this.getPredefinedFrequencies().map(f => f.value));
+    const maxFrequency = Math.max(...this.getPredefinedFrequencies(this.defaultFrequency).map(f => f.value));
     return this.form?.controls['frequency'].value > maxFrequency;
   }
 
@@ -211,84 +217,51 @@ export class EditComponent implements OnInit {
   /**
    * Returns predefined frequencies based on the current ASIC model.
    */
-  private getPredefinedFrequencies(): { name: string, value: number }[] {
+  private getPredefinedFrequencies(defaultValue: number): { name: string, value: number }[] {
+    let values: number[] = [];
     switch (this.ASICModel) {
       case eASICModel.BM1366:
-        return [
-          { name: '400', value: 400 },
-          { name: '425', value: 425 },
-          { name: '450', value: 450 },
-          { name: '475', value: 475 },
-          { name: '485 (default)', value: 485 },
-          { name: '500', value: 500 },
-          { name: '525', value: 525 },
-          { name: '550', value: 550 },
-          { name: '575', value: 575 }
-        ];
+        values = [400, 425, 450, 475, 485, 500, 525, 550, 575];
+        break;
       case eASICModel.BM1368:
-        return [
-          { name: '400', value: 400 },
-          { name: '425', value: 425 },
-          { name: '450', value: 450 },
-          { name: '475', value: 475 },
-          { name: '490 (default)', value: 490 },
-          { name: '500', value: 500 },
-          { name: '525', value: 525 },
-          { name: '550', value: 550 },
-          { name: '575', value: 575 }
-        ];
+        values = [400, 425, 450, 475, 490, 500, 525, 550, 575];
+        break;
       case eASICModel.BM1370:
-        return [
-          { name: '500', value: 500 },
-          { name: '525', value: 525 },
-          { name: '550', value: 550 },
-          { name: '575', value: 575 },
-          { name: '590', value: 590 },
-          { name: '600 (default)', value: 600 }
-        ];
+        values = [500, 515, 525, 550, 575, 590, 600];
+        break;
       default:
         return [];
     }
+    return values.map(val => ({
+      name: val === defaultValue ? `${val} (default)` : `${val}`,
+      value: val
+    }));
   }
 
   /**
    * Returns predefined core voltages based on the current ASIC model.
    */
-  private getPredefinedVoltages(): { name: string, value: number }[] {
+  private getPredefinedVoltages(defaultValue: number): { name: string, value: number }[] {
+    let values: number[] = [];
     switch (this.ASICModel) {
       case eASICModel.BM1366:
-        return [
-          { name: '1100', value: 1100 },
-          { name: '1150', value: 1150 },
-          { name: '1200 (default)', value: 1200 },
-          { name: '1250', value: 1250 },
-          { name: '1300', value: 1300 }
-        ];
+        values = [1100, 1150, 1200, 1250, 1300];
+        break;
       case eASICModel.BM1368:
-        return [
-          { name: '1100', value: 1100 },
-          { name: '1150', value: 1150 },
-          { name: '1200', value: 1200 },
-          { name: '1250 (default)', value: 1250 },
-          { name: '1300', value: 1300 },
-          { name: '1350', value: 1350 }
-        ];
+        values = [1100, 1150, 1200, 1250, 1300, 1350];
+        break;
       case eASICModel.BM1370:
-        return [
-          { name: '1120', value: 1120 },
-          { name: '1130', value: 1130 },
-          { name: '1140', value: 1140 },
-          { name: '1150 (default)', value: 1150 },
-          { name: '1160', value: 1160 },
-          { name: '1170', value: 1170 },
-          { name: '1180', value: 1180 },
-          { name: '1190', value: 1190 },
-          { name: '1200', value: 1200 },
-        ];
+        values = [1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200];
+        break;
       default:
         return [];
     }
+    return values.map(val => ({
+      name: val === defaultValue ? `${val} (default)` : `${val}`,
+      value: val
+    }));
   }
+
 
   public restart() {
     this.systemService.restart().pipe(

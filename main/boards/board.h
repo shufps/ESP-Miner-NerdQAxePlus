@@ -21,6 +21,11 @@ class Board {
     int m_asicFrequency;
     int m_asicVoltageMillis;
 
+    // default settings
+    int m_defaultAsicFrequency;
+    int m_defaultAsicVoltageMillis;
+
+
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
     uint32_t m_asicMaxDifficulty;
@@ -90,7 +95,8 @@ class Board {
 
     virtual void shutdown() = 0;
 
-    virtual bool getPSUFault() {
+    virtual bool getPSUFault()
+    {
         return false;
     }
 
@@ -120,12 +126,24 @@ class Board {
         return m_isInitialized ? m_asics : nullptr;
     }
 
-    int getAsicVoltageMillis() {
+    int getAsicVoltageMillis()
+    {
         return m_asicVoltageMillis;
     }
 
-    int getAsicFrequency() {
+    int getAsicFrequency()
+    {
         return m_asicFrequency;
+    }
+
+    int getDefaultAsicVoltageMillis()
+    {
+        return m_defaultAsicVoltageMillis;
+    }
+
+    int getDefaultAsicFrequency()
+    {
+        return m_defaultAsicFrequency;
     }
 
     float getMinPin()
@@ -146,22 +164,25 @@ class Board {
     float getMaxVin()
     {
         return m_maxVin;
-	}
+    }
 
     float getVrMaxTemp()
     {
         return m_vr_maxTemp;
     }
 
-    int getNumTempSensors() {
+    int getNumTempSensors()
+    {
         return m_numTempSensors;
     }
 
-    bool isFlipScreenEnabled() {
+    bool isFlipScreenEnabled()
+    {
         return m_flipScreen;
     }
 
-    bool isInvertFanPolarityEnabled() {
+    bool isInvertFanPolarityEnabled()
+    {
         return m_fanInvertPolarity;
     }
 };
