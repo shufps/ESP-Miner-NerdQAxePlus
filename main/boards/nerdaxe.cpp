@@ -38,8 +38,8 @@ NerdAxe::NerdAxe() : Board() {
     m_asicModel = "BM1366";
     m_asicCount = 1;
     m_asicJobIntervalMs = 1500;
-    m_asicFrequency = 485;
-    m_asicVoltageMillis = 1200;
+    m_defaultAsicFrequency = m_asicFrequency = 485;
+    m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1200;
     m_fanInvertPolarity = true;
     m_fanPerc = 100;
     m_flipScreen = true;
