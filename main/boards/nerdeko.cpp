@@ -1,6 +1,7 @@
 #include "nerdeko.h"
 #include "board.h"
 #include "nerdqaxeplus2.h"
+#include "./drivers/TPS53667.h"
 
 static const char *TAG = "nerdeko";
 
@@ -28,4 +29,6 @@ NerdEko::NerdEko() : NerdQaxePlus2()
 #ifdef NERDEKO
     m_theme = new ThemeNerdeko();
 #endif
+
+    m_tps = new TPS53667();
 }

@@ -3,6 +3,7 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "board.h"
+#include "./drivers/TPS53647.h"
 
 class NerdQaxePlus : public Board {
   protected:
@@ -15,6 +16,8 @@ class NerdQaxePlus : public Board {
     void LDO_disable();
 
     int detectNumTempSensors();
+
+    TPS53647 *m_tps;
 
   public:
     NerdQaxePlus();

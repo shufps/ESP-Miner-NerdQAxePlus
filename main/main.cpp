@@ -156,6 +156,7 @@ extern "C" void app_main(void)
 #endif
 #ifdef NERDHAXEGAMMA
     Board *board = new NerdHaxeGamma();
+#endif
 #ifdef NERDEKO
     Board *board = new NerdEko();
 #endif

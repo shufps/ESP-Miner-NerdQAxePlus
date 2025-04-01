@@ -15,6 +15,7 @@ SRCS
     "boards/drivers/EMC2302.cpp"
     "boards/drivers/TMP1075.cpp"
     "boards/drivers/TPS53647.cpp"
+    "boards/drivers/TPS53667.cpp"
     "boards/drivers/nerdaxe/DS4432U.cpp"
     "boards/drivers/nerdaxe/INA260.cpp"
     "boards/drivers/nerdaxe/EMC2101.cpp"

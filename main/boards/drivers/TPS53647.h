@@ -1,45 +1,55 @@
-#ifndef TPS53647_H_
-#define TPS53647_H_
+#pragma once
 
-#include <stdint.h>
+#include "driver/i2c.h"
+#include "esp_err.h"
 
-#define TPS53647_I2CADDR 0x71 //< TPS53647 i2c address
+class TPS53647 {
+protected:
+    uint8_t m_i2cAddr;
+    float m_hwMinVoltage;
+    float m_initVOutMin;
+    float m_initVOutMax;
+    uint8_t m_initOnOffConfig;
+    uint8_t m_initOtWarnLimit;
+    uint8_t m_initOtFaultLimit;
+    bool m_initialized;
 
-// we use the EN pin
-//#define OPERATION_OFF 0x00
-//#define OPERATION_ON 0x80
+    esp_err_t read_byte(uint8_t command, uint8_t *data);
+    esp_err_t write_byte(uint8_t command, uint8_t data);
+    esp_err_t read_word(uint8_t command, uint16_t *result);
+    esp_err_t write_word(uint8_t command, uint16_t data);
+    esp_err_t write_command(uint8_t command);
 
-// minimum voltage the TPS53647 can do
-#define TPS53647_HW_MIN_VOLTAGE 0.25
+    uint8_t volt_to_vid(float volts);
+    float vid_to_volt(uint8_t reg_val);
 
-/* PMBUS_ON_OFF_CONFIG initialization values */
-// tps53647 only supports bit 2 and 3
-// 3: device doesn't responds to the on_off_operation command
-// 2: device uses the enable pin
-#define TPS53647_INIT_ON_OFF_CONFIG 0b00010111
+    float slinear11_to_float(uint16_t value);
+    uint16_t float_to_slinear11(float x);
 
-#define TPS53647_INIT_VOUT_MIN 1.005 //0.25
-#define TPS53647_INIT_VOUT_MAX 1.4
+    virtual void set_phases(int num_phases);
 
-// temperature
-#define TPS53647_INIT_OT_WARN_LIMIT 95.0  // degrees C (default)
-#define TPS53647_INIT_OT_FAULT_LIMIT 125.0 // degrees C (default)
+public:
+    TPS53647();
 
-/* public functions */
-int TPS53647_init(int num_phases, int imax, float ifault);
-int TPS53647_get_frequency(void);
-void TPS53647_set_frequency(int);
-float TPS53647_get_temperature(void);
-float TPS53647_get_vin(void);
-float TPS53647_get_iout(void);
-float TPS53647_get_iin(void);
-float TPS53647_get_vout(void);
-float TPS53647_get_pin(void);
-float TPS53647_get_pout(void);
-void TPS53647_set_vout(float volts);
-void TPS53647_show_voltage_settings(void);
-void TPS53647_status();
-uint16_t TPS53647_get_vout_vid(void);
-uint8_t TPS53647_get_status_byte(void);
+    virtual bool init(int num_phases, int imax, float ifault);
 
-#endif /* TPS53647_H_ */
+    float get_temperature();
+    float get_pin();
+    float get_pout();
+    float get_vin();
+    float get_iin();
+    float get_iout();
+
+    float get_vout();
+    void set_vout(float volts);
+    uint16_t get_vout_vid();
+
+    void power_enable();
+    void power_disable();
+
+    void show_voltage_settings();
+    void status();
+
+    uint8_t get_status_byte();
+
+};

@@ -58,6 +58,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
 #endif
 
     m_asics = new BM1368();
+    m_tps = new TPS53647();
 }
 
 bool NerdQaxePlus::initBoard()
@@ -125,7 +126,7 @@ bool NerdQaxePlus::initAsics()
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     // init buck and enable output
-    TPS53647_init(m_numPhases, m_imax, m_ifault);
+    m_tps->init(m_numPhases, m_imax, m_ifault);
 
     // set the init voltage
     // use the higher voltage for initialization
@@ -160,7 +161,7 @@ bool NerdQaxePlus::initAsics()
 
 
 void NerdQaxePlus::requestBuckTelemtry() {
-    TPS53647_status();
+    m_tps->status();
 }
 
 void NerdQaxePlus::LDO_enable()
@@ -178,7 +179,7 @@ void NerdQaxePlus::LDO_disable()
 bool NerdQaxePlus::setVoltage(float core_voltage)
 {
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
-    TPS53647_set_vout(core_voltage);
+    m_tps->set_vout(core_voltage);
     return true;
 }
 
@@ -218,7 +219,7 @@ float NerdQaxePlus::getTemperature(int index) {
 }
 
 float NerdQaxePlus::getVRTemp() {
-    float vrTemp = TPS53647_get_temperature();
+    float vrTemp = m_tps->get_temperature();
 
     // test
     float tmp = TMP1075_read_temperature(1);
@@ -228,32 +229,32 @@ float NerdQaxePlus::getVRTemp() {
 }
 
 float NerdQaxePlus::getVin() {
-    return TPS53647_get_vin();
+    return m_tps->get_vin();
 }
 
 float NerdQaxePlus::getIin() {
-    return TPS53647_get_iin();
+    return m_tps->get_iin();
 }
 
 float NerdQaxePlus::getPin() {
-    return TPS53647_get_pin();
+    return m_tps->get_pin();
 }
 
 float NerdQaxePlus::getVout() {
-    return TPS53647_get_vout();
+    return m_tps->get_vout();
 }
 
 float NerdQaxePlus::getIout() {
-    return TPS53647_get_iout();
+    return m_tps->get_iout();
 }
 
 float NerdQaxePlus::getPout() {
-    return TPS53647_get_pout();
+    return m_tps->get_pout();
 }
 
 bool NerdQaxePlus::getPSUFault() {
-    uint16_t vid = TPS53647_get_vout_vid();
-    uint8_t status_byte = TPS53647_get_status_byte();
+    uint16_t vid = m_tps->get_vout_vid();
+    uint8_t status_byte = m_tps->get_status_byte();
 
     // if we have 0x97 it means the buck was reset and
     // restarted with VBOOT. In this case we assume there
