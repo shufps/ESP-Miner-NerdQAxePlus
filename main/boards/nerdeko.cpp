@@ -1,29 +1,31 @@
-#include "board.h"
 #include "nerdeko.h"
+#include "board.h"
 #include "nerdqaxeplus2.h"
 
-static const char* TAG="nerdeko";
+static const char *TAG = "nerdeko";
 
-NerdEko::NerdEko() : NerdQaxePlus2() {
+NerdEko::NerdEko() : NerdQaxePlus2()
+{
     m_deviceModel = "NerdEko";
+    m_miningAgent = m_deviceModel;
     m_asicModel = "BM1370";
     m_asicCount = 12;
     m_numPhases = 6;
-    m_imax = 180;
-    m_ifault = 170.0;
+    m_imax = 240; // R = 6000 / (num_phases * max_current) = 24K9
+    m_ifault = 235.0;
 
     // use m_asicVoltage for init
-    m_initVoltage = 0.0;
+    m_initVoltageMillis = 0;
 
-    m_maxPin = 300.0;
-    m_minPin = 100.0;
+    m_maxPin = 350.0;
+    m_minPin = 30.0;
     m_maxVin = 13.0;
-    m_minVin = 11.0;
+    m_minVin = 8.0;
 
     m_asicMaxDifficulty = 8192;
     m_asicMinDifficulty = 2048;
 
 #ifdef NERDEKO
-    m_theme = new ThemeNerdoctaxegamma();
+    m_theme = new ThemeNerdeko();
 #endif
 }
