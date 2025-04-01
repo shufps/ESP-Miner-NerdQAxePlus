@@ -6,7 +6,7 @@
 
 #include "EMC2302.h"
 
-const char *TAG = "emc2301";
+const char *TAG = "emc2302";
 
 esp_err_t EMC2302_set_fan_speed(float percent)
 {
