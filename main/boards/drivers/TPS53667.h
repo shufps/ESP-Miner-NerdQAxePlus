@@ -10,4 +10,6 @@ public:
     TPS53667();
 
     virtual bool init(int num_phases, int imax, float ifault);
+
+    virtual void status();
 };

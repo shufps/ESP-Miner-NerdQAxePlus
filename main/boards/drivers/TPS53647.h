@@ -48,7 +48,7 @@ public:
     void power_disable();
 
     void show_voltage_settings();
-    void status();
+    virtual void status();
 
     uint8_t get_status_byte();
 

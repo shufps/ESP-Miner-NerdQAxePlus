@@ -32,7 +32,8 @@ static const char *TAG = "TPS53647.c";
 
 static bool is_initialized = false;
 
-TPS53647::TPS53647() {
+TPS53647::TPS53647()
+{
     m_i2cAddr = 0x71;
     m_hwMinVoltage = 0.25f;
     m_initVOutMin = 1.005f;
@@ -203,7 +204,8 @@ float TPS53647::slinear11_to_float(uint16_t value)
 /**
  * @brief Convert a float value into an SLINEAR11
  */
-uint16_t TPS53647::float_to_slinear11(float x) {
+uint16_t TPS53647::float_to_slinear11(float x)
+{
     if (x <= 0.0f) {
         ESP_LOGI(TAG, "No negative numbers at this time");
         return 0;
@@ -224,7 +226,7 @@ uint16_t TPS53647::float_to_slinear11(float x) {
         return 0;
     }
     uint16_t mantissa_bits = (uint16_t) m & 0x7FF;
-    uint16_t exponent_bits = (uint16_t)(e & 0x1F);
+    uint16_t exponent_bits = (uint16_t) (e & 0x1F);
     uint16_t value = (exponent_bits << 11) | mantissa_bits;
     return value;
 }
@@ -237,7 +239,6 @@ void TPS53647::status()
     uint8_t status_iout = 0xff;
     uint8_t status_input = 0xff;
     uint8_t status_mfr_specific = 0xff;
-    uint16_t vout_cmd = 0xffff;
 
     read_byte(PMBUS_STATUS_BYTE, &status_byte);
     read_word(PMBUS_STATUS_WORD, &status_word);
@@ -246,8 +247,11 @@ void TPS53647::status()
     read_byte(PMBUS_STATUS_INPUT, &status_input);
     read_byte(PMBUS_STATUS_MFR_SPECIFIC, &status_mfr_specific);
 
-    ESP_LOGI(TAG, "TPS536X7_status  bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x",
-                    status_byte, status_word, status_vout, status_iout, status_input, status_mfr_specific);
+    bool isError = (status_byte || status_word || status_vout || status_iout || status_input || status_mfr_specific);
+
+    esp_log_write(isError ? ESP_LOG_ERROR : ESP_LOG_INFO, TAG,
+                  "TPS536X7_status  bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x", status_byte,
+                  status_word, status_vout, status_iout, status_input, status_mfr_specific);
 }
 
 // Set up the TPS53647 regulator and turn it on
@@ -298,7 +302,7 @@ bool TPS53647::init(int num_phases, int imax, float ifault)
     write_word(PMBUS_OT_WARN_LIMIT, float_to_slinear11(m_initOtWarnLimit));
     write_word(PMBUS_OT_FAULT_LIMIT, float_to_slinear11(m_initOtFaultLimit));
 
-    // iout current
+    // Iout current
     // set warn and fault to the same value
     write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_to_slinear11(ifault));
     write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_to_slinear11(ifault));
@@ -513,15 +517,17 @@ void TPS53647::show_voltage_settings(void)
     ESP_LOGI(TAG, "Vout Margin LOW: %f V", f_value);
 }
 
-uint16_t TPS53647::get_vout_vid(void) {
+uint16_t TPS53647::get_vout_vid(void)
+{
     // 0x97 is 1.00V
     uint16_t vid = 0x97;
     read_word(PMBUS_VOUT_COMMAND, &vid);
-    //ESP_LOGI(TAG, "vout_cmd: %02x", vid);
+    // ESP_LOGI(TAG, "vout_cmd: %02x", vid);
     return vid;
 }
 
-uint8_t TPS53647::get_status_byte(void) {
+uint8_t TPS53647::get_status_byte(void)
+{
     uint8_t status_byte = 0xff;
     read_byte(PMBUS_STATUS_BYTE, &status_byte);
     return status_byte;

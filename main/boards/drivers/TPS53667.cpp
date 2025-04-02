@@ -84,3 +84,28 @@ bool TPS53667::init(int num_phases, int imax, float ifault)
 
     return true;
 }
+
+void TPS53667::status()
+{
+    uint8_t status_byte = 0xff;
+    uint16_t status_word = 0xffff;
+    uint8_t status_vout = 0xff;
+    uint8_t status_iout = 0xff;
+    uint8_t status_input = 0xff;
+    uint8_t status_mfr_specific = 0xff;
+    uint8_t status_phase = 0xff;
+
+    read_byte(PMBUS_STATUS_BYTE, &status_byte);
+    read_word(PMBUS_STATUS_WORD, &status_word);
+    read_byte(PMBUS_STATUS_VOUT, &status_vout);
+    read_byte(PMBUS_STATUS_IOUT, &status_iout);
+    read_byte(PMBUS_STATUS_INPUT, &status_input);
+    read_byte(PMBUS_STATUS_MFR_SPECIFIC, &status_mfr_specific);
+    read_byte(PMBUS_MFR_SPECIFIC_24, &status_phase);
+
+    bool isError = (status_byte || status_word || status_vout || status_iout || status_input || status_mfr_specific || status_phase);
+
+    esp_log_write(isError ? ESP_LOG_ERROR : ESP_LOG_INFO, TAG,
+                  "TPS536X7_status  bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x phase: %02x",
+                  status_byte, status_word, status_vout, status_iout, status_input, status_mfr_specific, status_phase);
+}
