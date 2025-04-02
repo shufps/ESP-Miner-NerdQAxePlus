@@ -53,3 +53,13 @@ public:
     uint8_t get_status_byte();
 
 };
+
+
+#define ESP_LOGIE(b, tag, fmt, ...)                                                                                                \
+    do {                                                                                                                           \
+        if (b) {                                                                                                                   \
+            ESP_LOGI(tag, fmt, ##__VA_ARGS__);                                                                                     \
+        } else {                                                                                                                   \
+            ESP_LOGE(tag, fmt, ##__VA_ARGS__);                                                                                     \
+        }                                                                                                                          \
+    } while (0)

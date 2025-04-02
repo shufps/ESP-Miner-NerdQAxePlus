@@ -57,11 +57,11 @@ bool TPS53667::init(int num_phases, int imax, float ifault)
 
     set_phases(num_phases);
 
-    write_word(PMBUS_VOUT_MAX, (uint16_t) volt_to_vid(m_initVOutMax));   // to do better ! 1.4V
-    //write_byte(PMBUS_MFR_SPECIFIC_00, 0x06);                     // Per-Phase Overcurrent Limit 42A threshold
-    write_byte(PMBUS_MFR_SPECIFIC_00, 0x07);                     // Per-Phase Overcurrent Limit 45A threshold
-    //write_byte(PMBUS_MFR_SPECIFIC_16, 0x02);                     // threshold for the VIN Undervoltage UVLO 8.1V threshold
-    write_byte(PMBUS_MFR_SPECIFIC_16, 0x01);                     // threshold for the VIN Undervoltage UVLO 6V threshold
+    write_word(PMBUS_VOUT_MAX, (uint16_t) volt_to_vid(m_initVOutMax)); // to do better ! 1.4V
+    // write_byte(PMBUS_MFR_SPECIFIC_00, 0x06);                     // Per-Phase Overcurrent Limit 42A threshold
+    write_byte(PMBUS_MFR_SPECIFIC_00, 0x07); // Per-Phase Overcurrent Limit 45A threshold
+    // write_byte(PMBUS_MFR_SPECIFIC_16, 0x02);                     // threshold for the VIN Undervoltage UVLO 8.1V threshold
+    write_byte(PMBUS_MFR_SPECIFIC_16, 0x01); // threshold for the VIN Undervoltage UVLO 6V threshold
     write_word(PMBUS_MFR_SPECIFIC_19, 0x0003);
 
     // temperature
@@ -72,7 +72,6 @@ bool TPS53667::init(int num_phases, int imax, float ifault)
     // set warn and fault to the same value
     write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_to_slinear11(ifault));
     write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_to_slinear11(ifault));
-
 
     // Iin current
     write_word(PMBUS_IIN_OC_WARN_LIMIT, float_to_slinear11(25.0));  // about 300W input power
@@ -105,7 +104,7 @@ void TPS53667::status()
 
     bool isError = (status_byte || status_word || status_vout || status_iout || status_input || status_mfr_specific || status_phase);
 
-    esp_log_write(isError ? ESP_LOG_ERROR : ESP_LOG_INFO, TAG,
-                  "TPS536X7_status  bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x phase: %02x",
-                  status_byte, status_word, status_vout, status_iout, status_input, status_mfr_specific, status_phase);
+    ESP_LOGIE(!isError, TAG,
+              "TPS536X7_status  bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x phase: %02x",
+              status_byte, status_word, status_vout, status_iout, status_input, status_mfr_specific, status_phase);
 }
