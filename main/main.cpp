@@ -211,7 +211,10 @@ extern "C" void app_main(void)
     while (1) {
         vTaskDelay(10000 / portTICK_PERIOD_MS);
         size_t free_internal_heap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-        ESP_LOGI(TAG, "Free internal heap: %d bytes", free_internal_heap);
+
+        if (free_internal_heap < 10000) {
+            ESP_LOGW(TAG, "*** WARNING *** Free internal heap: %d bytes", free_internal_heap);
+        }
 
         //vTaskList(taskList);
         //ESP_LOGI(TAG, "%s", taskList);

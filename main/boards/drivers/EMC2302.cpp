@@ -61,9 +61,10 @@ esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
     const int ftach = 32768;
 
     int rpm = 60 * ftach * m * (n - 1) / poles / rpm_raw;
-
+#ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "raw fan speed: %d", rpm_raw);
-
+#endif
+    
     // we get this if no fan is connected
     // would be displayed as 480RPM
     // so we actually can't measure lower than that

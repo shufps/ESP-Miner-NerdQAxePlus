@@ -275,7 +275,7 @@ void System::task() {
 
     // show initial 0.0.0.0
     m_display->updateIpAddress(m_ipAddress);
-
+    bool lastFoundBlock = false;
     while (1) {
         // update IP on the screen if it is available
         if (!validIp && connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
@@ -292,9 +292,11 @@ void System::task() {
             showError("PSU ERROR", 0x15);
         }
 
-        if (m_foundBlock) {
+        // trigger the overlay only once when block is found
+        if (m_foundBlock != lastFoundBlock && m_foundBlock) {
             m_display->showFoundBlockOverlay();
         }
+        lastFoundBlock = m_foundBlock;
 
         m_display->updateGlobalState();
         m_display->updateCurrentSettings();

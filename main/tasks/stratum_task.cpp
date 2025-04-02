@@ -257,7 +257,6 @@ void StratumTask::stratumLoop()
     // mining.suggest_difficulty - ID: 4
     success = success && m_stratumAPI.suggestDifficulty(m_sock, Config::getStratumDifficulty());
 
-    // clang-format on
     if (!success) {
         ESP_LOGE(m_tag, "Error sending Stratum setup commands!");
         return;
