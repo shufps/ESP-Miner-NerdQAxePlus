@@ -30,8 +30,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicModel = "BM1368";
     m_asicCount = 4;
     m_asicJobIntervalMs = 1200;
-    m_asicFrequency = 490;
-    m_asicVoltageMillis = 1250; // default voltage
+    m_defaultAsicFrequency = m_asicFrequency = 490;
+    m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1250; // default voltage
     m_initVoltageMillis = 1250;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
