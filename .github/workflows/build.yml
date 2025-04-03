@@ -33,7 +33,7 @@ jobs:
             upload_www: false
           - board: NERDEKO
             upload_www: false
-            label: NerdEko
+            label: NerdEKO
 
     steps:
     - name: Checkout repository

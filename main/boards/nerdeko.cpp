@@ -7,7 +7,7 @@ static const char *TAG = "nerdeko";
 
 NerdEko::NerdEko() : NerdQaxePlus2()
 {
-    m_deviceModel = "NerdEko";
+    m_deviceModel = "NerdEKO";
     m_miningAgent = m_deviceModel;
     m_asicModel = "BM1370";
     m_asicCount = 12;
