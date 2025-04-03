@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        board: [NERDQAXEPLUS, NERDOCTAXEPLUS, NERDQAXEPLUS2, NERDAXE, NERDAXEGAMMA]
         include:
           - board: NERDQAXEPLUS
             upload_www: true
