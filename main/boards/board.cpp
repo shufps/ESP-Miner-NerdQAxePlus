@@ -1,3 +1,6 @@
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 #include "board.h"
 #include "nvs_config.h"
 #include "esp_log.h"
