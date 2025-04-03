@@ -30,8 +30,6 @@
 
 static const char *TAG = "TPS53647.c";
 
-static bool is_initialized = false;
-
 TPS53647::TPS53647()
 {
     m_i2cAddr = 0x71;
@@ -306,7 +304,7 @@ bool TPS53647::init(int num_phases, int imax, float ifault)
     write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_to_slinear11(ifault));
     write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_to_slinear11(ifault));
 
-    is_initialized = true;
+    m_initialized = true;
 
     return true;
 }
@@ -330,7 +328,7 @@ float TPS53647::get_temperature(void)
     uint16_t u16_value = 0;
     float temp = 0.0f;
 
-    if (!is_initialized) {
+    if (!m_initialized) {
         return 0.0f;
     }
 
@@ -349,7 +347,7 @@ float TPS53647::get_pin(void)
     uint16_t u16_value = 0;
     float pin = 0.0f;
 
-    if (!is_initialized) {
+    if (!m_initialized) {
         return 0.0f;
     }
 
@@ -367,7 +365,7 @@ float TPS53647::get_pout(void)
     uint16_t u16_value = 0;
     float pout = 0.0f;
 
-    if (!is_initialized) {
+    if (!m_initialized) {
         return 0.0f;
     }
 
@@ -385,7 +383,7 @@ float TPS53647::get_vin(void)
     uint16_t u16_value = 0;
     float vin = 0.0f;
 
-    if (!is_initialized) {
+    if (!m_initialized) {
         return 0.0f;
     }
 
@@ -403,7 +401,7 @@ float TPS53647::get_vout(void)
     uint16_t u16_value = 0;
     float vout = 0.0f;
 
-    if (!is_initialized) {
+    if (!m_initialized) {
         return 0.0f;
     }
 
@@ -421,7 +419,7 @@ float TPS53647::get_iin(void)
     uint16_t u16_value = 0;
     float iin = 0.0f;
 
-    if (!is_initialized) {
+    if (!m_initialized) {
         return 0.0f;
     }
 
@@ -440,7 +438,7 @@ float TPS53647::get_iout(void)
     uint16_t u16_value = 0;
     float iout = 0.0f;
 
-    if (!is_initialized) {
+    if (!m_initialized) {
         return 0.0f;
     }
 
