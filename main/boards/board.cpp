@@ -26,6 +26,11 @@ void Board::loadSettings()
     m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
 
+    m_pidSettings.targetTemp = Config::getPidTargetTemp(m_pidSettings.targetTemp);
+    m_pidSettings.p = Config::getPidP(m_pidSettings.p);
+    m_pidSettings.i = Config::getPidP(m_pidSettings.i);
+    m_pidSettings.d = Config::getPidP(m_pidSettings.d);
+
     ESP_LOGI(TAG, "ASIC Frequency: %dMHz", m_asicFrequency);
     ESP_LOGI(TAG, "ASIC voltage: %dmV", m_asicVoltageMillis);
     ESP_LOGI(TAG, "ASIC job interval: %dms", m_asicJobIntervalMs);
@@ -93,9 +98,6 @@ float Board::automaticFanSpeed(float temp)
         result = ((temp - m_afcMinTemp) / temp_range) * fan_range + m_afcMinFanSpeed;
     }
 
-    float perc = (float) result / 100.0f;
-    m_fanPerc = perc;
-    setFanSpeed(perc);
     return result;
 }
 

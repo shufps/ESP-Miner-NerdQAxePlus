@@ -2,6 +2,7 @@
 
 #include <pthread.h>
 #include "boards/board.h"
+#include "pid/PID_v1_bc.h"
 
 class PowerManagementTask {
   protected:
@@ -13,9 +14,12 @@ class PowerManagementTask {
     float m_voltage;
     float m_power;
     float m_current;
+    PID *m_pid;
 
-    double automaticFanSpeed(Board *board, float chip_temp);
-
+    void requestChipTemps();
+    void checkCoreVoltageChanged();
+    void checkAsicFrequencyChanged();
+    void checkPidSettingsChanged();
     void task();
 
   public:

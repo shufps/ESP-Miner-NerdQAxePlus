@@ -43,24 +43,95 @@ void PowerManagementTask::restart() {
     pthread_mutex_unlock(&m_mutex);
 }
 
+void PowerManagementTask::requestChipTemps() {
+    static uint64_t last_temp_request = esp_timer_get_time();
+
+    Board* board = SYSTEM_MODULE.getBoard();
+    Asic* asics = board->getAsics();
+
+    // request chip temps and buck telemetry all 15s
+    if (esp_timer_get_time() - last_temp_request > 15000000llu) {
+        if (asics) {
+            asics->requestChipTemp();
+        }
+        board->requestBuckTelemtry();
+        last_temp_request = esp_timer_get_time();
+    }
+}
+
+void PowerManagementTask::checkCoreVoltageChanged() {
+    static uint16_t last_core_voltage = 0;
+
+    Board* board = SYSTEM_MODULE.getBoard();
+
+    uint16_t core_voltage = board->getAsicVoltageMillis();
+
+    if (core_voltage != last_core_voltage) {
+        ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
+        board->setVoltage((float) core_voltage / 1000.0);
+        last_core_voltage = core_voltage;
+    }
+}
+
+void PowerManagementTask::checkAsicFrequencyChanged() {
+    static uint16_t last_asic_frequency = 0;
+
+    Board* board = SYSTEM_MODULE.getBoard();
+    Asic* asics = board->getAsics();
+
+    uint16_t asic_frequency = board->getAsicFrequency();
+
+    if (asic_frequency != last_asic_frequency) {
+        ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
+        if (asics && !asics->setAsicFrequency((float) asic_frequency)) {
+            ESP_LOGE(TAG, "pll setting not found for %uMHz", asic_frequency);
+        }
+        last_asic_frequency = asic_frequency;
+    }
+}
+
+void PowerManagementTask::checkPidSettingsChanged() {
+    static PidSettings oldPidSettings = {0};
+
+    Board* board = SYSTEM_MODULE.getBoard();
+    PidSettings *pidSettings = board->getPidSettings();
+
+    // we can use memcmp because we have a packed struct
+    if (memcmp(pidSettings, &oldPidSettings, sizeof(PidSettings)) != 0) {
+        m_pid->SetTunings((float) pidSettings->p / 100.0f, (float) pidSettings->i / 100.0f, (float) pidSettings->d / 100.0f);
+        m_pid->SetTarget((float) pidSettings->targetTemp);
+        oldPidSettings = *pidSettings;
+    }
+}
+
 void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
 
+    // pointer to pid settings
+    PidSettings *pidSettings = board->getPidSettings();
+
+    float pid_input = 0.0;
+    float pid_output = 0.0;
+    float pid_target = (float) pidSettings->targetTemp;
+
+
+    m_pid = new PID(&pid_input, &pid_output, &pid_target, pidSettings->p, pidSettings->i, pidSettings->d, P_ON_E, DIRECT);
+    m_pid->SetSampleTime(POLL_RATE);
+    m_pid->SetOutputLimits(35, 100);
+    m_pid->SetMode(AUTOMATIC);
+    m_pid->SetControllerDirection(REVERSE);
+    m_pid->Initialize();
+
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-    uint16_t last_core_voltage = 0.0;
-    uint16_t last_asic_frequency = 0;
-    uint64_t last_temp_request = esp_timer_get_time();
     while (1) {
         pthread_mutex_lock(&m_mutex);
         // the asics are initialized after this task starts
         Asic* asics = board->getAsics();
 
-        uint16_t core_voltage = board->getAsicVoltageMillis();
-        uint16_t asic_frequency = board->getAsicFrequency();
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
-        bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
+        uint16_t temp_control_mode = Config::getTempControlMode();
 
         // overwrite previously allowed 0 value to disable
         // over-temp shutdown
@@ -68,28 +139,17 @@ void PowerManagementTask::task()
             asic_overheat_temp = 70;
         }
 
-        if (core_voltage != last_core_voltage) {
-            ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
-            board->setVoltage((float) core_voltage / 1000.0);
-            last_core_voltage = core_voltage;
-        }
+        // check if asic voltage changed
+        checkCoreVoltageChanged();
 
-        if (asic_frequency != last_asic_frequency) {
-            ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
-            if (asics && !asics->setAsicFrequency((float) asic_frequency)) {
-                ESP_LOGE(TAG, "pll setting not found for %uMHz", asic_frequency);
-            }
-            last_asic_frequency = asic_frequency;
-        }
+        // check if asic frequency changed
+        checkAsicFrequencyChanged();
 
-        // request chip temps and buck telemetry all 15s
-        if (esp_timer_get_time() - last_temp_request > 15000000llu) {
-            if (asics) {
-                asics->requestChipTemp();
-            }
-            board->requestBuckTelemtry();
-            last_temp_request = esp_timer_get_time();
-        }
+        // check if pid settings changed
+        checkPidSettingsChanged();
+
+        // request chip temps
+        requestChipTemps();
 
         float vin = board->getVin();
         float iin = board->getIin();
@@ -156,11 +216,26 @@ void PowerManagementTask::task()
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
-        if (auto_fan_speed) {
-            m_fanPerc = board->automaticFanSpeed(m_chipTempMax);
-        } else {
-            m_fanPerc = (float) Config::getFanSpeed();
-            board->setFanSpeed(m_fanPerc / 100.0f);
+        switch (temp_control_mode) {
+
+            case 1:
+                m_fanPerc = board->automaticFanSpeed(m_chipTempMax);
+                board->setFanSpeed(m_fanPerc / 100.0f);
+                break;
+            case 2:
+                pid_input = std::max(m_chipTempMax, m_vrTemp);
+                m_pid->Compute();
+                m_fanPerc = (uint16_t) pid_output;
+                board->setFanSpeed(m_fanPerc / 100.0f);
+                ESP_LOGE(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
+                break;
+            default:
+                ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual.", temp_control_mode);
+                [[fallthrough]];
+            case 0:
+                m_fanPerc = (float) Config::getFanSpeed();
+                board->setFanSpeed(m_fanPerc / 100.0f);
+                break;
         }
         pthread_mutex_unlock(&m_mutex);
 

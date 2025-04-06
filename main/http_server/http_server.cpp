@@ -519,14 +519,26 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
     if (doc["invertfanpolarity"].is<bool>()) {
         Config::setInvertFanPolarity(doc["invertfanpolarity"].as<bool>());
     }
-    if (doc["autofanspeed"].is<bool>()) {
-        Config::setAutoFanSpeed(doc["autofanspeed"].as<bool>());
+    if (doc["autofanspeed"].is<uint16_t>()) {
+        Config::setTempControlMode(doc["autofanspeed"].as<uint16_t>());
     }
     if (doc["fanspeed"].is<uint16_t>()) {
         Config::setFanSpeed(doc["fanspeed"].as<uint16_t>());
     }
     if (doc["autoscreenoff"].is<bool>()) {
         Config::setAutoScreenOff(doc["autoscreenoff"].as<bool>());
+    }
+    if (doc["pidTargetTemp"].is<uint16_t>()) {
+        Config::setPidTargetTemp(doc["pidTargetTemp"].as<uint16_t>());
+    }
+    if (doc["pidP"].is<float>()) {
+        Config::setPidP((uint16_t) (doc["pidP"].as<float>() * 100.0f));
+    }
+    if (doc["pidI"].is<float>()) {
+        Config::setPidI((uint16_t) (doc["pidI"].as<float>() * 100.0f));
+    }
+    if (doc["pidD"].is<float>()) {
+        Config::setPidD((uint16_t) (doc["pidD"].as<float>() * 100.0f));
     }
 
     doc.clear();
@@ -737,6 +749,13 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
 
+    PidSettings *pid = board->getPidSettings();
+    doc["pidTargetTemp"]      = pid->targetTemp;
+    doc["pidP"]               = (float) pid->p / 100.0f;
+    doc["pidI"]               = (float) pid->i / 100.0f;
+    doc["pidD"]               = (float) pid->d / 100.0f;
+
+
     // If history was requested, add the history data as a nested object
     if (history_requested) {
         uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour later
@@ -761,7 +780,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
     doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
-    doc["autofanspeed"]       = Config::isAutoFanSpeedEnabled() ? 1 : 0;
+    doc["autofanspeed"]       = Config::getTempControlMode();
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();

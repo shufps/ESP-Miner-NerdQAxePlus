@@ -24,6 +24,7 @@ class NerdAxe : public Board {
 
     virtual float getTemperature(int index);
     virtual float getVRTemp();
+    virtual bool isPIDAvailable() { return false; }
 
     virtual float getVin();
     virtual float getIin();
