@@ -5,6 +5,14 @@
 #include "bm1368.h"
 #include "nvs_config.h"
 
+// we need packed here (for memcmp)
+struct __attribute__((packed)) PidSettings {
+    uint16_t targetTemp;
+    uint16_t p;
+    uint16_t i;
+    uint16_t d;
+};
+
 class Board {
   protected:
     // general board information
@@ -15,6 +23,8 @@ class Board {
     int m_asicCount;
     int m_chipsDetected = 0;
     int m_numTempSensors = 0;
+
+    PidSettings m_pidSettings;
 
     // asic settings
     int m_asicJobIntervalMs;
@@ -81,6 +91,7 @@ class Board {
 
     virtual float getTemperature(int index) = 0;
     virtual float getVRTemp() = 0;
+    virtual bool isPIDAvailable() = 0;
 
     virtual float getVin() = 0;
     virtual float getIin() = 0;
@@ -185,4 +196,9 @@ class Board {
     {
         return m_fanInvertPolarity;
     }
+
+    PidSettings *getPidSettings() {
+        return &m_pidSettings;
+    }
+
 };

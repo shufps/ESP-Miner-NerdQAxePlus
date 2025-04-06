@@ -22,6 +22,7 @@ class NerdaxeGamma : public NerdAxe {
 
     virtual float getTemperature(int index);
     virtual float getVRTemp();
+    virtual bool isPIDAvailable() { return false; }
 
     virtual float getVin();
     virtual float getIin();

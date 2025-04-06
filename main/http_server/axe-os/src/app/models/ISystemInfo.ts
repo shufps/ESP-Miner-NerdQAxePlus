@@ -59,5 +59,10 @@ export interface ISystemInfo {
     boardtemp2?: number,
     overheat_temp: number,
 
+    pidTargetTemp: number,
+    pidP: number,
+    pidI: number,
+    pidD: number,
+
     history: IHistory
 }

@@ -1,7 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, OnInit, TemplateRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-//import { ToastrService } from 'ngx-toastr';
 import { startWith, catchError, of } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
@@ -104,7 +103,12 @@ export class EditComponent implements OnInit {
           coreVoltage: [info.coreVoltage, [Validators.min(1005), Validators.max(1400), Validators.required]],
           frequency: [info.frequency, [Validators.required]],
           jobInterval: [info.jobInterval, [Validators.required]],
-          autofanspeed: [info.autofanspeed == 1, [Validators.required]],
+          autofanspeed: [info.autofanspeed ?? 0, [Validators.required]],
+	  // TODO validators
+          pidTargetTemp: [info.pidTargetTemp ?? 55],
+          pidP: [info.pidP ?? 2],
+          pidI: [info.pidI ?? 0.2],
+          pidD: [info.pidD ?? 5],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],
           overheat_temp: [info.overheat_temp, [
@@ -113,21 +117,47 @@ export class EditComponent implements OnInit {
             Validators.required]]
         });
 
-        this.form.controls['autofanspeed'].valueChanges.pipe(
-          startWith(this.form.controls['autofanspeed'].value)
-        ).subscribe(autofanspeed => {
-          if (autofanspeed) {
-            this.form.controls['fanspeed'].disable();
-          } else {
-            this.form.controls['fanspeed'].enable();
-          }
-        });
+        this.form.controls['autofanspeed'].valueChanges
+          .pipe(startWith(this.form.controls['autofanspeed'].value))
+          .subscribe(() => this.updatePIDFieldStates());
+
+        this.updatePIDFieldStates();
       });
   }
 
+  private updatePIDFieldStates(): void {
+    const mode = this.form.controls['autofanspeed'].value;
+    const enable = (ctrl: string) => this.form.controls[ctrl]?.enable({ emitEvent: false });
+    const disable = (ctrl: string) => this.form.controls[ctrl]?.disable({ emitEvent: false });
+
+    if (mode === 0) {
+      enable('fanspeed');
+      disable('pidTargetTemp');
+      disable('pidP');
+      disable('pidI');
+      disable('pidD');
+    } else if (mode === 1) {
+      disable('fanspeed');
+      disable('pidTargetTemp');
+      disable('pidP');
+      disable('pidI');
+      disable('pidD');
+    } else if (mode === 2) {
+      disable('fanspeed');
+      enable('pidTargetTemp');
+      if (this.devToolsOpen) {
+        enable('pidP');
+        enable('pidI');
+        enable('pidD');
+      } else {
+        disable('pidP');
+        disable('pidI');
+        disable('pidD');
+      }
+    }
+  }
 
   public updateSystem() {
-
     const form = this.form.getRawValue();
 
     // Allow an empty wifi password
@@ -172,6 +202,7 @@ export class EditComponent implements OnInit {
     console.log('Advanced Mode:', state); // Debugging output
     this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(this.defaultFrequency), this.form.controls['frequency'].value);
     this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(this.defaultCoreVoltage), this.form.controls['coreVoltage'].value);
+    this.updatePIDFieldStates();
   }
 
   public isVoltageTooHigh(): boolean {

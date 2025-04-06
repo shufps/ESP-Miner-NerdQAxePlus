@@ -50,6 +50,11 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_maxVin = 13.0;
     m_minVin = 11.0;
 
+    m_pidSettings.targetTemp = 55;
+    m_pidSettings.p = 200; // 2.00
+    m_pidSettings.i = 10;  // 0.10
+    m_pidSettings.d = 500; // 5.00
+
     m_asicMaxDifficulty = 1024;
     m_asicMinDifficulty = 256;
 
