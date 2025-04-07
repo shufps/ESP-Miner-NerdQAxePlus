@@ -28,8 +28,8 @@ void Board::loadSettings()
 
     m_pidSettings.targetTemp = Config::getPidTargetTemp(m_pidSettings.targetTemp);
     m_pidSettings.p = Config::getPidP(m_pidSettings.p);
-    m_pidSettings.i = Config::getPidP(m_pidSettings.i);
-    m_pidSettings.d = Config::getPidP(m_pidSettings.d);
+    m_pidSettings.i = Config::getPidI(m_pidSettings.i);
+    m_pidSettings.d = Config::getPidD(m_pidSettings.d);
 
     ESP_LOGI(TAG, "ASIC Frequency: %dMHz", m_asicFrequency);
     ESP_LOGI(TAG, "ASIC voltage: %dmV", m_asicVoltageMillis);

@@ -98,8 +98,10 @@ void PowerManagementTask::checkPidSettingsChanged() {
 
     // we can use memcmp because we have a packed struct
     if (memcmp(pidSettings, &oldPidSettings, sizeof(PidSettings)) != 0) {
+        ESP_LOGI(TAG, "PID settings change detected");
         m_pid->SetTunings((float) pidSettings->p / 100.0f, (float) pidSettings->i / 100.0f, (float) pidSettings->d / 100.0f);
         m_pid->SetTarget((float) pidSettings->targetTemp);
+        ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pid->GetTarget(), m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
         oldPidSettings = *pidSettings;
     }
 }
@@ -216,23 +218,29 @@ void PowerManagementTask::task()
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
-        switch (temp_control_mode) {
+        // we let the PID always calculate for "bumpless transfer"
+        // when switching modes
+        pid_input = std::max(m_chipTempMax, m_vrTemp);
+        m_pid->Compute();
 
+        switch (temp_control_mode) {
             case 1:
+                // classic automatic fan control
                 m_fanPerc = board->automaticFanSpeed(m_chipTempMax);
                 board->setFanSpeed(m_fanPerc / 100.0f);
                 break;
             case 2:
-                pid_input = std::max(m_chipTempMax, m_vrTemp);
-                m_pid->Compute();
-                m_fanPerc = (uint16_t) pid_output;
+                // pid
+                m_fanPerc = pid_output;
                 board->setFanSpeed(m_fanPerc / 100.0f);
-                ESP_LOGE(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
+                //ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
+                //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:
                 ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual.", temp_control_mode);
                 [[fallthrough]];
             case 0:
+                // manual
                 m_fanPerc = (float) Config::getFanSpeed();
                 board->setFanSpeed(m_fanPerc / 100.0f);
                 break;

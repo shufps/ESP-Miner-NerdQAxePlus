@@ -101,6 +101,10 @@ void PID::SetTarget(float value) {
     *mySetpoint = value;
 }
 
+float PID::GetTarget() {
+    return *mySetpoint;
+}
+
 void PID::SetTunings(float Kp, float Ki, float Kd)
 {
     SetTunings(Kp, Ki, Kd, pOn);
