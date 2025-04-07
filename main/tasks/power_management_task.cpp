@@ -91,7 +91,7 @@ void PowerManagementTask::checkAsicFrequencyChanged() {
 }
 
 void PowerManagementTask::checkPidSettingsChanged() {
-    static PidSettings oldPidSettings = {0};
+    static PidSettings oldPidSettings = {0.0f, 0.0f, 0.0f, 0.0f};
 
     Board* board = SYSTEM_MODULE.getBoard();
     PidSettings *pidSettings = board->getPidSettings();
