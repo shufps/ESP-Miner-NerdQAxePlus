@@ -39,6 +39,7 @@ public:
     float GetTd();
     int GetMode();
     int GetDirection();
+    float GetTarget();
 
 private:
     float dispKp, dispKi, dispKd;
