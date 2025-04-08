@@ -3,38 +3,30 @@
 #include "PID_v1_bc.h"
 #include "esp_timer.h"
 
-class PidTimer {
-public:
-    PidTimer();
+class PidTimer : public PID {
+  public:
+
+    PidTimer(int sampletime, float alpha);
     ~PidTimer();
+
+    void init(float kp, float ki, float kd, int controllerDirection) override;
 
     void start();
     void stop();
 
-    void setTemp(float temp);
+    void setInput(float input) override;
+    float getFilteredInput();
 
-    void setTunings(float p, float i, float d);
-    void setTarget(float target);
-
-    float getTarget() const;
-    float getOutput() const;
-    float getFilteredInput() const;
-
-    float getKp() const;
-    float getKi() const;
-    float getKd() const;
-
-private:
-    static void timerCallbackWrapper(void* arg);
+  private:
+    static void timerCallbackWrapper(void *arg);
     void timerCallback();
 
     float m_input;
-    float m_output;
-    float m_setpoint;
-    float m_filteredTemp;
-    float m_temp;
+    float m_filteredInput;
 
-    PID* m_pid;
+    int m_sampleTime;
+    float m_alpha;
+
     esp_timer_handle_t m_timer;
     bool m_running;
 };

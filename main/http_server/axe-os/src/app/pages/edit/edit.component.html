@@ -193,7 +193,7 @@
                                 <div class="progress-foreground" [style.width.%]="form.controls['fanspeed'].value">
                                 </div>
                             </div>
-                            <small *ngIf="form.controls['fanspeed'].value < 55" style="color: red; margin-left:10px;">Danger: Could Cause
+                            <small *ngIf="form.controls['fanspeed'].value < 40" style="color: red; margin-left:10px;">Danger: Could Cause
                                 Overheating</small>
                             <small *ngIf="form.controls['fanspeed'].value === 100" style="color: #F2A900; margin-left:10px;">S19
                                 Simulator</small>

@@ -4,14 +4,7 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "nvs_config.h"
-
-// we need packed here (for memcmp)
-struct __attribute__((packed)) PidSettings {
-    uint16_t targetTemp;
-    uint16_t p;
-    uint16_t i;
-    uint16_t d;
-};
+#include "../pid/PID_v1_bc.h"
 
 class Board {
   protected:

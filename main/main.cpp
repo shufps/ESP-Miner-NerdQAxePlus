@@ -56,7 +56,6 @@ static void setup_wifi()
     // init and connect to wifi
     wifi_init(wifi_ssid, wifi_pass, hostname);
 
-    free(wifi_ssid);
     free(wifi_pass);
     free(hostname);
 
@@ -69,6 +68,7 @@ static void setup_wifi()
     if (result_bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to SSID: %s", wifi_ssid);
         SYSTEM_MODULE.setWifiStatus("Connected!");
+        free(wifi_ssid);
         return;
     }
 
@@ -121,6 +121,23 @@ void *psram_calloc(size_t num, size_t size) {
 void free_psram(void *ptr) {
     heap_caps_free(ptr);
 }
+
+#if 0
+const UBaseType_t max_tasks = 30;
+TaskStatus_t task_list[max_tasks];
+
+void monitor_all_task_watermarks() {
+    UBaseType_t count = uxTaskGetSystemState(task_list, max_tasks, NULL);
+
+    for (int i = 0; i < count; ++i) {
+        ESP_LOGW("TASK_MON", "Task '%s': watermark = %lu words",
+            task_list[i].pcTaskName,
+            task_list[i].usStackHighWaterMark);
+
+    }
+}
+#endif
+
 
 extern "C" void app_main(void)
 {
@@ -219,9 +236,7 @@ extern "C" void app_main(void)
         if (free_internal_heap < 10000) {
             ESP_LOGW(TAG, "*** WARNING *** Free internal heap: %d bytes", free_internal_heap);
         }
-
-        //vTaskList(taskList);
-        //ESP_LOGI(TAG, "%s", taskList);
+        //monitor_all_task_watermarks();
     }
 }
 

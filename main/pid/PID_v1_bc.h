@@ -3,35 +3,47 @@
 
 #include <stdint.h>
 
-#define LIBRARY_VERSION 1.2.6
+#define LIBRARY_VERSION	1.2.6
 
-#define AUTOMATIC   1
-#define MANUAL      0
+#define AUTOMATIC	1
+#define MANUAL	    0
 #define DIRECT      0
 #define REVERSE     1
 #define P_ON_M      0
 #define P_ON_E      1
 
-class PID {
+// we need packed here (for memcmp)
+struct __attribute__((packed)) PidSettings {
+    uint16_t targetTemp;
+    uint16_t p;
+    uint16_t i;
+    uint16_t d;
+};
+
+
+class PID
+{
 public:
-    PID(float* input, float* output, float* setpoint, float kp, float ki, float kd, int pOn, int direction);
-    PID(float* input, float* output, float* setpoint, float kp, float ki, float kd, int direction);
-    PID(float* input, float* output, float* setpoint, int direction);
+    PID();
 
-    bool compute();
+    virtual void init(float kp, float ki, float kd, int controllerDirection);
+
     void setMode(int mode);
-    void setOutputLimits(float min, float max);
+    bool compute();
+    void setOutputLimits(float, float);
 
-    void setTunings(float kp, float ki, float kd);
-    void setTunings(float kp, float ki, float kd, int pOn);
+    void setTunings(float, float, float);
+    void setTunings(float, float, float, int);
     void setTarget(float value);
-    void setControllerDirection(int direction);
-    void setSampleTime(int newSampleTime);
+    void setControllerDirection(int);
+    void setSampleTime(int);
+
+    virtual void setInput(float input);
+    float getOutput();
 
     void initialize();
     float m_outputSum;
 
-    // Getters
     float getKp();
     float getKi();
     float getTi();
@@ -48,11 +60,10 @@ private:
     int m_pOn;
     bool m_pOnE;
 
-    float* m_input;
-    float* m_output;
-    float* m_setpoint;
+    float m_input;
+    float m_output;
+    float m_setpoint;
 
-    int64_t m_lastTime;
     int64_t m_sampleTime;
     float m_outMin, m_outMax;
     float m_lastInput;

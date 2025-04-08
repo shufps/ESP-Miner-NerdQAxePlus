@@ -99,8 +99,12 @@ void PowerManagementTask::checkPidSettingsChanged() {
     // we can use memcmp because we have a packed struct
     if (memcmp(pidSettings, &oldPidSettings, sizeof(PidSettings)) != 0) {
         ESP_LOGI(TAG, "PID settings change detected");
-        m_pidTimer->setTunings((float) pidSettings->p / 100.0f, (float) pidSettings->i / 100.0f, (float) pidSettings->d / 100.0f);
-        m_pidTimer->setTarget((float) pidSettings->targetTemp);
+
+        float pidP = (float) pidSettings->p / 100.0f;
+        float pidI = (float) pidSettings->i / 100.0f;
+        float pidD = (float) pidSettings->d / 100.0f;
+
+        m_pidTimer->setTunings(pidP, pidI, pidD);
         ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pidTimer->getTarget(), m_pidTimer->getKp(), m_pidTimer->getKi(), m_pidTimer->getKd());
         oldPidSettings = *pidSettings;
     }
@@ -113,12 +117,16 @@ void PowerManagementTask::task()
     PidSettings *pidSettings = board->getPidSettings();
 
     // create pid timer
-    m_pidTimer = new PidTimer();
+    m_pidTimer = new PidTimer(100, 0.05f);
 
-    // load the settings
-    checkPidSettingsChanged();
+    float pidP = (float) pidSettings->p / 100.0f;
+    float pidI = (float) pidSettings->i / 100.0f;
+    float pidD = (float) pidSettings->d / 100.0f;
 
-    // start the timer
+    m_pidTimer->setTarget((float) pidSettings->targetTemp);
+    m_pidTimer->init(pidP, pidI, pidD, REVERSE);
+    m_pidTimer->setOutputLimits(35, 100);
+    m_pidTimer->setMode(AUTOMATIC);
     m_pidTimer->start();
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
@@ -130,6 +138,8 @@ void PowerManagementTask::task()
 
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
         uint16_t temp_control_mode = Config::getTempControlMode();
+
+        m_pidTimer->setTarget((float) pidSettings->targetTemp);
 
         // overwrite previously allowed 0 value to disable
         // over-temp shutdown
@@ -201,7 +211,7 @@ void PowerManagementTask::task()
         influx_task_set_temperature(m_chipTempMax, m_vrTemp);
 
         // set temperature in pid
-        m_pidTimer->setTemp(std::max(m_chipTempMax, m_vrTemp));
+        m_pidTimer->setInput(std::max(m_chipTempMax, m_vrTemp));
 
         float vr_maxTemp = asic_overheat_temp;
         if(board->getVrMaxTemp()) {
@@ -228,7 +238,7 @@ void PowerManagementTask::task()
                 // round instead of truc
                 m_fanPerc = roundf(m_pidTimer->getOutput());
                 board->setFanSpeed(m_fanPerc / 100.0f);
-                ESP_LOGI(TAG, "PID: Temp: %.4f°C, SetPoint: %.1f°C, Output: %.1f%%", m_pidTimer->getFilteredInput(), m_pidTimer->getTarget(), m_pidTimer->getOutput());
+                //ESP_LOGI(TAG, "PID: Temp: %.4f°C, SetPoint: %.1f°C, Output: %.1f%%", m_pidTimer->getFilteredInput(), m_pidTimer->getTarget(), m_pidTimer->getOutput());
                 //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:
