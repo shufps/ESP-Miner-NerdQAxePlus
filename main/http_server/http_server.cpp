@@ -750,7 +750,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
 
     PidSettings *pid = board->getPidSettings();
-    doc["pidTargetTemp"]      = pid->targetTemp;
+    doc["pidTargetTemp"]      = board->isPIDAvailable() ? pid->targetTemp : -1;
     doc["pidP"]               = (float) pid->p / 100.0f;
     doc["pidI"]               = (float) pid->i / 100.0f;
     doc["pidD"]               = (float) pid->d / 100.0f;

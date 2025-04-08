@@ -99,9 +99,9 @@ void PowerManagementTask::checkPidSettingsChanged() {
     // we can use memcmp because we have a packed struct
     if (memcmp(pidSettings, &oldPidSettings, sizeof(PidSettings)) != 0) {
         ESP_LOGI(TAG, "PID settings change detected");
-        m_pid->SetTunings((float) pidSettings->p / 100.0f, (float) pidSettings->i / 100.0f, (float) pidSettings->d / 100.0f);
-        m_pid->SetTarget((float) pidSettings->targetTemp);
-        ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pid->GetTarget(), m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
+        m_pidTimer->setTunings((float) pidSettings->p / 100.0f, (float) pidSettings->i / 100.0f, (float) pidSettings->d / 100.0f);
+        m_pidTimer->setTarget((float) pidSettings->targetTemp);
+        ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pidTimer->getTarget(), m_pidTimer->getKp(), m_pidTimer->getKi(), m_pidTimer->getKd());
         oldPidSettings = *pidSettings;
     }
 }
@@ -110,20 +110,16 @@ void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
 
-    // pointer to pid settings
     PidSettings *pidSettings = board->getPidSettings();
 
-    float pid_input = 0.0;
-    float pid_output = 0.0;
-    float pid_target = (float) pidSettings->targetTemp;
+    // create pid timer
+    m_pidTimer = new PidTimer();
 
+    // load the settings
+    checkPidSettingsChanged();
 
-    m_pid = new PID(&pid_input, &pid_output, &pid_target, pidSettings->p, pidSettings->i, pidSettings->d, P_ON_E, DIRECT);
-    m_pid->SetSampleTime(POLL_RATE);
-    m_pid->SetOutputLimits(35, 100);
-    m_pid->SetMode(AUTOMATIC);
-    m_pid->SetControllerDirection(REVERSE);
-    m_pid->Initialize();
+    // start the timer
+    m_pidTimer->start();
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
@@ -204,6 +200,9 @@ void PowerManagementTask::task()
 
         influx_task_set_temperature(m_chipTempMax, m_vrTemp);
 
+        // set temperature in pid
+        m_pidTimer->setTemp(std::max(m_chipTempMax, m_vrTemp));
+
         float vr_maxTemp = asic_overheat_temp;
         if(board->getVrMaxTemp()) {
             vr_maxTemp = board->getVrMaxTemp();
@@ -218,11 +217,6 @@ void PowerManagementTask::task()
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
-        // we let the PID always calculate for "bumpless transfer"
-        // when switching modes
-        pid_input = std::max(m_chipTempMax, m_vrTemp);
-        m_pid->Compute();
-
         switch (temp_control_mode) {
             case 1:
                 // classic automatic fan control
@@ -231,9 +225,10 @@ void PowerManagementTask::task()
                 break;
             case 2:
                 // pid
-                m_fanPerc = pid_output;
+                // round instead of truc
+                m_fanPerc = roundf(m_pidTimer->getOutput());
                 board->setFanSpeed(m_fanPerc / 100.0f);
-                //ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
+                ESP_LOGI(TAG, "PID: Temp: %.4f°C, SetPoint: %.1f°C, Output: %.1f%%", m_pidTimer->getFilteredInput(), m_pidTimer->getTarget(), m_pidTimer->getOutput());
                 //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:

@@ -24,6 +24,7 @@ SRCS
     "boards/drivers/i2c_master.cpp"
     "history.cpp"
     "./pid/PID_v1_bc.cpp"
+    "./pid/pid_timer.cpp"
 
     "./http_server/http_server.cpp"
     "./self_test/self_test.cpp"

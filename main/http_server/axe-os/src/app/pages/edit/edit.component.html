@@ -177,7 +177,7 @@
                         <nb-select fullWidth formControlName="autofanspeed">
                             <nb-option [value]="0">Manual</nb-option>
                             <nb-option [value]="1">Classic AFC</nb-option>
-                            <nb-option [value]="2">Experimental PID</nb-option>
+                            <nb-option *ngIf="form.controls['pidTargetTemp'].value != -1" [value]="2">Experimental PID</nb-option>
                         </nb-select>
                     </div>
                 </div>
@@ -202,7 +202,7 @@
                 </div>
 
                 <!-- PID Fan Control Settings -->
-                <div *ngIf="form.controls['autofanspeed'].value === 2">
+                <div *ngIf="form.controls['autofanspeed'].value === 2 && form.controls['pidTargetTemp'].value != -1">
                     <div class="form-row">
                         <label class="form-label">Target Temp (°C):</label>
                         <div class="form-control-wrapper">

@@ -2,7 +2,7 @@
 
 #include <pthread.h>
 #include "boards/board.h"
-#include "pid/PID_v1_bc.h"
+#include "pid/pid_timer.h"
 
 class PowerManagementTask {
   protected:
@@ -14,7 +14,8 @@ class PowerManagementTask {
     float m_voltage;
     float m_power;
     float m_current;
-    PID *m_pid;
+
+    PidTimer *m_pidTimer;
 
     void requestChipTemps();
     void checkCoreVoltageChanged();

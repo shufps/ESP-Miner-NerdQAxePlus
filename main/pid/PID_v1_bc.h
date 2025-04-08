@@ -3,60 +3,60 @@
 
 #include <stdint.h>
 
-#define LIBRARY_VERSION	1.2.6
+#define LIBRARY_VERSION 1.2.6
 
-#define AUTOMATIC	1
-#define MANUAL	    0
+#define AUTOMATIC   1
+#define MANUAL      0
 #define DIRECT      0
 #define REVERSE     1
 #define P_ON_M      0
 #define P_ON_E      1
 
-class PID
-{
+class PID {
 public:
-    PID(float*, float*, float*, float, float, float, int, int);
-    PID(float*, float*, float*, float, float, float, int);
+    PID(float* input, float* output, float* setpoint, float kp, float ki, float kd, int pOn, int direction);
+    PID(float* input, float* output, float* setpoint, float kp, float ki, float kd, int direction);
+    PID(float* input, float* output, float* setpoint, int direction);
 
-    void SetMode(int Mode);
-    bool Compute();
-    void SetOutputLimits(float, float);
+    bool compute();
+    void setMode(int mode);
+    void setOutputLimits(float min, float max);
 
-    void SetTunings(float, float, float);
-    void SetTunings(float, float, float, int);
-    void SetTarget(float value);
-    void SetControllerDirection(int);
-    void SetSampleTime(int);
+    void setTunings(float kp, float ki, float kd);
+    void setTunings(float kp, float ki, float kd, int pOn);
+    void setTarget(float value);
+    void setControllerDirection(int direction);
+    void setSampleTime(int newSampleTime);
 
-    void Initialize();       // bumpless transfer
-    float outputSum;        // allow user to inspect/influence integral state
+    void initialize();
+    float m_outputSum;
 
-    // Display functions
-    float GetKp();
-    float GetKi();
-    float GetTi();
-    float GetKd();
-    float GetTd();
-    int GetMode();
-    int GetDirection();
-    float GetTarget();
+    // Getters
+    float getKp();
+    float getKi();
+    float getTi();
+    float getKd();
+    float getTd();
+    int getMode();
+    int getDirection();
+    float getTarget();
 
 private:
-    float dispKp, dispKi, dispKd;
-    float kp, ki, kd;
-    int controllerDirection;
-    int pOn;
-    bool pOnE;
+    float m_dispKp, m_dispKi, m_dispKd;
+    float m_kp, m_ki, m_kd;
+    int m_controllerDirection;
+    int m_pOn;
+    bool m_pOnE;
 
-    float *myInput;
-    float *myOutput;
-    float *mySetpoint;
+    float* m_input;
+    float* m_output;
+    float* m_setpoint;
 
-    int64_t lastTime;
-    int64_t SampleTime;
-    float outMin, outMax;
-    float lastInput;
-    bool inAuto;
+    int64_t m_lastTime;
+    int64_t m_sampleTime;
+    float m_outMin, m_outMax;
+    float m_lastInput;
+    bool m_inAuto;
 };
 
 #endif // _ESP_PID_V1_BC_H_
