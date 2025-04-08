@@ -16,6 +16,7 @@ class Board {
     int m_asicCount;
     int m_chipsDetected = 0;
     int m_numTempSensors = 0;
+    float *m_chipTemps;
 
     PidSettings m_pidSettings;
 
@@ -64,7 +65,7 @@ class Board {
   public:
     Board();
 
-    virtual bool initBoard() = 0;
+    virtual bool initBoard();
     virtual bool initAsics() = 0;
 
     void loadSettings();
@@ -96,6 +97,9 @@ class Board {
     virtual void requestBuckTelemtry() = 0;
 
     virtual float automaticFanSpeed(float temp);
+
+    void setChipTemp(int nr, float temp);
+    float getMaxChipTemp();
 
     virtual void shutdown() = 0;
 

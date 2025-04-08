@@ -95,6 +95,8 @@ uint8_t NerdAxe::ds4432_tps40305_bitaxe_voltage_to_reg(float vout)
 
 bool NerdAxe::initBoard()
 {
+    Board::initBoard();
+
     ADC_init();
     SERIAL_init();
 

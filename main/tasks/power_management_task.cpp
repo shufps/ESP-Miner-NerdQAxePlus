@@ -117,7 +117,7 @@ void PowerManagementTask::task()
     PidSettings *pidSettings = board->getPidSettings();
 
     // create pid timer
-    m_pidTimer = new PidTimer(100, 0.05f);
+    m_pidTimer = new PidTimer(250, 0.4f);
 
     float pidP = (float) pidSettings->p / 100.0f;
     float pidI = (float) pidSettings->i / 100.0f;
@@ -203,7 +203,7 @@ void PowerManagementTask::task()
         //Get the readed MaxChipTemp of all chained chips after
         //calling requestChipTemp()
         //IMPORTANT: this value only makes sense with BM1368 ASIC, with other Asics will remain at 0
-        float intChipTempMax = asics ? asics->getMaxChipTemp() : 0.0f;
+        float intChipTempMax = board->getMaxChipTemp();
 
         // Uses the worst case between board temp sensor or Asic temp read command
         m_chipTempMax = std::max(tmp1075Max, intChipTempMax);
@@ -238,8 +238,8 @@ void PowerManagementTask::task()
                 // round instead of truc
                 m_fanPerc = roundf(m_pidTimer->getOutput());
                 board->setFanSpeed(m_fanPerc / 100.0f);
-                //ESP_LOGI(TAG, "PID: Temp: %.4f°C, SetPoint: %.1f°C, Output: %.1f%%", m_pidTimer->getFilteredInput(), m_pidTimer->getTarget(), m_pidTimer->getOutput());
-                //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
+                //ESP_LOGW(TAG, "PID: Temp: %.4f°C, SetPoint: %.1f°C, Output: %.1f%%", m_pidTimer->getFilteredInput(), m_pidTimer->getTarget(), m_pidTimer->getOutput());
+                //ESP_LOGW(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:
                 ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual.", temp_control_mode);

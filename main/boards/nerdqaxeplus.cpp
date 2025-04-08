@@ -68,6 +68,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
 
 bool NerdQaxePlus::initBoard()
 {
+    Board::initBoard();
+
     SERIAL_init();
 
     // Init I2C

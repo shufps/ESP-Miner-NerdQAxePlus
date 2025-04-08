@@ -38,6 +38,26 @@ void Board::loadSettings()
     ESP_LOGI(TAG, "fan speed: %d%%", (int) m_fanPerc);
 }
 
+bool Board::initBoard() {
+    m_chipTemps = new float[m_asicCount]();
+    return true;
+}
+
+void Board::setChipTemp(int nr, float temp) {
+    if (nr < 0 || nr >= m_asicCount) {
+        return;
+    }
+    m_chipTemps[nr] = temp;
+}
+
+float Board::getMaxChipTemp() {
+    float maxTemp = 0.0f;
+    for (int i=0;i<m_asicCount;i++) {
+        maxTemp = std::max(maxTemp, m_chipTemps[i]);
+    }
+    return maxTemp;
+}
+
 const char *Board::getDeviceModel()
 {
     return m_deviceModel;
