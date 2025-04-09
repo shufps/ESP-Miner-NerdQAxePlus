@@ -4,6 +4,8 @@
 #include "boards/board.h"
 #include "pid/pid_timer.h"
 
+//#define PIDTIMER
+
 class PowerManagementTask {
   protected:
     pthread_mutex_t m_mutex;
@@ -14,8 +16,11 @@ class PowerManagementTask {
     float m_voltage;
     float m_power;
     float m_current;
-
-    PidTimer *m_pidTimer;
+#ifdef PIDTIMER
+    PidTimer *m_pid;
+#else
+    PID *m_pid;
+#endif
 
     void requestChipTemps();
     void checkCoreVoltageChanged();
