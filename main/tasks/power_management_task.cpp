@@ -122,12 +122,18 @@ void PowerManagementTask::task()
 #else
     m_pid = new PID();
 #endif
+
     float pidP = (float) pidSettings->p / 100.0f;
     float pidI = (float) pidSettings->i / 100.0f;
     float pidD = (float) pidSettings->d / 100.0f;
 
     m_pid->setTarget((float) pidSettings->targetTemp);
     m_pid->init(pidP, pidI, pidD, REVERSE);
+
+#ifndef PIDTIMER
+    m_pid->setSampleTime(POLL_RATE);
+#endif
+
     m_pid->setOutputLimits(35, 100);
     m_pid->setMode(AUTOMATIC);
 #ifdef PIDTIMER
