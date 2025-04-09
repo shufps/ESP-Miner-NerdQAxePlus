@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <pthread.h>
 
 typedef struct
@@ -32,24 +28,31 @@ typedef struct
     float pwr_pout;
 } Stats;
 
-typedef struct
-{
-    char *host;
-    int port;
-    char *token;
-    char *org;
-    char *bucket;
-    char *prefix;
-    Stats stats;
-    pthread_mutex_t lock;
-} Influx;
+class Influx {
+  protected:
+    char *m_host;
+    int m_port;
+    char *m_token;
+    char *m_org;
+    char *m_bucket;
+    char *m_prefix;
 
-Influx *influx_init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix);
-void influx_write(Influx *influx);
-bool load_last_values(Influx *influx);
-bool bucket_exists(Influx *influx);
-bool influx_ping(Influx *influx);
+    char m_auth_header[128];
+    char *m_big_buffer;
 
-#ifdef __cplusplus
-}
-#endif
+    bool get_org_id(char *out_org_id, size_t max_len);
+
+  public:
+    // make this beautiful later
+    Stats m_stats;
+    pthread_mutex_t m_lock;
+
+    Influx();
+
+    bool init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix);
+    void write();
+    bool load_last_values();
+    bool bucket_exists();
+    bool create_bucket();
+    bool ping();
+};

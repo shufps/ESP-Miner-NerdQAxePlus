@@ -16,13 +16,22 @@
 
 static const char *TAG = "InfluxDB";
 
-static char auth_header[128];
-static char big_buffer[4096];
+#ifdef CONFIG_SPIRAM
+#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
+#else
+#define ALLOC(s) malloc(s)
+#endif
 
-bool influx_ping(Influx *influx)
+#define m_big_buffer_SIZE 32768
+
+Influx::Influx() {
+    // nop
+}
+
+bool Influx::ping()
 {
     char url[256];
-    snprintf(url, sizeof(url), "%s:%d/ping", influx->host, influx->port);
+    snprintf(url, sizeof(url), "%s:%d/ping", m_host, m_port);
     ESP_LOGI(TAG, "URL: %s", url);
 
     esp_http_client_config_t config = {
@@ -38,7 +47,7 @@ bool influx_ping(Influx *influx)
         esp_http_client_cleanup(client);
 
         if (status_code == 204) { // 204 No Content is the expected status code for /ping
-            ESP_LOGI(TAG, "Successfully connected to InfluxDB at %s:%d", influx->host, influx->port);
+            ESP_LOGI(TAG, "Successfully connected to InfluxDB at %s:%d", m_host, m_port);
             return true;
         } else {
             ESP_LOGE(TAG, "InfluxDB ping failed with status code: %d", status_code);
@@ -51,10 +60,125 @@ bool influx_ping(Influx *influx)
     return false;
 }
 
-bool bucket_exists(Influx *influx)
+bool Influx::get_org_id(char *out_org_id, size_t max_len) {
+    char url[256];
+    snprintf(url, sizeof(url), "%s:%d/api/v2/orgs?org=%s", m_host, m_port, m_org);
+    ESP_LOGI(TAG, "Looking up orgID via: %s", url);
+
+    esp_http_client_config_t config = {
+        .url = url,
+        .method = HTTP_METHOD_GET,
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_set_header(client, "Authorization", m_auth_header);
+    esp_http_client_set_header(client, "Accept", "application/json");
+
+    int len = 0;
+    esp_err_t err = esp_http_client_open(client, 0);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open connection: %s", esp_err_to_name(err));
+        esp_http_client_cleanup(client);
+        return false;
+    }
+
+    len = esp_http_client_fetch_headers(client);
+    if (len < 0) {
+        ESP_LOGE(TAG, "Failed to fetch headers");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+    }
+
+    len = esp_http_client_read_response(client, m_big_buffer, m_big_buffer_SIZE - 1);
+    if (len <= 0) {
+        ESP_LOGE(TAG, "Failed to read response");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+    }
+    m_big_buffer[len] = '\0';
+
+    ESP_LOGI(TAG, "Org lookup response: %s", m_big_buffer);
+
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+    DeserializationError json_err = deserializeJson(doc, m_big_buffer);
+    if (json_err) {
+        ESP_LOGE(TAG, "Failed to parse JSON: %s", json_err.c_str());
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+    }
+
+    const char *id = doc["orgs"][0]["id"];
+    if (!id) {
+        ESP_LOGE(TAG, "Failed to extract org ID from JSON");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+    }
+
+    strncpy(out_org_id, id, max_len - 1);
+    out_org_id[max_len - 1] = '\0';
+    ESP_LOGI(TAG, "Resolved orgID: %s", out_org_id);
+
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    return true;
+}
+
+
+
+bool Influx::create_bucket() {
+    char url[256];
+    snprintf(url, sizeof(url), "%s:%d/api/v2/buckets", m_host, m_port);
+
+    ESP_LOGI(TAG, "Creating bucket at URL: %s", url);
+
+    // Prepare JSON body
+    char body[512];
+    char org_id[64];
+    if (!get_org_id(org_id, sizeof(org_id))) {
+        ESP_LOGE(TAG, "Could not resolve org ID");
+        return false;
+    }
+
+    snprintf(body, sizeof(body),
+            "{\"orgID\": \"%s\", \"name\": \"%s\", \"description\": \"Auto-created\", \"retentionRules\": [{\"type\": \"expire\", \"everySeconds\": 2592000}]}",
+            org_id, m_bucket);
+
+    esp_http_client_config_t config = {
+        .url = url,
+        .method = HTTP_METHOD_POST,
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+
+    esp_http_client_set_header(client, "Authorization", m_auth_header);
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_post_field(client, body, strlen(body));
+
+    esp_err_t err = esp_http_client_perform(client);
+    if (err == ESP_OK) {
+        int status_code = esp_http_client_get_status_code(client);
+        if (status_code == 201) {
+            ESP_LOGI(TAG, "Bucket created successfully.");
+            esp_http_client_cleanup(client);
+            return true;
+        } else {
+            ESP_LOGE(TAG, "Failed to create bucket, status: %d", status_code);
+        }
+    } else {
+        ESP_LOGE(TAG, "HTTP POST to create bucket failed: %s", esp_err_to_name(err));
+    }
+
+    esp_http_client_cleanup(client);
+    return false;
+}
+
+bool Influx::bucket_exists()
 {
     char url[256];
-    snprintf(url, sizeof(url), "%s:%d/api/v2/buckets?org=%s&name=%s", influx->host, influx->port, influx->org, influx->bucket);
+    snprintf(url, sizeof(url), "%s:%d/api/v2/buckets?org=%s&name=%s", m_host, m_port, m_org, m_bucket);
     ESP_LOGI(TAG, "URL: %s", url);
 
     int content_length = 0;
@@ -65,7 +189,7 @@ bool bucket_exists(Influx *influx)
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
     // Set headers
-    esp_http_client_set_header(client, "Authorization", auth_header);
+    esp_http_client_set_header(client, "Authorization", m_auth_header);
 
     // Open connection
     esp_err_t err = esp_http_client_open(client, 0);
@@ -85,18 +209,18 @@ bool bucket_exists(Influx *influx)
     }
 
     // Read response
-    int data_read = esp_http_client_read_response(client, big_buffer, sizeof(big_buffer) - 1);
+    int data_read = esp_http_client_read_response(client, m_big_buffer, m_big_buffer_SIZE - 1);
     if (data_read >= 0) {
-        big_buffer[data_read] = 0; // Null-terminate the response
+        m_big_buffer[data_read] = 0; // Null-terminate the response
         ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d", esp_http_client_get_status_code(client), content_length);
-        ESP_LOGD(TAG, "Response: %s", big_buffer);
+        ESP_LOGD(TAG, "Response: %s", m_big_buffer);
 
         if (esp_http_client_get_status_code(client) == 200) {
             PSRAMAllocator allocator;
             JsonDocument doc(&allocator);
 
             // Deserialize JSON
-            DeserializationError error = deserializeJson(doc, big_buffer);
+            DeserializationError error = deserializeJson(doc, m_big_buffer);
             if (error) {
                 ESP_LOGE(TAG, "Failed to parse JSON response: %s", error.c_str());
                 esp_http_client_close(client);
@@ -117,7 +241,7 @@ bool bucket_exists(Influx *influx)
                 ESP_LOGW(TAG, "Bucket not found");
             }
         } else if (esp_http_client_get_status_code(client) == 404) {
-            ESP_LOGI(TAG, "Bucket not found");
+            ESP_LOGI(TAG, "Bucket list request error");
         } else {
             ESP_LOGE(TAG, "HTTP GET failed with status code: %d", esp_http_client_get_status_code(client));
         }
@@ -131,10 +255,12 @@ bool bucket_exists(Influx *influx)
     return false;
 }
 
-bool load_last_values(Influx *influx)
+
+
+bool Influx::load_last_values()
 {
     char url[256];
-    snprintf(url, sizeof(url), "%s:%d/api/v2/query?org=%s", influx->host, influx->port, influx->org);
+    snprintf(url, sizeof(url), "%s:%d/api/v2/query?org=%s", m_host, m_port, m_org);
     ESP_LOGI(TAG, "URL: %s", url);
 
     // Construct the JSON object with the Flux query in one step
@@ -142,7 +268,7 @@ bool load_last_values(Influx *influx)
     snprintf(
         query_json, sizeof(query_json),
         "{\"query\":\"from(bucket:\\\"%s\\\") |> range(start:-1y) |> filter(fn:(r) => r._measurement == \\\"%s\\\") |> last()\"}",
-        influx->bucket, influx->prefix);
+        m_bucket, m_prefix);
 
     ESP_LOGI(TAG, "Query JSON: %s", query_json);
 
@@ -150,7 +276,7 @@ bool load_last_values(Influx *influx)
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
     // Set headers
-    esp_http_client_set_header(client, "Authorization", auth_header);
+    esp_http_client_set_header(client, "Authorization", m_auth_header);
     esp_http_client_set_header(client, "Content-Type", "application/json"); // Set Content-Type to JSON
     esp_http_client_set_header(client, "Accept", "text/csv");
 
@@ -182,18 +308,18 @@ bool load_last_values(Influx *influx)
     ESP_LOGI(TAG, "Expected content length: %d", content_length);
 
     // Read response
-    int data_read = esp_http_client_read_response(client, big_buffer, sizeof(big_buffer) - 1);
+    int data_read = esp_http_client_read_response(client, m_big_buffer, m_big_buffer_SIZE - 1);
     if (data_read > 0) {
-        big_buffer[data_read] = 0; // Null-terminate the response
+        m_big_buffer[data_read] = 0; // Null-terminate the response
         ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d", esp_http_client_get_status_code(client), content_length);
-        // ESP_LOGI(TAG, "Response: %s", big_buffer);
+        // ESP_LOGI(TAG, "Response: %s", m_big_buffer);
 
         if (esp_http_client_get_status_code(client) == 200) {
             // Parse CSV response with CRLF line endings
             char *saveptr1, *saveptr2;
 
             // the first strtok_r skips the CSV header
-            char *line = strtok_r(big_buffer, "\r\n", &saveptr1); // Handle CRLF line endings
+            char *line = strtok_r(m_big_buffer, "\r\n", &saveptr1); // Handle CRLF line endings
 
             // now parse the actual data
             while ((line = strtok_r(NULL, "\r\n", &saveptr1)) != NULL) {
@@ -230,11 +356,11 @@ bool load_last_values(Influx *influx)
 
                 // Assign the parsed values to the appropriate fields
                 if (strcmp(field, "total_uptime") == 0)
-                    influx->stats.total_uptime = (int) value;
+                    m_stats.total_uptime = (int) value;
                 else if (strcmp(field, "total_best_difficulty") == 0)
-                    influx->stats.total_best_difficulty = value;
+                    m_stats.total_best_difficulty = value;
                 else if (strcmp(field, "total_blocks_found") == 0)
-                    influx->stats.total_blocks_found = (int) value;
+                    m_stats.total_blocks_found = (int) value;
             }
             ESP_LOGI(TAG, "Loaded last values from InfluxDB");
             esp_http_client_close(client);
@@ -255,29 +381,29 @@ bool load_last_values(Influx *influx)
     return false;
 }
 
-void influx_write(Influx *influx)
+void Influx::write()
 {
     char url[256];
 
-    snprintf(big_buffer, sizeof(big_buffer),
+    snprintf(m_big_buffer, m_big_buffer_SIZE,
              "%s temperature=%f,temperature2=%f,"
              "hashing_speed=%f,invalid_shares=%d,valid_shares=%d,uptime=%d,"
              "best_difficulty=%f,total_best_difficulty=%f,pool_errors=%d,"
              "accepted=%d,not_accepted=%d,total_uptime=%d,blocks_found=%d,"
              "pwr_vin=%f,pwr_iin=%f,pwr_pin=%f,pwr_vout=%f,pwr_iout=%f,pwr_pout=%f,"
              "total_blocks_found=%d,duplicate_hashes=%d",
-             influx->prefix, influx->stats.temp, influx->stats.temp2, influx->stats.hashing_speed, influx->stats.invalid_shares,
-             influx->stats.valid_shares, influx->stats.uptime, influx->stats.best_difficulty, influx->stats.total_best_difficulty,
-             influx->stats.pool_errors, influx->stats.accepted, influx->stats.not_accepted, influx->stats.total_uptime,
-             influx->stats.blocks_found, influx->stats.pwr_vin, influx->stats.pwr_iin, influx->stats.pwr_pin,
-             influx->stats.pwr_vout, influx->stats.pwr_iout, influx->stats.pwr_pout, influx->stats.total_blocks_found,
-             influx->stats.duplicate_hashes);
+             m_prefix, m_stats.temp, m_stats.temp2, m_stats.hashing_speed, m_stats.invalid_shares,
+             m_stats.valid_shares, m_stats.uptime, m_stats.best_difficulty, m_stats.total_best_difficulty,
+             m_stats.pool_errors, m_stats.accepted, m_stats.not_accepted, m_stats.total_uptime,
+             m_stats.blocks_found, m_stats.pwr_vin, m_stats.pwr_iin, m_stats.pwr_pin,
+             m_stats.pwr_vout, m_stats.pwr_iout, m_stats.pwr_pout, m_stats.total_blocks_found,
+             m_stats.duplicate_hashes);
 
-    snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", influx->host, influx->port, influx->bucket,
-             influx->org);
+    snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", m_host, m_port, m_bucket,
+             m_org);
 
     ESP_LOGI(TAG, "URL: %s", url);
-    ESP_LOGI(TAG, "POST: %s", big_buffer);
+    ESP_LOGI(TAG, "POST: %s", m_big_buffer);
 
     esp_http_client_config_t config = {
         .url = url,
@@ -286,9 +412,9 @@ void influx_write(Influx *influx)
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
-    esp_http_client_set_header(client, "Authorization", auth_header);
+    esp_http_client_set_header(client, "Authorization", m_auth_header);
     esp_http_client_set_header(client, "Content-Type", "text/plain");
-    esp_http_client_set_post_field(client, big_buffer, strlen(big_buffer));
+    esp_http_client_set_post_field(client, m_big_buffer, strlen(m_big_buffer));
 
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK) {
@@ -298,10 +424,10 @@ void influx_write(Influx *influx)
         ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d", status_code, content_length);
 
         if (status_code == 400) {
-            int len = esp_http_client_read(client, big_buffer, sizeof(big_buffer) - 1);
+            int len = esp_http_client_read(client, m_big_buffer, m_big_buffer_SIZE - 1);
             if (len > 0) {
-                big_buffer[len] = 0; // Null-terminate the response
-                ESP_LOGE(TAG, "HTTP POST Error 400 Response: %s", big_buffer);
+                m_big_buffer[len] = 0; // Null-terminate the response
+                ESP_LOGE(TAG, "HTTP POST Error 400 Response: %s", m_big_buffer);
             } else {
                 ESP_LOGE(TAG, "HTTP POST Error 400: No response body");
             }
@@ -313,22 +439,28 @@ void influx_write(Influx *influx)
     esp_http_client_cleanup(client);
 }
 
-Influx *influx_init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix)
+bool Influx::init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix)
 {
-    Influx *influxdb = (Influx *) malloc(sizeof(Influx));
+    m_big_buffer = (char*) ALLOC(m_big_buffer_SIZE);
 
-    memset(influxdb, 0, sizeof(Influx));
+    if (!m_big_buffer) {
+        ESP_LOGE(TAG, "error allocating influx message buffer");
+        return false;
+    }
 
-    influxdb->port = port;
-    influxdb->host = strdup(host);
-    influxdb->token = strdup(token);
-    influxdb->bucket = strdup(bucket);
-    influxdb->prefix = strdup(prefix);
-    influxdb->org = strdup(org);
-    influxdb->lock = PTHREAD_MUTEX_INITIALIZER;
+    // zero stats
+    memset(&m_stats, 0, sizeof(m_stats));
+
+    m_port = port;
+    m_host = strdup(host);
+    m_token = strdup(token);
+    m_bucket = strdup(bucket);
+    m_prefix = strdup(prefix);
+    m_org = strdup(org);
+    m_lock = PTHREAD_MUTEX_INITIALIZER;
 
     // prepare auth header
-    snprintf(auth_header, sizeof(auth_header), "Token %s", token);
+    snprintf(m_auth_header, sizeof(m_auth_header), "Token %s", token);
 
-    return influxdb;
+    return true;
 }
