@@ -1,168 +1,176 @@
 #include "PID_v1_bc.h"
 #include "esp_timer.h"
 
-PID::PID()
+#define getMillis() (esp_timer_get_time() / 1000ULL)
+
+PID::PID(float* Input, float* Output, float* Setpoint,
+         float Kp, float Ki, float Kd, int POn, int ControllerDirection)
 {
-    m_input = 0.0f;
-    m_setpoint = 0.0;
-    m_output = 0.0f;
-    m_inAuto = false;
-    m_sampleTime = 0;
+    myOutput = Output;
+    myInput = Input;
+    mySetpoint = Setpoint;
+    inAuto = false;
+
+    SetOutputLimits(0, 255);
+    SampleTime = 100;
+
+    SetControllerDirection(ControllerDirection);
+    SetTunings(Kp, Ki, Kd, POn);
+
+    lastTime = getMillis() - SampleTime;
 }
 
-void PID::init(int sampletime, float kp, float ki, float kd, int controllerDirection) {
-    m_sampleTime = sampletime;
-
-    setOutputLimits(0, 255);
-    setControllerDirection(controllerDirection);
-    setTunings(kp, ki, kd, P_ON_E);
-    setSampleTime(m_sampleTime);
+PID::PID(float* Input, float* Output, float* Setpoint,
+         float Kp, float Ki, float Kd, int ControllerDirection)
+    : PID(Input, Output, Setpoint, Kp, Ki, Kd, P_ON_E, ControllerDirection)
+{
 }
 
-bool PID::compute()
+bool PID::Compute()
 {
-    if (!m_inAuto) return false;
+    if (!inAuto) return false;
 
-    float input = m_input;
-    float error = m_setpoint - input;
-    float dInput = input - m_lastInput;
+    unsigned long now = getMillis();
+    unsigned long timeChange = now - lastTime;
 
-    m_outputSum += (m_ki * error);
-
-    if (!m_pOnE)
-        m_outputSum -= m_kp * dInput;
-
-    if (m_outputSum > m_outMax) m_outputSum = m_outMax;
-    else if (m_outputSum < m_outMin) m_outputSum = m_outMin;
-
-    float output;
-    if (m_pOnE)
-        output = m_kp * error;
-    else
-        output = 0;
-
-    output += m_outputSum - m_kd * dInput;
-
-    if (output > m_outMax) {
-        m_outputSum -= output - m_outMax;
-        output = m_outMax;
-    } else if (output < m_outMin) {
-        m_outputSum += m_outMin - output;
-        output = m_outMin;
-    }
-
-    m_output = output;
-
-    m_lastInput = input;
-    return true;
-}
-
-void PID::setTunings(float kp, float ki, float kd, int pOn)
-{
-    if (kp < 0 || ki < 0 || kd < 0) return;
-
-    m_pOn = pOn;
-    m_pOnE = (pOn == P_ON_E);
-
-    m_dispKp = kp;
-    m_dispKi = ki;
-    m_dispKd = kd;
-
-    float sampleTimeInSec = ((float)m_sampleTime) / 1000;
-    m_kp = kp;
-    m_ki = ki * sampleTimeInSec;
-    m_kd = kd / sampleTimeInSec;
-
-    if (m_controllerDirection == REVERSE)
+    // we make sure that we only call it in the correct sample interval
+    if (true /*timeChange >= SampleTime*/)
     {
-        m_kp = -m_kp;
-        m_ki = -m_ki;
-        m_kd = -m_kd;
+        float input = *myInput;
+        float error = *mySetpoint - input;
+        float dInput = input - lastInput;
+
+        outputSum += (ki * error);
+
+        if (!pOnE)
+            outputSum -= kp * dInput;
+
+        if (outputSum > outMax) outputSum = outMax;
+        else if (outputSum < outMin) outputSum = outMin;
+
+        float output;
+        if (pOnE)
+            output = kp * error;
+        else
+            output = 0;
+
+        output += outputSum - kd * dInput;
+
+        if (output > outMax) {
+            outputSum -= output - outMax;
+            output = outMax;
+        } else if (output < outMin) {
+            outputSum += outMin - output;
+            output = outMin;
+        }
+
+        *myOutput = output;
+
+        lastInput = input;
+        lastTime = now;
+        return true;
     }
+    return false;
 }
 
-void PID::setInput(float input) {
-    m_input = input;
-}
-
-float PID::getOutput() {
-    return m_output;
-}
-
-void PID::setTarget(float value) {
-    m_setpoint = value;
-}
-
-float PID::getTarget() {
-    return m_setpoint;
-}
-
-void PID::setTunings(float kp, float ki, float kd)
+void PID::SetTunings(float Kp, float Ki, float Kd, int POn)
 {
-    setTunings(kp, ki, kd, m_pOn);
-}
+    if (Kp < 0 || Ki < 0 || Kd < 0) return;
 
-void PID::setSampleTime(int newSampleTime)
-{
-    if (newSampleTime > 0)
+    pOn = POn;
+    pOnE = (POn == P_ON_E);
+
+    dispKp = Kp;
+    dispKi = Ki;
+    dispKd = Kd;
+
+    float SampleTimeInSec = ((float)SampleTime) / 1000;
+    kp = Kp;
+    ki = Ki * SampleTimeInSec;
+    kd = Kd / SampleTimeInSec;
+
+    if (controllerDirection == REVERSE)
     {
-        float ratio = (float)newSampleTime / (float)m_sampleTime;
-        m_ki *= ratio;
-        m_kd /= ratio;
-        m_sampleTime = newSampleTime;
+        kp = -kp;
+        ki = -ki;
+        kd = -kd;
     }
 }
 
-void PID::setOutputLimits(float min, float max)
-{
-    if (min >= max) return;
-    m_outMin = min;
-    m_outMax = max;
+void PID::SetTarget(float value) {
+    *mySetpoint = value;
+}
 
-    if (m_inAuto)
+float PID::GetTarget() {
+    return *mySetpoint;
+}
+
+void PID::SetTunings(float Kp, float Ki, float Kd)
+{
+    SetTunings(Kp, Ki, Kd, pOn);
+}
+
+void PID::SetSampleTime(int NewSampleTime)
+{
+    if (NewSampleTime > 0)
     {
-        if (m_output > m_outMax) m_output = m_outMax;
-        else if (m_output < m_outMin) m_output = m_outMin;
-
-        if (m_outputSum > m_outMax) m_outputSum = m_outMax;
-        else if (m_outputSum < m_outMin) m_outputSum = m_outMin;
+        float ratio = (float)NewSampleTime / (float)SampleTime;
+        ki *= ratio;
+        kd /= ratio;
+        SampleTime = NewSampleTime;
     }
 }
 
-void PID::setMode(int mode)
+void PID::SetOutputLimits(float Min, float Max)
 {
-    bool newAuto = (mode == AUTOMATIC);
-    if (newAuto && !m_inAuto)
+    if (Min >= Max) return;
+    outMin = Min;
+    outMax = Max;
+
+    if (inAuto)
     {
-        initialize();
+        if (*myOutput > outMax) *myOutput = outMax;
+        else if (*myOutput < outMin) *myOutput = outMin;
+
+        if (outputSum > outMax) outputSum = outMax;
+        else if (outputSum < outMin) outputSum = outMin;
     }
-    m_inAuto = newAuto;
 }
 
-void PID::initialize()
+void PID::SetMode(int Mode)
 {
-    m_outputSum = m_output;
-    m_lastInput = m_input;
-
-    if (m_outputSum > m_outMax) m_outputSum = m_outMax;
-    else if (m_outputSum < m_outMin) m_outputSum = m_outMin;
-}
-
-void PID::setControllerDirection(int direction)
-{
-    if (m_inAuto && direction != m_controllerDirection)
+    bool newAuto = (Mode == AUTOMATIC);
+    if (newAuto && !inAuto)
     {
-        m_kp = -m_kp;
-        m_ki = -m_ki;
-        m_kd = -m_kd;
+        Initialize();
     }
-    m_controllerDirection = direction;
+    inAuto = newAuto;
 }
 
-float PID::getKp() { return m_dispKp; }
-float PID::getKi() { return m_dispKi; }
-float PID::getTi() { return m_dispKp / m_dispKi; }
-float PID::getKd() { return m_dispKd; }
-float PID::getTd() { return m_dispKd / m_dispKp; }
-int PID::getMode() { return m_inAuto ? AUTOMATIC : MANUAL; }
-int PID::getDirection() { return m_controllerDirection; }
+void PID::Initialize()
+{
+    outputSum = *myOutput;
+    lastInput = *myInput;
+
+    if (outputSum > outMax) outputSum = outMax;
+    else if (outputSum < outMin) outputSum = outMin;
+}
+
+void PID::SetControllerDirection(int Direction)
+{
+    if (inAuto && Direction != controllerDirection)
+    {
+        kp = -kp;
+        ki = -ki;
+        kd = -kd;
+    }
+    controllerDirection = Direction;
+}
+
+float PID::GetKp() { return dispKp; }
+float PID::GetKi() { return dispKi; }
+float PID::GetTi() { return dispKp / dispKi; }
+float PID::GetKd() { return dispKd; }
+float PID::GetTd() { return dispKd / dispKp; }
+int PID::GetMode() { return inAuto ? AUTOMATIC : MANUAL; }
+int PID::GetDirection() { return controllerDirection; }

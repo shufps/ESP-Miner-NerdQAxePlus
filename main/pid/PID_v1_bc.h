@@ -24,51 +24,48 @@ struct __attribute__((packed)) PidSettings {
 class PID
 {
 public:
-    PID();
+    PID(float*, float*, float*, float, float, float, int, int);
+    PID(float*, float*, float*, float, float, float, int);
 
-    virtual void init(int sampletime, float kp, float ki, float kd, int controllerDirection);
+    void SetMode(int Mode);
+    bool Compute();
+    void SetOutputLimits(float, float);
 
-    void setMode(int mode);
-    bool compute();
-    void setOutputLimits(float, float);
+    void SetTunings(float, float, float);
+    void SetTunings(float, float, float, int);
+    void SetTarget(float value);
+    void SetControllerDirection(int);
+    void SetSampleTime(int);
 
-    void setTunings(float, float, float);
-    void setTunings(float, float, float, int);
-    void setTarget(float value);
-    void setControllerDirection(int);
-    void setSampleTime(int);
-    int64_t getSampleTime() { return m_sampleTime; }
+    void Initialize();       // bumpless transfer
+    float outputSum;        // allow user to inspect/influence integral state
 
-    virtual void setInput(float input);
-    float getOutput();
-
-    void initialize();
-    float m_outputSum;
-
-    float getKp();
-    float getKi();
-    float getTi();
-    float getKd();
-    float getTd();
-    int getMode();
-    int getDirection();
-    float getTarget();
+    // Display functions
+    float GetKp();
+    float GetKi();
+    float GetTi();
+    float GetKd();
+    float GetTd();
+    int GetMode();
+    int GetDirection();
+    float GetTarget();
 
 private:
-    float m_dispKp, m_dispKi, m_dispKd;
-    float m_kp, m_ki, m_kd;
-    int m_controllerDirection;
-    int m_pOn;
-    bool m_pOnE;
+    float dispKp, dispKi, dispKd;
+    float kp, ki, kd;
+    int controllerDirection;
+    int pOn;
+    bool pOnE;
 
-    float m_input;
-    float m_output;
-    float m_setpoint;
+    float *myInput;
+    float *myOutput;
+    float *mySetpoint;
 
-    int64_t m_sampleTime;
-    float m_outMin, m_outMax;
-    float m_lastInput;
-    bool m_inAuto;
+    int64_t lastTime;
+    int64_t SampleTime;
+    float outMin, outMax;
+    float lastInput;
+    bool inAuto;
 };
 
 #endif // _ESP_PID_V1_BC_H_

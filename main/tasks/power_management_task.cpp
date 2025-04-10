@@ -104,9 +104,9 @@ void PowerManagementTask::checkPidSettingsChanged() {
         float pidI = (float) pidSettings->i / 100.0f;
         float pidD = (float) pidSettings->d / 100.0f;
 
-        m_pid->setTunings(pidP, pidI, pidD);
-        ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pid->getTarget(), m_pid->getKp(), m_pid->getKi(), m_pid->getKd());
-        oldPidSettings = *pidSettings;
+        m_pid->SetTunings(pidP, pidI, pidD);
+        m_pid->SetTarget((float) pidSettings->targetTemp);
+        ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pid->GetTarget(), m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());        oldPidSettings = *pidSettings;
     }
 }
 
@@ -114,33 +114,23 @@ void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
 
+    // pointer to pid settings
     PidSettings *pidSettings = board->getPidSettings();
 
-    // create pid timer
-#ifdef PIDTIMER
-    m_pid = new PidTimer(0.4f);
-#else
-    m_pid = new PID();
-#endif
+    float pid_input = 0.0;
+    float pid_output = 0.0;
+    float pid_target = (float) pidSettings->targetTemp;
 
     float pidP = (float) pidSettings->p / 100.0f;
     float pidI = (float) pidSettings->i / 100.0f;
     float pidD = (float) pidSettings->d / 100.0f;
 
-    m_pid->setTarget((float) pidSettings->targetTemp);
-
-#ifndef PIDTIMER
-    m_pid->init(250, pidP, pidI, pidD, REVERSE);
-#else
-    m_pid->init(POLL_RATE, pidP, pidI, pidD, REVERSE);
-#endif
-
-    m_pid->setOutputLimits(35, 100);
-    m_pid->setMode(AUTOMATIC);
-
-#ifdef PIDTIMER
-    m_pid->start();
-#endif
+    m_pid = new PID(&pid_input, &pid_output, &pid_target, pidP, pidI, pidD, P_ON_E, DIRECT);
+    m_pid->SetSampleTime(POLL_RATE);
+    m_pid->SetOutputLimits(35, 100);
+    m_pid->SetMode(AUTOMATIC);
+    m_pid->SetControllerDirection(REVERSE);
+    m_pid->Initialize();
 
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
@@ -151,8 +141,6 @@ void PowerManagementTask::task()
 
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
         uint16_t temp_control_mode = Config::getTempControlMode();
-
-        m_pid->setTarget((float) pidSettings->targetTemp);
 
         // overwrite previously allowed 0 value to disable
         // over-temp shutdown
@@ -223,12 +211,6 @@ void PowerManagementTask::task()
 
         influx_task_set_temperature(m_chipTempMax, m_vrTemp);
 
-        // set temperature in pid
-        m_pid->setInput(std::max(m_chipTempMax, m_vrTemp));
-#ifndef PIDTIMER
-        m_pid->compute();
-#endif
-
         float vr_maxTemp = asic_overheat_temp;
         if(board->getVrMaxTemp()) {
             vr_maxTemp = board->getVrMaxTemp();
@@ -243,6 +225,11 @@ void PowerManagementTask::task()
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
+        // we let the PID always calculate for "bumpless transfer"
+        // when switching modes
+        pid_input = std::max(m_chipTempMax, m_vrTemp);
+        m_pid->Compute();
+
         switch (temp_control_mode) {
             case 1:
                 // classic automatic fan control
@@ -251,15 +238,10 @@ void PowerManagementTask::task()
                 break;
             case 2:
                 // pid
-                // round instead of truc
-                m_fanPerc = roundf(m_pid->getOutput());
+                m_fanPerc = roundf(pid_output);
                 board->setFanSpeed(m_fanPerc / 100.0f);
-#ifdef PIDTIMER
-                //ESP_LOGW(TAG, "PID: Temp: %.4f°C, SetPoint: %.1f°C, Output: %.1f%%", m_pid->getFilteredInput(), m_pid->getTarget(), m_pid->getOutput());
-#else
-                //ESP_LOGW(TAG, "PID: Temp: %.4f°C, SetPoint: %.1f°C, Output: %.1f%%", m_pid->getInput(), m_pid->getTarget(), m_pid->getOutput());
-#endif
-                //ESP_LOGW(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
+                //ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
+                //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:
                 ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual.", temp_control_mode);
