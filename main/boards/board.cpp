@@ -26,11 +26,36 @@ void Board::loadSettings()
     m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
 
+    m_pidSettings.targetTemp = Config::getPidTargetTemp(m_pidSettings.targetTemp);
+    m_pidSettings.p = Config::getPidP(m_pidSettings.p);
+    m_pidSettings.i = Config::getPidI(m_pidSettings.i);
+    m_pidSettings.d = Config::getPidD(m_pidSettings.d);
+
     ESP_LOGI(TAG, "ASIC Frequency: %dMHz", m_asicFrequency);
     ESP_LOGI(TAG, "ASIC voltage: %dmV", m_asicVoltageMillis);
     ESP_LOGI(TAG, "ASIC job interval: %dms", m_asicJobIntervalMs);
     ESP_LOGI(TAG, "invert fan polarity: %s", m_fanInvertPolarity ? "true" : "false");
     ESP_LOGI(TAG, "fan speed: %d%%", (int) m_fanPerc);
+}
+
+bool Board::initBoard() {
+    m_chipTemps = new float[m_asicCount]();
+    return true;
+}
+
+void Board::setChipTemp(int nr, float temp) {
+    if (nr < 0 || nr >= m_asicCount) {
+        return;
+    }
+    m_chipTemps[nr] = temp;
+}
+
+float Board::getMaxChipTemp() {
+    float maxTemp = 0.0f;
+    for (int i=0;i<m_asicCount;i++) {
+        maxTemp = std::max(maxTemp, m_chipTemps[i]);
+    }
+    return maxTemp;
 }
 
 const char *Board::getDeviceModel()
@@ -93,9 +118,6 @@ float Board::automaticFanSpeed(float temp)
         result = ((temp - m_afcMinTemp) / temp_range) * fan_range + m_afcMinFanSpeed;
     }
 
-    float perc = (float) result / 100.0f;
-    m_fanPerc = perc;
-    setFanSpeed(perc);
     return result;
 }
 

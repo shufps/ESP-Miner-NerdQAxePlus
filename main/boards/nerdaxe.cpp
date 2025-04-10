@@ -45,6 +45,11 @@ NerdAxe::NerdAxe() : Board() {
     m_flipScreen = true;
     m_numTempSensors = 1;
 
+    m_pidSettings.targetTemp = 50;
+    m_pidSettings.p =  200; // 2.00
+    m_pidSettings.i =   10; // 0.1
+    m_pidSettings.d = 1000; // 10.00
+
     m_maxPin = 15.0;
     m_minPin = 5.0;
     m_maxVin = 5.5;
@@ -90,6 +95,8 @@ uint8_t NerdAxe::ds4432_tps40305_bitaxe_voltage_to_reg(float vout)
 
 bool NerdAxe::initBoard()
 {
+    Board::initBoard();
+
     ADC_init();
     SERIAL_init();
 

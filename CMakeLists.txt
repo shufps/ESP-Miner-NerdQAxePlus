@@ -21,12 +21,6 @@ add_compile_definitions(LV_MEM_CUSTOM_ALLOC=lv_psram_alloc)
 add_compile_definitions(LV_MEM_CUSTOM_FREE=lv_psram_free)
 add_compile_definitions(LV_MEM_CUSTOM_REALLOC=lv_psram_realloc)
 
-# not longer used
-#add_definitions(-DDISPLAY_TTGO)
-
-#enable memory tracker
-#add_definitions(-DDEBUG_MEMORY_LOGGING)
-
 #add_compile_definitions(CONFIG_FREERTOS_USE_TRACE_FACILITY=1)
 #add_compile_definitions(CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=1)
 

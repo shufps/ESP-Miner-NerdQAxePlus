@@ -2,6 +2,9 @@
 
 #include <pthread.h>
 #include "boards/board.h"
+#include "pid/pid_timer.h"
+
+//#define PIDTIMER
 
 class PowerManagementTask {
   protected:
@@ -13,9 +16,16 @@ class PowerManagementTask {
     float m_voltage;
     float m_power;
     float m_current;
+#ifdef PIDTIMER
+    PidTimer *m_pid;
+#else
+    PID *m_pid;
+#endif
 
-    double automaticFanSpeed(Board *board, float chip_temp);
-
+    void requestChipTemps();
+    void checkCoreVoltageChanged();
+    void checkAsicFrequencyChanged();
+    void checkPidSettingsChanged();
     void task();
 
   public:

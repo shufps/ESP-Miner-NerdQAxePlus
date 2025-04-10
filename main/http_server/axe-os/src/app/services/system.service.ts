@@ -61,6 +61,11 @@ const defaultInfo: ISystemInfo = {
   lastResetReason: "Unknown",
   jobInterval: 1200,
 
+  pidTargetTemp: 55,
+  pidP: 2.0,
+  pidI: 0.1,
+  pidD: 5.0,
+
   boardtemp1: 30,
   boardtemp2: 40,
   overheat_temp: 70,

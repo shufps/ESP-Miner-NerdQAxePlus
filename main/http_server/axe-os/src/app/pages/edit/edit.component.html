@@ -172,6 +172,69 @@
                 </div>
 
                 <div class="form-row">
+                    <label class="form-label">Fan Mode:</label>
+                    <div class="form-control-wrapper">
+                        <nb-select fullWidth formControlName="autofanspeed">
+                            <nb-option [value]="0">Manual</nb-option>
+                            <nb-option [value]="1">Classic AFC</nb-option>
+                            <nb-option *ngIf="form.controls['pidTargetTemp'].value != -1" [value]="2">Experimental PID</nb-option>
+                        </nb-select>
+                    </div>
+                </div>
+
+                <!-- Manual fan speed slider -->
+                <div *ngIf="form.controls['autofanspeed'].value === 0">
+                    <div class="form-row">
+                        <label>Fan Speed {{ form.controls['fanspeed'].value }}%</label>
+                        <div class="form-control-wrapper">
+                            <div class="progress-wrap">
+                                <input type="range" class="progress" formControlName="fanspeed" min="0" max="100"
+                                    step="1" />
+                                <div class="progress-foreground" [style.width.%]="form.controls['fanspeed'].value">
+                                </div>
+                            </div>
+                            <small *ngIf="form.controls['fanspeed'].value < 40" style="color: red; margin-left:10px;">Danger: Could Cause
+                                Overheating</small>
+                            <small *ngIf="form.controls['fanspeed'].value === 100" style="color: #F2A900; margin-left:10px;">S19
+                                Simulator</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PID Fan Control Settings -->
+                <div *ngIf="form.controls['autofanspeed'].value === 2 && form.controls['pidTargetTemp'].value != -1">
+                    <div class="form-row">
+                        <label class="form-label">Target Temp (°C):</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput type="number" formControlName="pidTargetTemp" />
+                        </div>
+                    </div>
+
+                    <div *ngIf="devToolsOpen" class="pro-mode-warning">PID Parameters</div>
+
+                    <div *ngIf="devToolsOpen">
+                        <div class="form-row">
+                            <label class="form-label">PID P:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput type="number" formControlName="pidP" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">PID I:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput type="number" formControlName="pidI" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">PID D:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput type="number" formControlName="pidD" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
                     <nb-checkbox formControlName="flipscreen">Flip Screen</nb-checkbox>
                 </div>
                 <div class="form-row">
@@ -179,20 +242,6 @@
                 </div>
                 <div class="form-row" *ngIf="devToolsOpen">
                     <nb-checkbox formControlName="invertfanpolarity">Invert Fan Polarity</nb-checkbox>
-                </div>
-                <div class="form-row">
-                    <nb-checkbox formControlName="autofanspeed">Automatic Fan Control</nb-checkbox>
-                </div>
-
-                <div *ngIf="form.controls['autofanspeed'].value !== true">
-                    <label>Fan Speed {{ form.controls['fanspeed'].value }}%</label>
-                    <div class="progress-wrap">
-                        <input type="range" class="progress" formControlName="fanspeed" min="0" max="100" step="1" />
-                        <div class="progress-foreground" [style.width.%]="form.controls['fanspeed'].value"></div>
-                    </div>
-                    <small *ngIf="form.controls['fanspeed'].value < 33" style="color: red">Danger: Could Cause
-                        Overheating</small>
-                    <small *ngIf="form.controls['fanspeed'].value === 100" style="color: #F2A900">S19 Simulator</small>
                 </div>
 
                 <div class="d-flex align-items-center justify-content-between mt-2">

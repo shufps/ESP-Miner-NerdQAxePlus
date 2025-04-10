@@ -35,6 +35,11 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_flipScreen = true;
     m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
 
+    m_pidSettings.targetTemp = 55;
+    m_pidSettings.p =  200; // 2.00
+    m_pidSettings.i =   10; // 0.1
+    m_pidSettings.d = 1000; // 10.00
+
     m_maxPin = 25.0;
     m_minPin = 5.0;
     m_maxVin = 5.5;

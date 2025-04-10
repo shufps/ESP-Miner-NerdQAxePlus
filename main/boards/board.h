@@ -4,6 +4,7 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "nvs_config.h"
+#include "../pid/PID_v1_bc.h"
 
 class Board {
   protected:
@@ -15,6 +16,9 @@ class Board {
     int m_asicCount;
     int m_chipsDetected = 0;
     int m_numTempSensors = 0;
+    float *m_chipTemps;
+
+    PidSettings m_pidSettings;
 
     // asic settings
     int m_asicJobIntervalMs;
@@ -61,7 +65,7 @@ class Board {
   public:
     Board();
 
-    virtual bool initBoard() = 0;
+    virtual bool initBoard();
     virtual bool initAsics() = 0;
 
     void loadSettings();
@@ -81,6 +85,7 @@ class Board {
 
     virtual float getTemperature(int index) = 0;
     virtual float getVRTemp() = 0;
+    virtual bool isPIDAvailable() = 0;
 
     virtual float getVin() = 0;
     virtual float getIin() = 0;
@@ -92,6 +97,9 @@ class Board {
     virtual void requestBuckTelemtry() = 0;
 
     virtual float automaticFanSpeed(float temp);
+
+    void setChipTemp(int nr, float temp);
+    float getMaxChipTemp();
 
     virtual void shutdown() = 0;
 
@@ -185,4 +193,9 @@ class Board {
     {
         return m_fanInvertPolarity;
     }
+
+    PidSettings *getPidSettings() {
+        return &m_pidSettings;
+    }
+
 };
