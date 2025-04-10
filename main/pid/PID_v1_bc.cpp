@@ -7,13 +7,16 @@ PID::PID()
     m_setpoint = 0.0;
     m_output = 0.0f;
     m_inAuto = false;
-    m_sampleTime = 100;
+    m_sampleTime = 0;
 }
 
-void PID::init(float kp, float ki, float kd, int controllerDirection) {
+void PID::init(int sampletime, float kp, float ki, float kd, int controllerDirection) {
+    m_sampleTime = sampletime;
+
     setOutputLimits(0, 255);
     setControllerDirection(controllerDirection);
     setTunings(kp, ki, kd, P_ON_E);
+    setSampleTime(m_sampleTime);
 }
 
 bool PID::compute()

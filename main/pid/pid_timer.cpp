@@ -4,9 +4,8 @@
 
 static const char *TAG = "PidTimer";
 
-PidTimer::PidTimer(int sampletime, float alpha) : PID() {
+PidTimer::PidTimer(float alpha) : PID() {
     m_input = 0.0f;
-    m_sampleTime = sampletime;
     m_alpha = alpha;
     m_filteredInput = 0;
     m_timer = nullptr;
@@ -14,9 +13,8 @@ PidTimer::PidTimer(int sampletime, float alpha) : PID() {
 
 }
 
-void PidTimer::init(float kp, float ki, float kd, int controllerDirection) {
-    PID::init(kp, ki, kd, controllerDirection);
-    setSampleTime(m_sampleTime);
+void PidTimer::init(int sampletime, float kp, float ki, float kd, int controllerDirection) {
+    PID::init(sampletime, kp, ki, kd, controllerDirection);
 }
 
 PidTimer::~PidTimer()
@@ -51,7 +49,7 @@ void PidTimer::start()
     esp_timer_create_args_t timerArgs = {.callback = &PidTimer::timerCallbackWrapper, .arg = this, .name = "pid_timer"};
 
     ESP_ERROR_CHECK(esp_timer_create(&timerArgs, &m_timer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(m_timer, m_sampleTime * 1000));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(m_timer, getSampleTime() * 1000));
 
     m_running = true;
     ESP_LOGI(TAG, "PID timer started");

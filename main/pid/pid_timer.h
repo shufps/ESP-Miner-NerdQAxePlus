@@ -6,10 +6,10 @@
 class PidTimer : public PID {
   public:
 
-    PidTimer(int sampletime, float alpha);
+    PidTimer(float alpha);
     ~PidTimer();
 
-    void init(float kp, float ki, float kd, int controllerDirection) override;
+    void init(int sampletime, float kp, float ki, float kd, int controllerDirection) override;
 
     void start();
     void stop();
@@ -24,7 +24,6 @@ class PidTimer : public PID {
     float m_input;
     float m_filteredInput;
 
-    int m_sampleTime;
     float m_alpha;
 
     esp_timer_handle_t m_timer;

@@ -26,7 +26,7 @@ class PID
 public:
     PID();
 
-    virtual void init(float kp, float ki, float kd, int controllerDirection);
+    virtual void init(int sampletime, float kp, float ki, float kd, int controllerDirection);
 
     void setMode(int mode);
     bool compute();
@@ -37,6 +37,7 @@ public:
     void setTarget(float value);
     void setControllerDirection(int);
     void setSampleTime(int);
+    int64_t getSampleTime() { return m_sampleTime; }
 
     virtual void setInput(float input);
     float getOutput();
