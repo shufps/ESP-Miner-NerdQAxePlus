@@ -34,6 +34,25 @@ export class EditComponent implements OnInit {
   public defaultFrequency: number = 0;
   public defaultCoreVoltage: number = 0;
 
+  private originalSettings!: any;
+
+  private rebootRequiredFields = new Set<string>([
+    'flipscreen',
+    'invertscreen',
+    'autoscreenoff',
+    'hostname',
+    'ssid',
+    'wifiPass',
+    'wifiStatus',
+    'stratumURL',
+    'stratumPort',
+    'stratumUser',
+    'fallbackStratumURL',
+    'fallbackStratumPort',
+    'fallbackStratumUser',
+    'invertfanpolarity',
+  ]);
+
   @Input() uri = '';
 
   constructor(
@@ -49,6 +68,8 @@ export class EditComponent implements OnInit {
     this.systemService.getInfo(0, this.uri)
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
+        this.originalSettings = structuredClone(info);
+
         this.ASICModel = info.ASICModel;
 
         this.defaultFrequency = info.defaultFrequency ?? 0;
@@ -181,6 +202,42 @@ export class EditComponent implements OnInit {
         }
       });
   }
+
+  get requiresReboot(): boolean {
+    if (!this.form || !this.originalSettings) return false;
+
+    const current = this.form.getRawValue();
+
+    for (const key of this.rebootRequiredFields) {
+      if (!(key in current)) {
+        continue;
+      }
+
+      const currentValue = this.normalizeValue(current[key]);
+      const originalValue = this.normalizeValue(this.originalSettings[key]);
+
+      // Special case: masked password fields
+      if (typeof currentValue === 'string' && currentValue === '*****') {
+        continue; // User hasn't changed this field
+      }
+
+      if (currentValue !== originalValue) {
+        console.log(`Mismatch on key: ${key}`, currentValue, originalValue);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
+  private normalizeValue(value: any): any {
+    if (typeof value === 'boolean') {
+      return value ? 1 : 0;
+    }
+    return value;
+  }
+
 
   showStratumPassword: boolean = false;
   toggleStratumPasswordVisibility() {

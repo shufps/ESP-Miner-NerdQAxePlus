@@ -264,7 +264,7 @@
             </div>
 
         </div>
-        <div>
+        <div *ngIf="requiresReboot" class="mt-2 text-danger">
             <b>You must restart this device after saving for changes to take effect.</b>
         </div>
     </form>
