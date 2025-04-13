@@ -6,6 +6,12 @@
 #include "nvs_config.h"
 #include "../pid/PID_v1_bc.h"
 
+enum FanPolarityGuess {
+    POLARITY_UNKNOWN,
+    POLARITY_NORMAL,
+    POLARITY_INVERTED
+};
+
 class Board {
   protected:
     // general board information
@@ -39,6 +45,7 @@ class Board {
 
     // fans
     bool m_fanInvertPolarity;
+    bool m_fanAutoPolarity;
     float m_fanPerc;
 
     // flip screen
@@ -80,8 +87,10 @@ class Board {
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
 
+    virtual void setFanPolarity(bool invert) = 0;
     virtual void setFanSpeed(float perc) = 0;
     virtual void getFanSpeed(uint16_t *rpm) = 0;
+    FanPolarityGuess guessFanPolarity();
 
     virtual float getTemperature(int index) = 0;
     virtual float getVRTemp() = 0;
@@ -192,6 +201,11 @@ class Board {
     bool isInvertFanPolarityEnabled()
     {
         return m_fanInvertPolarity;
+    }
+
+    bool isAutoFanPolarityEnabled()
+    {
+        return m_fanAutoPolarity;
     }
 
     PidSettings *getPidSettings() {

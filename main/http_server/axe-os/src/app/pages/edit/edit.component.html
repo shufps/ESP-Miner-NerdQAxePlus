@@ -163,14 +163,11 @@
                         </div>
                     </div>
                 </ng-container>
-
-                <div class="form-row">
-                    <label for="overheat_temp" class="form-label">Shutdown Temperature:</label>
-                    <div class="form-control-wrapper">
-                        <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" />
-                    </div>
-                </div>
-
+            </nb-card-body>
+        </nb-card>
+        <nb-card>
+            <nb-card-header>Fan Controller</nb-card-header>
+            <nb-card-body>
                 <div class="form-row">
                     <label class="form-label">Fan Mode:</label>
                     <div class="form-control-wrapper">
@@ -210,7 +207,7 @@
                         </div>
                     </div>
 
-                    <div *ngIf="devToolsOpen" class="pro-mode-warning">PID Parameters</div>
+                    <div *ngIf="devToolsOpen" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
 
                     <div *ngIf="devToolsOpen">
                         <div class="form-row">
@@ -233,36 +230,49 @@
                         </div>
                     </div>
                 </div>
+                <div class="form-row-separator">
+                    <label for="overheat_temp" class="form-label">Shutdown Temperature:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" />
+                    </div>
+                </div>
+                <div class="form-row" *ngIf="devToolsOpen">
+                    <nb-checkbox formControlName="autofanpolarity">Autodetect Fan Polarity <small>(Recommended)</small></nb-checkbox>
+                </div>
+                <div class="form-row" *ngIf="devToolsOpen">
+                    <nb-checkbox formControlName="invertfanpolarity">Invert Fan Polarity</nb-checkbox>
+                </div>
 
+            </nb-card-body>
+        </nb-card>
+        <nb-card>
+            <nb-card-header>Misc Settings</nb-card-header>
+            <nb-card-body>
                 <div class="form-row">
                     <nb-checkbox formControlName="flipscreen">Flip Screen</nb-checkbox>
                 </div>
                 <div class="form-row">
                     <nb-checkbox formControlName="autoscreenoff">Automatic Screen Shutdown</nb-checkbox>
                 </div>
-                <div class="form-row" *ngIf="devToolsOpen">
-                    <nb-checkbox formControlName="invertfanpolarity">Invert Fan Polarity</nb-checkbox>
-                </div>
-
-                <div class="d-flex align-items-center justify-content-between mt-2">
-                    <div>
-                        <div class="d-flex align-items-center justify-content-between mt-2">
-                            <button nbButton size="small" [disabled]="form.invalid" (click)="confirmSave(warningDialog)"
-                                status="danger">
-                                Save
-                            </button>
-                        </div>
-                    </div>
-                    <div><button nbButton size="small" (click)="restart()" nbTooltip="'asdf'"
-                            status="danger">Restart</button>
-                    </div>
-
-                </div>
-                <div>
-                    <b>You must restart this device after saving for changes to take effect.</b>
-                </div>
             </nb-card-body>
         </nb-card>
+        <div class="d-flex align-items-center justify-content-between mt-2">
+            <div>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <button nbButton size="small" [disabled]="form.invalid" (click)="confirmSave(warningDialog)"
+                        status="danger">
+                        Save
+                    </button>
+                </div>
+            </div>
+            <div><button nbButton size="small" (click)="restart()" nbTooltip="'asdf'"
+                    status="danger">Restart</button>
+            </div>
+
+        </div>
+        <div *ngIf="requiresReboot" class="mt-2 text-danger">
+            <b>You must restart this device after saving for changes to take effect.</b>
+        </div>
     </form>
 
     <ng-template #warningDialog>

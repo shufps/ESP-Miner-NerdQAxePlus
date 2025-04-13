@@ -190,6 +190,10 @@ void NerdAxe::setFanSpeed(float perc) {
     EMC2101_set_fan_speed(perc);
 }
 
+void NerdAxe::setFanPolarity(bool invert) {
+    EMC2101_set_fan_polarity(invert);
+}
+
 void NerdAxe::getFanSpeed(uint16_t* rpm) {
     *rpm = EMC2101_get_fan_speed();
 }

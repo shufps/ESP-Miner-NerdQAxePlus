@@ -57,6 +57,8 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
 
 bool NerdaxeGamma::initBoard()
 {
+    Board::initBoard();
+
     ADC_init();
     SERIAL_init();
 
