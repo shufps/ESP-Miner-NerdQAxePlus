@@ -25,6 +25,7 @@
 #define NVS_CONFIG_FLIP_SCREEN "flipscreen"
 #define NVS_CONFIG_INVERT_SCREEN "invertscreen"
 #define NVS_CONFIG_INVERT_FAN_POLARITY "invertfanpol"
+#define NVS_CONFIG_AUTO_FAN_POLARITY "autofanpol"
 #define NVS_CONFIG_AUTO_FAN_SPEED "autofanspeed"
 #define NVS_CONFIG_FAN_SPEED "fanspeed"
 #define NVS_CONFIG_BEST_DIFF "bestdiff"
@@ -134,6 +135,7 @@ namespace Config {
     inline void setFlipScreen(bool value) { nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, value ? 1 : 0); }
     inline void setInvertScreen(bool value) { nvs_config_set_u16(NVS_CONFIG_INVERT_SCREEN, value ? 1 : 0); }
     inline void setInvertFanPolarity(bool value) { nvs_config_set_u16(NVS_CONFIG_INVERT_FAN_POLARITY, value ? 1 : 0); }
+    inline void setAutoFanPolarity(bool value) { nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_POLARITY, value ? 1 : 0); }
     inline void setSelfTest(bool value) { nvs_config_set_u16(NVS_CONFIG_SELF_TEST, value ? 1 : 0); }
     inline void setAutoScreenOff(bool value) { nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, value ? 1 : 0); }
     inline void setInfluxEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, value ? 1 : 0); }
@@ -145,6 +147,7 @@ namespace Config {
     inline uint16_t getAsicJobInterval(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, d); }
     inline bool isFlipScreenEnabled(bool d) { return nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, d ? 1 : 0) != 0; }
     inline bool isInvertFanPolarityEnabled(bool d) { return nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, d ? 1 : 0) != 0; }
+    inline bool isAutoFanPolarityEnabled(bool d) { return nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_POLARITY, d ? 1 : 0) != 0; }
     inline uint16_t getPidTargetTemp(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_TARGET_TEMP, d); }
     inline uint16_t getPidP(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_P, d); }
     inline uint16_t getPidI(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_I, d); }

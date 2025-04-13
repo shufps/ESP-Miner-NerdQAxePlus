@@ -6,6 +6,12 @@
 #include "nvs_config.h"
 #include "../pid/PID_v1_bc.h"
 
+enum FanPolarityGuess {
+    POLARITY_UNKNOWN,
+    POLARITY_NORMAL,
+    POLARITY_INVERTED
+};
+
 class Board {
   protected:
     // general board information
@@ -39,6 +45,7 @@ class Board {
 
     // fans
     bool m_fanInvertPolarity;
+    bool m_fanAutoPolarity;
     float m_fanPerc;
 
     // flip screen
@@ -61,6 +68,8 @@ class Board {
     Asic *m_asics = nullptr;
 
     bool m_isInitialized = false;
+
+    FanPolarityGuess guessFanPolarity();
 
   public:
     Board();

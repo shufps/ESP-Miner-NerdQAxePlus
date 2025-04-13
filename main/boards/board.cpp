@@ -13,6 +13,7 @@ Board::Board() {
     m_afcMinTemp = 45.0f;
     m_afcMinFanSpeed = 35.0f;
     m_afcMaxTemp = 65.0f;
+    m_fanAutoPolarity = false;
 }
 
 void Board::loadSettings()
@@ -24,6 +25,7 @@ void Board::loadSettings()
     m_asicVoltageMillis = Config::getAsicVoltage(m_asicVoltageMillis);
     m_asicJobIntervalMs = Config::getAsicJobInterval(m_asicJobIntervalMs);
     m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
+    m_fanAutoPolarity = Config::isAutoFanPolarityEnabled(m_fanAutoPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
 
     m_pidSettings.targetTemp = Config::getPidTargetTemp(m_pidSettings.targetTemp);
@@ -121,3 +123,47 @@ float Board::automaticFanSpeed(float temp)
     return result;
 }
 
+FanPolarityGuess Board::guessFanPolarity() {
+    const int settleTimeMs = 800;
+    const float lowPWM = 35.0f;
+    const float highPWM = 75.0f;
+    const float similarityThreshold = 0.90f; // ≥90% match = too similar to tell
+
+    uint16_t rpmLow = 0, rpmHigh = 0;
+
+    // Test low speed
+    setFanSpeed(lowPWM);
+    vTaskDelay(settleTimeMs / portTICK_PERIOD_MS);
+    getFanSpeed(&rpmLow);
+
+    // Test high speed
+    setFanSpeed(highPWM);
+    vTaskDelay(settleTimeMs / portTICK_PERIOD_MS);
+    getFanSpeed(&rpmHigh);
+
+    // Reset to mid-range to be safe
+    setFanSpeed(50.0f);
+
+    // No signal at all? Can't tell.
+    if (rpmLow == 0 || rpmHigh == 0) {
+        return POLARITY_UNKNOWN;
+    }
+
+    // Calculate similarity
+    uint16_t minRPM = std::min(rpmLow, rpmHigh);
+    uint16_t maxRPM = std::max(rpmLow, rpmHigh);
+
+    float similarity = (float)minRPM / maxRPM;
+
+    // Too close? Can't decide
+    if (similarity > similarityThreshold) {
+        return POLARITY_UNKNOWN;
+    }
+
+    // Now decide
+    if (rpmHigh > rpmLow) {
+        return POLARITY_NORMAL;
+    } else {
+        return POLARITY_INVERTED;
+    }
+}

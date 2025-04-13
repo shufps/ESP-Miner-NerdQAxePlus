@@ -20,10 +20,14 @@ bool EMC2101_init(bool invertPolarity)
 
     ESP_LOGI("EMC2101", "Successfully wrote 0x%02X to EMC2101 register 0x%02X", 0x04, EMC2101_REG_CONFIG);
 
-
+/* uhm this looks totally wrong
     if (invertPolarity) {
         ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_FAN_CONFIG, 0b00100011));
     }
+*/
+
+    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_FAN_CONFIG, 0b00100011 | invertPolarity ? 0 : (1<<4)));
+
     return true;
 }
 
