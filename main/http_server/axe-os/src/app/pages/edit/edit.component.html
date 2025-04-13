@@ -237,6 +237,9 @@
                     </div>
                 </div>
                 <div class="form-row" *ngIf="devToolsOpen">
+                    <nb-checkbox formControlName="autofanpolarity">Autodetect Fan Polarity <small>(Recommended)</small></nb-checkbox>
+                </div>
+                <div class="form-row" *ngIf="devToolsOpen">
                     <nb-checkbox formControlName="invertfanpolarity">Invert Fan Polarity</nb-checkbox>
                 </div>
 

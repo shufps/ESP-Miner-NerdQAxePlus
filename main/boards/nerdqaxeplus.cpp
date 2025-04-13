@@ -198,6 +198,10 @@ void NerdQaxePlus::getFanSpeed(uint16_t* rpm) {
     EMC2302_get_fan_speed(rpm);
 }
 
+void NerdQaxePlus::setFanPolarity(bool invert) {
+    EMC2302_set_fan_polarity(invert);
+}
+
 // return the number of asic temp measuring sensors
 // skips the VR temp sensor
 int NerdQaxePlus::detectNumTempSensors() {

@@ -51,6 +51,7 @@ export class EditComponent implements OnInit {
     'fallbackStratumPort',
     'fallbackStratumUser',
     'invertfanpolarity',
+    'autofanpolarity',
   ]);
 
   @Input() uri = '';
@@ -131,6 +132,7 @@ export class EditComponent implements OnInit {
           pidI: [info.pidI ?? 0.2],
           pidD: [info.pidD ?? 5],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
+          autofanpolarity: [info.autofanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],
           overheat_temp: [info.overheat_temp, [
             Validators.min(40),

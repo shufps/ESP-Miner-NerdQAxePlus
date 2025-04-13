@@ -54,6 +54,7 @@ const defaultInfo: ISystemInfo = {
   flipscreen: 0,
   invertscreen: 0,
   invertfanpolarity: 0,
+  autofanpolarity: 1,
   autofanspeed: 1,
   fanspeed: 100,
   fanrpm: 0,

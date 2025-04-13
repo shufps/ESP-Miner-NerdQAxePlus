@@ -64,7 +64,7 @@ esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "raw fan speed: %d", rpm_raw);
 #endif
-    
+
     // we get this if no fan is connected
     // would be displayed as 480RPM
     // so we actually can't measure lower than that
@@ -122,4 +122,10 @@ bool EMC2302_init(bool invertPolarity)
     }
 
     return true;
+}
+
+bool EMC2302_set_fan_polarity(bool invert) {
+    // set polarity of ch1 and ch2
+    esp_err_t err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_POLARITY, (invert) ? 0x03 : 0x00);
+    return err == ESP_OK;
 }
