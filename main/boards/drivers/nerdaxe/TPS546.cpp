@@ -242,7 +242,7 @@ static float slinear11_2_float(uint16_t value)
     }
 
     // calculate result (mantissa * 2^exponent)
-    result = mantissa * powf(2.0, exponent);
+    result = (float) mantissa * powf(2.0, (float) exponent);
     return result;
 }
 
@@ -407,11 +407,11 @@ int TPS546_init(void)
             ON_OFF_CONFIG_POLARITY | ON_OFF_CONFIG_DELAY;
     ESP_LOGI(TAG, "Power config-ON_OFF_CONFIG: %02x", u8_value);
     smb_write_byte(PMBUS_ON_OFF_CONFIG, u8_value);
- 
+
     /* Read version number and see if it matches */
     TPS546_read_mfr_info(read_mfr_revision);
     // if (memcmp(read_mfr_revision, MFR_REVISION, 3) != 0) {
-    
+
     // If it doesn't match, then write all the registers and set new version number
     // ESP_LOGI(TAG, "--------------------------------");
     // ESP_LOGI(TAG, "Config version mismatch, writing new config values");
@@ -477,7 +477,7 @@ int TPS546_init(void)
 }
 
 /**
- * @brief Read the manufacturer model and revision 
+ * @brief Read the manufacturer model and revision
  * @param read_mfr_revision Pointer to store the read revision
 */
 void TPS546_read_mfr_info(uint8_t *read_mfr_revision)
@@ -503,12 +503,12 @@ void TPS546_read_mfr_info(uint8_t *read_mfr_revision)
 
     ESP_LOGI(TAG, "MFR_ID: %s", read_mfr_id);
     ESP_LOGI(TAG, "MFR_MODEL: %s", read_mfr_model);
-    ESP_LOGI(TAG, "MFR_REVISION: %d%d%d ", read_mfr_revision[0], 
+    ESP_LOGI(TAG, "MFR_REVISION: %d%d%d ", read_mfr_revision[0],
         read_mfr_revision[1], read_mfr_revision[2]);
 }
 
 /**
- * @brief Write the manufacturer ID and revision to NVM 
+ * @brief Write the manufacturer ID and revision to NVM
 */
 void TPS546_set_mfr_info(void)
 {
@@ -519,7 +519,7 @@ void TPS546_set_mfr_info(void)
 }
 
 /**
- * @brief Set all the relevant config registers for normal operation 
+ * @brief Set all the relevant config registers for normal operation
 */
 void TPS546_write_entire_config(void)
 {
@@ -652,19 +652,17 @@ void TPS546_set_frequency(int newfreq)
     //ESP_LOGI(TAG, "Converted value: %d", freq);
 }
 
-int TPS546_get_temperature(void)
+float TPS546_get_temperature(void)
 {
     uint16_t value;
-    int temp;
 
     if (!is_initialized) {
         return 0;
     }
 
     smb_read_word(PMBUS_READ_TEMPERATURE_1, &value);
-    temp = slinear11_2_int(value);
 
-    return temp;
+    return slinear11_2_float(value);
 }
 
 float TPS546_get_vin(void)
@@ -686,7 +684,7 @@ float TPS546_get_vin(void)
         ESP_LOGI(TAG, "Got Vin: %2.3f V", vin);
         #endif
         return vin;
-    }    
+    }
 }
 
 float TPS546_get_iout(void)
@@ -704,7 +702,7 @@ float TPS546_get_iout(void)
         return 0;
     } else {
         iout = slinear11_2_float(u16_value);
-    
+
     //iout = iout * -1.0;
     #ifdef _DEBUG_LOG_
         ESP_LOGI(TAG, "Got Iout: %2.3f A", iout);

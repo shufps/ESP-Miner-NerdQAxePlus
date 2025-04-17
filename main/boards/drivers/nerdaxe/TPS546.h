@@ -44,7 +44,7 @@
 #define TPS546_INIT_IOUT_OC_FAULT_RESPONSE 0xC0  /* shut down, no retries */
 
   /* temperature */
-// It is better to set the temperature warn limit for TPS546 more higher than Ultra 
+// It is better to set the temperature warn limit for TPS546 more higher than Ultra
 #define TPS546_INIT_OT_WARN_LIMIT  105 /* degrees C */
 #define TPS546_INIT_OT_FAULT_LIMIT 145 /* degrees C */
 #define TPS546_INIT_OT_FAULT_RESPONSE 0xFF /* wait for cooling, and retry */
@@ -78,7 +78,7 @@ void TPS546_set_mfr_info(void);
 void TPS546_write_entire_config(void);
 int TPS546_get_frequency(void);
 void TPS546_set_frequency(int);
-int TPS546_get_temperature(void);
+float TPS546_get_temperature(void);
 float TPS546_get_vin(void);
 float TPS546_get_iout(void);
 float TPS546_get_vout(void);
