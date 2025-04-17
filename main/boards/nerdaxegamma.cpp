@@ -35,8 +35,8 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_flipScreen = true;
     m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
 
-    m_pidSettings.targetTemp = 55;
-    m_pidSettings.p =  200; // 2.00
+    m_pidSettings.targetTemp = 60;
+    m_pidSettings.p =  600; // 6.00
     m_pidSettings.i =   10; // 0.1
     m_pidSettings.d = 1000; // 10.00
 
@@ -159,7 +159,7 @@ float NerdaxeGamma::getTemperature(int index) {
 
 float NerdaxeGamma::getVRTemp() {
     //Reading voltage regulator temp
-    float vr_temp = (float)TPS546_get_temperature();
+    float vr_temp = TPS546_get_temperature();
     ESP_LOGI(TAG, "Read vr temp = %.3fºC", vr_temp);
     return vr_temp; //- vr_temp (voltage regulator temp)
 }
