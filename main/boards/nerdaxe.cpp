@@ -45,8 +45,8 @@ NerdAxe::NerdAxe() : Board() {
     m_flipScreen = true;
     m_numTempSensors = 1;
 
-    m_pidSettings.targetTemp = 50;
-    m_pidSettings.p =  200; // 2.00
+    m_pidSettings.targetTemp = 55;
+    m_pidSettings.p =  400; // 2.00
     m_pidSettings.i =   10; // 0.1
     m_pidSettings.d = 1000; // 10.00
 
