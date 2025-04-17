@@ -126,11 +126,26 @@ export class EditComponent implements OnInit {
           frequency: [info.frequency, [Validators.required]],
           jobInterval: [info.jobInterval, [Validators.required]],
           autofanspeed: [info.autofanspeed ?? 0, [Validators.required]],
-	  // TODO validators
-          pidTargetTemp: [info.pidTargetTemp ?? 55],
-          pidP: [info.pidP ?? 2],
-          pidI: [info.pidI ?? 0.2],
-          pidD: [info.pidD ?? 5],
+          pidTargetTemp: [info.pidTargetTemp ?? 55, [
+            Validators.min(30),
+            Validators.max(80),
+            Validators.required
+          ]],
+          pidP: [info.pidP ?? 6, [
+            Validators.min(0),
+            Validators.max(100),
+            Validators.required
+          ]],
+          pidI: [info.pidI ?? 0.1, [
+            Validators.min(0),
+            Validators.max(10),
+            Validators.required
+          ]],
+          pidD: [info.pidD ?? 10, [
+            Validators.min(0),
+            Validators.max(100),
+            Validators.required
+          ]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
           autofanpolarity: [info.autofanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],

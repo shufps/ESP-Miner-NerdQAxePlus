@@ -147,7 +147,7 @@ void PowerManagementTask::task()
 
     m_pid = new PID(&pid_input, &pid_output, &pid_target, pidP, pidI, pidD, P_ON_E, DIRECT);
     m_pid->SetSampleTime(POLL_RATE);
-    m_pid->SetOutputLimits(35, 100);
+    m_pid->SetOutputLimits(15, 100);
     m_pid->SetMode(AUTOMATIC);
     m_pid->SetControllerDirection(REVERSE);
     m_pid->Initialize();
