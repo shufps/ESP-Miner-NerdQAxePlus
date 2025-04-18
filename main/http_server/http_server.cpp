@@ -289,6 +289,10 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
     }
 
     set_content_type_from_file(req, filepath);
+
+    // close connection to prevent clogging
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     strlcat(filepath, ".gz", filePathLength);  // Append .gz extension
 
     int fd = open(filepath, O_RDONLY, 0);
@@ -796,6 +800,9 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
 
     //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+
+    // close connection to prevent clogging
+    httpd_resp_set_hdr(req, "Connection", "close");
 
     // Serialize the JSON document to a String and send it
     esp_err_t ret = sendJsonResponse(req, doc);
