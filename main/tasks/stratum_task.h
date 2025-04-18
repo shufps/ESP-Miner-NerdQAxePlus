@@ -130,6 +130,7 @@ class StratumManager {
     // Get information about the currently selected pool
     const char *getCurrentPoolHost();
     int getCurrentPoolPort();
+    bool isAnyConnected();
 
     // Submit shares to the active Stratum pool
     void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
