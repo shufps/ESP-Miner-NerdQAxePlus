@@ -33,27 +33,38 @@
       </div>
 
       <!-- Shares Card -->
-      <div class="col-12 col-lg-6 col-xl-3">
-        <nb-card class="h-100">
-          <nb-card-header>
-            <span class="text-hint">Shares</span>
-          </nb-card-header>
-          <nb-card-body>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <div>
-                <div class="font-weight-bold text-lg">{{ info.sharesAccepted }}</div>
-              </div>
-              <div class="d-flex align-items-center justify-content-center bg-blue-100 rounded-circle"
-                style="width: 2.5rem; height: 2.5rem;">
-                <nb-icon icon="navigation-2-outline" pack="eva" class="blue-500"></nb-icon>
-              </div>
-            </div>
-            <span class="text-danger">{{ info.sharesRejected }}</span>
-            <span class="text-hint">&nbsp;rejected</span>&nbsp;
-            <span class="text-hint">({{(info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2'}}%)</span>
-          </nb-card-body>
-        </nb-card>
+<!-- Shares Card -->
+<div class="col-12 col-lg-6 col-xl-3">
+  <nb-card class="h-100">
+    <nb-card-header>
+      <div class="d-flex justify-content-between align-items-center" style="position:relative">
+        <span class="text-hint">Shares</span>
+        <!-- pool status badge -->
+        <nb-badge
+          [text]="info.isUsingFallbackStratum ? 'Secondary Pool' : 'Primary Pool'"
+          [status]="info.isUsingFallbackStratum ? 'warning': 'success'">
+        </nb-badge>
       </div>
+    </nb-card-header>
+    <nb-card-body>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <div class="font-weight-bold text-lg">{{ info.sharesAccepted }}</div>
+        </div>
+        <div class="d-flex align-items-center justify-content-center bg-blue-100 rounded-circle"
+             style="width: 2.5rem; height: 2.5rem;">
+          <nb-icon icon="navigation-2-outline" pack="eva" class="blue-500"></nb-icon>
+        </div>
+      </div>
+      <span class="text-danger">{{ info.sharesRejected }}</span>
+      <span class="text-hint">&nbsp;rejected</span>&nbsp;
+      <span class="text-hint">
+        ({{ (info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2' }}%)
+      </span>
+    </nb-card-body>
+  </nb-card>
+</div>
+
 
       <!-- Efficiency Card -->
       <div class="col-12 col-lg-6 col-xl-3">
@@ -192,5 +203,54 @@
     </div>
 
 
+      <!-- Pool Information & Uptime Row -->
+  <div class="row mt-4 d-flex align-items-stretch">
+    <!-- Pool Information Card -->
+    <div class="col-12 col-lg-6">
+      <nb-card class="h-100">
+        <nb-card-header>
+          <span class="text-hint">
+            Pool Information ({{ info.isUsingFallbackStratum ? 'Fallback' : 'Primary' }})
+          </span>
+        </nb-card-header>
+        <nb-card-body>
+          <table class="w-100">
+            <ng-container *ngIf="!info.isUsingFallbackStratum; else fallback">
+              <tr>
+                <td class="text-hint">URL:</td>
+                <td style="word-break: break-all;">
+                  <a [href]="quickLink$ | async" target="_blank">{{ info.stratumURL }}</a>
+                </td>
+              </tr>
+              <tr>
+                <td class="text-hint">Port:</td>
+                <td>{{ info.stratumPort }}</td>
+              </tr>
+              <tr>
+                <td class="text-hint">User:</td>
+                <td>{{ info.stratumUser }}</td>
+              </tr>
+            </ng-container>
+            <ng-template #fallback>
+              <tr>
+                <td class="text-hint">URL:</td>
+                <td style="word-break: break-all;">
+                  <a [href]="(fallbackQuickLink$ | async) || info.fallbackStratumURL"
+                     target="_blank">{{ info.fallbackStratumURL }}</a>
+                </td>
+              </tr>
+              <tr>
+                <td class="text-hint">Port:</td>
+                <td>{{ info.fallbackStratumPort }}</td>
+              </tr>
+              <tr>
+                <td class="text-hint">User:</td>
+                <td>{{ info.fallbackStratumUser }}</td>
+              </tr>
+            </ng-template>
+          </table>
+        </nb-card-body>
+      </nb-card>
+    </div>
   </div>
 </div>
