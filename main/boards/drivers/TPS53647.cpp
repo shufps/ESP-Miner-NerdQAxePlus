@@ -323,6 +323,12 @@ void TPS53647::power_disable()
     gpio_set_level(TPS53647_EN_PIN, 0);
 }
 
+
+void TPS53647::clear_faults() {
+    write_byte(PMBUS_CLEAR_FAULTS, 0xff);
+}
+
+
 float TPS53647::get_temperature(void)
 {
     uint16_t u16_value = 0;
