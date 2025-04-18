@@ -53,7 +53,7 @@
     <nb-card class="card-item" style="position: relative;">
       <nb-card-header>
         Update Firmware
-        <span *ngIf="firmwareUpdateProgress != null">
+        <span *ngIf="firmwareUpdateProgress != null && firmwareUpdateProgress > 0">
           {{ firmwareUpdateProgress }}%
         </span>
       </nb-card-header>
@@ -84,7 +84,7 @@
     <nb-card class="card-item" style="position: relative;">
       <nb-card-header>
         Update Website
-        <span *ngIf="websiteUpdateProgress != null">
+        <span *ngIf="websiteUpdateProgress != null && websiteUpdateProgress > 0">
           {{ websiteUpdateProgress }}%
         </span>
       </nb-card-header>

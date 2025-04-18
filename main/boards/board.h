@@ -4,6 +4,13 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "nvs_config.h"
+#include "../pid/PID_v1_bc.h"
+
+enum FanPolarityGuess {
+    POLARITY_UNKNOWN,
+    POLARITY_NORMAL,
+    POLARITY_INVERTED
+};
 
 class Board {
   protected:
@@ -15,11 +22,19 @@ class Board {
     int m_asicCount;
     int m_chipsDetected = 0;
     int m_numTempSensors = 0;
+    float *m_chipTemps;
+
+    PidSettings m_pidSettings;
 
     // asic settings
     int m_asicJobIntervalMs;
     int m_asicFrequency;
     int m_asicVoltageMillis;
+
+    // default settings
+    int m_defaultAsicFrequency;
+    int m_defaultAsicVoltageMillis;
+
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
@@ -30,6 +45,7 @@ class Board {
 
     // fans
     bool m_fanInvertPolarity;
+    bool m_fanAutoPolarity;
     float m_fanPerc;
 
     // flip screen
@@ -56,7 +72,7 @@ class Board {
   public:
     Board();
 
-    virtual bool initBoard() = 0;
+    virtual bool initBoard();
     virtual bool initAsics() = 0;
 
     void loadSettings();
@@ -71,11 +87,14 @@ class Board {
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
 
+    virtual void setFanPolarity(bool invert) = 0;
     virtual void setFanSpeed(float perc) = 0;
     virtual void getFanSpeed(uint16_t *rpm) = 0;
+    FanPolarityGuess guessFanPolarity();
 
     virtual float getTemperature(int index) = 0;
     virtual float getVRTemp() = 0;
+    virtual bool isPIDAvailable() = 0;
 
     virtual float getVin() = 0;
     virtual float getIin() = 0;
@@ -88,9 +107,13 @@ class Board {
 
     virtual float automaticFanSpeed(float temp);
 
+    void setChipTemp(int nr, float temp);
+    float getMaxChipTemp();
+
     virtual void shutdown() = 0;
 
-    virtual bool getPSUFault() {
+    virtual bool getPSUFault()
+    {
         return false;
     }
 
@@ -120,12 +143,24 @@ class Board {
         return m_isInitialized ? m_asics : nullptr;
     }
 
-    int getAsicVoltageMillis() {
+    int getAsicVoltageMillis()
+    {
         return m_asicVoltageMillis;
     }
 
-    int getAsicFrequency() {
+    int getAsicFrequency()
+    {
         return m_asicFrequency;
+    }
+
+    int getDefaultAsicVoltageMillis()
+    {
+        return m_defaultAsicVoltageMillis;
+    }
+
+    int getDefaultAsicFrequency()
+    {
+        return m_defaultAsicFrequency;
     }
 
     float getMinPin()
@@ -146,22 +181,35 @@ class Board {
     float getMaxVin()
     {
         return m_maxVin;
-	}
+    }
 
     float getVrMaxTemp()
     {
         return m_vr_maxTemp;
     }
 
-    int getNumTempSensors() {
+    int getNumTempSensors()
+    {
         return m_numTempSensors;
     }
 
-    bool isFlipScreenEnabled() {
+    bool isFlipScreenEnabled()
+    {
         return m_flipScreen;
     }
 
-    bool isInvertFanPolarityEnabled() {
+    bool isInvertFanPolarityEnabled()
+    {
         return m_fanInvertPolarity;
     }
+
+    bool isAutoFanPolarityEnabled()
+    {
+        return m_fanAutoPolarity;
+    }
+
+    PidSettings *getPidSettings() {
+        return &m_pidSettings;
+    }
+
 };

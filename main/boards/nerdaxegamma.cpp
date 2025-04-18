@@ -27,13 +27,18 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_asicCount = 1;
 
     m_asicJobIntervalMs = 1500;
-    m_asicFrequency = 515;
-    m_asicVoltageMillis = 1150;
+    m_defaultAsicFrequency = m_asicFrequency = 515;
+    m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1150;
     m_initVoltageMillis = 1150;
     m_fanInvertPolarity = true;
     m_fanPerc = 100;
     m_flipScreen = true;
     m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
+
+    m_pidSettings.targetTemp = 60;
+    m_pidSettings.p =  600; // 6.00
+    m_pidSettings.i =   10; // 0.1
+    m_pidSettings.d = 1000; // 10.00
 
     m_maxPin = 25.0;
     m_minPin = 5.0;
@@ -52,6 +57,8 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
 
 bool NerdaxeGamma::initBoard()
 {
+    Board::initBoard();
+
     ADC_init();
     SERIAL_init();
 
@@ -152,7 +159,7 @@ float NerdaxeGamma::getTemperature(int index) {
 
 float NerdaxeGamma::getVRTemp() {
     //Reading voltage regulator temp
-    float vr_temp = (float)TPS546_get_temperature();
+    float vr_temp = TPS546_get_temperature();
     ESP_LOGI(TAG, "Read vr temp = %.3fºC", vr_temp);
     return vr_temp; //- vr_temp (voltage regulator temp)
 }

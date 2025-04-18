@@ -257,7 +257,6 @@ void StratumTask::stratumLoop()
     // mining.suggest_difficulty - ID: 4
     success = success && m_stratumAPI.suggestDifficulty(m_sock, Config::getStratumDifficulty());
 
-    // clang-format on
     if (!success) {
         ESP_LOGE(m_tag, "Error sending Stratum setup commands!");
         return;
@@ -355,7 +354,11 @@ void StratumManager::disconnect(int index)
 
 bool StratumManager::isConnected(int index)
 {
-    return m_stratumTasks[index]->isConnected();
+    return m_stratumTasks[index] && m_stratumTasks[index]->isConnected();
+}
+
+bool StratumManager::isAnyConnected() {
+    return isConnected(PRIMARY) || isConnected(SECONDARY);
 }
 
 void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
@@ -571,5 +574,9 @@ void StratumManager::submitShare(const char *jobid, const char *extranonce_2, co
                                  const uint32_t version)
 {
     // send to the selected pool
+    if (!m_stratumTasks[m_selected]->m_isConnected) {
+        ESP_LOGE(m_tag, "selected pool not connected");
+        return;
+    }
     m_stratumTasks[m_selected]->submitShare(jobid, extranonce_2, ntime, nonce, version);
 }

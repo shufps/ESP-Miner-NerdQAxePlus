@@ -24,6 +24,7 @@ export interface ISystemInfo {
     bestSessionDiff: string,
     freeHeap: number,
     coreVoltage: number,
+    defaultCoreVoltage: number,
     hostname: string,
     hostip: string,
     ssid: string,
@@ -43,9 +44,12 @@ export interface ISystemInfo {
     fallbackStratumPort: number,
     fallbackStratumUser: string,
     isUsingFallbackStratum: boolean,
+    isStratumConnected: boolean,
     frequency: number,
+    defaultFrequency: number,
     version: string,
     invertfanpolarity: number,
+    autofanpolarity: number,
     autofanspeed: number,
     fanspeed: number,
     fanrpm: number,
@@ -56,6 +60,11 @@ export interface ISystemInfo {
     boardtemp1?: number,
     boardtemp2?: number,
     overheat_temp: number,
+
+    pidTargetTemp: number,
+    pidP: number,
+    pidI: number,
+    pidD: number,
 
     history: IHistory
 }

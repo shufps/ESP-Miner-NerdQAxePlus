@@ -20,17 +20,22 @@ bool EMC2101_init(bool invertPolarity)
 
     ESP_LOGI("EMC2101", "Successfully wrote 0x%02X to EMC2101 register 0x%02X", 0x04, EMC2101_REG_CONFIG);
 
-
-    if (invertPolarity) {
-        ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_FAN_CONFIG, 0b00100011));
-    }
+    EMC2101_set_fan_polarity(invertPolarity);
     return true;
+}
+
+bool EMC2101_set_fan_polarity(bool invert) {
+    esp_err_t ret = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_FAN_CONFIG, 0b00100011 | (invert ? 0 : (1<<4)));
+    return ret == ESP_OK;
 }
 
 // takes a fan speed percent
 void EMC2101_set_fan_speed(float percent)
 {
     uint8_t speed;
+
+    if (percent < 0) percent = 0;
+    if (percent > 100) percent = 100;
 
     speed = (uint8_t) (63.0 * percent);
     ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_REG_FAN_SETTING, speed));
@@ -49,12 +54,14 @@ uint16_t EMC2101_get_fan_speed(void)
     // ESP_LOGI(TAG, "Raw Fan Speed = %02X %02X", tach_msb, tach_lsb);
 
     reading = tach_lsb | (tach_msb << 8);
+
+    if (reading == 0xffff) {
+        return 0;
+    }
+
     RPM = 5400000 / reading;
 
     // ESP_LOGI(TAG, "Fan Speed = %d RPM", RPM);
-    if (RPM == 82) {
-        return 0;
-    }
     return RPM;
 }
 

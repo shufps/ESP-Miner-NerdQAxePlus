@@ -403,7 +403,7 @@ lv_obj_t *DisplayDriver::initTDisplayS3(void)
 
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = TDISPLAYS3_PIN_NUM_RST,
-        .color_space = ESP_LCD_COLOR_SPACE_RGB,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .bits_per_pixel = 16,
     };
 
@@ -542,12 +542,17 @@ void DisplayDriver::updateCurrentSettings()
     snprintf(strData, sizeof(strData), "%d", board->getAsicVoltageMillis());
     lv_label_set_text(m_ui->ui_lbVcoreSet, strData); // Update label
 
-    bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
-    if (auto_fan_speed == 1)
-        lv_label_set_text(m_ui->ui_lbFanSet, "AUTO"); // Update label
-    else {
-        snprintf(strData, sizeof(strData), "%d", Config::getFanSpeed());
-        lv_label_set_text(m_ui->ui_lbFanSet, strData); // Update label
+    switch (Config::getTempControlMode()) {
+        case 1:
+            lv_label_set_text(m_ui->ui_lbFanSet, "AUTO"); // Update label
+            break;
+        case 2:
+            lv_label_set_text(m_ui->ui_lbFanSet, "PID"); // Update label
+            break;
+        default:
+            snprintf(strData, sizeof(strData), "%d", Config::getFanSpeed());
+            lv_label_set_text(m_ui->ui_lbFanSet, strData); // Update label
+            break;
     }
 }
 

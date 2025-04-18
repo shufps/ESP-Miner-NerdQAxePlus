@@ -28,6 +28,14 @@
         width: 100%;
     }
 
+    .form-row-separator {
+        @extend .form-row;
+
+        border-top: 1px solid;
+        border-color:var(--card-border-color);
+        padding-top:5px;
+      }
+
     .form-label {
         flex: 0 0 100px;
         text-align: right;
@@ -100,6 +108,7 @@
     .progress-wrap {
         position: relative;
         height: 1rem;
+        margin-left: 10px;
     }
 
     .progress-foreground {

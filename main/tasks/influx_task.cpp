@@ -18,10 +18,10 @@ bool last_block_found = false;
 void uptime_timer_callback(TimerHandle_t xTimer)
 {
     // Increment uptime counters
-    pthread_mutex_lock(&influxdb->lock);
-    influxdb->stats.total_uptime += 1;
-    influxdb->stats.uptime += 1;
-    pthread_mutex_unlock(&influxdb->lock);
+    pthread_mutex_lock(&influxdb->m_lock);
+    influxdb->m_stats.total_uptime += 1;
+    influxdb->m_stats.uptime += 1;
+    pthread_mutex_unlock(&influxdb->m_lock);
 }
 
 void influx_task_set_temperature(float temp, float temp2)
@@ -29,10 +29,10 @@ void influx_task_set_temperature(float temp, float temp2)
     if (!influxdb) {
         return;
     }
-    pthread_mutex_lock(&influxdb->lock);
-    influxdb->stats.temp = temp;
-    influxdb->stats.temp2 = temp2;
-    pthread_mutex_unlock(&influxdb->lock);
+    pthread_mutex_lock(&influxdb->m_lock);
+    influxdb->m_stats.temp = temp;
+    influxdb->m_stats.temp2 = temp2;
+    pthread_mutex_unlock(&influxdb->m_lock);
 }
 
 void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout, float pout)
@@ -40,14 +40,14 @@ void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout
     if (!influxdb) {
         return;
     }
-    pthread_mutex_lock(&influxdb->lock);
-    influxdb->stats.pwr_vin = vin;
-    influxdb->stats.pwr_iin = iin;
-    influxdb->stats.pwr_pin = pin;
-    influxdb->stats.pwr_vout = vout;
-    influxdb->stats.pwr_iout = iout;
-    influxdb->stats.pwr_pout = pout;
-    pthread_mutex_unlock(&influxdb->lock);
+    pthread_mutex_lock(&influxdb->m_lock);
+    influxdb->m_stats.pwr_vin = vin;
+    influxdb->m_stats.pwr_iin = iin;
+    influxdb->m_stats.pwr_pin = pin;
+    influxdb->m_stats.pwr_vout = vout;
+    influxdb->m_stats.pwr_iout = iout;
+    influxdb->m_stats.pwr_pout = pout;
+    pthread_mutex_unlock(&influxdb->m_lock);
 }
 
 static void influx_task_fetch_from_system_module(System *module)
@@ -55,34 +55,34 @@ static void influx_task_fetch_from_system_module(System *module)
     // fetch best difficulty
     float best_diff = module->getBestSessionNonceDiff();
 
-    influxdb->stats.best_difficulty = best_diff;
+    influxdb->m_stats.best_difficulty = best_diff;
 
-    if (best_diff > influxdb->stats.total_best_difficulty) {
-        influxdb->stats.total_best_difficulty = best_diff;
+    if (best_diff > influxdb->m_stats.total_best_difficulty) {
+        influxdb->m_stats.total_best_difficulty = best_diff;
     }
 
     // fetch hashrate
-    influxdb->stats.hashing_speed = module->getCurrentHashrate10m();
+    influxdb->m_stats.hashing_speed = module->getCurrentHashrate10m();
 
     // accepted
-    influxdb->stats.accepted = module->getSharesAccepted();
+    influxdb->m_stats.accepted = module->getSharesAccepted();
 
     // rejected
-    influxdb->stats.not_accepted = module->getSharesRejected();
+    influxdb->m_stats.not_accepted = module->getSharesRejected();
 
     // pool errors
-    influxdb->stats.pool_errors = module->getPoolErrors();
+    influxdb->m_stats.pool_errors = module->getPoolErrors();
 
     // pool difficulty
-    influxdb->stats.difficulty = module->getPoolDifficulty();
+    influxdb->m_stats.difficulty = module->getPoolDifficulty();
 
     // found block
     // firmware sets the flag but never removes it
     // so detect the "edge"
     bool found = module->isFoundBlock();
     if (found && !last_block_found) {
-        influxdb->stats.blocks_found++;
-        influxdb->stats.total_blocks_found++;
+        influxdb->m_stats.blocks_found++;
+        influxdb->m_stats.total_blocks_found++;
     }
     last_block_found = found;
 }
@@ -116,7 +116,8 @@ void influx_task(void *pvParameters)
     ESP_LOGI(TAG, "URL: %s, port: %d, bucket: %s, org: %s, prefix: %s", influxURL, influxPort, influxBucket, influxOrg,
              influxPrefix);
 
-    influxdb = influx_init(influxURL, influxPort, influxToken, influxBucket, influxOrg, influxPrefix);
+    influxdb = new Influx();
+    influxdb->init(influxURL, influxPort, influxToken, influxBucket, influxOrg, influxPrefix);
 
     bool ping_ok = false;
     bool bucket_ok = false;
@@ -124,19 +125,23 @@ void influx_task(void *pvParameters)
     // c can be weird at times :weird-smiley-guy:
     while (1) {
         do {
-            ping_ok = ping_ok || influx_ping(influxdb);
+            ping_ok = ping_ok || influxdb->ping();
             if (!ping_ok) {
                 ESP_LOGE(TAG, "InfluxDB not reachable!");
                 break;
             }
 
-            bucket_ok = bucket_ok || bucket_exists(influxdb);
+            bucket_ok = bucket_ok || influxdb->bucket_exists();
             if (!bucket_ok) {
                 ESP_LOGE(TAG, "Bucket not found!");
+                if (!influxdb->create_bucket()) {
+                    ESP_LOGE(TAG, "Bucket couldn't be created!");
+                    forever();
+                }
                 break;
             }
 
-            loaded_values_ok = loaded_values_ok || load_last_values(influxdb);
+            loaded_values_ok = loaded_values_ok || influxdb->load_last_values();
             if (!loaded_values_ok) {
                 ESP_LOGE(TAG, "loading last values failed");
                 break;
@@ -149,7 +154,7 @@ void influx_task(void *pvParameters)
     }
 
     ESP_LOGI(TAG, "last values: total_uptime: %d, total_best_difficulty: %.3f, total_blocks_found: %d",
-             influxdb->stats.total_uptime, influxdb->stats.total_best_difficulty, influxdb->stats.total_blocks_found);
+             influxdb->m_stats.total_uptime, influxdb->m_stats.total_best_difficulty, influxdb->m_stats.total_blocks_found);
 
     // Create and start the uptime timer with a 1-second period
     TimerHandle_t uptime_timer = xTimerCreate("UptimeTimer", pdMS_TO_TICKS(1000), pdTRUE, (void *) 0, uptime_timer_callback);
@@ -161,10 +166,10 @@ void influx_task(void *pvParameters)
     }
 
     while (1) {
-        pthread_mutex_lock(&influxdb->lock);
+        pthread_mutex_lock(&influxdb->m_lock);
         influx_task_fetch_from_system_module(module);
-        influx_write(influxdb);
-        pthread_mutex_unlock(&influxdb->lock);
+        influxdb->write();
+        pthread_mutex_unlock(&influxdb->m_lock);
         vTaskDelay(15000 / portTICK_PERIOD_MS);
     }
 }

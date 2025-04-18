@@ -169,4 +169,5 @@ float EMC2101_get_external_temp(void);
 uint8_t EMC2101_get_internal_temp(void);
 void EMC2101_set_ideality_factor(uint8_t);
 void EMC2101_set_beta_compensation(uint8_t);
+bool EMC2101_set_fan_polarity(bool invert);
 #endif /* EMC2101_H_ */

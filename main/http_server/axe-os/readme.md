@@ -4,12 +4,12 @@
 
 ```bash
 # start node docker container
-docker run --rm -it -v $(pwd):/app -p 4200:4200 node:18 /bin/bash
+docker run --rm -it --user 1000:1000 -w /app -v $(pwd):/app -p 4200:4200 node:18 /bin/bash
 
 cd /app
 npm install
-npm run build-normal
-npm run start-locally
+npm run build
+npm run start-local
 ```
 
 It will build and expose the compiled app on `http://localhost:4200`

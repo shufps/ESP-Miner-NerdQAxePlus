@@ -38,12 +38,17 @@ NerdAxe::NerdAxe() : Board() {
     m_asicModel = "BM1366";
     m_asicCount = 1;
     m_asicJobIntervalMs = 1500;
-    m_asicFrequency = 485;
-    m_asicVoltageMillis = 1200;
+    m_defaultAsicFrequency = m_asicFrequency = 485;
+    m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1200;
     m_fanInvertPolarity = true;
     m_fanPerc = 100;
     m_flipScreen = true;
     m_numTempSensors = 1;
+
+    m_pidSettings.targetTemp = 55;
+    m_pidSettings.p =  400; // 2.00
+    m_pidSettings.i =   10; // 0.1
+    m_pidSettings.d = 1000; // 10.00
 
     m_maxPin = 15.0;
     m_minPin = 5.0;
@@ -90,6 +95,8 @@ uint8_t NerdAxe::ds4432_tps40305_bitaxe_voltage_to_reg(float vout)
 
 bool NerdAxe::initBoard()
 {
+    Board::initBoard();
+
     ADC_init();
     SERIAL_init();
 
@@ -181,6 +188,10 @@ bool NerdAxe::setVoltage(float core_voltage)
 
 void NerdAxe::setFanSpeed(float perc) {
     EMC2101_set_fan_speed(perc);
+}
+
+void NerdAxe::setFanPolarity(bool invert) {
+    EMC2101_set_fan_polarity(invert);
 }
 
 void NerdAxe::getFanSpeed(uint16_t* rpm) {

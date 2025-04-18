@@ -50,7 +50,7 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
     int chip_counter = count_asics();
-    ESP_LOGI(TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
+    ESP_LOGIE(chip_counter == asic_count, TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
 
     // enable and set version rolling mask to 0xFFFF (again)
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
@@ -120,13 +120,6 @@ int BM1368::setMaxBaud(void)
 }
 
 void BM1368::requestChipTemp() {
-
-    //Reset new initial temp measurement
-    if(m_tempRequest_ACK) {
-        m_maxAsic_temp = 0.0;
-        m_tempRequest_ACK = false;
-    }
-
     send2(CMD_READ_ALL, 0x00, 0xB4);
     send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x80, 0x00, 0x00, 0x00);
     send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x00, 0x02, 0x00, 0x00);

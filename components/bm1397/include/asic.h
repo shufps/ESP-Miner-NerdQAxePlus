@@ -42,6 +42,15 @@
 #define TICKET_MASK 0x14
 #define MISC_CONTROL 0x18
 
+#define ESP_LOGIE(b, tag, fmt, ...)                                                                                                \
+    do {                                                                                                                           \
+        if (b) {                                                                                                                   \
+            ESP_LOGI(tag, fmt, ##__VA_ARGS__);                                                                                     \
+        } else {                                                                                                                   \
+            ESP_LOGE(tag, fmt, ##__VA_ARGS__);                                                                                     \
+        }                                                                                                                          \
+    } while (0)
+
 typedef struct
 {
     uint8_t job_id;
@@ -85,16 +94,12 @@ protected:
     virtual uint8_t asicToJobId(uint8_t asic_id) = 0;
 
 public:
-    bool m_tempRequest_ACK;  
-    float m_maxAsic_temp;
-    
     Asic();
     virtual const char* getName() = 0;
     uint8_t sendWork(uint32_t job_id, bm_job *next_bm_job);
     bool processWork(task_result *result);
     void setJobDifficultyMask(int difficulty);
     bool setAsicFrequency(float frequency);
-    float getMaxChipTemp();
     virtual void requestChipTemp() = 0;
     virtual uint16_t getSmallCoreCount() = 0;
     virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;

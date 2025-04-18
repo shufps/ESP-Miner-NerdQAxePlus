@@ -289,6 +289,10 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
     }
 
     set_content_type_from_file(req, filepath);
+
+    // close connection to prevent clogging
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     strlcat(filepath, ".gz", filePathLength);  // Append .gz extension
 
     int fd = open(filepath, O_RDONLY, 0);
@@ -519,14 +523,29 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
     if (doc["invertfanpolarity"].is<bool>()) {
         Config::setInvertFanPolarity(doc["invertfanpolarity"].as<bool>());
     }
-    if (doc["autofanspeed"].is<bool>()) {
-        Config::setAutoFanSpeed(doc["autofanspeed"].as<bool>());
+    if (doc["autofanpolarity"].is<bool>()) {
+        Config::setAutoFanPolarity(doc["autofanpolarity"].as<bool>());
+    }
+    if (doc["autofanspeed"].is<uint16_t>()) {
+        Config::setTempControlMode(doc["autofanspeed"].as<uint16_t>());
     }
     if (doc["fanspeed"].is<uint16_t>()) {
         Config::setFanSpeed(doc["fanspeed"].as<uint16_t>());
     }
     if (doc["autoscreenoff"].is<bool>()) {
         Config::setAutoScreenOff(doc["autoscreenoff"].as<bool>());
+    }
+    if (doc["pidTargetTemp"].is<uint16_t>()) {
+        Config::setPidTargetTemp(doc["pidTargetTemp"].as<uint16_t>());
+    }
+    if (doc["pidP"].is<float>()) {
+        Config::setPidP((uint16_t) (doc["pidP"].as<float>() * 100.0f));
+    }
+    if (doc["pidI"].is<float>()) {
+        Config::setPidI((uint16_t) (doc["pidI"].as<float>() * 100.0f));
+    }
+    if (doc["pidD"].is<float>()) {
+        Config::setPidD((uint16_t) (doc["pidD"].as<float>() * 100.0f));
     }
 
     doc.clear();
@@ -729,12 +748,21 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
     doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
     doc["coreVoltage"]        = board->getAsicVoltageMillis();
+    doc["defaultCoreVoltage"] = board->getDefaultAsicVoltageMillis();
     doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
     doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
     doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
     doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
+    doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
+
+    PidSettings *pid = board->getPidSettings();
+    doc["pidTargetTemp"]      = board->isPIDAvailable() ? pid->targetTemp : -1;
+    doc["pidP"]               = (float) pid->p / 100.0f;
+    doc["pidI"]               = (float) pid->i / 100.0f;
+    doc["pidD"]               = (float) pid->d / 100.0f;
+
 
     // If history was requested, add the history data as a nested object
     if (history_requested) {
@@ -753,13 +781,15 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["fallbackStratumUser"] = fallbackStratumUser;
     doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
     doc["frequency"]          = board->getAsicFrequency();
+    doc["defaultFrequency"]   = board->getDefaultAsicFrequency();
     doc["jobInterval"]        = board->getAsicJobIntervalMs();
     doc["overheat_temp"]      = Config::getOverheatTemp();
     doc["flipscreen"]         = board->isFlipScreenEnabled() ? 1 : 0;
     doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
     doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
-    doc["autofanspeed"]       = Config::isAutoFanSpeedEnabled() ? 1 : 0;
+    doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
+    doc["autofanspeed"]       = Config::getTempControlMode();
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -771,6 +801,9 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
 
     //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+
+    // close connection to prevent clogging
+    httpd_resp_set_hdr(req, "Connection", "close");
 
     // Serialize the JSON document to a String and send it
     esp_err_t ret = sendJsonResponse(req, doc);

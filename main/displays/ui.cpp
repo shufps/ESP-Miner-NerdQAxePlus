@@ -440,7 +440,7 @@ void UI::bTCScreenInit(void)
     ui_lblHashPrice = lv_label_create(ui_BTCScreen);
     lv_obj_set_width(ui_lblHashPrice, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_lblHashPrice, LV_SIZE_CONTENT); /// 1
-    lv_obj_set_x(ui_lblHashPrice, 236);
+    lv_obj_set_x(ui_lblHashPrice, 223);
     lv_obj_set_y(ui_lblHashPrice, -63);
     lv_obj_set_align(ui_lblHashPrice, LV_ALIGN_LEFT_MID);
     lv_label_set_text(ui_lblHashPrice, "500,0");

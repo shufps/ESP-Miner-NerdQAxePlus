@@ -3,6 +3,7 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "board.h"
+#include "./drivers/TPS53647.h"
 
 class NerdQaxePlus : public Board {
   protected:
@@ -16,6 +17,8 @@ class NerdQaxePlus : public Board {
 
     int detectNumTempSensors();
 
+    TPS53647 *m_tps;
+
   public:
     NerdQaxePlus();
 
@@ -27,11 +30,13 @@ class NerdQaxePlus : public Board {
 // abstract common methos
     virtual bool setVoltage(float core_voltage);
 
+    virtual void setFanPolarity(bool invert);
     virtual void setFanSpeed(float perc);
     virtual void getFanSpeed(uint16_t *rpm);
 
     virtual float getTemperature(int index);
     virtual float getVRTemp();
+    virtual bool isPIDAvailable() { return true; }
 
     virtual float getVin();
     virtual float getIin();

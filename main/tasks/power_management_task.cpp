@@ -43,24 +43,124 @@ void PowerManagementTask::restart() {
     pthread_mutex_unlock(&m_mutex);
 }
 
+void PowerManagementTask::requestChipTemps() {
+    static uint64_t last_temp_request = esp_timer_get_time();
+
+    Board* board = SYSTEM_MODULE.getBoard();
+    Asic* asics = board->getAsics();
+
+    // request chip temps and buck telemetry all 15s
+    if (esp_timer_get_time() - last_temp_request > 15000000llu) {
+        if (asics) {
+            asics->requestChipTemp();
+        }
+        board->requestBuckTelemtry();
+        last_temp_request = esp_timer_get_time();
+    }
+}
+
+void PowerManagementTask::checkCoreVoltageChanged() {
+    static uint16_t last_core_voltage = 0;
+
+    Board* board = SYSTEM_MODULE.getBoard();
+
+    uint16_t core_voltage = board->getAsicVoltageMillis();
+
+    if (core_voltage != last_core_voltage) {
+        ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
+        board->setVoltage((float) core_voltage / 1000.0);
+        last_core_voltage = core_voltage;
+    }
+}
+
+void PowerManagementTask::checkAsicFrequencyChanged() {
+    static uint16_t last_asic_frequency = 0;
+
+    Board* board = SYSTEM_MODULE.getBoard();
+    Asic* asics = board->getAsics();
+
+    uint16_t asic_frequency = board->getAsicFrequency();
+
+    if (asic_frequency != last_asic_frequency) {
+        ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
+        if (asics && !asics->setAsicFrequency((float) asic_frequency)) {
+            ESP_LOGE(TAG, "pll setting not found for %uMHz", asic_frequency);
+        }
+        last_asic_frequency = asic_frequency;
+    }
+}
+
+void PowerManagementTask::checkPidSettingsChanged() {
+    static PidSettings oldPidSettings = {0, 0, 0, 0};
+
+    Board* board = SYSTEM_MODULE.getBoard();
+    PidSettings *pidSettings = board->getPidSettings();
+
+    // we can use memcmp because we have a packed struct
+    if (memcmp(pidSettings, &oldPidSettings, sizeof(PidSettings)) != 0) {
+        ESP_LOGI(TAG, "PID settings change detected");
+
+        float pidP = (float) pidSettings->p / 100.0f;
+        float pidI = (float) pidSettings->i / 100.0f;
+        float pidD = (float) pidSettings->d / 100.0f;
+
+        m_pid->SetTunings(pidP, pidI, pidD);
+        m_pid->SetTarget((float) pidSettings->targetTemp);
+        ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pid->GetTarget(), m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());        oldPidSettings = *pidSettings;
+    }
+}
+
 void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
 
+    // use manual invert polarity setting
+    bool invert = board->isInvertFanPolarityEnabled();
+
+    // and overwrite it if auto detection is enabled and
+    // test was conclusive
+    if (board->isAutoFanPolarityEnabled()) {
+        switch (board->guessFanPolarity()) {
+            case POLARITY_NORMAL:
+                invert = false;
+                break;
+            case POLARITY_INVERTED:
+                invert = true;
+                break;
+            case POLARITY_UNKNOWN:
+                // nop, we couldn't detect it
+                break;
+        }
+    }
+    board->setFanPolarity(invert);
+
+    // pointer to pid settings
+    PidSettings *pidSettings = board->getPidSettings();
+
+    float pid_input = 0.0;
+    float pid_output = 0.0;
+    float pid_target = (float) pidSettings->targetTemp;
+
+    float pidP = (float) pidSettings->p / 100.0f;
+    float pidI = (float) pidSettings->i / 100.0f;
+    float pidD = (float) pidSettings->d / 100.0f;
+
+    m_pid = new PID(&pid_input, &pid_output, &pid_target, pidP, pidI, pidD, P_ON_E, DIRECT);
+    m_pid->SetSampleTime(POLL_RATE);
+    m_pid->SetOutputLimits(15, 100);
+    m_pid->SetMode(AUTOMATIC);
+    m_pid->SetControllerDirection(REVERSE);
+    m_pid->Initialize();
+
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-    uint16_t last_core_voltage = 0.0;
-    uint16_t last_asic_frequency = 0;
-    uint64_t last_temp_request = esp_timer_get_time();
     while (1) {
         pthread_mutex_lock(&m_mutex);
         // the asics are initialized after this task starts
         Asic* asics = board->getAsics();
 
-        uint16_t core_voltage = board->getAsicVoltageMillis();
-        uint16_t asic_frequency = board->getAsicFrequency();
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
-        bool auto_fan_speed = Config::isAutoFanSpeedEnabled();
+        uint16_t temp_control_mode = Config::getTempControlMode();
 
         // overwrite previously allowed 0 value to disable
         // over-temp shutdown
@@ -68,28 +168,17 @@ void PowerManagementTask::task()
             asic_overheat_temp = 70;
         }
 
-        if (core_voltage != last_core_voltage) {
-            ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
-            board->setVoltage((float) core_voltage / 1000.0);
-            last_core_voltage = core_voltage;
-        }
+        // check if asic voltage changed
+        checkCoreVoltageChanged();
 
-        if (asic_frequency != last_asic_frequency) {
-            ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
-            if (asics && !asics->setAsicFrequency((float) asic_frequency)) {
-                ESP_LOGE(TAG, "pll setting not found for %uMHz", asic_frequency);
-            }
-            last_asic_frequency = asic_frequency;
-        }
+        // check if asic frequency changed
+        checkAsicFrequencyChanged();
 
-        // request chip temps and buck telemetry all 15s
-        if (esp_timer_get_time() - last_temp_request > 15000000llu) {
-            if (asics) {
-                asics->requestChipTemp();
-            }
-            board->requestBuckTelemtry();
-            last_temp_request = esp_timer_get_time();
-        }
+        // check if pid settings changed
+        checkPidSettingsChanged();
+
+        // request chip temps
+        requestChipTemps();
 
         float vin = board->getVin();
         float iin = board->getIin();
@@ -135,7 +224,7 @@ void PowerManagementTask::task()
         //Get the readed MaxChipTemp of all chained chips after
         //calling requestChipTemp()
         //IMPORTANT: this value only makes sense with BM1368 ASIC, with other Asics will remain at 0
-        float intChipTempMax = asics ? asics->getMaxChipTemp() : 0.0f;
+        float intChipTempMax = board->getMaxChipTemp();
 
         // Uses the worst case between board temp sensor or Asic temp read command
         m_chipTempMax = std::max(tmp1075Max, intChipTempMax);
@@ -156,11 +245,32 @@ void PowerManagementTask::task()
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
-        if (auto_fan_speed) {
-            m_fanPerc = board->automaticFanSpeed(m_chipTempMax);
-        } else {
-            m_fanPerc = (float) Config::getFanSpeed();
-            board->setFanSpeed(m_fanPerc / 100.0f);
+        // we let the PID always calculate for "bumpless transfer"
+        // when switching modes
+        pid_input = std::max(m_chipTempMax, m_vrTemp);
+        m_pid->Compute();
+
+        switch (temp_control_mode) {
+            case 1:
+                // classic automatic fan control
+                m_fanPerc = board->automaticFanSpeed(m_chipTempMax);
+                board->setFanSpeed(m_fanPerc / 100.0f);
+                break;
+            case 2:
+                // pid
+                m_fanPerc = roundf(pid_output);
+                board->setFanSpeed(m_fanPerc / 100.0f);
+                //ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
+                //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
+                break;
+            default:
+                ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual.", temp_control_mode);
+                [[fallthrough]];
+            case 0:
+                // manual
+                m_fanPerc = (float) Config::getFanSpeed();
+                board->setFanSpeed(m_fanPerc / 100.0f);
+                break;
         }
         pthread_mutex_unlock(&m_mutex);
 

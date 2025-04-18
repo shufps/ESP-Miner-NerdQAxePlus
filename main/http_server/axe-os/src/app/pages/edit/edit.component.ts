@@ -1,7 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, OnInit, TemplateRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-//import { ToastrService } from 'ngx-toastr';
 import { startWith, catchError, of } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
@@ -32,6 +31,29 @@ export class EditComponent implements OnInit {
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
 
+  public defaultFrequency: number = 0;
+  public defaultCoreVoltage: number = 0;
+
+  private originalSettings!: any;
+
+  private rebootRequiredFields = new Set<string>([
+    'flipscreen',
+    'invertscreen',
+    'autoscreenoff',
+    'hostname',
+    'ssid',
+    'wifiPass',
+    'wifiStatus',
+    'stratumURL',
+    'stratumPort',
+    'stratumUser',
+    'fallbackStratumURL',
+    'fallbackStratumPort',
+    'fallbackStratumUser',
+    'invertfanpolarity',
+    'autofanpolarity',
+  ]);
+
   @Input() uri = '';
 
   constructor(
@@ -47,11 +69,16 @@ export class EditComponent implements OnInit {
     this.systemService.getInfo(0, this.uri)
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
+        this.originalSettings = structuredClone(info);
+
         this.ASICModel = info.ASICModel;
 
+        this.defaultFrequency = info.defaultFrequency ?? 0;
+        this.defaultCoreVoltage = info.defaultCoreVoltage ?? 0;
+
         // Assemble dropdown options
-        this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(), info.frequency);
-        this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(), info.coreVoltage);
+        this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(this.defaultFrequency), info.frequency);
+        this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(this.defaultCoreVoltage), info.coreVoltage);
 
         // fix setting where we allowed to disable temp shutdown
         if (info.overheat_temp == 0) {
@@ -98,8 +125,29 @@ export class EditComponent implements OnInit {
           coreVoltage: [info.coreVoltage, [Validators.min(1005), Validators.max(1400), Validators.required]],
           frequency: [info.frequency, [Validators.required]],
           jobInterval: [info.jobInterval, [Validators.required]],
-          autofanspeed: [info.autofanspeed == 1, [Validators.required]],
+          autofanspeed: [info.autofanspeed ?? 0, [Validators.required]],
+          pidTargetTemp: [info.pidTargetTemp ?? 55, [
+            Validators.min(30),
+            Validators.max(80),
+            Validators.required
+          ]],
+          pidP: [info.pidP ?? 6, [
+            Validators.min(0),
+            Validators.max(100),
+            Validators.required
+          ]],
+          pidI: [info.pidI ?? 0.1, [
+            Validators.min(0),
+            Validators.max(10),
+            Validators.required
+          ]],
+          pidD: [info.pidD ?? 10, [
+            Validators.min(0),
+            Validators.max(100),
+            Validators.required
+          ]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
+          autofanpolarity: [info.autofanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],
           overheat_temp: [info.overheat_temp, [
             Validators.min(40),
@@ -107,21 +155,47 @@ export class EditComponent implements OnInit {
             Validators.required]]
         });
 
-        this.form.controls['autofanspeed'].valueChanges.pipe(
-          startWith(this.form.controls['autofanspeed'].value)
-        ).subscribe(autofanspeed => {
-          if (autofanspeed) {
-            this.form.controls['fanspeed'].disable();
-          } else {
-            this.form.controls['fanspeed'].enable();
-          }
-        });
+        this.form.controls['autofanspeed'].valueChanges
+          .pipe(startWith(this.form.controls['autofanspeed'].value))
+          .subscribe(() => this.updatePIDFieldStates());
+
+        this.updatePIDFieldStates();
       });
   }
 
+  private updatePIDFieldStates(): void {
+    const mode = this.form.controls['autofanspeed'].value;
+    const enable = (ctrl: string) => this.form.controls[ctrl]?.enable({ emitEvent: false });
+    const disable = (ctrl: string) => this.form.controls[ctrl]?.disable({ emitEvent: false });
+
+    if (mode === 0) {
+      enable('fanspeed');
+      disable('pidTargetTemp');
+      disable('pidP');
+      disable('pidI');
+      disable('pidD');
+    } else if (mode === 1) {
+      disable('fanspeed');
+      disable('pidTargetTemp');
+      disable('pidP');
+      disable('pidI');
+      disable('pidD');
+    } else if (mode === 2) {
+      disable('fanspeed');
+      enable('pidTargetTemp');
+      if (this.devToolsOpen) {
+        enable('pidP');
+        enable('pidI');
+        enable('pidD');
+      } else {
+        disable('pidP');
+        disable('pidI');
+        disable('pidD');
+      }
+    }
+  }
 
   public updateSystem() {
-
     const form = this.form.getRawValue();
 
     // Allow an empty wifi password
@@ -146,6 +220,42 @@ export class EditComponent implements OnInit {
       });
   }
 
+  get requiresReboot(): boolean {
+    if (!this.form || !this.originalSettings) return false;
+
+    const current = this.form.getRawValue();
+
+    for (const key of this.rebootRequiredFields) {
+      if (!(key in current)) {
+        continue;
+      }
+
+      const currentValue = this.normalizeValue(current[key]);
+      const originalValue = this.normalizeValue(this.originalSettings[key]);
+
+      // Special case: masked password fields
+      if (typeof currentValue === 'string' && currentValue === '*****') {
+        continue; // User hasn't changed this field
+      }
+
+      if (currentValue !== originalValue) {
+        console.log(`Mismatch on key: ${key}`, currentValue, originalValue);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
+  private normalizeValue(value: any): any {
+    if (typeof value === 'boolean') {
+      return value ? 1 : 0;
+    }
+    return value;
+  }
+
+
   showStratumPassword: boolean = false;
   toggleStratumPasswordVisibility() {
     this.showStratumPassword = !this.showStratumPassword;
@@ -164,17 +274,18 @@ export class EditComponent implements OnInit {
   public setDevToolsOpen(state: boolean) {
     this.devToolsOpen = state;
     console.log('Advanced Mode:', state); // Debugging output
-    this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(), this.form.controls['frequency'].value);
-    this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(), this.form.controls['coreVoltage'].value);
+    this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(this.defaultFrequency), this.form.controls['frequency'].value);
+    this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(this.defaultCoreVoltage), this.form.controls['coreVoltage'].value);
+    this.updatePIDFieldStates();
   }
 
   public isVoltageTooHigh(): boolean {
-    const maxVoltage = Math.max(...this.getPredefinedVoltages().map(v => v.value));
+    const maxVoltage = Math.max(...this.getPredefinedVoltages(this.defaultCoreVoltage).map(v => v.value));
     return this.form?.controls['coreVoltage'].value > maxVoltage;
   }
 
   public isFrequencyTooHigh(): boolean {
-    const maxFrequency = Math.max(...this.getPredefinedFrequencies().map(f => f.value));
+    const maxFrequency = Math.max(...this.getPredefinedFrequencies(this.defaultFrequency).map(f => f.value));
     return this.form?.controls['frequency'].value > maxFrequency;
   }
 
@@ -211,84 +322,51 @@ export class EditComponent implements OnInit {
   /**
    * Returns predefined frequencies based on the current ASIC model.
    */
-  private getPredefinedFrequencies(): { name: string, value: number }[] {
+  private getPredefinedFrequencies(defaultValue: number): { name: string, value: number }[] {
+    let values: number[] = [];
     switch (this.ASICModel) {
       case eASICModel.BM1366:
-        return [
-          { name: '400', value: 400 },
-          { name: '425', value: 425 },
-          { name: '450', value: 450 },
-          { name: '475', value: 475 },
-          { name: '485 (default)', value: 485 },
-          { name: '500', value: 500 },
-          { name: '525', value: 525 },
-          { name: '550', value: 550 },
-          { name: '575', value: 575 }
-        ];
+        values = [400, 425, 450, 475, 485, 500, 525, 550, 575];
+        break;
       case eASICModel.BM1368:
-        return [
-          { name: '400', value: 400 },
-          { name: '425', value: 425 },
-          { name: '450', value: 450 },
-          { name: '475', value: 475 },
-          { name: '490 (default)', value: 490 },
-          { name: '500', value: 500 },
-          { name: '525', value: 525 },
-          { name: '550', value: 550 },
-          { name: '575', value: 575 }
-        ];
+        values = [400, 425, 450, 475, 490, 500, 525, 550, 575];
+        break;
       case eASICModel.BM1370:
-        return [
-          { name: '500', value: 500 },
-          { name: '525', value: 525 },
-          { name: '550', value: 550 },
-          { name: '575', value: 575 },
-          { name: '590', value: 590 },
-          { name: '600 (default)', value: 600 }
-        ];
+        values = [500, 515, 525, 550, 575, 590, 600];
+        break;
       default:
         return [];
     }
+    return values.map(val => ({
+      name: val === defaultValue ? `${val} (default)` : `${val}`,
+      value: val
+    }));
   }
 
   /**
    * Returns predefined core voltages based on the current ASIC model.
    */
-  private getPredefinedVoltages(): { name: string, value: number }[] {
+  private getPredefinedVoltages(defaultValue: number): { name: string, value: number }[] {
+    let values: number[] = [];
     switch (this.ASICModel) {
       case eASICModel.BM1366:
-        return [
-          { name: '1100', value: 1100 },
-          { name: '1150', value: 1150 },
-          { name: '1200 (default)', value: 1200 },
-          { name: '1250', value: 1250 },
-          { name: '1300', value: 1300 }
-        ];
+        values = [1100, 1150, 1200, 1250, 1300];
+        break;
       case eASICModel.BM1368:
-        return [
-          { name: '1100', value: 1100 },
-          { name: '1150', value: 1150 },
-          { name: '1200', value: 1200 },
-          { name: '1250 (default)', value: 1250 },
-          { name: '1300', value: 1300 },
-          { name: '1350', value: 1350 }
-        ];
+        values = [1100, 1150, 1200, 1250, 1300, 1350];
+        break;
       case eASICModel.BM1370:
-        return [
-          { name: '1120', value: 1120 },
-          { name: '1130', value: 1130 },
-          { name: '1140', value: 1140 },
-          { name: '1150 (default)', value: 1150 },
-          { name: '1160', value: 1160 },
-          { name: '1170', value: 1170 },
-          { name: '1180', value: 1180 },
-          { name: '1190', value: 1190 },
-          { name: '1200', value: 1200 },
-        ];
+        values = [1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200];
+        break;
       default:
         return [];
     }
+    return values.map(val => ({
+      name: val === defaultValue ? `${val} (default)` : `${val}`,
+      value: val
+    }));
   }
+
 
   public restart() {
     this.systemService.restart().pipe(
