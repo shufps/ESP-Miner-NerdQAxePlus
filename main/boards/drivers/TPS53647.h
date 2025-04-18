@@ -33,6 +33,8 @@ public:
 
     virtual bool init(int num_phases, int imax, float ifault);
 
+    void clear_faults();
+
     float get_temperature();
     float get_pin();
     float get_pout();
