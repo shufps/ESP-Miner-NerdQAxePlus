@@ -48,6 +48,7 @@ const defaultInfo: ISystemInfo = {
   fallbackStratumPort: 3333,
   fallbackStratumUser: "",
   isUsingFallbackStratum: false,
+  isStratumConnected: false,
   frequency: 485,
   defaultFrequency: 485,
   version: "2.0",

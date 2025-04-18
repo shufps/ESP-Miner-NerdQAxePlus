@@ -33,37 +33,43 @@
       </div>
 
       <!-- Shares Card -->
-<!-- Shares Card -->
-<div class="col-12 col-lg-6 col-xl-3">
-  <nb-card class="h-100">
-    <nb-card-header>
-      <div class="d-flex justify-content-between align-items-center" style="position:relative">
-        <span class="text-hint">Shares</span>
-        <!-- pool status badge -->
-        <nb-badge
-          [text]="info.isUsingFallbackStratum ? 'Secondary Pool' : 'Primary Pool'"
-          [status]="info.isUsingFallbackStratum ? 'warning': 'success'">
-        </nb-badge>
+      <!-- Shares Card -->
+      <div class="col-12 col-lg-6 col-xl-3">
+        <nb-card class="h-100">
+          <nb-card-header style="position: relative;">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-hint">Shares</span>
+              <nb-badge [text]="
+            !info.isStratumConnected
+              ? 'Disconnected'
+              : (info.isUsingFallbackStratum ? 'Fallback Pool' : 'Primary Pool')
+          " [status]="
+            !info.isStratumConnected
+              ? 'danger'
+              : (info.isUsingFallbackStratum ? 'warning' : 'success')
+          " size="small" position="top end">
+              </nb-badge>
+            </div>
+          </nb-card-header>
+
+          <nb-card-body>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <div class="font-weight-bold text-lg">{{ info.sharesAccepted }}</div>
+              </div>
+              <div class="d-flex align-items-center justify-content-center bg-blue-100 rounded-circle"
+                style="width: 2.5rem; height: 2.5rem;">
+                <nb-icon icon="navigation-2-outline" pack="eva" class="blue-500"></nb-icon>
+              </div>
+            </div>
+            <span class="text-danger">{{ info.sharesRejected }}</span>
+            <span class="text-hint">&nbsp;rejected</span>&nbsp;
+            <span class="text-hint">
+              ({{ (info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2' }}%)
+            </span>
+          </nb-card-body>
+        </nb-card>
       </div>
-    </nb-card-header>
-    <nb-card-body>
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <div class="font-weight-bold text-lg">{{ info.sharesAccepted }}</div>
-        </div>
-        <div class="d-flex align-items-center justify-content-center bg-blue-100 rounded-circle"
-             style="width: 2.5rem; height: 2.5rem;">
-          <nb-icon icon="navigation-2-outline" pack="eva" class="blue-500"></nb-icon>
-        </div>
-      </div>
-      <span class="text-danger">{{ info.sharesRejected }}</span>
-      <span class="text-hint">&nbsp;rejected</span>&nbsp;
-      <span class="text-hint">
-        ({{ (info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2' }}%)
-      </span>
-    </nb-card-body>
-  </nb-card>
-</div>
 
 
       <!-- Efficiency Card -->
@@ -143,8 +149,8 @@
                   [label]="'Power'" [format]="'1.1-1'"></app-gauge>
               </div>
               <div class="col-4">
-                <app-gauge [value]="info.voltage" [format]="'1.1-1'" [min]="info.minVoltage" [max]="info.maxVoltage" [unit]="'V'"
-                  [label]="'Input Voltage'"></app-gauge>
+                <app-gauge [value]="info.voltage" [format]="'1.1-1'" [min]="info.minVoltage" [max]="info.maxVoltage"
+                  [unit]="'V'" [label]="'Input Voltage'"></app-gauge>
               </div>
               <div class="col-4">
                 <app-gauge [value]="info.coreVoltage" [min]="0.9" [max]="1.8" [unit]="'V'"
@@ -164,16 +170,20 @@
           <nb-card-body class="no-scroll">
             <div class="row text-center">
               <div class="col-6">
-                <app-gauge [value]="info.temp" [min]="20" [max]="75" [format]="'1.1-1'" [unit]="'°C'" [label]="'ASIC Temp'"></app-gauge>
+                <app-gauge [value]="info.temp" [min]="20" [max]="75" [format]="'1.1-1'" [unit]="'°C'"
+                  [label]="'ASIC Temp'"></app-gauge>
               </div>
               <div class="col-6" *ngIf="info.vrTemp > 0">
-                <app-gauge [value]="info.vrTemp" [min]="20" [max]="145" [format]="'1.1-1'" [unit]="'°C'" [label]="'VR Temp'"></app-gauge>
+                <app-gauge [value]="info.vrTemp" [min]="20" [max]="145" [format]="'1.1-1'" [unit]="'°C'"
+                  [label]="'VR Temp'"></app-gauge>
               </div>
               <div class="col-6">
-                <app-gauge [value]="info.fanspeed" [min]="0" [format]="'1.0-0'" [max]="100" [unit]="'%'" [label]="'Fan Speed'"></app-gauge>
+                <app-gauge [value]="info.fanspeed" [min]="0" [format]="'1.0-0'" [max]="100" [unit]="'%'"
+                  [label]="'Fan Speed'"></app-gauge>
               </div>
               <div class="col-6">
-                <app-gauge [value]="info.fanrpm" [format]="'1.0-0'" [min]="0" [max]="20000" [unit]="'RPM'" [label]="'Fan RPM'"></app-gauge>
+                <app-gauge [value]="info.fanrpm" [format]="'1.0-0'" [min]="0" [max]="20000" [unit]="'RPM'"
+                  [label]="'Fan RPM'"></app-gauge>
               </div>
             </div>
           </nb-card-body>
@@ -203,54 +213,77 @@
     </div>
 
 
-      <!-- Pool Information & Uptime Row -->
-  <div class="row mt-4 d-flex align-items-stretch">
-    <!-- Pool Information Card -->
-    <div class="col-12 col-lg-6">
-      <nb-card class="h-100">
-        <nb-card-header>
-          <span class="text-hint">
-            Pool Information ({{ info.isUsingFallbackStratum ? 'Fallback' : 'Primary' }})
-          </span>
-        </nb-card-header>
-        <nb-card-body>
-          <table class="w-100">
-            <ng-container *ngIf="!info.isUsingFallbackStratum; else fallback">
-              <tr>
-                <td class="text-hint">URL:</td>
-                <td style="word-break: break-all;">
-                  <a [href]="quickLink$ | async" target="_blank">{{ info.stratumURL }}</a>
-                </td>
-              </tr>
-              <tr>
-                <td class="text-hint">Port:</td>
-                <td>{{ info.stratumPort }}</td>
-              </tr>
-              <tr>
-                <td class="text-hint">User:</td>
-                <td>{{ info.stratumUser }}</td>
-              </tr>
-            </ng-container>
-            <ng-template #fallback>
-              <tr>
-                <td class="text-hint">URL:</td>
-                <td style="word-break: break-all;">
-                  <a [href]="(fallbackQuickLink$ | async) || info.fallbackStratumURL"
-                     target="_blank">{{ info.fallbackStratumURL }}</a>
-                </td>
-              </tr>
-              <tr>
-                <td class="text-hint">Port:</td>
-                <td>{{ info.fallbackStratumPort }}</td>
-              </tr>
-              <tr>
-                <td class="text-hint">User:</td>
-                <td>{{ info.fallbackStratumUser }}</td>
-              </tr>
-            </ng-template>
-          </table>
-        </nb-card-body>
-      </nb-card>
+    <!-- Pool Information & Uptime Row -->
+    <!-- Pool Information Row -->
+    <div class="row mt-4 d-flex align-items-stretch">
+      <!-- Pool Information Card -->
+      <div class="col-12 col-lg-6">
+        <!-- Connected? -->
+        <ng-container *ngIf="info.isStratumConnected; else disconnected">
+          <nb-card class="h-100">
+            <nb-card-header>
+              <span class="text-hint">
+                Pool Information ({{ info.isUsingFallbackStratum ? 'Fallback' : 'Primary' }})
+              </span>
+            </nb-card-header>
+            <nb-card-body>
+              <table class="w-100">
+                <ng-container *ngIf="!info.isUsingFallbackStratum; else fallback">
+                  <tr>
+                    <td class="text-hint">Host:</td>
+                    <td style="word-break: break-all;">
+                      <a [href]="quickLink$ | async" target="_blank">
+                        {{ info.stratumURL }}
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="text-hint">Port:</td>
+                    <td>{{ info.stratumPort }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-hint">User:</td>
+                    <td>{{ info.stratumUser }}</td>
+                  </tr>
+                </ng-container>
+                <ng-template #fallback>
+                  <tr>
+                    <td class="text-hint">Host:</td>
+                    <td style="word-break: break-all;">
+                      <a [href]="(fallbackQuickLink$ | async) || info.fallbackStratumURL" target="_blank">
+                        {{ info.fallbackStratumURL }}
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="text-hint">Port:</td>
+                    <td>{{ info.fallbackStratumPort }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-hint">User:</td>
+                    <td>{{ info.fallbackStratumUser }}</td>
+                  </tr>
+                </ng-template>
+              </table>
+            </nb-card-body>
+          </nb-card>
+        </ng-container>
+
+        <!-- Disconnected -->
+        <ng-template #disconnected>
+          <nb-card class="h-100">
+            <nb-card-header>
+              <span class="text-hint">Pool Information</span>
+            </nb-card-header>
+            <nb-card-body>
+              <nb-alert status="danger" size="small" class="mb-0">
+                Stratum not connected. Pool info unavailable.
+              </nb-alert>
+            </nb-card-body>
+          </nb-card>
+        </ng-template>
+      </div>
     </div>
+
+
   </div>
-</div>
