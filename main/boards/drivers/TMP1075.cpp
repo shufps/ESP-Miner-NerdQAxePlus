@@ -21,7 +21,7 @@ static const char *TAG = "TMP1075.c";
 // don't ask me why simpler single-line calls didn't work :shrug:
 static esp_err_t TMP1075_smb_read_word(uint8_t device, uint8_t reg, uint16_t *result)
 {
-    uint8_t data[2];
+    uint8_t data[2] = {0, 0};
     esp_err_t err;
 
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -45,12 +45,19 @@ static esp_err_t TMP1075_smb_read_word(uint8_t device, uint8_t reg, uint16_t *re
 
 float TMP1075_read_temperature(int device_index)
 {
-    uint16_t temp_raw;
+    uint16_t temp_raw = 0;
     int ret = TMP1075_smb_read_word(device_index, TMP1075_TEMP_REG, &temp_raw);
 
     if (ret != ESP_OK) {
         ESP_LOGI(TAG, "Failed to read temperature from TMP1075");
         return 0.0f;
     }
+
+    // check for invalid reading
+    if (temp_raw > 0x7ff0) {
+        ESP_LOGI(TAG, "Invalid TMP1075 reading: %04x", temp_raw);
+        return 0.0f;
+    }
+
     return (temp_raw >> 4) * 0.0625f; // Each bit represents 0.0625°C
 }
