@@ -162,9 +162,6 @@ bool NerdQaxePlus::initAsics()
     // set final output voltage
     setVoltage((float) m_asicVoltageMillis / 1000.0f);
 
-    // clear all fault flags
-    m_tps->clear_faults();
-
     m_isInitialized = true;
     return true;
 }

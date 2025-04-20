@@ -269,6 +269,9 @@ bool TPS53647::init(int num_phases, int imax, float ifault)
 
     ESP_LOGI(TAG, "found TPS53647 controller");
 
+    // clear flags
+    write_command(PMBUS_CLEAR_FAULTS);
+
     // restore all from nvm
     write_command(PMBUS_RESTORE_DEFAULT_ALL);
 
@@ -325,7 +328,7 @@ void TPS53647::power_disable()
 
 
 void TPS53647::clear_faults() {
-    write_byte(PMBUS_CLEAR_FAULTS, 0xff);
+    write_command(PMBUS_CLEAR_FAULTS);
 }
 
 
