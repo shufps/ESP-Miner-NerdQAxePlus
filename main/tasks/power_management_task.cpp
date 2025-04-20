@@ -31,7 +31,7 @@ void PowerManagementTask::taskWrapper(void *pvParameters) {
 void PowerManagementTask::restart() {
     ESP_LOGW(TAG, "Shutdown requested ...");
     // stops the main task
-    pthread_mutex_lock(&m_mutex);
+    lock();
 
     ESP_LOGW(TAG, "HW lock acquired!");
     // shutdown asics and LDOs before reset
@@ -40,7 +40,7 @@ void PowerManagementTask::restart() {
 
     ESP_LOGW(TAG, "restart");
     esp_restart();
-    pthread_mutex_unlock(&m_mutex);
+    unlock();
 }
 
 void PowerManagementTask::requestChipTemps() {
@@ -120,6 +120,7 @@ void PowerManagementTask::task()
     // and overwrite it if auto detection is enabled and
     // test was conclusive
     if (board->isAutoFanPolarityEnabled()) {
+        lock();
         switch (board->guessFanPolarity()) {
             case POLARITY_NORMAL:
                 invert = false;
@@ -131,6 +132,7 @@ void PowerManagementTask::task()
                 // nop, we couldn't detect it
                 break;
         }
+        unlock();
     }
     board->setFanPolarity(invert);
 
@@ -155,7 +157,7 @@ void PowerManagementTask::task()
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
     while (1) {
-        pthread_mutex_lock(&m_mutex);
+        lock();
         // the asics are initialized after this task starts
         Asic* asics = board->getAsics();
 
@@ -272,7 +274,7 @@ void PowerManagementTask::task()
                 board->setFanSpeed(m_fanPerc / 100.0f);
                 break;
         }
-        pthread_mutex_unlock(&m_mutex);
+        unlock();
 
         vTaskDelay(POLL_RATE / portTICK_PERIOD_MS);
     }
