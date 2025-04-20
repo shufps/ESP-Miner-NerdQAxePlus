@@ -213,9 +213,11 @@ extern "C" void app_main(void)
         wifi_softap_off();
 
         // and continue with initialization
+        POWER_MANAGEMENT_MODULE.lock();
         if (!board->initAsics()) {
             ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
         }
+        POWER_MANAGEMENT_MODULE.unlock();
 
         TaskHandle_t stratum_manager_handle;
 
