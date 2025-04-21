@@ -59,8 +59,19 @@ static int fd = -1;
         }                                                                                                                          \
     } while (0)
 
+#ifdef CONFIG_SPIRAM
+#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
+#define CALLOC(s, t) heap_caps_calloc(s, t, MALLOC_CAP_SPIRAM)
+#define FREE(p) do { if (p) { heap_caps_free(p); (p) = NULL; } } while (0)
+#else
+#define ALLOC(s) malloc(s)
+#define CALLOC(s, t) calloc(s, t)
+#define FREE(p) do { if (p) { free(p); (p) = NULL; } } while (0)
+#endif
+
+
 #define FILE_PATH_MAX (ESP_VFS_PATH_MAX + 128)
-#define SCRATCH_BUFSIZE (10240)
+#define SCRATCH_BUFSIZE (16384)
 #define MESSAGE_QUEUE_SIZE (128)
 
 typedef struct rest_server_context
@@ -757,19 +768,19 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
 
-    PidSettings *pid = board->getPidSettings();
-    doc["pidTargetTemp"]      = board->isPIDAvailable() ? pid->targetTemp : -1;
-    doc["pidP"]               = (float) pid->p / 100.0f;
-    doc["pidI"]               = (float) pid->i / 100.0f;
-    doc["pidD"]               = (float) pid->d / 100.0f;
-
-
     // If history was requested, add the history data as a nested object
     if (history_requested) {
         uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour later
         JsonObject json_history = doc["history"].to<JsonObject>();
         fillHistoryData(json_history, start_timestamp, end_timestamp, current_timestamp);
     }
+
+    // settings
+    PidSettings *pid = board->getPidSettings();
+    doc["pidTargetTemp"]      = board->isPIDAvailable() ? pid->targetTemp : -1;
+    doc["pidP"]               = (float) pid->p / 100.0f;
+    doc["pidI"]               = (float) pid->i / 100.0f;
+    doc["pidD"]               = (float) pid->d / 100.0f;
 
     doc["hostname"]           = hostname;
     doc["ssid"]               = ssid;
@@ -1040,7 +1051,7 @@ static int log_to_queue(const char * format, va_list args)
     va_end(args_copy);
 
     // Allocate the buffer dynamically
-    char * log_buffer = (char *) calloc(needed_size + 2, sizeof(char));  // +2 for potential \n and \0
+    char * log_buffer = (char *) CALLOC(needed_size + 2, sizeof(char));  // +2 for potential \n and \0
     if (log_buffer == NULL) {
         return 0;
     }
@@ -1063,7 +1074,7 @@ static int log_to_queue(const char * format, va_list args)
 
 	if (xQueueSendToBack(log_queue, (void*)&log_buffer, (TickType_t) 0) != pdPASS) {
 		if (log_buffer != NULL) {
-			free((void*)log_buffer);
+			FREE(log_buffer);
 		}
 	}
     return 0;
@@ -1087,7 +1098,7 @@ static void send_log_to_websocket(char *message)
     }
 
     // Free the allocated buffer
-    free((void*)message);
+    FREE(message);
 }
 
 /*
@@ -1129,14 +1140,14 @@ static void websocket_log_handler(void* param)
 		char *message;
 		if (xQueueReceive(log_queue, &message, (TickType_t) portMAX_DELAY) != pdPASS) {
 			if (message != NULL) {
-				free((void*)message);
+				FREE(message);
 			}
 			vTaskDelay(10 / portTICK_PERIOD_MS);
 			continue;
 		}
 
 		if (fd == -1) {
-			free((void*)message);
+			FREE(message);
 			vTaskDelay(100 / portTICK_PERIOD_MS);
 			continue;
 		}
@@ -1161,7 +1172,7 @@ esp_err_t start_rest_server(void * pvParameters)
         return ESP_FAIL;
     }
 
-    rest_server_context_t *rest_context = (rest_server_context_t*) calloc(1, sizeof(rest_server_context_t));
+    rest_server_context_t *rest_context = (rest_server_context_t*) CALLOC(1, sizeof(rest_server_context_t));
     if (!rest_context) {
         ESP_LOGE(TAG, "No memory for rest context");
         return ESP_FAIL;
@@ -1176,7 +1187,7 @@ esp_err_t start_rest_server(void * pvParameters)
     config.max_uri_handlers = 20;
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
-    config.stack_size = 8192;
+    config.stack_size = 12288;
 
     ESP_LOGI(TAG, "Starting HTTP Server");
     if (httpd_start(&server, &config) != ESP_OK) {
