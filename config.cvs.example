@@ -63,8 +63,23 @@ stratumdiff,data,u64,1000
 # Flip screen orientation – 0: normal, 1: rotated
 #flipscreen,data,u16,0
 
+# Autodetect fan polarity
+#autofanpol,data,u16,1
+
 # Invert fan control signal polarity – set to 1 if fan behaves weirdly
 #invertfanpol,data,u16,0
+
+# PID target temperature
+#pid_temp,data,u16,55
+
+# PID default P value 6.00
+#pid_p,data,u16,600
+
+# PID default I value 0.10
+#pid_i,data,u16,10
+
+# PID default D value 10.00
+#pid_d,data,u16,1000
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ↓↓↓ MENUCONFIG DEFAULTS – Board-independent, set via Kconfig at build time ↓↓↓
@@ -72,7 +87,8 @@ stratumdiff,data,u64,1000
 # They're consistent across boards unless explicitly overridden.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Enable automatic fan speed control – 1: on, 0: manual
+# Enable automatic fan speed control
+# 2: Experimental PID, 1: Classic Autmatic Fan Control, 0: manual
 #autofanspeed,data,u16,0
 
 # Manual fan speed in % (if autofanspeed = 0)
