@@ -47,7 +47,14 @@
 #define NVS_CONFIG_PID_D "pid_d"
 
 #define NVS_CONFIG_SWARM "swarmconfig"
-#pragma once
+
+#if defined(CONFIG_FAN_MODE_MANUAL)
+#define CONFIG_AUTO_FAN_SPEED_VALUE 0
+#elif defined(CONFIG_FAN_MODE_CLASSIC)
+#define CONFIG_AUTO_FAN_SPEED_VALUE 1
+#elif defined(CONFIG_FAN_MODE_PID)
+#define CONFIG_AUTO_FAN_SPEED_VALUE 2
+#endif
 
 #include <stdint.h>
 
