@@ -22,11 +22,11 @@ typedef struct
     } while (0)
 
 #ifdef CONFIG_SPIRAM
-#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
+#define MALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
 #define CALLOC(s, t) heap_caps_calloc(s, t, MALLOC_CAP_SPIRAM)
 #define FREE(p) do { if (p) { heap_caps_free(p); (p) = NULL; } } while (0)
 #else
-#define ALLOC(s) malloc(s)
+#define MALLOC(s) malloc(s)
 #define CALLOC(s, t) calloc(s, t)
 #define FREE(p) do { if (p) { free(p); (p) = NULL; } } while (0)
 #endif
