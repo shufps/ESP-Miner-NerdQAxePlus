@@ -1,4 +1,5 @@
 #include "esp_log.h"
+
 #include "esp_err.h"
 #include "ArduinoJson.h"
 
@@ -24,3 +25,4 @@ esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc) {
     heap_caps_free(jsonOutput);
     return ret;
 }
+

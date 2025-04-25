@@ -35,6 +35,7 @@ SRCS
     "./http_server/handler_system.cpp"
     "./http_server/handler_ota.cpp"
     "./http_server/handler_restart.cpp"
+    "./http_server/handler_file.cpp"
     "./self_test/self_test.cpp"
     "./tasks/stratum_task.cpp"
     "./tasks/create_jobs_task.cpp"
