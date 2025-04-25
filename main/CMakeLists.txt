@@ -27,6 +27,9 @@ SRCS
     "./pid/pid_timer.cpp"
 
     "./http_server/http_server.cpp"
+    "./http_server/http_cors.cpp"
+    "./http_server/http_utils.cpp"
+    "./http_server/handler_influx.cpp"
     "./self_test/self_test.cpp"
     "./tasks/stratum_task.cpp"
     "./tasks/create_jobs_task.cpp"
@@ -100,24 +103,24 @@ else()
         message(FATAL_ERROR "npm is not found! Please install it to proceed.")
     endif()
 
-    ExternalProject_Add(
-        web_ui_dist
-        PREFIX ${CMAKE_BINARY_DIR}/web_ui_dist
-        SOURCE_DIR ${WEB_SRC_DIR}
-        DOWNLOAD_COMMAND ""
-        CONFIGURE_COMMAND
-            ${NPM_EXECUTABLE}  i
-        USES_TERMINAL_BUILD true
-        BUILD_COMMAND
-            ${NPM_EXECUTABLE} run build
-        INSTALL_COMMAND ""
-        BUILD_ALWAYS OFF
-        BUILD_IN_SOURCE TRUE
-        BUILD_BYPRODUCTS
-            "${WEB_SRC_DIR}/dist/axe-os/index.html"
-    )
+    # ExternalProject_Add(
+    #     web_ui_dist
+    #     PREFIX ${CMAKE_BINARY_DIR}/web_ui_dist
+    #     SOURCE_DIR ${WEB_SRC_DIR}
+    #     DOWNLOAD_COMMAND ""
+    #     CONFIGURE_COMMAND
+    #         ${NPM_EXECUTABLE}  i
+    #     USES_TERMINAL_BUILD true
+    #     BUILD_COMMAND
+    #         ${NPM_EXECUTABLE} run build
+    #     INSTALL_COMMAND ""
+    #     BUILD_ALWAYS OFF
+    #     BUILD_IN_SOURCE TRUE
+    #     BUILD_BYPRODUCTS
+    #         "${WEB_SRC_DIR}/dist/axe-os/index.html"
+    # )
 
-    add_dependencies(${COMPONENT_LIB} web_ui_dist)
+    # add_dependencies(${COMPONENT_LIB} web_ui_dist)
 
-    spiffs_create_partition_image(www ${WEB_SRC_DIR}/dist/axe-os FLASH_IN_PROJECT DEPENDS web_ui_dist)
+    # spiffs_create_partition_image(www ${WEB_SRC_DIR}/dist/axe-os FLASH_IN_PROJECT DEPENDS web_ui_dist)
 endif()

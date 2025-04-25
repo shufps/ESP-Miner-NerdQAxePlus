@@ -1,8 +1,7 @@
-#ifndef HTTP_SERVER_H_
-#define HTTP_SERVER_H_
+#pragma once
 
-#include <esp_http_server.h>
+#include "esp_err.h"
 
-esp_err_t start_rest_server(void *pvParameters);
 
-#endif
+// Main function to start the server
+esp_err_t start_rest_server(void * pvParameters);
