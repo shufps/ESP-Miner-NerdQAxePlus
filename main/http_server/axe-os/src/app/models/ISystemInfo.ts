@@ -27,6 +27,7 @@ export interface ISystemInfo {
     defaultCoreVoltage: number,
     hostname: string,
     hostip: string,
+    macAddr: string,
     ssid: string,
     wifiPass: string,
     wifiStatus: string,

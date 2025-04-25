@@ -740,6 +740,7 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     doc["smallCoreCount"]     = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
     doc["deviceModel"]        = board->getDeviceModel();
     doc["hostip"]             = SYSTEM_MODULE.getIPAddress();
+    doc["macAddr"]            = SYSTEM_MODULE.getMacAddress();
 
     // dashboard
     doc["power"]              = POWER_MANAGEMENT_MODULE.getPower();

@@ -58,12 +58,17 @@ static const char *TAG = "wifi station";
 static int s_retry_num = 0;
 
 static char s_ip_addr[20] = {0};
+static char s_mac_addr[18] = {0};
 static bool ip_valid = false;
 
 bool connect_get_ip_addr(char *buf, size_t buf_len)
 {
     strncpy(buf, s_ip_addr, buf_len);
     return ip_valid;
+}
+
+const char* connect_get_mac_addr() {
+    return s_mac_addr;
 }
 
 static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -218,6 +223,10 @@ void wifi_init(const char *wifi_ssid, const char *wifi_pass, const char *hostnam
     } else {
         ESP_LOGI(TAG, "ESP_WIFI setting hostname to: %s", hostname);
     }
+
+    uint8_t mac[6];
+    ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_STA, mac));
+    snprintf(s_mac_addr, sizeof(s_mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     ESP_LOGI(TAG, "wifi_init_sta finished.");
 
