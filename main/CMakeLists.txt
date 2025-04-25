@@ -29,6 +29,7 @@ SRCS
     "./http_server/http_server.cpp"
     "./http_server/http_cors.cpp"
     "./http_server/http_utils.cpp"
+    "./http_server/http_websocket.cpp"
     "./http_server/handler_influx.cpp"
     "./self_test/self_test.cpp"
     "./tasks/stratum_task.cpp"
