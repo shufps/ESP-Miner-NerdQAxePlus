@@ -13,55 +13,6 @@
 
 static const char *TAG = "http_system";
 
-// Helper: fills a JsonObject with history data using ArduinoJson
-static void fillHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp) {
-    History *history = SYSTEM_MODULE.getHistory();
-
-    // Ensure consistency
-    history->lock();
-
-    int64_t rel_start = (int64_t) start_timestamp - (int64_t) current_timestamp;
-    int64_t rel_end   = (int64_t) end_timestamp - (int64_t) current_timestamp;
-
-    // Get current system timestamp (in ms)
-    uint64_t sys_timestamp = esp_timer_get_time() / 1000ULL;
-    int64_t sys_start = (int64_t) sys_timestamp + rel_start;
-    int64_t sys_end   = (int64_t) sys_timestamp + rel_end;
-
-    int start_index = history->searchNearestTimestamp(sys_start);
-    int end_index   = history->searchNearestTimestamp(sys_end);
-    int num_samples = end_index - start_index + 1;
-
-    if (!history->isAvailable() || start_index == -1 || end_index == -1 ||
-        num_samples <= 0 || (end_index < start_index)) {
-        ESP_LOGW(TAG, "Invalid history indices or history not (yet) available");
-        // If the data is invalid, return an empty object
-        num_samples = 0;
-    }
-
-    // Create arrays for history samples using the new method
-    JsonArray hashrate_10m = json_history["hashrate_10m"].to<JsonArray>();
-    JsonArray hashrate_1h  = json_history["hashrate_1h"].to<JsonArray>();
-    JsonArray hashrate_1d  = json_history["hashrate_1d"].to<JsonArray>();
-    JsonArray timestamps   = json_history["timestamps"].to<JsonArray>();
-
-    for (int i = start_index; i < start_index + num_samples; i++) {
-        uint64_t sample_timestamp = history->getTimestampSample(i);
-        if ((int64_t) sample_timestamp < sys_start) {
-            continue;
-        }
-        // Multiply by 100.0 and cast to int as in the original code
-        hashrate_10m.add((int)(history->getHashrate10mSample(i) * 100.0));
-        hashrate_1h.add((int)(history->getHashrate1hSample(i) * 100.0));
-        hashrate_1d.add((int)(history->getHashrate1dSample(i) * 100.0));
-        timestamps.add((int64_t) sample_timestamp - sys_start);
-    }
-
-    // Add base timestamp for reference
-    json_history["timestampBase"] = start_timestamp;
-
-    history->unlock();
-}
 
 
 /* Simple handler for getting system handler */
@@ -150,7 +101,9 @@ esp_err_t GET_system_info(httpd_req_t *req)
     if (history_requested) {
         uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour later
         JsonObject json_history = doc["history"].to<JsonObject>();
-        fillHistoryData(json_history, start_timestamp, end_timestamp, current_timestamp);
+
+        History *history = SYSTEM_MODULE.getHistory();
+        history->exportHistoryData(json_history, start_timestamp, end_timestamp, current_timestamp);
     }
 
     // settings
