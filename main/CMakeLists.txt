@@ -32,6 +32,7 @@ SRCS
     "./http_server/http_websocket.cpp"
     "./http_server/handler_influx.cpp"
     "./http_server/handler_swarm.cpp"
+    "./http_server/handler_system.cpp"
     "./self_test/self_test.cpp"
     "./tasks/stratum_task.cpp"
     "./tasks/create_jobs_task.cpp"
