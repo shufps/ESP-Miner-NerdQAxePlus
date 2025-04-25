@@ -32,6 +32,9 @@
 #include "nvs_config.h"
 #include "recovery_page.h"
 #include "http_server.h"
+#include "http_cors.h"
+#include "http_utils.h"
+#include "handler_influx.h"
 
 #include "history.h"
 #include "boards/board.h"
@@ -44,164 +47,13 @@
 #define min(a,b) ((a)<(b))?(a):(b)
 
 static const char *TAG = "http_server";
-static const char * CORS_TAG = "CORS";
 
 static httpd_handle_t server = NULL;
 QueueHandle_t log_queue = NULL;
 
 static int fd = -1;
 
-#define REST_CHECK(a, str, goto_tag, ...)                                                                                          \
-    do {                                                                                                                           \
-        if (!(a)) {                                                                                                                \
-            ESP_LOGE(TAG, "%s(%d): " str, __FUNCTION__, __LINE__, ##__VA_ARGS__);                                                  \
-            goto goto_tag;                                                                                                         \
-        }                                                                                                                          \
-    } while (0)
-
-#ifdef CONFIG_SPIRAM
-#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#define CALLOC(s, t) heap_caps_calloc(s, t, MALLOC_CAP_SPIRAM)
-#define FREE(p) do { if (p) { heap_caps_free(p); (p) = NULL; } } while (0)
-#else
-#define ALLOC(s) malloc(s)
-#define CALLOC(s, t) calloc(s, t)
-#define FREE(p) do { if (p) { free(p); (p) = NULL; } } while (0)
-#endif
-
-
-#define FILE_PATH_MAX (ESP_VFS_PATH_MAX + 128)
-#define SCRATCH_BUFSIZE (16384)
-#define MESSAGE_QUEUE_SIZE (128)
-
-typedef struct rest_server_context
-{
-    char base_path[ESP_VFS_PATH_MAX + 1];
-    char scratch[SCRATCH_BUFSIZE];
-} rest_server_context_t;
-
-#define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
-
 static void fillHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
-
-static esp_err_t ip_in_private_range(uint32_t address) {
-    uint32_t ip_address = ntohl(address);
-
-    // 10.0.0.0 - 10.255.255.255 (Class A)
-    if ((ip_address >= 0x0A000000) && (ip_address <= 0x0AFFFFFF)) {
-        return ESP_OK;
-    }
-
-    // 172.16.0.0 - 172.31.255.255 (Class B)
-    if ((ip_address >= 0xAC100000) && (ip_address <= 0xAC1FFFFF)) {
-        return ESP_OK;
-    }
-
-    // 192.168.0.0 - 192.168.255.255 (Class C)
-    if ((ip_address >= 0xC0A80000) && (ip_address <= 0xC0A8FFFF)) {
-        return ESP_OK;
-    }
-
-    return ESP_FAIL;
-}
-
-static uint32_t get_origin_ip(const char *host)
-{
-    uint32_t origin_ip_addr = 0;
-
-    // Convert the IP address string to uint32_t
-    origin_ip_addr = inet_addr(host);
-    if (origin_ip_addr == INADDR_NONE) {
-        ESP_LOGW(CORS_TAG, "Invalid IP address: %s", host);
-    } else {
-        ESP_LOGI(CORS_TAG, "Extracted IP address %lu", origin_ip_addr);
-    }
-    return origin_ip_addr;
-}
-
-
-static const char* extract_origin_host(char *origin)
-{
-    const char *prefix = "http://";
-
-    origin = strstr(origin, prefix);
-    if (!origin) {
-        return nullptr;
-    }
-
-    // skip prefix
-    char *host = &origin[strlen(prefix)];
-
-    // find the slash
-    char *prefix_end = strchr(host, '/');
-
-    // if we have one, we just terminate the string
-    if (prefix_end) {
-        *prefix_end = 0;
-    }
-
-    // in the other case we keep the previous zero termination
-    return (const char*) host;
-}
-
-static esp_err_t is_network_allowed(httpd_req_t * req)
-{
-    if (SYSTEM_MODULE.getAPState()) {
-        ESP_LOGI(CORS_TAG, "Device in AP mode. Allowing CORS.");
-        return ESP_OK;
-    }
-
-    int sockfd = httpd_req_to_sockfd(req);
-    char ipstr[INET6_ADDRSTRLEN];
-    struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
-    socklen_t addr_size = sizeof(addr);
-
-    if (getpeername(sockfd, (struct sockaddr *)&addr, &addr_size) < 0) {
-        ESP_LOGE(CORS_TAG, "Error getting client IP");
-        return ESP_FAIL;
-    }
-
-    uint32_t request_ip_addr = addr.sin6_addr.un.u32_addr[3];
-
-    // // Convert to IPv6 string
-    // inet_ntop(AF_INET, &addr.sin6_addr, ipstr, sizeof(ipstr));
-
-    // Convert to IPv4 string
-    inet_ntop(AF_INET, &request_ip_addr, ipstr, sizeof(ipstr));
-
-    // Attempt to get the Origin header.
-    char origin[128];
-    uint32_t origin_ip_addr;
-    if (httpd_req_get_hdr_value_str(req, "Origin", origin, sizeof(origin)) == ESP_OK) {
-        ESP_LOGD(CORS_TAG, "Origin header: %s", origin);
-        const char *host = extract_origin_host(origin);
-        if (!host) {
-            ESP_LOGW(CORS_TAG, "couldn't extract origin host: %s", origin);
-            return ESP_FAIL;
-        }
-        ESP_LOGI(CORS_TAG, "extracted origin host: %s", host);
-
-        // check if origin is hostname
-        const char *hostname = SYSTEM_MODULE.getHostname();
-        ESP_LOGI(CORS_TAG, "hostname: %s", hostname);
-        if (!(strncmp(host, hostname, strlen(hostname)))) {
-            ESP_LOGI(CORS_TAG, "origin equals hostname");
-            return ESP_OK;
-        }
-
-        origin_ip_addr = get_origin_ip(host);
-    } else {
-        ESP_LOGD(CORS_TAG, "No origin header found.");
-        origin_ip_addr = request_ip_addr;
-    }
-
-    if (ip_in_private_range(origin_ip_addr) == ESP_OK && ip_in_private_range(request_ip_addr) == ESP_OK) {
-        return ESP_OK;
-    }
-
-    ESP_LOGI(CORS_TAG, "Client is NOT in the private ip ranges or same range as server.");
-    return ESP_FAIL;
-}
 
 static esp_err_t init_fs(void)
 {
@@ -259,15 +111,7 @@ static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filepa
     }
     return httpd_resp_set_type(req, type);
 }
-static esp_err_t set_cors_headers(httpd_req_t *req)
-{
 
-    return httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*") == ESP_OK &&
-                   httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS") == ESP_OK &&
-                   httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type") == ESP_OK
-               ? ESP_OK
-               : ESP_FAIL;
-}
 
 /* Recovery handler */
 static esp_err_t rest_recovery_handler(httpd_req_t *req)
@@ -356,24 +200,7 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-static esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc) {
-    // Measure the size needed for the JSON text
-    size_t jsonLength = measureJson(doc);
-    // Allocate a buffer from PSRAM (or regular heap if you prefer)
-    char *jsonOutput = (char*) heap_caps_malloc(jsonLength + 1, MALLOC_CAP_SPIRAM);
-    if (!jsonOutput) {
-        ESP_LOGE(TAG, "Failed to allocate memory for JSON output");
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation error");
-        return ESP_FAIL;
-    }
-    // Serialize the JSON document into the allocated buffer
-    serializeJson(doc, jsonOutput, jsonLength + 1);
-    // Send the response
-    esp_err_t ret = httpd_resp_sendstr(req, jsonOutput);
-    // Free the allocated buffer
-    heap_caps_free(jsonOutput);
-    return ret;
-}
+
 
 
 static esp_err_t PATCH_update_swarm(httpd_req_t *req)
@@ -571,80 +398,6 @@ static esp_err_t PATCH_update_settings(httpd_req_t *req)
     return ESP_OK;
 }
 
-static esp_err_t PATCH_update_influx(httpd_req_t *req)
-{
-    if (is_network_allowed(req) != ESP_OK) {
-        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
-    }
-
-    // Set CORS headers
-    if (set_cors_headers(req) != ESP_OK) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    }
-
-    int total_len = req->content_len;
-    int cur_len = 0;
-    char *buf = ((rest_server_context_t *)(req->user_ctx))->scratch;
-    int received = 0;
-
-    if (total_len >= SCRATCH_BUFSIZE) {
-        /* Respond with 500 Internal Server Error */
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
-        return ESP_FAIL;
-    }
-
-    while (cur_len < total_len) {
-        received = httpd_req_recv(req, buf + cur_len, total_len);
-        if (received <= 0) {
-            /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to post control value");
-            return ESP_FAIL;
-        }
-        cur_len += received;
-    }
-    buf[total_len] = '\0';
-
-    PSRAMAllocator allocator;
-    JsonDocument doc(&allocator);
-
-    // Parse the JSON payload
-    DeserializationError error = deserializeJson(doc, buf);
-    if (error) {
-        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
-    }
-
-    // Check and apply each setting if the key exists and has the correct type
-    if (doc["influxEnable"].is<bool>()) {
-        Config::setInfluxEnabled(doc["influxEnable"].as<bool>());
-    }
-    if (doc["influxURL"].is<const char*>()) {
-        Config::setInfluxURL(doc["influxURL"].as<const char*>());
-    }
-    if (doc["influxPort"].is<uint16_t>()) {
-        Config::setInfluxPort(doc["influxPort"].as<uint16_t>());
-    }
-    if (doc["influxToken"].is<const char*>()) {
-        Config::setInfluxToken(doc["influxToken"].as<const char*>());
-    }
-    if (doc["influxBucket"].is<const char*>()) {
-        Config::setInfluxBucket(doc["influxBucket"].as<const char*>());
-    }
-    if (doc["influxOrg"].is<const char*>()) {
-        Config::setInfluxOrg(doc["influxOrg"].as<const char*>());
-    }
-    if (doc["influxPrefix"].is<const char*>()) {
-        Config::setInfluxPrefix(doc["influxPrefix"].as<const char*>());
-    }
-
-    doc.clear();
-
-    httpd_resp_send_chunk(req, NULL, 0);
-    return ESP_OK;
-}
-
 static esp_err_t POST_restart(httpd_req_t *req)
 {
     if (is_network_allowed(req) != ESP_OK) {
@@ -832,52 +585,6 @@ static esp_err_t GET_system_info(httpd_req_t *req)
     return ret;
 }
 
-
-/* Simple handler for getting system handler */
-static esp_err_t GET_influx_info(httpd_req_t *req)
-{
-    if (is_network_allowed(req) != ESP_OK) {
-        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
-    }
-
-    httpd_resp_set_type(req, "application/json");
-
-    // Set CORS headers
-    if (set_cors_headers(req) != ESP_OK) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    }
-
-    // Retrieve configuration strings from NVS
-    char *influxURL    = Config::getInfluxURL();
-    char *influxBucket = Config::getInfluxBucket();
-    char *influxOrg    = Config::getInfluxOrg();
-    char *influxPrefix = Config::getInfluxPrefix();
-
-    PSRAMAllocator allocator;
-    JsonDocument doc(&allocator);
-
-    // Fill the JSON object with values
-    doc["influxURL"]    = influxURL;
-    doc["influxPort"]   = Config::getInfluxPort();
-    doc["influxBucket"] = influxBucket;
-    doc["influxOrg"]    = influxOrg;
-    doc["influxPrefix"] = influxPrefix;
-    doc["influxEnable"] = Config::isInfluxEnabled() ? 1 : 0;
-
-    // Serialize the JSON document into a string (using Arduino's String type)
-    esp_err_t ret = sendJsonResponse(req, doc);
-
-    doc.clear();
-
-    // Free temporary strings from NVS retrieval
-    free(influxURL);
-    free(influxBucket);
-    free(influxOrg);
-    free(influxPrefix);
-
-    return ret;
-}
 
 // Helper: fills a JsonObject with history data using ArduinoJson
 static void fillHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp) {
