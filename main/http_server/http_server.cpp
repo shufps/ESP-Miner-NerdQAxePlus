@@ -34,6 +34,7 @@
 #include "http_server.h"
 #include "http_cors.h"
 #include "http_utils.h"
+#include "http_websocket.h"
 #include "handler_influx.h"
 
 #include "history.h"
@@ -48,10 +49,7 @@
 
 static const char *TAG = "http_server";
 
-static httpd_handle_t server = NULL;
-QueueHandle_t log_queue = NULL;
-
-static int fd = -1;
+httpd_handle_t http_server = NULL;
 
 static void fillHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
 
@@ -85,9 +83,9 @@ static esp_err_t init_fs(void)
 /*
 static void stop_webserver(httpd_handle_t server)
 {
-    if (server) {
+    if (http_server) {
         // Stop the httpd server
-        httpd_stop(server);
+        httpd_stop(http_server);
     }
 }
 */
@@ -749,84 +747,6 @@ static esp_err_t POST_OTA_update(httpd_req_t *req)
     return ESP_OK;
 }
 
-static int log_to_queue(const char * format, va_list args)
-{
-    va_list args_copy;
-    va_copy(args_copy, args);
-
-    // Calculate the required buffer size
-    int needed_size = vsnprintf(NULL, 0, format, args_copy) + 1;
-    va_end(args_copy);
-
-    // Allocate the buffer dynamically
-    char * log_buffer = (char *) CALLOC(needed_size + 2, sizeof(char));  // +2 for potential \n and \0
-    if (log_buffer == NULL) {
-        return 0;
-    }
-
-    // Format the string into the allocated buffer
-    va_copy(args_copy, args);
-    vsnprintf(log_buffer, needed_size, format, args_copy);
-    va_end(args_copy);
-
-    // Ensure the log message ends with a newline
-    size_t len = strlen(log_buffer);
-    if (len > 0 && log_buffer[len - 1] != '\n') {
-        log_buffer[len] = '\n';
-        log_buffer[len + 1] = '\0';
-        len++;
-    }
-
-    // Print to standard output
-    printf("%s", log_buffer);
-
-	if (xQueueSendToBack(log_queue, (void*)&log_buffer, (TickType_t) 0) != pdPASS) {
-		if (log_buffer != NULL) {
-			FREE(log_buffer);
-		}
-	}
-    return 0;
-}
-
-static void send_log_to_websocket(char *message)
-{
-    // Prepare the WebSocket frame
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = (uint8_t *)message;
-    ws_pkt.len = strlen(message);
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
-    // Ensure server and fd are valid
-    if (server != NULL && fd >= 0) {
-        // Send the WebSocket frame asynchronously
-        if (httpd_ws_send_frame_async(server, fd, &ws_pkt) != ESP_OK) {
-            esp_log_set_vprintf(vprintf);
-        }
-    }
-
-    // Free the allocated buffer
-    FREE(message);
-}
-
-/*
- * This handler echos back the received ws data
- * and triggers an async send if certain message received
- */
-static esp_err_t echo_handler(httpd_req_t *req)
-{
-    if (is_network_allowed(req) != ESP_OK) {
-        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
-    }
-    if (req->method == HTTP_GET) {
-        ESP_LOGI(TAG, "Handshake done, the new connection was opened");
-        fd = httpd_req_to_sockfd(req);
-        esp_log_set_vprintf(log_to_queue);
-        return ESP_OK;
-    }
-    return ESP_OK;
-}
-
 // HTTP Error (404) Handler - Redirects all requests to the root page
 static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
@@ -841,28 +761,6 @@ static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
     return ESP_OK;
 }
 
-static void websocket_log_handler(void* param)
-{
-	while (true)
-	{
-		char *message;
-		if (xQueueReceive(log_queue, &message, (TickType_t) portMAX_DELAY) != pdPASS) {
-			if (message != NULL) {
-				FREE(message);
-			}
-			vTaskDelay(10 / portTICK_PERIOD_MS);
-			continue;
-		}
-
-		if (fd == -1) {
-			FREE(message);
-			vTaskDelay(100 / portTICK_PERIOD_MS);
-			continue;
-		}
-
-		send_log_to_websocket(message);
-	}
-}
 
 esp_err_t start_rest_server(void * pvParameters)
 {
@@ -888,7 +786,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     strlcpy(rest_context->base_path, base_path, sizeof(rest_context->base_path));
 
-    log_queue = xQueueCreate(MESSAGE_QUEUE_SIZE, sizeof(char*));
+
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
@@ -898,7 +796,7 @@ esp_err_t start_rest_server(void * pvParameters)
     config.stack_size = 12288;
 
     ESP_LOGI(TAG, "Starting HTTP Server");
-    if (httpd_start(&server, &config) != ESP_OK) {
+    if (httpd_start(&http_server, &config) != ESP_OK) {
         ESP_LOGE(TAG, "Start server failed");
         free(rest_context);
         return ESP_FAIL;
@@ -906,24 +804,24 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_uri_t recovery_explicit_get_uri = {
         .uri = "/recovery", .method = HTTP_GET, .handler = rest_recovery_handler, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &recovery_explicit_get_uri);
+    httpd_register_uri_handler(http_server, &recovery_explicit_get_uri);
 
     /* URI handler for fetching system info */
     httpd_uri_t system_info_get_uri = {
         .uri = "/api/system/info", .method = HTTP_GET, .handler = GET_system_info, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &system_info_get_uri);
+    httpd_register_uri_handler(http_server, &system_info_get_uri);
 
     /* URI handler for fetching system info */
     httpd_uri_t influx_info_get_uri = {
         .uri = "/api/influx/info", .method = HTTP_GET, .handler = GET_influx_info, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &influx_info_get_uri);
+    httpd_register_uri_handler(http_server, &influx_info_get_uri);
 
     httpd_uri_t swarm_get_uri = {.uri = "/api/swarm/info", .method = HTTP_GET, .handler = GET_swarm, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &swarm_get_uri);
+    httpd_register_uri_handler(http_server, &swarm_get_uri);
 
     httpd_uri_t update_swarm_uri = {
         .uri = "/api/swarm", .method = HTTP_PATCH, .handler = PATCH_update_swarm, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &update_swarm_uri);
+    httpd_register_uri_handler(http_server, &update_swarm_uri);
 
     httpd_uri_t swarm_options_uri = {
         .uri = "/api/swarm",
@@ -931,19 +829,19 @@ esp_err_t start_rest_server(void * pvParameters)
         .handler = handle_options_request,
         .user_ctx = NULL,
     };
-    httpd_register_uri_handler(server, &swarm_options_uri);
+    httpd_register_uri_handler(http_server, &swarm_options_uri);
 
     httpd_uri_t system_restart_uri = {
         .uri = "/api/system/restart", .method = HTTP_POST, .handler = POST_restart, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &system_restart_uri);
+    httpd_register_uri_handler(http_server, &system_restart_uri);
 
     httpd_uri_t update_system_settings_uri = {
         .uri = "/api/system", .method = HTTP_PATCH, .handler = PATCH_update_settings, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &update_system_settings_uri);
+    httpd_register_uri_handler(http_server, &update_system_settings_uri);
 
     httpd_uri_t update_influx_settings_uri = {
         .uri = "/api/influx", .method = HTTP_PATCH, .handler = PATCH_update_influx, .user_ctx = rest_context};
-    httpd_register_uri_handler(server, &update_influx_settings_uri);
+    httpd_register_uri_handler(http_server, &update_influx_settings_uri);
 
     httpd_uri_t system_options_uri = {
         .uri = "/api/system",
@@ -951,36 +849,35 @@ esp_err_t start_rest_server(void * pvParameters)
         .handler = handle_options_request,
         .user_ctx = NULL,
     };
-    httpd_register_uri_handler(server, &system_options_uri);
+    httpd_register_uri_handler(http_server, &system_options_uri);
 
     httpd_uri_t update_post_ota_firmware = {
         .uri = "/api/system/OTA", .method = HTTP_POST, .handler = POST_OTA_update, .user_ctx = NULL};
-    httpd_register_uri_handler(server, &update_post_ota_firmware);
+    httpd_register_uri_handler(http_server, &update_post_ota_firmware);
 
     httpd_uri_t update_post_ota_www = {
         .uri = "/api/system/OTAWWW", .method = HTTP_POST, .handler = POST_WWW_update, .user_ctx = NULL};
-    httpd_register_uri_handler(server, &update_post_ota_www);
+    httpd_register_uri_handler(http_server, &update_post_ota_www);
 
     httpd_uri_t ws = {.uri = "/api/ws", .method = HTTP_GET, .handler = echo_handler, .user_ctx = NULL, .is_websocket = true};
-    httpd_register_uri_handler(server, &ws);
+    httpd_register_uri_handler(http_server, &ws);
 
     if (enter_recovery) {
         /* Make default route serve Recovery */
         httpd_uri_t recovery_implicit_get_uri = {
             .uri = "/*", .method = HTTP_GET, .handler = rest_recovery_handler, .user_ctx = rest_context};
-        httpd_register_uri_handler(server, &recovery_implicit_get_uri);
+        httpd_register_uri_handler(http_server, &recovery_implicit_get_uri);
 
     } else {
-        /* URI handler for getting web server files */
+        /* URI handler for getting web http_server files */
         httpd_uri_t common_get_uri = {
             .uri = "/*", .method = HTTP_GET, .handler = rest_common_get_handler, .user_ctx = rest_context};
-        httpd_register_uri_handler(server, &common_get_uri);
+        httpd_register_uri_handler(http_server, &common_get_uri);
     }
 
-    httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, http_404_error_handler);
+    httpd_register_err_handler(http_server, HTTPD_404_NOT_FOUND, http_404_error_handler);
 
-    // Start websocket log handler thread
-    xTaskCreate(&websocket_log_handler, "websocket_log_handler", 4096, NULL, 2, NULL);
+    websocket_start();
 
     // Start the DNS server that will redirect all queries to the softAP IP
     dns_server_config_t dns_config = DNS_SERVER_CONFIG_SINGLE("*" /* all A queries */, "WIFI_AP_DEF" /* softAP netif ID */);
