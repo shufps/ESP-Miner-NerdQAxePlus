@@ -119,6 +119,10 @@ void System::showApInformation(const char* error) {
     m_display->portalScreen(apSsid);
 }
 
+const char* System::getMacAddress() {
+    return connect_get_mac_addr();
+}
+
 double System::calculateNetworkDifficulty(uint32_t nBits) {
     uint32_t mantissa = nBits & 0x007fffff;  // Extract the mantissa from nBits
     uint8_t exponent = (nBits >> 24) & 0xff;  // Extract the exponent from nBits

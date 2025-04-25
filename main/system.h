@@ -110,6 +110,8 @@ class System {
     void notifyMiningStarted();                              // Notify system that mining has started
     void notifyNewNtime(uint32_t ntime);                     // Notify system of new `ntime` received from the pool
 
+    const char* getMacAddress();
+
     // Getter methods for retrieving statistics
     uint64_t getSharesRejected() const
     {
