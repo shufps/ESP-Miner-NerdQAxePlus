@@ -31,11 +31,11 @@ typedef struct
 #define FREE(p) do { if (p) { free(p); (p) = NULL; } } while (0)
 #endif
 
-
-
 #define MESSAGE_QUEUE_SIZE (128)
 
 #define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
 
+#define max(a,b) ((a)>(b))?(a):(b)
+#define min(a,b) ((a)<(b))?(a):(b)
 
 esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc);
