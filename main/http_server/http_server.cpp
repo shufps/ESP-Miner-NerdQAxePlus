@@ -1,32 +1,9 @@
 
-#include <fcntl.h>
-#include <string.h>
-#include <sys/param.h>
-#include <netdb.h>
-
-#include "ArduinoJson.h"
-#include "psram_allocator.h"
-#include "esp_chip_info.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
-#include "esp_random.h"
-#include "esp_spiffs.h"
 #include "esp_timer.h"
-#include "esp_vfs.h"
-#include "esp_mac.h"
-#include "esp_netif.h"
-#include "esp_ota_ops.h"
-#include "esp_wifi.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-#include "freertos/task.h"
+
 #include "dns_server.h"
-#include "lwip/err.h"
-#include "lwip/inet.h"
-#include "lwip/lwip_napt.h"
-#include "lwip/netdb.h"
-#include "lwip/sockets.h"
-#include "lwip/sys.h"
 
 #include "global_state.h"
 #include "nvs_config.h"
@@ -42,8 +19,6 @@
 #include "handler_restart.h"
 #include "handler_file.h"
 
-#include "history.h"
-#include "boards/board.h"
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
@@ -77,10 +52,6 @@ static esp_err_t rest_recovery_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-
-
-
-
 static esp_err_t handle_options_request(httpd_req_t *req)
 {
     if (is_network_allowed(req) != ESP_OK) {
@@ -99,7 +70,6 @@ static esp_err_t handle_options_request(httpd_req_t *req)
     return ESP_OK;
 }
 
-
 // HTTP Error (404) Handler - Redirects all requests to the root page
 static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
@@ -113,7 +83,6 @@ static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
     ESP_LOGI(TAG, "Redirecting to root");
     return ESP_OK;
 }
-
 
 esp_err_t start_rest_server(void * pvParameters)
 {
