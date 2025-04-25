@@ -67,6 +67,10 @@ bool connect_get_ip_addr(char *buf, size_t buf_len)
     return ip_valid;
 }
 
+const char* connect_get_mac_addr() {
+    return s_mac_addr;
+}
+
 static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
