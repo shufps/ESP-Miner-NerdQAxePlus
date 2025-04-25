@@ -286,3 +286,52 @@ int History::searchNearestTimestamp(int64_t timestamp)
 
     return current;
 }
+
+
+// Helper: fills a JsonObject with history data using ArduinoJson
+void History::exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp) {
+    // Ensure consistency
+    lock();
+
+    int64_t rel_start = (int64_t) start_timestamp - (int64_t) current_timestamp;
+    int64_t rel_end   = (int64_t) end_timestamp - (int64_t) current_timestamp;
+
+    // Get current system timestamp (in ms)
+    uint64_t sys_timestamp = esp_timer_get_time() / 1000ULL;
+    int64_t sys_start = (int64_t) sys_timestamp + rel_start;
+    int64_t sys_end   = (int64_t) sys_timestamp + rel_end;
+
+    int start_index = searchNearestTimestamp(sys_start);
+    int end_index   = searchNearestTimestamp(sys_end);
+    int num_samples = end_index - start_index + 1;
+
+    if (!isAvailable() || start_index == -1 || end_index == -1 ||
+        num_samples <= 0 || (end_index < start_index)) {
+        ESP_LOGW(TAG, "Invalid history indices or history not (yet) available");
+        // If the data is invalid, return an empty object
+        num_samples = 0;
+    }
+
+    // Create arrays for history samples using the new method
+    JsonArray hashrate_10m = json_history["hashrate_10m"].to<JsonArray>();
+    JsonArray hashrate_1h  = json_history["hashrate_1h"].to<JsonArray>();
+    JsonArray hashrate_1d  = json_history["hashrate_1d"].to<JsonArray>();
+    JsonArray timestamps   = json_history["timestamps"].to<JsonArray>();
+
+    for (int i = start_index; i < start_index + num_samples; i++) {
+        uint64_t sample_timestamp = getTimestampSample(i);
+        if ((int64_t) sample_timestamp < sys_start) {
+            continue;
+        }
+        // Multiply by 100.0 and cast to int as in the original code
+        hashrate_10m.add((int)(getHashrate10mSample(i) * 100.0));
+        hashrate_1h.add((int)(getHashrate1hSample(i) * 100.0));
+        hashrate_1d.add((int)(getHashrate1dSample(i) * 100.0));
+        timestamps.add((int64_t) sample_timestamp - sys_start);
+    }
+
+    // Add base timestamp for reference
+    json_history["timestampBase"] = start_timestamp;
+
+    unlock();
+}
