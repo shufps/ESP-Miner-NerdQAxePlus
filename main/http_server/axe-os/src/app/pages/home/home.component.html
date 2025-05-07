@@ -217,54 +217,55 @@
     <!-- Pool Information Row -->
     <div class="row mt-4 d-flex align-items-stretch">
       <!-- Pool Information Card -->
-      <div class="col-12 col-xl-6">
+      <div class="col-12 col-lg-6">
         <!-- Connected? -->
         <ng-container *ngIf="info.isStratumConnected; else disconnected">
           <nb-card class="h-100">
             <nb-card-header>
               <span class="text-hint">
-                Pool Information ({{ info.isUsingFallbackStratum ? 'Fallback' : 'Primary' }})
+                Pool ({{ info.isUsingFallbackStratum ? 'Fallback' : 'Primary' }})
               </span>
             </nb-card-header>
-            <nb-card-body>
-              <table class="w-100">
-                <ng-container *ngIf="!info.isUsingFallbackStratum; else fallback">
-                  <tr>
-                    <td class="text-hint">Host:</td>
-                    <td style="word-break: break-all;">
-                      <a [href]="quickLink$ | async" target="_blank">
-                        {{ info.stratumURL }}
-                      </a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="text-hint">Port:</td>
-                    <td>{{ info.stratumPort }}</td>
-                  </tr>
-                  <tr>
-                    <td class="text-hint">User:</td>
-                    <td>{{ info.stratumUser }}</td>
-                  </tr>
-                </ng-container>
-                <ng-template #fallback>
-                  <tr>
-                    <td class="text-hint">Host:</td>
-                    <td style="word-break: break-all;">
-                      <a [href]="(fallbackQuickLink$ | async) || info.fallbackStratumURL" target="_blank">
-                        {{ info.fallbackStratumURL }}
-                      </a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="text-hint">Port:</td>
-                    <td>{{ info.fallbackStratumPort }}</td>
-                  </tr>
-                  <tr>
-                    <td class="text-hint">User:</td>
-                    <td>{{ info.fallbackStratumUser }}</td>
-                  </tr>
-                </ng-template>
-              </table>
+
+            <nb-card-body class="no-scroll">
+              <div class="row flex-nowrap">
+                <div class="col-fixed-width">
+                  <span class="text-hint">Host:</span>
+                </div>
+                <div class="col break-all">
+                  <a [href]="info.isUsingFallbackStratum ? (fallbackQuickLink$ | async) || info.fallbackStratumURL : (quickLink$ | async)" target="_blank">
+                    {{ info.isUsingFallbackStratum ? info.fallbackStratumURL : info.stratumURL }}
+                  </a>
+                </div>
+              </div>
+
+              <div class="row flex-nowrap">
+                <div class="col-fixed-width">
+                  <span class="text-hint">Port:</span>
+                </div>
+                <div class="col">
+                  {{ info.isUsingFallbackStratum ? info.fallbackStratumPort : info.stratumPort }}
+                </div>
+              </div>
+
+              <div class="row flex-nowrap">
+                <div class="col-fixed-width">
+                  <span class="text-hint">User:</span>
+                </div>
+                <div class="col">
+                  @let currentStratumUser = info.isUsingFallbackStratum ? info.fallbackStratumUser : info.stratumUser;
+                  @let currentStratumUserLength = currentStratumUser.length;
+
+                  <div class="ellipsis-magic" [title]="currentStratumUser">
+                    <span class="start">
+                      {{ currentStratumUser.substring(0, currentStratumUserLength - 20) }}
+                    </span>
+                    <span class="end">
+                      {{ currentStratumUser.substring(currentStratumUserLength - 20) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </nb-card-body>
           </nb-card>
         </ng-container>
@@ -284,6 +285,4 @@
         </ng-template>
       </div>
     </div>
-
-
   </div>
