@@ -5,17 +5,28 @@
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
 #include "nvs_config.h"
+#include "global_state.h"
 
 static const char *TAG = "ping task";
+static uint32_t last_ping_rtt_ms = 0;
+
+struct PingResult {
+    bool success;
+    double avg_rtt_ms;
+    const char* hostname;
+    const char* label;
+};
 
 // Perform ping to a given hostname and return true if at least one reply received
-bool perform_ping(const char *hostname) {
+PingResult perform_ping(const char *hostname, const char *label) {
     ip_addr_t target_addr;
     ip4_addr_t ip4;
 
+    PingResult result = { .success = false, .avg_rtt_ms = 0, .hostname = hostname, .label = label };
+
     if (!inet_aton(hostname, &ip4)) {
         ESP_LOGE(TAG, "Invalid IP address: %s", hostname);
-        return false;
+        return result;
     }
 
     ip_addr_set_ip4_u32(&target_addr, ip4.addr);
@@ -44,14 +55,12 @@ bool perform_ping(const char *hostname) {
 
     esp_ping_handle_t ping;
     if (esp_ping_new_session(&config, &cbs, &ping) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to create ping session");
-        return false;
+        return result;
     }
 
     if (esp_ping_start(ping) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start ping session");
         esp_ping_delete_session(ping);
-        return false;
+        return result;
     }
 
     while (true) {
@@ -65,24 +74,36 @@ bool perform_ping(const char *hostname) {
     esp_ping_delete_session(ping);
 
     if (rtt_stats.replies > 0) {
-        uint32_t avg_rtt = rtt_stats.total_time / rtt_stats.replies;
-        ESP_LOGI(TAG, "Average RTT to %s: %lu ms", hostname, (unsigned long)avg_rtt);
-        return true;
-    } else {
-        ESP_LOGW(TAG, "No reply from %s", hostname);
-        return false;
+        result.success = true;
+        result.avg_rtt_ms = static_cast<double>(rtt_stats.total_time) / rtt_stats.replies;
+	last_ping_rtt_ms = result.avg_rtt_ms;
     }
+
+    return result;
 }
 
 void ping_task(void *pvParameters) {
     while (true) {
-        const char *primary = Config::getStratumURL();
-        const char *fallback = Config::getStratumFallbackURL();
+        bool useFallback = STRATUM_MANAGER.isUsingFallback();
 
-        if (!perform_ping(primary)) {
-            perform_ping(fallback);
+        const char *hostname = useFallback
+            ? Config::getStratumFallbackURL()
+            : Config::getStratumURL();
+
+        const char *label = useFallback ? "Fallback" : "Primary";
+
+        PingResult result = perform_ping(hostname, label);
+
+        if (result.success) {
+            ESP_LOGI(TAG, "[%s]: Ping to %s succeeded, avg RTT: %.3f ms", result.label, result.hostname, result.avg_rtt_ms);
+        } else {
+            ESP_LOGW(TAG, "[%s]: Ping to %s failed", result.label, result.hostname);
         }
 
         vTaskDelay(pdMS_TO_TICKS(60000)); // Once per minute
     }
+}
+
+extern "C" double get_last_ping_rtt() {
+    return last_ping_rtt_ms;
 }
