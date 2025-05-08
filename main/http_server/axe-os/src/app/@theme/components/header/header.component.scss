@@ -6,11 +6,11 @@
   display: flex;
   justify-content: space-between;
   width: 100%;
+  column-gap: 1.25rem;
 
   .logo-container {
     display: flex;
     align-items: center;
-    width: calc(#{nb-theme(sidebar-width)} - #{nb-theme(header-padding)});
   }
 
   nb-action {
@@ -43,13 +43,18 @@
     }
 
     .logo {
-      margin-top: 5px;
-      padding: 0 1.25rem;
+      padding: 0 0 0 1.25rem;
       font-size: 1.75rem;
       @include nb-ltr(border-left, 1px solid nb-theme(divider-color));
       @include nb-rtl(border-right, 1px solid nb-theme(divider-color));
       white-space: nowrap;
       text-decoration: none;
+
+      img {
+        display: block;
+        max-height: 40px;
+        max-width: 100%;
+      }
     }
   }
 /*
