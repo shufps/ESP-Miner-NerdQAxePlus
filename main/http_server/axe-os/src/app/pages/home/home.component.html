@@ -168,8 +168,10 @@
             <span class="text-hint">Heat</span>
           </nb-card-header>
           <nb-card-body class="no-scroll">
+            @let heatSectionColModifier = info.vrTemp > 0 ? 6 : 4;
+
             <div class="row text-center">
-              <div class="col-6">
+              <div class="col-{{ heatSectionColModifier }}">
                 <app-gauge [value]="info.temp" [min]="20" [max]="75" [format]="'1.1-1'" [unit]="'°C'"
                   [label]="'ASIC Temp'"></app-gauge>
               </div>
@@ -177,11 +179,11 @@
                 <app-gauge [value]="info.vrTemp" [min]="20" [max]="145" [format]="'1.1-1'" [unit]="'°C'"
                   [label]="'VR Temp'"></app-gauge>
               </div>
-              <div class="col-6">
+              <div class="col-{{ heatSectionColModifier }}">
                 <app-gauge [value]="info.fanspeed" [min]="0" [format]="'1.0-0'" [max]="100" [unit]="'%'"
                   [label]="'Fan Speed'"></app-gauge>
               </div>
-              <div class="col-6">
+              <div class="col-{{ heatSectionColModifier }}">
                 <app-gauge [value]="info.fanrpm" [format]="'1.0-0'" [min]="0" [max]="20000" [unit]="'RPM'"
                   [label]="'Fan RPM'"></app-gauge>
               </div>
