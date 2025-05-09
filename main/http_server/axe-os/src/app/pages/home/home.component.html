@@ -266,6 +266,16 @@
                   </div>
                 </div>
               </div>
+
+              <div class="row flex-nowrap">
+                <div class="col-fixed-width">
+                  <span class="text-hint">Ping:</span>
+                </div>
+                <div class="col">
+		  {{ info.lastpingrtt !== undefined ? info.lastpingrtt.toFixed(2) + ' ms (avg)' : 'n/a' }}
+                </div>
+              </div>
+
             </nb-card-body>
           </nb-card>
         </ng-container>

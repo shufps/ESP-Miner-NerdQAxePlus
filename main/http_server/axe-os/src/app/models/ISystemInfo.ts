@@ -57,6 +57,7 @@ export interface ISystemInfo {
     coreVoltageActual: number,
     lastResetReason: string,
     jobInterval: number,
+    lastpingrtt: number,
 
     boardtemp1?: number,
     boardtemp2?: number,
