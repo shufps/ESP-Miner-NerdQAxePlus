@@ -6,6 +6,7 @@
 #include "lwip/sockets.h"
 #include "nvs_config.h"
 #include "global_state.h"
+#include <netdb.h>
 
 static const char *TAG = "ping task";
 static double last_ping_rtt_ms = 0.0;
@@ -24,13 +25,26 @@ PingResult perform_ping(const char *hostname, const char *label) {
 
     PingResult result = { .success = false, .avg_rtt_ms = 0, .hostname = hostname, .label = label };
 
-    if (!inet_aton(hostname, &ip4)) {
-        ESP_LOGE(TAG, "Invalid IP address: %s", hostname);
+    // DNS-Auflösung via getaddrinfo
+    struct addrinfo hints = {
+        .ai_family = AF_INET, // Nur IPv4
+        .ai_socktype = SOCK_STREAM,
+    };
+
+    struct addrinfo *res;
+    int err = getaddrinfo(hostname, NULL, &hints, &res);
+    if (err != 0 || res == NULL) {
+        ESP_LOGE(TAG, "DNS lookup failed for host: %s (%s)", hostname, strerror(err));
         return result;
     }
 
+    // IP-Adresse extrahieren
+    struct sockaddr_in *addr_in = (struct sockaddr_in *)res->ai_addr;
+    ip4.addr = addr_in->sin_addr.s_addr;
     ip_addr_set_ip4_u32(&target_addr, ip4.addr);
     target_addr.type = IPADDR_TYPE_V4;
+
+    freeaddrinfo(res); // Speicher freigeben
 
     esp_ping_config_t config = ESP_PING_DEFAULT_CONFIG();
     config.count = 4;
@@ -76,7 +90,7 @@ PingResult perform_ping(const char *hostname, const char *label) {
     if (rtt_stats.replies > 0) {
         result.success = true;
         result.avg_rtt_ms = static_cast<double>(rtt_stats.total_time) / rtt_stats.replies;
-	last_ping_rtt_ms = result.avg_rtt_ms;
+        last_ping_rtt_ms = result.avg_rtt_ms;
     }
 
     return result;
