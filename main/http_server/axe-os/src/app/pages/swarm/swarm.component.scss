@@ -3,14 +3,9 @@
 //@import '~@nebular/theme/styles/global/_breakpoints';
 
 @include nb-install-component() {
-form {
-    margin-bottom: 20px;
-}
 
 table {
     width: 100%;
-    margin-top: 40px;
-    margin-bottom: 40px;
     border: 1px solid #304562;
 }
 th {
@@ -95,17 +90,80 @@ a {
         }
     }
 }
-button {
-    margin-right:20px;
+
+.manual-add-label {
+  flex: 0;
+  white-space: wrap;
+
+  @media (min-width: 768px) {
+    white-space: nowrap;
+  }
 }
 
 nb-slider {
     width: 100%;
 }
 
+.totals {
+  @media (max-width: 767px) {
+    flex-direction: column;
+  }
+
+  nb-card-body {
+    display: flex;
+    justify-content: space-between;
+  }
+}
+
+.scan-refresh-buttons {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  button {
+    margin-right: 0;
+  }
+
+  @media (max-width: 767px) {
+    &,
+    button {
+      width: 100%;
+    }
+  }
+}
+
+.buttons-slider-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+
+  @media (min-width: 768px) {
+    flex-wrap: nowrap;
+  }
+}
+
+.time-slider {
+  width: 100%;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  line-height: 1.4rem;
+
+  @media (min-width: 768px) {
+    justify-content: end;
+  }
+}
+
 .progress-wrap {
     position: relative;
-    height: 1rem;
+    width: 100%;
+    height: 1.5rem;
+    display: inline-block;
+
+    @media (min-width: 768px) {
+      width: 150px;
+    }
 }
 
 .progress-foreground {
@@ -143,8 +201,8 @@ nb-slider {
     }
 }
 .text-primary {
-    font-weight: bold;
-    color: var(--text-primary-color);
+    font-size: larger;
+    white-space: nowrap;
 }
 
 .text-orange-500 {
