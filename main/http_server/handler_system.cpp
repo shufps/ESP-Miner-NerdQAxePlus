@@ -13,6 +13,9 @@
 
 static const char *TAG = "http_system";
 
+extern "C" {
+#include "ping_task.h"
+}
 
 
 /* Simple handler for getting system handler */
@@ -96,6 +99,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
+    doc["lastpingrtt"]        = get_last_ping_rtt();
 
     // If history was requested, add the history data as a nested object
     if (history_requested) {

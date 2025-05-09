@@ -8,7 +8,7 @@
 #include "global_state.h"
 
 static const char *TAG = "ping task";
-static uint32_t last_ping_rtt_ms = 0;
+static double last_ping_rtt_ms = 0.0;
 
 struct PingResult {
     bool success;
