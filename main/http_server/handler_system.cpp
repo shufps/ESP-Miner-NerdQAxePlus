@@ -11,11 +11,10 @@
 #include "http_cors.h"
 #include "http_utils.h"
 
+#include "ping_task.h"
+
 static const char *TAG = "http_system";
 
-extern "C" {
-#include "ping_task.h"
-}
 
 
 /* Simple handler for getting system handler */

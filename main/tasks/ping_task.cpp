@@ -25,11 +25,9 @@ PingResult perform_ping(const char *hostname, const char *label) {
 
     PingResult result = { .success = false, .avg_rtt_ms = 0, .hostname = hostname, .label = label };
 
-    // DNS-Auflösung via getaddrinfo
-    struct addrinfo hints = {
-        .ai_family = AF_INET, // Nur IPv4
-        .ai_socktype = SOCK_STREAM,
-    };
+    struct addrinfo hints = {};
+    hints.ai_family = AF_INET; 
+    hints.ai_socktype = SOCK_STREAM;
 
     struct addrinfo *res;
     int err = getaddrinfo(hostname, NULL, &hints, &res);
@@ -38,13 +36,12 @@ PingResult perform_ping(const char *hostname, const char *label) {
         return result;
     }
 
-    // IP-Adresse extrahieren
     struct sockaddr_in *addr_in = (struct sockaddr_in *)res->ai_addr;
     ip4.addr = addr_in->sin_addr.s_addr;
     ip_addr_set_ip4_u32(&target_addr, ip4.addr);
     target_addr.type = IPADDR_TYPE_V4;
 
-    freeaddrinfo(res); // Speicher freigeben
+    freeaddrinfo(res); 
 
     esp_ping_config_t config = ESP_PING_DEFAULT_CONFIG();
     config.count = 4;
@@ -118,6 +115,6 @@ void ping_task(void *pvParameters) {
     }
 }
 
-extern "C" double get_last_ping_rtt() {
+double get_last_ping_rtt() {
     return last_ping_rtt_ms;
 }
