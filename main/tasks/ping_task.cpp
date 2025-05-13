@@ -6,9 +6,7 @@
 #include "lwip/sockets.h"
 #include "nvs_config.h"
 #include "global_state.h"
-#include <netdb.h>
-#include <string>
-#include <ctime>
+#include "dns_task.h"
 
 // Default fallback values
 #ifndef DELAY_SECONDS
@@ -17,10 +15,6 @@
 
 #ifndef PING_COUNTS
 #define PING_COUNTS 5                // Number of pings to send
-#endif
-
-#ifndef DNS_CACHE_TTL_SECONDS
-#define DNS_CACHE_TTL_SECONDS 3600   // TTL for cached DNS lookup
 #endif
 
 // Wrapper functions for later runtime config support
@@ -49,45 +43,12 @@ struct PingResult {
 
 // Perform ping to a given hostname and return true if at least one reply received
 PingResult perform_ping(const char *hostname, const char *label) {
-    // Static variables to cache resolved hostname and IP address
-    static std::string last_hostname;
-    static ip_addr_t cached_target_addr;
-    static bool has_cached_ip = false;
-    static time_t last_dns_resolve_time = 0;
-
-    ip4_addr_t ip4;
     PingResult result = { .success = false, .avg_rtt_ms = 0, .hostname = hostname, .label = label };
 
-    // Determine if we need to refresh the DNS resolution
-    time_t now = time(NULL);
-    bool need_resolve = !has_cached_ip ||
-                        last_hostname != hostname ||
-                        difftime(now, last_dns_resolve_time) > DNS_CACHE_TTL_SECONDS;
-
-    if (need_resolve) {
-        struct addrinfo hints = {};
-        hints.ai_family = AF_INET;
-        hints.ai_socktype = SOCK_STREAM;
-
-        struct addrinfo *res;
-        int err = getaddrinfo(hostname, NULL, &hints, &res);
-        if (err != 0 || res == NULL) {
-            ESP_LOGE(TAG, "DNS lookup failed for host: %s (%s)", hostname, strerror(err));
-            return result;
-        }
-
-        struct sockaddr_in *addr_in = (struct sockaddr_in *)res->ai_addr;
-        ip4.addr = addr_in->sin_addr.s_addr;
-        ip_addr_set_ip4_u32(&cached_target_addr, ip4.addr);
-        cached_target_addr.type = IPADDR_TYPE_V4;
-
-        freeaddrinfo(res);
-
-        has_cached_ip = true;
-        last_hostname = hostname;
-        last_dns_resolve_time = now;
-
-        ESP_LOGI(TAG, "Resolved hostname %s to IP: %s", hostname, inet_ntoa(addr_in->sin_addr));
+    ip_addr_t target_addr;
+    if (!resolve_hostname(hostname, &target_addr)) {
+        ESP_LOGE(TAG, "Hostname resolution failed.");
+        return result;
     }
 
     // Configure the ping session
@@ -95,7 +56,7 @@ PingResult perform_ping(const char *hostname, const char *label) {
     config.count = get_ping_count();
     config.interval_ms = 1000;
     config.timeout_ms = 1000;
-    config.target_addr = cached_target_addr;
+    config.target_addr = target_addr;
 
     struct {
         uint32_t replies = 0;
@@ -148,16 +109,27 @@ PingResult perform_ping(const char *hostname, const char *label) {
 
 // Task that continuously performs ping checks to the primary or fallback stratum server
 void ping_task(void *pvParameters) {
+    std::string last_hostname;
+
     while (true) {
         bool useFallback = STRATUM_MANAGER.isUsingFallback();
 
-        const char *hostname = useFallback
+        const char *current_hostname = useFallback
             ? Config::getStratumFallbackURL()
             : Config::getStratumURL();
 
         const char *label = useFallback ? "Fallback" : "Primary";
 
-        PingResult result = perform_ping(hostname, label);
+        // Check if hostname has changed
+        bool hostname_changed = (last_hostname != current_hostname);
+
+        if (!hostname_changed) {
+            // Only delay if hostname has NOT changed
+            vTaskDelay(pdMS_TO_TICKS(get_ping_delay() * 1000));
+        }
+
+        // Perform ping
+        PingResult result = perform_ping(current_hostname, label);
 
         if (result.success) {
             ESP_LOGI(TAG, "[%s]: Ping to %s succeeded, avg RTT: %.3f ms", result.label, result.hostname, result.avg_rtt_ms);
@@ -165,7 +137,7 @@ void ping_task(void *pvParameters) {
             ESP_LOGW(TAG, "[%s]: Ping to %s failed", result.label, result.hostname);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(get_ping_delay() * 1000));
+        last_hostname = current_hostname;
     }
 }
 
