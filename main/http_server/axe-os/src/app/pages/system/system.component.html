@@ -37,7 +37,7 @@
     </nb-card>
 
     <nb-card class="mt-4">
-        <nb-card-header>
+        <nb-card-header style="display: flex; align-items: center; flex-wrap: nowrap;">
             Realtime Logs
             <button nbButton size="small" status="primary" (click)="toggleLogs()" style="margin-left: 15px;">
                 {{ showLogs ? 'Hide' : 'Show' }} Logs
@@ -46,6 +46,16 @@
                 style="margin-left: 15px;">
                 {{ stopScroll ? 'Start' : 'Stop' }} Scrolling
             </button>
+	    <div *ngIf="showLogs" style="display: flex; align-items: center; margin-left: 15px; margin-top: 0;">
+		<!-- Clear Filter Button -->
+                <button nbButton size="small" status="info" (click)="logFilterText = ''" style="margin-right: 10px;">
+		    Clear Filter
+                </button>
+
+        	<label for="logFilterText" style="margin-right: 5px;">Filter</label>
+		<input id="logFilterText" type="text" [(ngModel)]="logFilterText" placeholder="Filter logs..."
+		       style="margin-left: 5px; flex-grow: 1; width: calc(100% - 210px);" />
+	    </div>
         </nb-card-header>
         <nb-card-body *ngIf="showLogs">
             <div id="logs" #scrollContainer>
