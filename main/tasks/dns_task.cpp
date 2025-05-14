@@ -1,45 +1,49 @@
 #include "dns_task.h"
-#include "esp_log.h"
-#include <lwip/inet.h>
-#include <netdb.h>
-#include <ctime>
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
+#include <esp_log.h>
+#include <time.h>
+#include <string>
+#include <map>
 
 static const char* TAG = "dns_task";
-
-// DNS cache state
-static std::string cached_host;
-static ip_addr_t cached_ip;
-static bool has_cached_ip = false;
-static time_t last_resolve_time = 0;
 
 #ifndef DNS_CACHE_TTL_SECONDS
 #define DNS_CACHE_TTL_SECONDS 3600
 #endif
 
+struct CachedEntry {
+    ip_addr_t ip;
+    time_t timestamp;
+};
+
+static std::map<std::string, CachedEntry> dns_cache;
+
 bool resolve_hostname(const std::string& hostnameOrIp, ip_addr_t* outIp) {
     time_t now = time(NULL);
 
-    if (has_cached_ip &&
-        cached_host == hostnameOrIp &&
-        difftime(now, last_resolve_time) <= DNS_CACHE_TTL_SECONDS) {
-
-        *outIp = cached_ip;
-        return true;
-    }
-
-    // Check if input is already an IP address
+    // Check if input is a direct IP
     ip_addr_t parsed_ip;
     if (ipaddr_aton(hostnameOrIp.c_str(), &parsed_ip)) {
-        cached_ip = parsed_ip;
-        cached_host = hostnameOrIp;
-        last_resolve_time = now;
-        has_cached_ip = true;
-        *outIp = cached_ip;
+        *outIp = parsed_ip;
         ESP_LOGI(TAG, "Parsed direct IP address: %s", hostnameOrIp.c_str());
         return true;
     }
 
-    // Fallback to DNS resolution
+    // Lookup in cache
+    auto it = dns_cache.find(hostnameOrIp);
+    if (it != dns_cache.end()) {
+        double age = difftime(now, it->second.timestamp);
+        if (age <= DNS_CACHE_TTL_SECONDS) {
+            *outIp = it->second.ip;
+            ESP_LOGI(TAG, "Cache hit for %s -> %s", hostnameOrIp.c_str(), ipaddr_ntoa(&it->second.ip));
+            return true;
+        } else {
+            dns_cache.erase(it);
+        }
+    }
+
+    // Perform DNS lookup
     struct addrinfo hints = {};
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -54,16 +58,17 @@ bool resolve_hostname(const std::string& hostnameOrIp, ip_addr_t* outIp) {
     struct sockaddr_in* addr_in = (struct sockaddr_in*)res->ai_addr;
     ip4_addr_t ip4;
     ip4.addr = addr_in->sin_addr.s_addr;
-    ip_addr_set_ip4_u32(&cached_ip, ip4.addr);
-    cached_ip.type = IPADDR_TYPE_V4;
+
+    ip_addr_t result_ip;
+    ip_addr_set_ip4_u32(&result_ip, ip4.addr);
+    result_ip.type = IPADDR_TYPE_V4;
 
     freeaddrinfo(res);
 
-    cached_host = hostnameOrIp;
-    last_resolve_time = now;
-    has_cached_ip = true;
+    // Cache the result
+    dns_cache[hostnameOrIp] = { result_ip, now };
 
-    *outIp = cached_ip;
+    *outIp = result_ip;
     ESP_LOGI(TAG, "Resolved %s to IP: %s", hostnameOrIp.c_str(), inet_ntoa(addr_in->sin_addr));
     return true;
 }
