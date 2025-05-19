@@ -7,6 +7,7 @@
 #include "nvs_config.h"
 #include "global_state.h"
 #include "dns_task.h"
+#include <string>
 
 // Default fallback values
 #ifndef DELAY_SECONDS
@@ -58,13 +59,16 @@ PingResult perform_ping(const char *hostname, const char *label) {
     config.timeout_ms = 1000;
     config.target_addr = target_addr;
 
-    struct {
-        uint32_t replies = 0;
-        uint32_t total_time = 0;
+    // Static RTT stats to reduce stack usage
+    static struct {
+        uint32_t replies;
+        uint32_t total_time;
     } rtt_stats;
 
-    // Set up ping callbacks
-    esp_ping_callbacks_t cbs = {};
+    memset(&rtt_stats, 0, sizeof(rtt_stats));
+
+    // Set up ping callbacks - static to reduce repeated stack allocations
+    static esp_ping_callbacks_t cbs = {};
     cbs.cb_args = &rtt_stats;
     cbs.on_ping_success = [](esp_ping_handle_t hdl, void *args) {
         auto *stats = static_cast<decltype(rtt_stats)*>(args);
@@ -77,18 +81,23 @@ PingResult perform_ping(const char *hostname, const char *label) {
     // Create and start the ping session
     esp_ping_handle_t ping;
     if (esp_ping_new_session(&config, &cbs, &ping) != ESP_OK) {
+        ESP_LOGE(TAG, "Couldn't create ping session.");
         return result;
     }
 
     if (esp_ping_start(ping) != ESP_OK) {
         esp_ping_delete_session(ping);
+        ESP_LOGE(TAG, "Couldn't start ping session.");
         return result;
     }
 
     // Wait until all ping requests have been sent
+    uint32_t sent = 0;
     while (true) {
-        uint32_t sent = 0;
-        esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent));
+        if (esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent)) != ESP_OK) {
+            ESP_LOGE(TAG, "Couldn't get profiler data.");
+            break;
+        }
         if (sent >= config.count) break;
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -120,6 +129,16 @@ void ping_task(void *pvParameters) {
 
         const char *label = useFallback ? "Fallback" : "Primary";
 
+        // Validate the current hostname
+        if (current_hostname == nullptr || strlen(current_hostname) == 0) {
+            ESP_LOGE(TAG, "Invalid hostname detected. Skipping ping and applying fallback delay.");
+            vTaskDelay(pdMS_TO_TICKS(get_ping_delay() * 1000));
+            continue;
+        }
+
+        // Create a safe std::string instance for the new hostname (to ensure validity)
+        std::string new_hostname(current_hostname);
+
         // Check if hostname has changed
         bool hostname_changed = (last_hostname != current_hostname);
 
@@ -131,8 +150,9 @@ void ping_task(void *pvParameters) {
         // Perform ping
         PingResult result = perform_ping(current_hostname, label);
 
+        // Evaluate the ping result and log the outcome
         if (result.success) {
-            ESP_LOGI(TAG, "[%s]: Ping to %s succeeded, avg RTT: %.3f ms", result.label, result.hostname, result.avg_rtt_ms);
+            ESP_LOGI(TAG, "[%s]: Ping to %s succeeded, avg RTT: %.2f ms", result.label, result.hostname, result.avg_rtt_ms);
         } else {
             ESP_LOGW(TAG, "[%s]: Ping to %s failed", result.label, result.hostname);
         }

@@ -5,6 +5,7 @@
 #include <time.h>
 #include <string>
 #include <map>
+#include <mutex>
 
 static const char* TAG = "dns_task";
 
@@ -18,6 +19,7 @@ struct CachedEntry {
 };
 
 static std::map<std::string, CachedEntry> dns_cache;
+static std::mutex dns_cache_mutex;  // Protects access to dns_cache
 
 bool resolve_hostname(const std::string& hostnameOrIp, ip_addr_t* outIp) {
     time_t now = time(NULL);
@@ -30,31 +32,41 @@ bool resolve_hostname(const std::string& hostnameOrIp, ip_addr_t* outIp) {
         return true;
     }
 
-    // Lookup in cache
-    auto it = dns_cache.find(hostnameOrIp);
-    if (it != dns_cache.end()) {
-        double age = difftime(now, it->second.timestamp);
-        if (age <= DNS_CACHE_TTL_SECONDS) {
-            *outIp = it->second.ip;
-            ESP_LOGI(TAG, "Cache hit for %s -> %s", hostnameOrIp.c_str(), ipaddr_ntoa(&it->second.ip));
-            return true;
-        } else {
-            dns_cache.erase(it);
+    // Lock the DNS cache for thread-safe access
+    {
+        std::lock_guard lock(dns_cache_mutex);
+
+        // Lookup in cache
+        auto it = dns_cache.find(hostnameOrIp);
+        if (it != dns_cache.end()) {
+            // Check if the cached entry is still valid
+            time_t cache_age = now - it->second.timestamp;
+            if (cache_age <= DNS_CACHE_TTL_SECONDS) {
+                *outIp = it->second.ip;  // Use cached result
+		ESP_LOGI(TAG, "Cache hit for %s -> %s", hostnameOrIp.c_str(), ipaddr_ntoa(&it->second.ip));
+                return true;
+            } else {
+                // Remove expired cache entry
+                dns_cache.erase(it);
+                ESP_LOGI(TAG, "Cache entry for %s expired and was removed", hostnameOrIp.c_str());
+            }
         }
     }
 
-    // Perform DNS lookup
+    // Perform DNS lookup (outside cache lock to avoid blocking other tasks)
     struct addrinfo hints = {};
-    hints.ai_family = AF_INET;
+    hints.ai_family = AF_INET;	// only IP4
     hints.ai_socktype = SOCK_STREAM;
 
-    struct addrinfo* res;
+    struct addrinfo* res = nullptr;
     int err = getaddrinfo(hostnameOrIp.c_str(), nullptr, &hints, &res);
     if (err != 0 || !res) {
-        ESP_LOGE(TAG, "DNS lookup failed for '%s': %s", hostnameOrIp.c_str(), strerror(err));
+        ESP_LOGE(TAG, "DNS lookup failed for '%s': %s", hostnameOrIp.c_str(), (res ? strerror(err) : "no result"));
+        freeaddrinfo(res);  // Free if partially allocated
         return false;
     }
 
+    // Extract IP address from the result
     struct sockaddr_in* addr_in = (struct sockaddr_in*)res->ai_addr;
     ip4_addr_t ip4;
     ip4.addr = addr_in->sin_addr.s_addr;
@@ -63,12 +75,15 @@ bool resolve_hostname(const std::string& hostnameOrIp, ip_addr_t* outIp) {
     ip_addr_set_ip4_u32(&result_ip, ip4.addr);
     result_ip.type = IPADDR_TYPE_V4;
 
-    freeaddrinfo(res);
+    freeaddrinfo(res);  // Free result after processing
 
-    // Cache the result
-    dns_cache[hostnameOrIp] = { result_ip, now };
+    // Add the resolved IP to the cache
+    {
+        std::lock_guard lock(dns_cache_mutex);
+        dns_cache[hostnameOrIp] = { result_ip, now };  // Add or update cache entry
+    }
 
-    *outIp = result_ip;
+    *outIp = result_ip;  // Provide resolved IP back to the caller
     ESP_LOGI(TAG, "Resolved %s to IP: %s", hostnameOrIp.c_str(), inet_ntoa(addr_in->sin_addr));
     return true;
 }
