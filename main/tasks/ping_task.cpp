@@ -7,16 +7,60 @@
 #include "nvs_config.h"
 #include "global_state.h"
 #include "dns_task.h"
-#include <string>
+#include <inttypes.h> 
 
 // Default fallback values
 #ifndef DELAY_SECONDS
-#define DELAY_SECONDS 60             // Delay between pings in seconds
+#define DELAY_SECONDS 60                    // Delay between pings in seconds
 #endif
 
 #ifndef PING_COUNTS
-#define PING_COUNTS 5                // Number of pings to send
+#define PING_COUNTS 5                       // Number of pings to send
 #endif
+
+// RTT stats handling
+#ifndef RTT_STATS_TTL_SECONDS
+#define RTT_STATS_TTL_SECONDS 3600          // Periodic check every hour
+#endif
+
+#ifndef RTT_STATS_MAX_REPLIES
+#define RTT_STATS_MAX_REPLIES 1000
+#endif
+
+#ifndef RTT_STATS_MAX_TOTAL_TIME
+#define RTT_STATS_MAX_TOTAL_TIME 3600000    // ms
+#endif
+
+static const char *TAG = "ping task";
+static double last_ping_rtt_ms = 0.0;
+
+// Global RTT stats structure
+static struct {
+    uint32_t replies = 0;
+    uint32_t total_time = 0;
+    time_t last_check = 0;
+} rtt_stats;
+
+// Reset RTT stats explicitly (e.g., on hostname change)
+void reset_rtt_stats() {
+    rtt_stats.replies = 0;
+    rtt_stats.total_time = 0;
+    rtt_stats.last_check = time(NULL);
+}
+
+void validate_rtt_stats() {
+    time_t now = time(NULL);
+    if (difftime(now, rtt_stats.last_check) > RTT_STATS_TTL_SECONDS) {
+        ESP_LOGW(TAG, "RTT stats reset due to TTL expiration: %" PRIu32 " s.", (uint32_t)RTT_STATS_TTL_SECONDS);
+        reset_rtt_stats();
+    } else if (rtt_stats.replies > RTT_STATS_MAX_REPLIES) {
+        ESP_LOGW(TAG, "RTT stats reset due to max replies limit: %" PRIu32, (uint32_t)RTT_STATS_MAX_REPLIES);
+        reset_rtt_stats();
+    } else if (rtt_stats.total_time > RTT_STATS_MAX_TOTAL_TIME) {
+        ESP_LOGW(TAG, "RTT stats reset due to max total time limit: %" PRIu32 " ms.", (uint32_t)RTT_STATS_MAX_TOTAL_TIME);
+        reset_rtt_stats();
+    }
+}
 
 // Wrapper functions for later runtime config support
 int get_ping_delay() {
@@ -31,9 +75,6 @@ int get_ping_count() {
     // return std::max(1, std::min(value, max_allowed));
     return PING_COUNTS;
 }
-
-static const char *TAG = "ping task";
-static double last_ping_rtt_ms = 0.0;
 
 struct PingResult {
     bool success;
@@ -59,45 +100,36 @@ PingResult perform_ping(const char *hostname, const char *label) {
     config.timeout_ms = 1000;
     config.target_addr = target_addr;
 
-    // Static RTT stats to reduce stack usage
-    static struct {
-        uint32_t replies;
-        uint32_t total_time;
-    } rtt_stats;
-
-    memset(&rtt_stats, 0, sizeof(rtt_stats));
 
     // Set up ping callbacks - static to reduce repeated stack allocations
     static esp_ping_callbacks_t cbs = {};
     cbs.cb_args = &rtt_stats;
     cbs.on_ping_success = [](esp_ping_handle_t hdl, void *args) {
-        auto *stats = static_cast<decltype(rtt_stats)*>(args);
+        auto *stats = static_cast<decltype(&rtt_stats)>(args);
         uint32_t time_ms = 0;
-        esp_ping_get_profile(hdl, ESP_PING_PROF_TIMEGAP, &time_ms, sizeof(time_ms));
-        stats->total_time += time_ms;
-        stats->replies++;
+        if (esp_ping_get_profile(hdl, ESP_PING_PROF_TIMEGAP, &time_ms, sizeof(time_ms)) == ESP_OK) {
+            stats->total_time += time_ms;
+            stats->replies++;
+        } else {
+            ESP_LOGW(TAG, "Failed to retrieve RTT statistics from ping profile.");
+        }
     };
 
     // Create and start the ping session
     esp_ping_handle_t ping;
     if (esp_ping_new_session(&config, &cbs, &ping) != ESP_OK) {
-        ESP_LOGE(TAG, "Couldn't create ping session.");
         return result;
     }
 
     if (esp_ping_start(ping) != ESP_OK) {
         esp_ping_delete_session(ping);
-        ESP_LOGE(TAG, "Couldn't start ping session.");
         return result;
     }
 
     // Wait until all ping requests have been sent
-    uint32_t sent = 0;
     while (true) {
-        if (esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent)) != ESP_OK) {
-            ESP_LOGE(TAG, "Couldn't get profiler data.");
-            break;
-        }
+        uint32_t sent = 0;
+        esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent));
         if (sent >= config.count) break;
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -118,9 +150,15 @@ PingResult perform_ping(const char *hostname, const char *label) {
 
 // Task that continuously performs ping checks to the primary or fallback stratum server
 void ping_task(void *pvParameters) {
-    std::string last_hostname;
+    const char* last_hostname = nullptr;
 
     while (true) {
+        if (!STRATUM_MANAGER.isAnyConnected()) {
+            ESP_LOGW(TAG, "Stratum not connected yet. Skipping ping...");
+            vTaskDelay(pdMS_TO_TICKS(5000)); // 5s retry delay
+            continue;
+        }
+
         bool useFallback = STRATUM_MANAGER.isUsingFallback();
 
         const char *current_hostname = useFallback
@@ -129,28 +167,22 @@ void ping_task(void *pvParameters) {
 
         const char *label = useFallback ? "Fallback" : "Primary";
 
-        // Validate the current hostname
-        if (current_hostname == nullptr || strlen(current_hostname) == 0) {
-            ESP_LOGE(TAG, "Invalid hostname detected. Skipping ping and applying fallback delay.");
-            vTaskDelay(pdMS_TO_TICKS(get_ping_delay() * 1000));
-            continue;
-        }
-
-        // Create a safe std::string instance for the new hostname (to ensure validity)
-        std::string new_hostname(current_hostname);
-
         // Check if hostname has changed
-        bool hostname_changed = (last_hostname != current_hostname);
+        bool hostname_changed = (!last_hostname || strcmp(last_hostname, current_hostname) != 0);
 
         if (!hostname_changed) {
-            // Only delay if hostname has NOT changed
+            // regular delay if hostname has NOT changed
             vTaskDelay(pdMS_TO_TICKS(get_ping_delay() * 1000));
+        } else {
+            // reset stats if hostname changes
+            reset_rtt_stats();
         }
+
+        validate_rtt_stats();
 
         // Perform ping
         PingResult result = perform_ping(current_hostname, label);
 
-        // Evaluate the ping result and log the outcome
         if (result.success) {
             ESP_LOGI(TAG, "[%s]: Ping to %s succeeded, avg RTT: %.2f ms", result.label, result.hostname, result.avg_rtt_ms);
         } else {
