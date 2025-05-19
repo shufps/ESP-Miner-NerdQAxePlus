@@ -16,6 +16,7 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
   public info$: Observable<ISystemInfo>;
 
   public logs: string[] = [];
+  public logFilterText: string = '';
 
   private websocketSubscription?: Subscription;
 
@@ -57,10 +58,13 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
     if (this.showLogs) {
       this.websocketSubscription = this.websocketService.ws$.subscribe({
         next: (val) => {
-          this.logs.push(val);
-          if (this.logs.length > 256) {
+	  const valStr = String(val);
+	  if (!this.logFilterText || val.toLowerCase().includes(this.logFilterText.toLowerCase())) {
+           this.logs.push(val);
+           if (this.logs.length > 256) {
             this.logs.shift();
-          }
+           }
+	  }
         }
       })
     } else {
