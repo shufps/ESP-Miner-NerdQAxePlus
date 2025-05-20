@@ -1,3 +1,5 @@
+#pragma message("RTT paranoia enabled: If this overflows, call the Guinness World Records.")
+
 #include "ping_task.h"
 #include "esp_log.h"
 #include "ping/ping_sock.h"
@@ -18,18 +20,7 @@
 #define PING_COUNTS 5                       // Number of pings to send
 #endif
 
-// RTT stats handling
-#ifndef RTT_STATS_TTL_SECONDS
-#define RTT_STATS_TTL_SECONDS 3600          // Periodic check every hour
-#endif
-
-#ifndef RTT_STATS_MAX_REPLIES
-#define RTT_STATS_MAX_REPLIES 1000
-#endif
-
-#ifndef RTT_STATS_MAX_TOTAL_TIME
-#define RTT_STATS_MAX_TOTAL_TIME 3600000    // ms
-#endif
+#define RTT_STATS_OVERFLOW_THRESHOLD 0.9    // Reset from 90 % capacity
 
 static const char *TAG = "ping task";
 static double last_ping_rtt_ms = 0.0;
@@ -41,23 +32,24 @@ static struct {
     time_t last_check = 0;
 } rtt_stats;
 
-// Reset RTT stats explicitly (e.g., on hostname change)
+// Reset RTT stats explicitly (e.g., on hostname change - or for the one in a billion edge case. Literally.)
 void reset_rtt_stats() {
     rtt_stats.replies = 0;
     rtt_stats.total_time = 0;
     rtt_stats.last_check = time(NULL);
 }
 
+// Overflow paranoia: Just in case this code outlives us all
 void validate_rtt_stats() {
-    time_t now = time(NULL);
-    if (difftime(now, rtt_stats.last_check) > RTT_STATS_TTL_SECONDS) {
-        ESP_LOGW(TAG, "RTT stats reset due to TTL expiration: %" PRIu32 " s.", (uint32_t)RTT_STATS_TTL_SECONDS);
+    constexpr uint32_t MAX_UINT32 = UINT32_MAX;
+    const uint32_t replies_limit = (uint32_t)(MAX_UINT32 * RTT_STATS_OVERFLOW_THRESHOLD);
+    const uint32_t time_limit = (uint32_t)(MAX_UINT32 * RTT_STATS_OVERFLOW_THRESHOLD);
+
+    if (rtt_stats.replies >= replies_limit) {
+        ESP_LOGW(TAG, "Resetting RTT stats due to replies overflow risk (%" PRIu32 ")", rtt_stats.replies);
         reset_rtt_stats();
-    } else if (rtt_stats.replies > RTT_STATS_MAX_REPLIES) {
-        ESP_LOGW(TAG, "RTT stats reset due to max replies limit: %" PRIu32, (uint32_t)RTT_STATS_MAX_REPLIES);
-        reset_rtt_stats();
-    } else if (rtt_stats.total_time > RTT_STATS_MAX_TOTAL_TIME) {
-        ESP_LOGW(TAG, "RTT stats reset due to max total time limit: %" PRIu32 " ms.", (uint32_t)RTT_STATS_MAX_TOTAL_TIME);
+    } else if (rtt_stats.total_time >= time_limit) {
+        ESP_LOGW(TAG, "Resetting RTT stats due to total_time overflow risk (%" PRIu32 ")", rtt_stats.total_time);
         reset_rtt_stats();
     }
 }
