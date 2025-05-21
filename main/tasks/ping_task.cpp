@@ -1,5 +1,3 @@
-#pragma message("RTT paranoia enabled: If this overflows, call the Guinness World Records.")
-
 #include "ping_task.h"
 #include "esp_log.h"
 #include "ping/ping_sock.h"
@@ -27,29 +25,23 @@ static double last_ping_rtt_ms = 0.0;
 
 // Global RTT stats structure
 static struct {
-    uint32_t replies = 0;
-    uint32_t total_time = 0;
-    time_t last_check = 0;
+    uint16_t replies = 0;                   // Total number of successful ping replies
+    uint32_t total_time = 0;                // Total accumulated round-trip time in ms
 } rtt_stats;
 
 // Reset RTT stats explicitly (e.g., on hostname change - or for the one in a billion edge case. Literally.)
 void reset_rtt_stats() {
     rtt_stats.replies = 0;
     rtt_stats.total_time = 0;
-    rtt_stats.last_check = time(NULL);
 }
 
-// Overflow paranoia: Just in case this code outlives us all
+// Overflow check: just in case uptime is > 490 days with current defines
 void validate_rtt_stats() {
-    constexpr uint32_t MAX_UINT32 = UINT32_MAX;
-    const uint32_t replies_limit = (uint32_t)(MAX_UINT32 * RTT_STATS_OVERFLOW_THRESHOLD);
-    const uint32_t time_limit = (uint32_t)(MAX_UINT32 * RTT_STATS_OVERFLOW_THRESHOLD);
+    constexpr uint16_t MAX_UINT16 = UINT16_MAX;
+    const uint16_t replies_limit = (uint16_t)(MAX_UINT16 * RTT_STATS_OVERFLOW_THRESHOLD); // e.g. ~58981 for 90%
 
     if (rtt_stats.replies >= replies_limit) {
-        ESP_LOGW(TAG, "Resetting RTT stats due to replies overflow risk (%" PRIu32 ")", rtt_stats.replies);
-        reset_rtt_stats();
-    } else if (rtt_stats.total_time >= time_limit) {
-        ESP_LOGW(TAG, "Resetting RTT stats due to total_time overflow risk (%" PRIu32 ")", rtt_stats.total_time);
+        ESP_LOGW(TAG, "Resetting RTT stats due to replies overflow risk (%" PRIu16 ")", rtt_stats.replies);
         reset_rtt_stats();
     }
 }
@@ -147,7 +139,7 @@ void ping_task(void *pvParameters) {
     while (true) {
         if (!STRATUM_MANAGER.isAnyConnected()) {
             ESP_LOGW(TAG, "Stratum not connected yet. Skipping ping...");
-            vTaskDelay(pdMS_TO_TICKS(5000)); // 5s retry delay
+            vTaskDelay(pdMS_TO_TICKS(10000)); // 10s retry delay
             continue;
         }
 
