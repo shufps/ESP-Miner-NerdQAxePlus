@@ -9,6 +9,7 @@
 #include "esp_wifi.h"
 #include "global_state.h"
 #include "lwip/dns.h"
+#include "dns_task.h"
 
 #include "asic_jobs.h"
 #include "boards/board.h"
@@ -79,35 +80,6 @@ bool StratumTask::isWifiConnected()
 {
     wifi_ap_record_t ap_info;
     return esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK;
-}
-
-bool StratumTask::resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len)
-{
-    struct addrinfo hints;
-    struct addrinfo *res;
-    int err;
-
-    // Set up the hints for the lookup
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET; // IPv4
-
-    // Perform the blocking DNS lookup
-    err = getaddrinfo(hostname, NULL, &hints, &res);
-    if (err != 0 || res == NULL) {
-        ESP_LOGE("DNS", "DNS lookup failed: %d", err);
-        return false;
-    }
-
-    // Extract the IP address from the result
-    struct sockaddr_in *addr = (struct sockaddr_in *) res->ai_addr;
-    inet_ntop(AF_INET, &(addr->sin_addr), ip_str, ip_str_len);
-
-    ESP_LOGI("DNS", "Resolved IP: %s", ip_str);
-
-    // Free the result
-    freeaddrinfo(res);
-
-    return true;
 }
 
 int StratumTask::connectStratum(const char *host_ip, uint16_t port)
@@ -198,11 +170,14 @@ void StratumTask::task()
 
         // resolve the IP of the host
         char ip[INET_ADDRSTRLEN] = {0};
-        if (!resolveHostname(m_config->host, ip, sizeof(ip))) {
+        ip_addr_t target_addr;
+        if (!resolve_hostname(m_config->host, &target_addr)) {
             ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config->host);
             vTaskDelay(10000 / portTICK_PERIOD_MS);
             continue;
         }
+        strncpy(ip, ipaddr_ntoa(&target_addr), sizeof(ip) - 1);
+        ip[sizeof(ip) - 1] = '\0';  // Ensure null termination
 
         ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d (%s)", m_config->host, m_config->port, ip);
 
