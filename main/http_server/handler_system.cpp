@@ -63,6 +63,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     char *fallbackStratumURL = Config::getStratumFallbackURL();
     char *fallbackStratumUser= Config::getStratumFallbackUser();
 
+    doc["stratumDifficulty"] = Config::getStratumDifficulty();
+
     // static
     doc["asicCount"]          = board->getAsicCount();
     doc["smallCoreCount"]     = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
@@ -258,6 +260,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         if (jobInterval > 0) {
             Config::setAsicJobInterval(jobInterval);
         }
+    }
+    if (doc["stratumDifficulty"].is<uint32_t>()) {
+        Config::setStratumDifficulty(doc["stratumDifficulty"].as<uint32_t>());
     }
     if (doc["flipscreen"].is<bool>()) {
         Config::setFlipScreen(doc["flipscreen"].as<bool>());

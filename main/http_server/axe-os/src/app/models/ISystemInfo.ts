@@ -46,6 +46,7 @@ export interface ISystemInfo {
     fallbackStratumUser: string,
     isUsingFallbackStratum: boolean,
     isStratumConnected: boolean,
+    stratumDifficulty: number;
     frequency: number,
     defaultFrequency: number,
     version: string,

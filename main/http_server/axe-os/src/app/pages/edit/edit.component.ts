@@ -125,6 +125,7 @@ export class EditComponent implements OnInit {
           coreVoltage: [info.coreVoltage, [Validators.min(1005), Validators.max(1400), Validators.required]],
           frequency: [info.frequency, [Validators.required]],
           jobInterval: [info.jobInterval, [Validators.required]],
+          stratumDifficulty: [info.stratumDifficulty, [Validators.required, Validators.min(1)]],
           autofanspeed: [info.autofanspeed ?? 0, [Validators.required]],
           pidTargetTemp: [info.pidTargetTemp ?? 55, [
             Validators.min(30),
