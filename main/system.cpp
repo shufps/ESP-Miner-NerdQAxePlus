@@ -204,7 +204,9 @@ void System::suffixString(uint64_t val, char* buf, size_t bufSize, int sigDigits
             snprintf(buf, bufSize, "%d%s", (unsigned int)dval, suffix);
     } else {
         int nDigits = sigDigits - 1 - (dval > 0.0 ? floor(log10(dval)) : 0);
-        snprintf(buf, bufSize, "%*.*f%s", sigDigits + 1, nDigits, dval, suffix);
+        //snprintf(buf, bufSize, "%*.*f%s", sigDigits + 1, nDigits, dval, suffix);
+        if (nDigits < 0) nDigits = 0;
+        snprintf(buf, bufSize, "%.*f%s", nDigits, dval, suffix);
     }
 }
 

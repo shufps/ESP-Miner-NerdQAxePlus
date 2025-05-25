@@ -57,9 +57,14 @@ void ASIC_result_task(void *pvParameters)
         // check the nonce difficulty
         double nonce_diff = test_nonce_value(job, asic_result.nonce, asic_result.rolled_version);
 
-        // log the ASIC response
-        ESP_LOGI(TAG, "Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 " diff %.1f of %ld.", asic_job_id,
-                 asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce, nonce_diff, job->asic_diff);
+        // get best known session diff
+        char bestDiffString[16];
+        System::suffixString(SYSTEM_MODULE.getBestSessionNonceDiff(), bestDiffString, sizeof(bestDiffString), 3);
+
+        // log the ASIC response, including pool and best session difficulty using human-readable SI formatting
+        ESP_LOGI(TAG, "Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 " diff %.1f/%lu/%s",
+            asic_job_id, asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce,
+            nonce_diff, job->pool_diff, bestDiffString);
 
         if (nonce_diff > job->pool_diff) {
             STRATUM_MANAGER.submitShare(job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
