@@ -52,6 +52,7 @@ export class EditComponent implements OnInit {
     'fallbackStratumUser',
     'invertfanpolarity',
     'autofanpolarity',
+    'stratumDifficulty',
   ]);
 
   @Input() uri = '';
