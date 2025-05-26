@@ -1,0 +1,42 @@
+name: Validate ESP32 Firmware on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - board: NERDQAXEPLUS
+            label: NerdQAxe+
+          - board: NERDOCTAXEPLUS
+            label: NerdOCTAXE+
+          - board: NERDQAXEPLUS2
+            label: NerdQAxe++
+          - board: NERDAXE
+            label: NerdAxe
+          - board: NERDOCTAXEGAMMA
+            label: NerdOCTAXE-Gamma
+          - board: NERDAXEGAMMA
+            label: NerdAxeGamma
+          - board: NERDHAXEGAMMA
+            label: NerdHaxe-Gamma
+          - board: NERDEKO
+            label: NerdEKO
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set Target for ${{ matrix.label }}
+      run: |
+        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
+        shufps/esp-idf-builder:0.0.1 idf.py set-target esp32s3
+
+    - name: Build firmware for ${{ matrix.label }}
+      run: |
+        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
+        shufps/esp-idf-builder:0.0.1 idf.py build
