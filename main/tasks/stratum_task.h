@@ -2,6 +2,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
+#include "lwip/inet.h"
 #include <pthread.h>
 
 class StratumManager;
@@ -42,6 +43,7 @@ class StratumTask {
     bool resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len); ///< Resolve hostname to IP
     int connectStratum(const char *host_ip, uint16_t port);                      ///< Connect to a Stratum pool
     bool setupSocketTimeouts(int sock);                                          ///< Set up socket timeouts
+    char m_lastResolvedIp[INET_ADDRSTRLEN] = {0};                                ///< Last resolved IP (for use by ping_task)
 
     // Main Stratum loop handling communication
     void stratumLoop();
@@ -75,6 +77,9 @@ class StratumTask {
     int getPort()
     {
         return m_config ? m_config->port : 0;
+    }
+    const char* getResolvedIp() const {
+        return m_lastResolvedIp[0] ? m_lastResolvedIp : nullptr;
     }
 
   public:
@@ -137,4 +142,5 @@ class StratumManager {
                      const uint32_t version);
 
     bool isUsingFallback(); ///< Check if the secondary (fallback) pool is in use
+    const char* getResolvedIpForSelected() const;
 };

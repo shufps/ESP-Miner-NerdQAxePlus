@@ -11,6 +11,8 @@
 #include "http_cors.h"
 #include "http_utils.h"
 
+#include "ping_task.h"
+
 static const char *TAG = "http_system";
 
 
@@ -63,8 +65,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
     char *fallbackStratumURL = Config::getStratumFallbackURL();
     char *fallbackStratumUser= Config::getStratumFallbackUser();
 
-    doc["stratumDifficulty"] = Config::getStratumDifficulty();
-
     // static
     doc["asicCount"]          = board->getAsicCount();
     doc["smallCoreCount"]     = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
@@ -98,6 +98,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
+    doc["lastpingrtt"]        = get_last_ping_rtt();
 
     // If history was requested, add the history data as a nested object
     if (history_requested) {
@@ -127,6 +128,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["frequency"]          = board->getAsicFrequency();
     doc["defaultFrequency"]   = board->getDefaultAsicFrequency();
     doc["jobInterval"]        = board->getAsicJobIntervalMs();
+    doc["stratumDifficulty"] = Config::getStratumDifficulty();
     doc["overheat_temp"]      = Config::getOverheatTemp();
     doc["flipscreen"]         = board->isFlipScreenEnabled() ? 1 : 0;
     doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
