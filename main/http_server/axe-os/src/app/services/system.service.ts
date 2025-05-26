@@ -63,6 +63,7 @@ const defaultInfo: ISystemInfo = {
   autoscreenoff: 0,
   lastResetReason: "Unknown",
   jobInterval: 1200,
+  stratumDifficulty: 1000,
 
   pidTargetTemp: 55,
   pidP: 2.0,
