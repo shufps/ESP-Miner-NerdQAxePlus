@@ -9,95 +9,41 @@
 #include "stratum_task.h"
 
 // Configuration for ping intervals and history
-#define PING_COUNT 5           // number of pings per round
+#define PING_COUNT 7           // number of pings per round
 #define PING_INTERVAL_MS 1000  // delay between individual pings in ms
 #define PING_TIMEOUT_MS 1000   // timeout per ping request in ms
-#define PING_DELAY 30          // delay between ping rounds in seconds
-#define RTT_HISTORY_LENGTH 11  // number of RTT averages to retain in history
+#define PING_DELAY 60          // delay between ping rounds in seconds
 
 static const char *TAG = "ping task";
 static double last_ping_rtt_ms = 0.0;
 
-// Circular buffer to store last RTT averages
-static struct {
-    uint16_t count = 0;
-    uint16_t index = 0;
-    double samples[RTT_HISTORY_LENGTH] = {0};
-} rtt_stats;
-
-// Clear all RTT samples
-void reset_rtt_stats() {
-    rtt_stats.count = 0;
-    rtt_stats.index = 0;
-    for (int i = 0; i < RTT_HISTORY_LENGTH; ++i) {
-        rtt_stats.samples[i] = 0.0;
-    }
-}
-
-// Add a new RTT sample to the circular buffer
-void add_rtt_sample(double rtt_ms) {
-    rtt_stats.samples[rtt_stats.index] = rtt_ms;
-    rtt_stats.index = (rtt_stats.index + 1) % RTT_HISTORY_LENGTH;
-    if (rtt_stats.count < RTT_HISTORY_LENGTH) {
-        rtt_stats.count++;
-    }
-}
-
-// get average RTT
-double get_average_rtt() {
-    if (rtt_stats.count == 0) return 0.0;
-    double sum = 0.0;
-    for (int i = 0; i < rtt_stats.count; ++i) {
-        sum += rtt_stats.samples[i];
-    }
-    return sum / rtt_stats.count;
-}
-
-// get minimum RTT
-double get_min_rtt() {
-    if (rtt_stats.count == 0) return 0.0;
-    double min = rtt_stats.samples[0];
-    for (int i = 1; i < rtt_stats.count; ++i) {
-        if (rtt_stats.samples[i] < min) min = rtt_stats.samples[i];
-    }
-    return min;
-}
-
-// get maximum RTT
-double get_max_rtt() {
-    if (rtt_stats.count == 0) return 0.0;
-    double max = rtt_stats.samples[0];
-    for (int i = 1; i < rtt_stats.count; ++i) {
-        if (rtt_stats.samples[i] > max) max = rtt_stats.samples[i];
-    }
-    return max;
-}
-
 // Result structure used by ping logic
 struct PingResult {
     bool success;
+    uint16_t replies;
     double avg_rtt_ms;
-    const char* hostname;
-    const char* label;
+    double min_rtt_ms;
+    double max_rtt_ms;
 };
 
 // Run a ping session using resolved IP from STRATUM_MANAGER
-PingResult perform_ping(const char *hostname, const char *label) {
-    PingResult result = { .success = false, .avg_rtt_ms = 0.0, .hostname = hostname, .label = label };
+PingResult perform_ping(const char* ip_str, const char* hostname_str) {
+    PingResult result = { .success = false, .replies = 0, .avg_rtt_ms = 0.0, .min_rtt_ms = 1e6, .max_rtt_ms = 0.0 };
 
-    // get IP from stratum_task
-    const char* ip_str = STRATUM_MANAGER.getResolvedIpForSelected();
     ip_addr_t target_addr;
-
     if (!ip_str || !ipaddr_aton(ip_str, &target_addr)) {
-        ESP_LOGE(TAG, "No valid IP from StratumManager (%s)", ip_str ? ip_str : "null");
+        ESP_LOGE(TAG, "Invalid IP string passed to perform_ping (%s)", ip_str ? ip_str : "null");
         return result;
     }
 
     struct PingStats {
         uint16_t replies;
         uint32_t total_time_ms;
-    } stats = {};
+        double min_rtt;
+        double max_rtt;
+        const char* hostname;
+        bool header_shown;
+    } stats = { .min_rtt = 1e6, .max_rtt = 0.0, .hostname = hostname_str, .header_shown = false };
 
     // Configure ping session
     esp_ping_config_t config = ESP_PING_DEFAULT_CONFIG();
@@ -111,45 +57,93 @@ PingResult perform_ping(const char *hostname, const char *label) {
     cbs.cb_args = &stats;
     cbs.on_ping_success = [](esp_ping_handle_t hdl, void *args) {
         PingStats* s = (PingStats*) args;
-        uint32_t time_ms = 0;
-        if (esp_ping_get_profile(hdl, ESP_PING_PROF_TIMEGAP, &time_ms, sizeof(time_ms)) == ESP_OK) {
+        uint32_t time_ms = 0, seq = 0, ttl = 0, size = 0;
+        ip_addr_t addr;
+
+        bool ok_time = esp_ping_get_profile(hdl, ESP_PING_PROF_TIMEGAP, &time_ms, sizeof(time_ms)) == ESP_OK;
+        bool ok_seq  = esp_ping_get_profile(hdl, ESP_PING_PROF_SEQNO,  &seq, sizeof(seq)) == ESP_OK;
+        bool ok_ttl  = esp_ping_get_profile(hdl, ESP_PING_PROF_TTL,    &ttl, sizeof(ttl)) == ESP_OK;
+        bool ok_size = esp_ping_get_profile(hdl, ESP_PING_PROF_SIZE,   &size, sizeof(size)) == ESP_OK;
+        bool ok_ip   = esp_ping_get_profile(hdl, ESP_PING_PROF_IPADDR, &addr, sizeof(addr)) == ESP_OK;
+
+        if (ok_time) {
+            if (!s->header_shown && ok_ip && ok_size) {
+                ESP_LOGI(TAG, "PING %s (%s): %lu data bytes", s->hostname, ipaddr_ntoa(&addr), (unsigned long)size);
+                s->header_shown = true;
+            }
+
             s->total_time_ms += time_ms;
             s->replies++;
+            if (time_ms < s->min_rtt) s->min_rtt = time_ms;
+            if (time_ms > s->max_rtt) s->max_rtt = time_ms;
+
+            const char* ip_str = ok_ip ? ipaddr_ntoa(&addr) : "?.?.?.?";
+            uint32_t icmp_seq = ok_seq ? seq : s->replies;
+            uint32_t pkt_size = ok_size ? size : 64;
+
+            ESP_LOGI(TAG, "%lu bytes from %s: icmp_seq=%lu ttl=%lu time=%lu ms",
+                     (unsigned long)pkt_size, ip_str,
+                     (unsigned long)icmp_seq,
+                     (unsigned long)(ok_ttl ? ttl : 64),
+                     (unsigned long)time_ms);
         }
     };
 
-    // Start ping session
-    esp_ping_handle_t ping;
-    if (esp_ping_new_session(&config, &cbs, &ping) != ESP_OK) return result;
-    if (esp_ping_start(ping) != ESP_OK) {
-        esp_ping_delete_session(ping);
+    // Configure and start ping session
+    esp_ping_handle_t ping = NULL;
+    if (esp_ping_new_session(&config, &cbs, &ping) != ESP_OK) {
+        ESP_LOGE(TAG, "Error creating ping session");
+        if (ping) esp_ping_delete_session(ping);  // Ensure memory is freed in case of prior allocation
         return result;
     }
 
-    // Wait until all pings are sent
-    while (true) {
-        uint32_t sent = 0;
-        esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent));
-        if (sent >= config.count) break;
-        vTaskDelay(pdMS_TO_TICKS(100));
+    if (esp_ping_start(ping) != ESP_OK) {
+        ESP_LOGE(TAG, "Error starting ping session");
+        esp_ping_delete_session(ping); // Free memory if start fails
+        return result;
     }
 
+    // Wait until all replies are received or timeout expires
+    const int max_wait_ms = PING_COUNT * (PING_TIMEOUT_MS + 100);
+    int wait = 0;
+    uint32_t replies = 0, sent = 0;
+
+    while (wait < max_wait_ms) {
+        esp_ping_get_profile(ping, ESP_PING_PROF_REPLY, &replies, sizeof(replies));
+        esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent));
+
+        if (replies >= config.count) {
+            vTaskDelay(pdMS_TO_TICKS(50)); // allow final callback to settle
+            break;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100));
+        wait += 100;
+    }
+
+    // Stop and clean up ping session
     esp_ping_stop(ping);
     esp_ping_delete_session(ping);
 
-    // Store average of this round if valid replies exist
+    // Final verification: check if any replies were missing
+    esp_ping_get_profile(ping, ESP_PING_PROF_REPLY, &replies, sizeof(replies));
+    esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent));
+
+    // Store results if valid replies exist
     if (stats.replies > 0) {
         double round_avg = (double) stats.total_time_ms / stats.replies;
-        add_rtt_sample(round_avg);
         result.success = true;
-        result.avg_rtt_ms = get_average_rtt();
+        result.replies = stats.replies;
+        result.avg_rtt_ms = round_avg;
+        result.min_rtt_ms = stats.min_rtt;
+        result.max_rtt_ms = stats.max_rtt;
         last_ping_rtt_ms = result.avg_rtt_ms;
     }
 
     return result;
 }
 
-// Periodic task that pings stratum target every 20s using resolved IP
+// Periodic task that pings stratum target every PING_DELAY using resolved IP
 void ping_task(void *pvParameters) {
     const char* last_hostname = nullptr;
 
@@ -164,20 +158,29 @@ void ping_task(void *pvParameters) {
         const char *current_hostname = useFallback
             ? Config::getStratumFallbackURL()
             : Config::getStratumURL();
-        const char *label = useFallback ? "Fallback" : "Primary";
+
+        const char *ip_str = STRATUM_MANAGER.getResolvedIpForSelected();
+        if (!ip_str) {
+            ESP_LOGE(TAG, "No resolved IP for hostname %s", current_hostname);
+            vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
+            continue;
+        }
 
         bool hostname_changed = (!last_hostname || strcmp(last_hostname, current_hostname) != 0);
         if (hostname_changed) {
-            reset_rtt_stats();
+            last_ping_rtt_ms = 0.0;
         }
 
-        PingResult result = perform_ping(current_hostname, label);
+        PingResult result = perform_ping(ip_str, current_hostname);
+
+        ESP_LOGI(TAG, "--- %s ping statistics ---", current_hostname);
+        ESP_LOGI(TAG, "%u packets transmitted, %u packets received, %.1f%% packet loss",
+                 PING_COUNT, result.replies,
+                 100.0 * (PING_COUNT - result.replies) / (double)PING_COUNT);
 
         if (result.success) {
-            ESP_LOGI(TAG, "[%s]: Ping to %s succeeded, RTT min/avg/max = %.2f/%.2f/%.2f ms",
-                     result.label, result.hostname, get_min_rtt(), result.avg_rtt_ms, get_max_rtt());
-        } else {
-            ESP_LOGW(TAG, "[%s]: Ping to %s failed", result.label, result.hostname);
+            ESP_LOGI(TAG, "round-trip min/avg/max = %.2f/%.2f/%.2f ms",
+                     result.min_rtt_ms, result.avg_rtt_ms, result.max_rtt_ms);
         }
 
         last_hostname = current_hostname;
