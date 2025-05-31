@@ -102,6 +102,10 @@ bool StratumTask::resolveHostname(const char *hostname, char *ip_str, size_t ip_
     struct sockaddr_in *addr = (struct sockaddr_in *) res->ai_addr;
     inet_ntop(AF_INET, &(addr->sin_addr), ip_str, ip_str_len);
 
+    // save IP adrdress
+    strncpy(m_lastResolvedIp, ip_str, sizeof(m_lastResolvedIp));
+    m_lastResolvedIp[sizeof(m_lastResolvedIp) - 1] = '\0';
+
     ESP_LOGI("DNS", "Resolved IP: %s", ip_str);
 
     // Free the result
@@ -359,6 +363,13 @@ bool StratumManager::isConnected(int index)
 
 bool StratumManager::isAnyConnected() {
     return isConnected(PRIMARY) || isConnected(SECONDARY);
+}
+
+const char* StratumManager::getResolvedIpForSelected() const {
+    if (!m_stratumTasks[m_selected]) {
+        return nullptr;
+    }
+    return m_stratumTasks[m_selected]->getResolvedIp();
 }
 
 void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
