@@ -99,6 +99,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
     doc["lastpingrtt"]        = get_last_ping_rtt();
+    doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
 
     // If history was requested, add the history data as a nested object
     if (history_requested) {

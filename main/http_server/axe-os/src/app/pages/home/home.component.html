@@ -249,7 +249,6 @@
                   {{ info.isUsingFallbackStratum ? info.fallbackStratumPort : info.stratumPort }}
                 </div>
               </div>
-
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
                   <span class="text-hint">User:</span>
@@ -276,6 +275,15 @@
                   {{ info.lastpingrtt !== undefined ? info.lastpingrtt.toFixed(2) + ' ms (avg)' : 'n/a' }}
                 </div>
               </div>
+              
+              <div class="row flex-nowrap">
+                <div class="col-fixed-width">
+                  <span class="text-hint">Diff:</span>
+                </div>
+                <div class="col">
+                  {{ info.poolDifficulty }}
+                </div>
+              </div>              
             </nb-card-body>
           </nb-card>
         </ng-container>

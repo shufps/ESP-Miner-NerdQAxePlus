@@ -65,6 +65,7 @@ const defaultInfo: ISystemInfo = {
   jobInterval: 1200,
   stratumDifficulty: 1000,
   lastpingrtt: 0.00,
+  poolDifficulty: 0,
 
   pidTargetTemp: 55,
   pidP: 2.0,
