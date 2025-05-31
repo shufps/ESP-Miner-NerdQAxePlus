@@ -64,6 +64,7 @@ const defaultInfo: ISystemInfo = {
   lastResetReason: "Unknown",
   jobInterval: 1200,
   stratumDifficulty: 1000,
+  poolDifficulty: 0,
 
   pidTargetTemp: 55,
   pidP: 2.0,
