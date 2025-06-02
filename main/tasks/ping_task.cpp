@@ -53,7 +53,7 @@ PingResult perform_ping(const char* ip_str, const char* hostname_str) {
     config.target_addr = target_addr;
 
     // Set callback to accumulate successful replies
-    static esp_ping_callbacks_t cbs = {};
+    esp_ping_callbacks_t cbs = {};
     cbs.cb_args = &stats;
     cbs.on_ping_success = [](esp_ping_handle_t hdl, void *args) {
         PingStats* s = (PingStats*) args;
