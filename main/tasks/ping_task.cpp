@@ -67,8 +67,9 @@ PingResult perform_ping(const char* ip_str, const char* hostname_str) {
         bool ok_ip   = esp_ping_get_profile(hdl, ESP_PING_PROF_IPADDR, &addr, sizeof(addr)) == ESP_OK;
 
         if (ok_time) {
+            const char* ip_str = ok_ip ? ipaddr_ntoa(&addr) : "?.?.?.?";
             if (!s->header_shown && ok_ip && ok_size) {
-                ESP_LOGI(TAG, "PING %s (%s): %lu data bytes", s->hostname, ipaddr_ntoa(&addr), (unsigned long)size);
+                ESP_LOGI(TAG, "PING %s (%s): %lu data bytes", s->hostname, ip_str, (unsigned long)size);
                 s->header_shown = true;
             }
 
@@ -77,7 +78,6 @@ PingResult perform_ping(const char* ip_str, const char* hostname_str) {
             if (time_ms < s->min_rtt) s->min_rtt = time_ms;
             if (time_ms > s->max_rtt) s->max_rtt = time_ms;
 
-            const char* ip_str = ok_ip ? ipaddr_ntoa(&addr) : "?.?.?.?";
             uint32_t icmp_seq = ok_seq ? seq : s->replies;
             uint32_t pkt_size = ok_size ? size : 64;
 
@@ -121,13 +121,15 @@ PingResult perform_ping(const char* ip_str, const char* hostname_str) {
         wait += 100;
     }
 
-    // Stop and clean up ping session
+    // Stop session
     esp_ping_stop(ping);
-    esp_ping_delete_session(ping);
 
     // Final verification: check if any replies were missing
     esp_ping_get_profile(ping, ESP_PING_PROF_REPLY, &replies, sizeof(replies));
     esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent));
+
+    // Clean up session
+    esp_ping_delete_session(ping);
 
     // Store results if valid replies exist
     if (stats.replies > 0) {
@@ -145,7 +147,7 @@ PingResult perform_ping(const char* ip_str, const char* hostname_str) {
 
 // Periodic task that pings stratum target every PING_DELAY using resolved IP
 void ping_task(void *pvParameters) {
-    const char* last_hostname = nullptr;
+    const StratumConfig* last_config = nullptr;
 
     while (true) {
         if (!STRATUM_MANAGER.isAnyConnected()) {
@@ -154,26 +156,25 @@ void ping_task(void *pvParameters) {
             continue;
         }
 
-        bool useFallback = STRATUM_MANAGER.isUsingFallback();
-        const char *current_hostname = useFallback
-            ? Config::getStratumFallbackURL()
-            : Config::getStratumURL();
+        int index = STRATUM_MANAGER.isUsingFallback() ? 1 : 0;
 
-        const char *ip_str = STRATUM_MANAGER.getResolvedIpForSelected();
-        if (!ip_str) {
-            ESP_LOGE(TAG, "No resolved IP for hostname %s", current_hostname);
+        const StratumConfig* current_config = SYSTEM_MODULE.getStratumConfig(index);
+        const char* hostname = current_config ? current_config->host : nullptr;
+        const char* ip_str = STRATUM_MANAGER.getResolvedIpForSelected();
+
+        if (!hostname || !ip_str) {
+            ESP_LOGE(TAG, "No resolved IP for current hostname");
             vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
             continue;
         }
 
-        bool hostname_changed = (!last_hostname || strcmp(last_hostname, current_hostname) != 0);
-        if (hostname_changed) {
+        if (last_config != current_config) {
             last_ping_rtt_ms = 0.0;
         }
 
-        PingResult result = perform_ping(ip_str, current_hostname);
+        PingResult result = perform_ping(ip_str, hostname);
 
-        ESP_LOGI(TAG, "--- %s ping statistics ---", current_hostname);
+        ESP_LOGI(TAG, "--- %s ping statistics ---", hostname);
         ESP_LOGI(TAG, "%u packets transmitted, %u packets received, %.1f%% packet loss",
                  PING_COUNT, result.replies,
                  100.0 * (PING_COUNT - result.replies) / (double)PING_COUNT);
@@ -183,7 +184,7 @@ void ping_task(void *pvParameters) {
                      result.min_rtt_ms, result.avg_rtt_ms, result.max_rtt_ms);
         }
 
-        last_hostname = current_hostname;
+        last_config = current_config;
         vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
     }
 }
