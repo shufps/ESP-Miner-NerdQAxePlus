@@ -245,6 +245,10 @@ void TPS53647::status()
     read_byte(PMBUS_STATUS_INPUT, &status_input);
     read_byte(PMBUS_STATUS_MFR_SPECIFIC, &status_mfr_specific);
 
+    // suppress weird coms error
+    status_byte &= ~0x02;
+    status_word &= ~0x0002;
+
     bool isError = (status_byte || status_word || status_vout || status_iout || status_input || status_mfr_specific);
 
     ESP_LOGIE(!isError, TAG, "TPS536X7_status  bytes: %02x, word: %04x, vout: %02x, iout: %02x, input: %02x, mfr_spec: %02x",
