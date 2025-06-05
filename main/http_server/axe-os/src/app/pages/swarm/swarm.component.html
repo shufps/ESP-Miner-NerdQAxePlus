@@ -65,7 +65,8 @@
         <nb-card class="text-center mb-0" style="flex: 1;">
             <nb-card-body>
                 <span class="text-start">Best Diff</span>
-                <span class="text-primary fw-bold">{{ (totals.bestDiff | number) == "0" ? 0 : totals.bestDiff }}</span>
+                <!-- <span class="text-primary fw-bold">{{ (totals.bestDiff | number) == "0" ? 0 : totals.bestDiff }}</span> -->
+                <span class="text-primary fw-bold">{{ totals.bestDiff === '0.00' ? 0 : totals.bestDiff }}</span>
             </nb-card-body>
         </nb-card>
     </div>
