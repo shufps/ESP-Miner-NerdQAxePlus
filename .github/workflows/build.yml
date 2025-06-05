@@ -106,29 +106,21 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # - name: Install AWS CLI v2
-    #   run: |
-    #     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
-    #     unzip -q /tmp/awscliv2.zip -d /tmp
-    #     sudo /tmp/aws/install --update
-    #     aws --version
-
-    - name: Upload to Cloudflare R2
+    - name: Install rclone
       run: |
-        aws configure set aws_access_key_id ${{ secrets.R2_ACCESS_KEY_ID }}
-        aws configure set aws_secret_access_key ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        aws configure set default.region auto
-        aws configure set default.output json
+        curl https://rclone.org/install.sh | sudo bash
 
-        export AWS_S3_DISABLE_MULTIPART_CHECKSUM=true
-        export AWS_ENDPOINT_URL="https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
-        TARGET_DIR="${{ env.VERSION_TAG }}"
+    - name: Upload to Cloudflare R2 using rclone
+      env:
+        RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+      run: |
+        mkdir -p ~/.config/rclone
+        echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+
+        TARGET_DIR="webflasher/${{ env.VERSION_TAG }}"
 
         while read file; do
-          aws s3 cp "$file" "s3://webflasher/$TARGET_DIR/$(basename "$file")" \
-            --endpoint-url "$AWS_ENDPOINT_URL" \
-            --acl public-read \
-            --content-type $(file --mime-type -b "$file")
+          rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
         done < file_list.txt
 
   update-release-body:
