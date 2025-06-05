@@ -114,14 +114,15 @@ jobs:
       env:
         RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
       run: |
-        mkdir -p ~/.config/rclone
-        echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+        sudo mkdir -p /root/.config/rclone
+        echo "$RCLONE_CONF" | sudo tee /root/.config/rclone/rclone.conf > /dev/null
 
         TARGET_DIR="webflasher/${{ env.VERSION_TAG }}"
 
         while read file; do
-          rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
+          sudo rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
         done < file_list.txt
+
 
   update-release-body:
     runs-on: ubuntu-latest
