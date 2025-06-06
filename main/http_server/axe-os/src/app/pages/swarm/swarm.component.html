@@ -85,6 +85,7 @@
                         <th>Shares</th>
                         <th>Power</th>
                         <th>Temp</th>
+                        <th>Pool Diff</th>
                         <th>Best Diff</th>
                         <th>Version</th>
                         <th>&nbsp;</th>
@@ -134,6 +135,8 @@
                                     {{ axe.vrTemp | number:'1.0-1' }}°<small>C</small>
                                 </div>
                             </td>
+                            <!-- Stratum Pool Diff -->
+                            <td>{{ axe.poolDifficulty | number:'1.0-0' }}</td>
                             <!-- Best Diff with Best Session Diff tooltip -->
                             <td>
                                 <div>{{ axe.bestDiff }}</div>

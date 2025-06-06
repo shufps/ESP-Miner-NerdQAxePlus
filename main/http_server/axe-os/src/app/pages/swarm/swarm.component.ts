@@ -243,6 +243,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
               bestDiff: 0,
               version: 0,
               uptimeSeconds: 0,
+              poolDifficulty: 0,
             });
           })
         ),
