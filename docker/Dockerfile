@@ -1,5 +1,5 @@
-# Use the espressif/idf:release-v5.3 as the base image
-FROM espressif/idf:release-v5.4
+# Use the espressif/idf:release-v5.5 as the base image
+FROM espressif/idf:release-v5.5
 
 # Install Node.js 20.x and Python dependencies
 RUN apt-get update && \
