@@ -143,7 +143,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["uptimeSeconds"]      = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
     doc["lastResetReason"]    = SYSTEM_MODULE.getLastResetReason();
     doc["wifiStatus"]         = SYSTEM_MODULE.getWifiStatus();
-    doc["freeHeap"]           = esp_get_free_heap_size();
+    doc["freeHeap"]           = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    doc["freeHeapInt"]        = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     doc["version"]            = esp_app_get_description()->version;
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
 
