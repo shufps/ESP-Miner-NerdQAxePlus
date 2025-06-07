@@ -48,3 +48,7 @@ CONFIG_LWIP_MAX_SOCKETS=16
 # disable bluetooth
 CONFIG_BT_ENABLED=n
 
+# enable ansii colors for log
+CONFIG_LOG_COLORS=y
+
+

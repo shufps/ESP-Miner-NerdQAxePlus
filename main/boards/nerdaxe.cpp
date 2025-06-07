@@ -155,7 +155,10 @@ bool NerdAxe::initAsics()
         ESP_LOGE(TAG, "error initializing asics!");
         return false;
     }
-    SERIAL_set_baud(m_asics->setMaxBaud());
+    int maxBaud = m_asics->setMaxBaud();
+    // no idea why a delay is needed here starting with esp-idf 5.4 🙈
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+    SERIAL_set_baud(maxBaud);
     SERIAL_clear_buffer();
 
     vTaskDelay(500 / portTICK_PERIOD_MS);

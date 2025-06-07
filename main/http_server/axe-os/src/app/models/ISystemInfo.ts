@@ -23,6 +23,7 @@ export interface ISystemInfo {
     bestDiff: string,
     bestSessionDiff: string,
     freeHeap: number,
+    freeHeapInt: number,
     coreVoltage: number,
     defaultCoreVoltage: number,
     hostname: string,
