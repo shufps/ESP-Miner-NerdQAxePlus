@@ -130,7 +130,7 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
     }
     ESP_LOGI(m_tag, "Socket created, connecting to %s:%d", host_ip, port);
 
-    int err = ::connect(sock, (struct sockaddr *) &dest_addr, sizeof(struct sockaddr_in6));
+    int err = ::connect(sock, (struct sockaddr *) &dest_addr, sizeof(dest_addr));
     if (err != 0) {
         shutdown(sock, SHUT_RDWR);
         close(sock);
@@ -500,7 +500,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     const char *tag = selected->getTag();
 
-    memset(m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
+    memset(m_stratum_api_v1_message, 0, sizeof(StratumApiV1Message));
 
     if (!StratumApi::parse(m_stratum_api_v1_message, doc)) {
         ESP_LOGE(m_tag, "error in stratum");
