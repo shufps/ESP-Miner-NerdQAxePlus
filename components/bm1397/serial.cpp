@@ -26,14 +26,17 @@ void SERIAL_init(void)
 {
     ESP_LOGI(TAG, "Initializing serial");
     // Configure UART1 parameters
-    uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 122,
-    };
+    uart_config_t uart_config;
+
+    memset(&uart_config, 0, sizeof(uart_config_t));
+
+    uart_config.baud_rate = 115200;
+    uart_config.data_bits = UART_DATA_8_BITS;
+    uart_config.parity = UART_PARITY_DISABLE;
+    uart_config.stop_bits = UART_STOP_BITS_1;
+    uart_config.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
+    uart_config.rx_flow_ctrl_thresh = 122;
+
     // Configure UART1 parameters
     uart_param_config(UART_NUM_1, &uart_config);
     // Set UART1 pins(TX: IO17, RX: I018)
@@ -56,9 +59,7 @@ int SERIAL_send(uint8_t *data, int len, bool debug)
     // lock the transport
     pthread_mutex_lock(&tx_mute);
     if (debug) {
-        printf("tx: ");
-        prettyHex((unsigned char *) data, len);
-        printf("\n");
+        ESP_LOG_BUFFER_HEX_LEVEL("serial_tx", data, len, ESP_LOG_INFO);
     }
 
     int written = uart_write_bytes(UART_NUM_1, (const char *) data, len);
@@ -79,9 +80,7 @@ int16_t SERIAL_rx(uint8_t *buf, uint16_t size, uint16_t timeout_ms)
     size_t buff_len = 0;
     if (bytes_read > 0) {
         uart_get_buffered_data_len(UART_NUM_1, &buff_len);
-        printf("rx: ");
-        prettyHex((unsigned char *) buf, bytes_read);
-        printf(" [%d]\n", buff_len);
+        ESP_LOG_BUFFER_HEX_LEVEL("serial_rx", buf, bytes_read, ESP_LOG_INFO);
     }
 #endif
 
