@@ -132,7 +132,7 @@ static esp_err_t start_https_server(void)
     cfg.httpd.server_port = 443;
     cfg.httpd.max_uri_handlers = 20;
     cfg.httpd.lru_purge_enable = true;
-    cfg.httpd.enable_keep_alive = true;
+    //cfg.httpd.enable_keep_alive = true;
 
     cfg.servercert = server_crt_start;
     cfg.servercert_len = server_crt_end - server_crt_start;
@@ -151,7 +151,7 @@ static esp_err_t start_http_server(void)
     cfg.server_port = 80;
     cfg.max_uri_handlers = 20;
     cfg.lru_purge_enable = true;
-    cfg.httpd.enable_keep_alive = true;
+    //cfg.httpd.enable_keep_alive = true;
 
     ESP_ERROR_CHECK(httpd_start(&http_http, &cfg));
     return ESP_OK;
