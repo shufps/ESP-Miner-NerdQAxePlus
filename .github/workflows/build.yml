@@ -50,19 +50,19 @@ jobs:
     - name: Set Target
       run: |
         # Run the Docker container to build the project
-        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
-        shufps/esp-idf-builder:0.0.1 idf.py set-target esp32s3
+        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/ubuntu/project \
+        shufps/esp-idf-builder:0.0.2 idf.py set-target esp32s3
 
     - name: Compile Binaries
       run: |
         # Run the Docker container to build the project with BOARD environment variable
-        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
-        shufps/esp-idf-builder:0.0.1 idf.py build
+        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/ubuntu/project \
+        shufps/esp-idf-builder:0.0.2 idf.py build
 
     - name: Merge Binaries
       run: |
-        docker run --rm --user root -v $PWD:/home/builder/project \
-        shufps/esp-idf-builder:0.0.1 esptool.py --chip esp32s3 merge_bin --flash_mode dio --flash_size 16MB --flash_freq 80m \
+        docker run --rm --user root -v $PWD:/home/ubuntu/project \
+        shufps/esp-idf-builder:0.0.2 esptool.py --chip esp32s3 merge_bin --flash_mode dio --flash_size 16MB --flash_freq 80m \
         0x0 build/bootloader/bootloader.bin \
         0x8000 build/partition_table/partition-table.bin \
         0x10000 build/esp-miner.bin \
