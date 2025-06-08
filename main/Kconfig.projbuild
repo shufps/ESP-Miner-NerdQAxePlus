@@ -17,16 +17,29 @@ menu "Miner Configuration"
         help
             The temperature at which the system will trigger an overheat shutdown.
 
-    config AUTO_FAN_SPEED
-        bool "Enable automatic fan speed control"
-        default n
+    choice
+        prompt "Fan speed control mode"
+        default FAN_MODE_MANUAL
         help
-            If enabled, the firmware will automatically adjust the fan speed based on temperature.
+            Select how the firmware controls the fan speed.
 
-    config AUTO_FAN_SPEED_VALUE
-        int
-        default 1 if AUTO_FAN_SPEED
-        default 0
+    config FAN_MODE_MANUAL
+        bool "Manual"
+        help
+            Manual fan control. You set the fan speed yourself.
+
+    config FAN_MODE_CLASSIC
+        bool "Classic automatic"
+        help
+            Automatically adjusts fan speed using a simple temperature-based method.
+
+    config FAN_MODE_PID
+        bool "Experimental PID"
+        help
+            Automatically adjusts fan speed using a PID controller.
+
+    endchoice
+
 
     config FAN_SPEED
         int "Manual fan speed percentage (if auto control is off)"

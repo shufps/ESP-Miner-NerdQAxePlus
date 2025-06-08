@@ -87,7 +87,6 @@ class System {
     void updateSystemPerformance();                    // Update performance metrics
     void showApInformation(const char *error);         // Show Access Point (AP) information with optional error message
     double calculateNetworkDifficulty(uint32_t nBits); // Calculate network difficulty based on pool difficulty
-    void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
   public:
     System();
@@ -109,6 +108,11 @@ class System {
     void checkForBestDiff(double foundDiff, uint32_t nbits); // Check if the found difficulty is the best so far
     void notifyMiningStarted();                              // Notify system that mining has started
     void notifyNewNtime(uint32_t ntime);                     // Notify system of new `ntime` received from the pool
+
+    // Made public (was protected) to allow usage in external modules like ASIC_result_task for formatting/logging.
+    static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
+
+    const char* getMacAddress();
 
     // Getter methods for retrieving statistics
     uint64_t getSharesRejected() const

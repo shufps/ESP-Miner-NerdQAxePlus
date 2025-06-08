@@ -3,15 +3,13 @@
     <nb-card>
         <nb-card-body>
             <form [formGroup]="form">
-                <div style="display: flex; align-items: center;">
+                <div class="d-flex align-items-center gap-3">
                     <!-- Label container -->
-                    <div style="margin-right: 20px; white-space: nowrap;">
-                        <label>Manual Addition</label>
-                    </div>
+                    <label class="manual-add-label">Manual Addition</label>
                     <!-- Input group container -->
-                    <div class="input-group" style="flex: 1; display: flex;">
+                    <div class="input-group" style="flex: 1; display: flex; flex-flow: nowrap;">
                         <input nbInput id="manualAddIp" formControlName="manualAddIp" type="text"
-                            placeholder="Enter IP Address" style="flex: 1;" />
+                            placeholder="Enter IP Address" style="flex: 1; width: 100%;" />
                         <button nbButton status="primary" (click)="add()" [disabled]="form.invalid">Add</button>
                     </div>
                 </div>
@@ -22,13 +20,13 @@
 
     <form [formGroup]="form">
         <!-- Outer container allows wrapping -->
-        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+        <div class="buttons-slider-area">
             <!-- Left group: Buttons -->
-            <div style="display: flex; align-items: center;">
+            <div class="scan-refresh-buttons">
                 <button nbButton status="primary" (click)="scanNetwork()" [disabled]="scanning">
                     {{ scanning ? 'Scanning...' : 'Automatic Scan' }}
                 </button>
-                <button nbButton status="info" style="width: 170px;" (click)="refreshList()"
+                <button nbButton status="info" (click)="refreshList()"
                     [disabled]="scanning || isRefreshing">
                     {{ isRefreshing ? 'Refreshing...' : 'Refresh List (' + refreshIntervalTime + ')' }}
                 </button>
@@ -36,43 +34,48 @@
 
             <!-- Right group: Label and Slider -->
             <!-- white-space: nowrap ensures these elements stick together -->
-            <div style="white-space: nowrap; margin-top: 10px;">
-                <label for="refresh-interval" class="mr-2">Refresh Interval:</label>&nbsp;
-                <div class="progress-wrap" style="width:150px; display:inline-block; position: relative;">
+            <div class="mt-3 mt-md-0 time-slider">
+                <label for="refresh-interval">Refresh Interval:</label>
+                <div class="progress-wrap mx-2">
                     <input id="refresh-interval" type="range" class="progress" [formControl]="refreshIntervalControl"
-                        [min]="5" [max]="30" step="1" style="width: 100%;" />
+                        [min]="5" [max]="30" step="1" />
                     <div class="progress-foreground" [style.width.%]="((refreshIntervalControl.value - 5) / 25) * 100">
                     </div>
-                </div>&nbsp;
-                <span class="ml-2">{{ refreshTimeSet }}s</span>
+                </div>
+                <span>{{ refreshTimeSet }}s</span>
             </div>
         </div>
     </form>
 
 
     <!-- Totals -->
-    <div class="d-flex justify-content-between mt-4 mb-4">
-        <nb-card class="text-center" style="flex: 1; margin-right: 1rem;">
+    <div class="d-flex justify-content-between mt-4 mb-3 gap-md-3 totals">
+        <nb-card class="text-center mb-0" style="flex: 1;">
             <nb-card-body>
-                Total Hash Rate: <span class="text-primary">{{ totals.hashRate * 1000000000 | hashSuffix }}</span>
+                <span class="text-start">Total Hash Rate</span>
+                <span class="text-primary fw-bold">{{ totals.hashRate * 1000000000 | hashSuffix }}</span>
             </nb-card-body>
         </nb-card>
-        <nb-card class="text-center" style="flex: 1; margin-right: 1rem;">
+        <nb-card class="text-center mb-0" style="flex: 1;">
             <nb-card-body>
-                Total Power: <span class="text-primary">{{ totals.power | number:'1.1-1' }} <small>W</small></span>
+                <span class="text-start">Total Power</span>
+                <span class="text-primary fw-bold">{{ totals.power | number:'1.1-1' }} W</span>
             </nb-card-body>
         </nb-card>
-        <nb-card class="text-center" style="flex: 1;">
+        <nb-card class="text-center mb-0" style="flex: 1;">
             <nb-card-body>
-                Best Diff: <span class="text-primary">{{ totals.bestDiff }}</span>
+                <span class="text-start">Best Diff</span>
+                <!-- <span class="text-primary fw-bold">{{ (totals.bestDiff | number) == "0" ? 0 : totals.bestDiff }}</span> -->
+                <span class="text-primary fw-bold">{{ totals.bestDiff === '0.00' ? 0 : totals.bestDiff }}</span>
             </nb-card-body>
         </nb-card>
     </div>
 
     <!-- Swarm Overview Table -->
-    <nb-card>
+    <nb-card class="mb-0">
         <nb-card-header>Swarm Overview</nb-card-header>
-        <nb-card-body>
+
+        <nb-card-body *ngIf="swarm.length; else empty">
             <table class="swarm-table">
                 <thead>
                     <tr>
@@ -82,6 +85,7 @@
                         <th>Shares</th>
                         <th>Power</th>
                         <th>Temp</th>
+                        <th>Pool Diff</th>
                         <th>Best Diff</th>
                         <th>Version</th>
                         <th>&nbsp;</th>
@@ -131,6 +135,8 @@
                                     {{ axe.vrTemp | number:'1.0-1' }}°<small>C</small>
                                 </div>
                             </td>
+                            <!-- Stratum Pool Diff -->
+                            <td>{{ axe.poolDifficulty | number:'1.0-0' }}</td>
                             <!-- Best Diff with Best Session Diff tooltip -->
                             <td>
                                 <div>{{ axe.bestDiff }}</div>
@@ -185,6 +191,10 @@
                 </div>
             </div>
         </nb-card-body>
+
+        <ng-template #empty>
+            <div class="p-4 text-center text-secondary">Empty List</div>
+        </ng-template>
     </nb-card>
 
     <!-- Edit Modal -->

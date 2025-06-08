@@ -47,7 +47,14 @@
 #define NVS_CONFIG_PID_D "pid_d"
 
 #define NVS_CONFIG_SWARM "swarmconfig"
-#pragma once
+
+#if defined(CONFIG_FAN_MODE_MANUAL)
+#define CONFIG_AUTO_FAN_SPEED_VALUE 0
+#elif defined(CONFIG_FAN_MODE_CLASSIC)
+#define CONFIG_AUTO_FAN_SPEED_VALUE 1
+#elif defined(CONFIG_FAN_MODE_PID)
+#define CONFIG_AUTO_FAN_SPEED_VALUE 2
+#endif
 
 #include <stdint.h>
 
@@ -124,6 +131,7 @@ namespace Config {
 
     // ---- uint64_t Setters ----
     inline void setBestDiff(uint64_t value) { nvs_config_set_u64(NVS_CONFIG_BEST_DIFF, value); }
+    inline void setStratumDifficulty(uint32_t value) { nvs_config_set_u64(NVS_CONFIG_STRATUM_DIFFICULTY, value); }
 
     // ---- Boolean Getters (Stored as uint16_t but used as bool) ----
     inline bool isInvertScreenEnabled() { return nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0) != 0; } // todo unused?

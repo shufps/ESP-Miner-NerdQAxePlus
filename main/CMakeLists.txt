@@ -27,11 +27,21 @@ SRCS
     "./pid/pid_timer.cpp"
 
     "./http_server/http_server.cpp"
+    "./http_server/http_cors.cpp"
+    "./http_server/http_utils.cpp"
+    "./http_server/http_websocket.cpp"
+    "./http_server/handler_influx.cpp"
+    "./http_server/handler_swarm.cpp"
+    "./http_server/handler_system.cpp"
+    "./http_server/handler_ota.cpp"
+    "./http_server/handler_restart.cpp"
+    "./http_server/handler_file.cpp"
     "./self_test/self_test.cpp"
     "./tasks/stratum_task.cpp"
     "./tasks/create_jobs_task.cpp"
     "./tasks/asic_result_task.cpp"
     "./tasks/influx_task.cpp"
+    "./tasks/ping_task.cpp"
     "./tasks/power_management_task.cpp"
     "./tasks/apis_task.cpp"
     "./displays/displayDriver.cpp"
@@ -83,6 +93,7 @@ INCLUDE_DIRS
     "spiffs"
     "vfs"
     "lvgl"
+    "lwip"
 )
 
 

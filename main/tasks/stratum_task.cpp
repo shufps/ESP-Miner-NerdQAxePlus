@@ -102,6 +102,10 @@ bool StratumTask::resolveHostname(const char *hostname, char *ip_str, size_t ip_
     struct sockaddr_in *addr = (struct sockaddr_in *) res->ai_addr;
     inet_ntop(AF_INET, &(addr->sin_addr), ip_str, ip_str_len);
 
+    // save IP adrdress
+    strncpy(m_lastResolvedIp, ip_str, sizeof(m_lastResolvedIp));
+    m_lastResolvedIp[sizeof(m_lastResolvedIp) - 1] = '\0';
+
     ESP_LOGI("DNS", "Resolved IP: %s", ip_str);
 
     // Free the result
@@ -126,7 +130,7 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
     }
     ESP_LOGI(m_tag, "Socket created, connecting to %s:%d", host_ip, port);
 
-    int err = ::connect(sock, (struct sockaddr *) &dest_addr, sizeof(struct sockaddr_in6));
+    int err = ::connect(sock, (struct sockaddr *) &dest_addr, sizeof(dest_addr));
     if (err != 0) {
         shutdown(sock, SHUT_RDWR);
         close(sock);
@@ -361,6 +365,13 @@ bool StratumManager::isAnyConnected() {
     return isConnected(PRIMARY) || isConnected(SECONDARY);
 }
 
+const char* StratumManager::getResolvedIpForSelected() const {
+    if (!m_stratumTasks[m_selected]) {
+        return nullptr;
+    }
+    return m_stratumTasks[m_selected]->getResolvedIp();
+}
+
 void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
 {
     StratumManager *self = static_cast<StratumManager *>(pvTimerGetTimerID(xTimer));
@@ -489,7 +500,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     const char *tag = selected->getTag();
 
-    memset(m_stratum_api_v1_message, 0, sizeof(m_stratum_api_v1_message));
+    memset(m_stratum_api_v1_message, 0, sizeof(StratumApiV1Message));
 
     if (!StratumApi::parse(m_stratum_api_v1_message, doc)) {
         ESP_LOGE(m_tag, "error in stratum");

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ArduinoJson.h"
+
 #include "esp_psram.h"
 
 // 128k samples should be enough^^
@@ -89,6 +91,8 @@ class History {
     double getCurrentHashrate1d();
     uint32_t getShareSample(int index);
     int searchNearestTimestamp(int64_t timestamp);
+
+    void exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
 
     int getNumSamples()
     {

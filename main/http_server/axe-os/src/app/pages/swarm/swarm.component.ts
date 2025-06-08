@@ -243,6 +243,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
               bestDiff: 0,
               version: 0,
               uptimeSeconds: 0,
+              poolDifficulty: 0,
             });
           })
         ),
@@ -267,8 +268,11 @@ export class SwarmComponent implements OnInit, OnDestroy {
   }
 
   private convertBestDiffToNumber(bestDiff: string): number {
-    if (!bestDiff) return 0;
+    if (!bestDiff || typeof bestDiff !== 'string') return 0;
+
     const value = parseFloat(bestDiff);
+    if (isNaN(value)) return 0;
+
     const unit = bestDiff.slice(-1).toUpperCase();
     switch (unit) {
       case 'T': return value * 1000000000000;
@@ -280,6 +284,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
   }
 
   private formatBestDiff(value: number): string {
+    if (!isFinite(value) || isNaN(value)) return '0.00';
     if (value >= 1000000000000) return `${(value / 1000000000000).toFixed(2)}T`;
     if (value >= 1000000000) return `${(value / 1000000000).toFixed(2)}G`;
     if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`;
@@ -290,7 +295,12 @@ export class SwarmComponent implements OnInit, OnDestroy {
   private calculateTotals() {
     this.totals.hashRate = this.swarm.reduce((sum, axe) => sum + (axe.hashRate || 0), 0);
     this.totals.power = this.swarm.reduce((sum, axe) => sum + (axe.power || 0), 0);
-    const maxDiff = Math.max(...this.swarm.map(axe => this.convertBestDiffToNumber(axe.bestDiff)));
+
+    const numericDiffs = this.swarm
+      .map(axe => this.convertBestDiffToNumber(axe.bestDiff))
+      .filter(v => !isNaN(v) && isFinite(v));
+
+    const maxDiff = numericDiffs.length > 0 ? Math.max(...numericDiffs) : 0;
     this.totals.bestDiff = this.formatBestDiff(maxDiff);
   }
 

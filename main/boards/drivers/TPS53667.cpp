@@ -105,6 +105,10 @@ void TPS53667::status()
     read_byte(PMBUS_STATUS_MFR_SPECIFIC, &status_mfr_specific);
     read_byte(PMBUS_MFR_SPECIFIC_24, &status_phase);
 
+    // suppress weird coms error
+    status_byte &= ~0x02;
+    status_word &= ~0x0002;
+
     bool isError = (status_byte || status_word || status_vout || status_iout || status_input || status_mfr_specific || status_phase);
 
     ESP_LOGIE(!isError, TAG,

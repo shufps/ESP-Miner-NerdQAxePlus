@@ -31,6 +31,7 @@ const defaultInfo: ISystemInfo = {
   coreVoltageActual: 1200,
   hostname: "Bitaxe",
   hostip: "192.168.0.123",
+  macAddr: "DE:AD:C0:DE:0B:7C",
   ssid: "default",
   wifiPass: "password",
   wifiStatus: "Connected!",
@@ -62,6 +63,9 @@ const defaultInfo: ISystemInfo = {
   autoscreenoff: 0,
   lastResetReason: "Unknown",
   jobInterval: 1200,
+  stratumDifficulty: 1000,
+  lastpingrtt: 0.00,
+  poolDifficulty: 0,
 
   pidTargetTemp: 55,
   pidP: 2.0,
