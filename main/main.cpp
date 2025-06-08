@@ -1,4 +1,6 @@
 #include <string.h>
+#include <stdio.h>
+#include <ctype.h>
 
 #include "esp_event.h"
 #include "esp_log.h"
@@ -44,12 +46,22 @@ AsicJobs asicJobs;
 static const char *TAG = "nerd*axe";
 // static const double NONCE_SPACE = 4294967296.0; //  2^32
 
+static void to_lowercase(char *str) {
+    while (*str) {
+        *str = tolower((unsigned char)*str);
+        str++;
+    }
+}
+
 static void setup_wifi()
 {
     // pull the wifi credentials and hostname out of NVS
     char *wifi_ssid = Config::getWifiSSID();
     char *wifi_pass = Config::getWifiPass();
     char *hostname = Config::getHostname();
+
+    // lower-case hostname
+    to_lowercase(hostname);
 
     // copy the wifi ssid to the global state
     SYSTEM_MODULE.setSsid(wifi_ssid);

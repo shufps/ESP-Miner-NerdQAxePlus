@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
+#include "mdns.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
@@ -229,6 +230,13 @@ void wifi_init(const char *wifi_ssid, const char *wifi_pass, const char *hostnam
     snprintf(s_mac_addr, sizeof(s_mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     ESP_LOGI(TAG, "wifi_init_sta finished.");
+
+    ESP_ERROR_CHECK(mdns_init());
+    ESP_ERROR_CHECK(mdns_hostname_set(hostname));               // $hostname.local
+    ESP_ERROR_CHECK(mdns_instance_name_set("Nerd*Axe"));
+    ESP_ERROR_CHECK(mdns_service_add(NULL, "_http",  "_tcp", 80,  NULL, 0));
+    ESP_ERROR_CHECK(mdns_service_add(NULL, "_https", "_tcp", 443, NULL, 0));
+    ESP_LOGI(TAG, "mDNS service started for %s.local", hostname);
 
     return;
 }

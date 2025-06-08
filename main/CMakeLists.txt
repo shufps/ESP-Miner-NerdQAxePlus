@@ -81,11 +81,13 @@ INCLUDE_DIRS
     "esp_app_format"
     "esp_event"
     "esp_http_server"
+    "esp_https_server"
     "esp_http_client"
     "esp_netif"
     "esp_timer"
     "esp-tls"
     "esp_wifi"
+    "mdns"
     "esp_lcd"
     "esp_psram"
     "json"
@@ -94,6 +96,8 @@ INCLUDE_DIRS
     "vfs"
     "lvgl"
     "lwip"
+
+EMBED_TXTFILES "./http_server/certs/server.crt" "./http_server/certs/server.key"
 )
 
 

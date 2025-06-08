@@ -8,7 +8,7 @@ static const char* TAG = "http_websocket";
 
 static int fd = -1;
 
-extern httpd_handle_t http_server;
+extern httpd_handle_t http_https;
 
 QueueHandle_t log_queue = NULL;
 
@@ -61,9 +61,9 @@ static void send_log_to_websocket(char *message)
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
     // Ensure server and fd are valid
-    if (http_server != NULL && fd >= 0) {
+    if (http_https != NULL && fd >= 0) {
         // Send the WebSocket frame asynchronously
-        if (httpd_ws_send_frame_async(http_server, fd, &ws_pkt) != ESP_OK) {
+        if (httpd_ws_send_frame_async(http_https, fd, &ws_pkt) != ESP_OK) {
             esp_log_set_vprintf(vprintf);
         }
     }
