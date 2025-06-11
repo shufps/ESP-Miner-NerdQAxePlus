@@ -116,7 +116,12 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           labels: {
             color: textColor
           }
-        }
+        },
+        tooltip: {
+          callbacks: {
+            label: (x: any) => `${x.dataset.label}: ${HashSuffixPipe.transform(x.raw)}`
+          }
+        },
       },
       scales: {
         x: {
