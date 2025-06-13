@@ -132,12 +132,13 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
 
     int err = ::connect(sock, (struct sockaddr *) &dest_addr, sizeof(dest_addr));
     if (err != 0) {
+        ESP_LOGE(m_tag, "Connect failed to %s:%d (errno %d: %s)", host_ip, port, errno, strerror(errno));
         shutdown(sock, SHUT_RDWR);
         close(sock);
         return 0;
     }
 
-    ESP_LOGI(m_tag, "Connected");
+    ESP_LOGI(m_tag, "Connected to %s:%d", host_ip, port);
 
     if (!setupSocketTimeouts(sock)) {
         ESP_LOGE(m_tag, "Error setting socket timeouts");
