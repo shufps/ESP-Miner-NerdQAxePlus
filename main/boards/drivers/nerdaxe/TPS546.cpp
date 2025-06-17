@@ -20,7 +20,7 @@
 #define NACK_VALUE ((i2c_ack_type_t) 0x1)
 #define MAX_BLOCK_LEN  32
 
-#define SMBUS_DEFAULT_TIMEOUT (1000 / portTICK_PERIOD_MS)
+#define SMBUS_DEFAULT_TIMEOUT pdMS_TO_TICKS(1000)
 
 static const char *TAG = "TPS546";
 

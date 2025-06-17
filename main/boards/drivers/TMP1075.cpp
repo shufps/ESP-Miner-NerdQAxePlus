@@ -33,7 +33,7 @@ static esp_err_t TMP1075_smb_read_word(uint8_t device, uint8_t reg, uint16_t *re
     i2c_master_read(cmd, data, 2, ACK_VALUE);
     i2c_master_stop(cmd);
 
-    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, pdMS_TO_TICKS(1000));
     i2c_cmd_link_delete(cmd);
 
     if (err == ESP_OK) {
