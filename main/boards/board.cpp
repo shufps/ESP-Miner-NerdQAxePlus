@@ -99,7 +99,7 @@ bool Board::selfTest(){
 
     temp_display->logMessage("Self test not supported on this board...");
     ESP_LOGI("board", "Self test not supported on this board");
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
     return false;
 }
@@ -135,17 +135,17 @@ FanPolarityGuess Board::guessFanPolarity() {
     ESP_LOGI("polarity", "set 50%%");
     setFanPolarity(false);
     setFanSpeed(0.5f);
-    vTaskDelay(settleTimeMs / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
 
     // Test low speed
     setFanSpeed(lowPWM);
-    vTaskDelay(settleTimeMs / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
     getFanSpeed(&rpmLow);
     ESP_LOGI("polarity", "set %.2f%% read: %d", lowPWM, rpmLow);
 
     // Test high speed
     setFanSpeed(highPWM);
-    vTaskDelay(settleTimeMs / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
     getFanSpeed(&rpmHigh);
     ESP_LOGI("polarity", "set %.2f%% read: %d", highPWM, rpmHigh);
 

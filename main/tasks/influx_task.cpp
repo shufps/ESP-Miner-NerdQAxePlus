@@ -91,7 +91,7 @@ static void forever()
 {
     ESP_LOGI(TAG, "halting influx_task");
     while (1) {
-        vTaskDelay(15000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(15000));
     }
 }
 
@@ -150,7 +150,7 @@ void influx_task(void *pvParameters)
         if (loaded_values_ok) {
             break;
         }
-        vTaskDelay(15000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(15000));
     }
 
     ESP_LOGI(TAG, "last values: total_uptime: %d, total_best_difficulty: %.3f, total_blocks_found: %d",
@@ -170,6 +170,6 @@ void influx_task(void *pvParameters)
         influx_task_fetch_from_system_module(module);
         influxdb->write();
         pthread_mutex_unlock(&influxdb->m_lock);
-        vTaskDelay(15000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(15000));
     }
 }

@@ -182,13 +182,13 @@ void StratumTask::task()
         // we do it here because we could reload the config after
         // it was updated on the UI and settings
         if (!strlen(m_config->host)) {
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
         // should stay stopped?
         if (m_stopFlag) {
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
@@ -197,7 +197,7 @@ void StratumTask::task()
         if (!isWifiConnected()) {
             ESP_LOGI(m_tag, "WiFi disconnected, attempting to reconnect...");
             esp_wifi_connect();
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
@@ -205,7 +205,7 @@ void StratumTask::task()
         char ip[INET_ADDRSTRLEN] = {0};
         if (!resolveHostname(m_config->host, ip, sizeof(ip))) {
             ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config->host);
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
@@ -213,7 +213,7 @@ void StratumTask::task()
 
         if (!(m_sock = connectStratum(ip, m_config->port))) {
             ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config->host, m_config->port, errno);
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
@@ -237,7 +237,7 @@ void StratumTask::task()
         m_manager->disconnectedCallback(m_index);
         m_isConnected = false;
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
+        vTaskDelay(pdMS_TO_TICKS(10000)); // Delay before attempting to reconnect
     }
     vTaskDelete(NULL);
 }
@@ -459,7 +459,7 @@ void StratumManager::task()
 
     // Watchdog Task Loop (optional, if needed)
     while (1) {
-        vTaskDelay(30000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(30000));
 
         // Reset watchdog if there was a submit response within the last hour
         if (((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 3600) {

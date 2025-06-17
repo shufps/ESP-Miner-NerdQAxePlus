@@ -99,13 +99,13 @@ void websocket_log_handler(void* param)
 			if (message != NULL) {
 				FREE(message);
 			}
-			vTaskDelay(10 / portTICK_PERIOD_MS);
+			vTaskDelay(pdMS_TO_TICKS(10));
 			continue;
 		}
 
 		if (fd == -1) {
 			FREE(message);
-			vTaskDelay(100 / portTICK_PERIOD_MS);
+			vTaskDelay(pdMS_TO_TICKS(100));
 			continue;
 		}
 

@@ -225,7 +225,7 @@ void DisplayDriver::lvglTimerTask(void *param)
         if (m_animationsEnabled) {
             increaseLvglTick();
             lv_timer_handler();                 // Process pending LVGL tasks
-            vTaskDelay(5 / portTICK_PERIOD_MS); // Delay during animations
+            vTaskDelay(pdMS_TO_TICKS(5)); // Delay during animations
             if (elapsed_Ani_cycles++ > 80) {
                 // After 1s aprox stop animations
                 m_animationsEnabled = false;
@@ -239,7 +239,7 @@ void DisplayDriver::lvglTimerTask(void *param)
                     displayTurnOn();
                 changeScreen();
             }
-            vTaskDelay(200 / portTICK_PERIOD_MS); // Delay waiting animation trigger
+            vTaskDelay(pdMS_TO_TICKS(200)); // Delay waiting animation trigger
         }
         if (m_button2PressedFlag) {
             m_button2PressedFlag = false;

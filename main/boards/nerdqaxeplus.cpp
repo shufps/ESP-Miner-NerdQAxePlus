@@ -105,11 +105,11 @@ bool NerdQaxePlus::initBoard()
 void NerdQaxePlus::shutdown() {
     setVoltage(0.0);
 
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(500));
 
     LDO_disable();
 
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(500));
 }
 
 bool NerdQaxePlus::initAsics()
@@ -124,13 +124,13 @@ bool NerdQaxePlus::initAsics()
     gpio_set_level(BM1368_RST_PIN, 0);
 
     // wait 250ms
-    vTaskDelay(250 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(250));
 
     // enable LDOs
     LDO_enable();
 
     // wait 100ms
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(100));
 
     // init buck and enable output
     m_tps->init(m_numPhases, m_imax, m_ifault);
@@ -140,13 +140,13 @@ bool NerdQaxePlus::initAsics()
     setVoltage((float) MAX(m_initVoltageMillis, m_asicVoltageMillis) / 1000.0f);
 
     // wait 500ms
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(500));
 
     // release reset pin
     gpio_set_level(BM1368_RST_PIN, 1);
 
     // delay for 250ms
-    vTaskDelay(250 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(250));
 
     SERIAL_clear_buffer();
     m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty);
@@ -156,11 +156,11 @@ bool NerdQaxePlus::initAsics()
     }
     int maxBaud = m_asics->setMaxBaud();
     // no idea why a delay is needed here starting with esp-idf 5.4 🙈
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(500));
     SERIAL_set_baud(maxBaud);
     SERIAL_clear_buffer();
 
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(500));
 
     // set final output voltage
     setVoltage((float) m_asicVoltageMillis / 1000.0f);

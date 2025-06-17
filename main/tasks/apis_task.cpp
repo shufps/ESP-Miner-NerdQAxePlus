@@ -242,7 +242,7 @@ void APIsFetcher::task() {
             fetchData(APIurl_GLOBALHASH, APItype_HASHRATE);
             fetchData(APIurl_GETFEES, APItype_FEES);
 
-            vTaskDelay(60000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(60000));
         }while (m_enabled);
     }
 }
