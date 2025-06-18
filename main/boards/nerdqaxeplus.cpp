@@ -40,11 +40,6 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_imax = m_numPhases * 30;
     m_ifault = (float) (m_imax - 5);
 
-    // afc settings
-    m_afcMinTemp = 45.0f;
-    m_afcMinFanSpeed = 55.0f;
-    m_afcMaxTemp = 65.0f;
-
     m_maxPin = 70.0;
     m_minPin = 30.0;
     m_maxVin = 13.0;
