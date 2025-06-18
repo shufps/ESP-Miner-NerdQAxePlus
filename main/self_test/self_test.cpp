@@ -49,7 +49,7 @@ void self_test(void *pvParameters)
     // Initialize display
     display_init();
     display_log_message("Self test initiated...");
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
     GlobalState *GLOBAL_STATE = (GlobalState *) pvParameters;
 
@@ -77,10 +77,10 @@ void self_test(void *pvParameters)
     ESP_LOGI(TAG, "%u chips detected, %u expected", chips_detected, GLOBAL_STATE->asic_count);
 
     int baud = (*GLOBAL_STATE->ASIC_functions.set_max_baud_fn)();
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(10));
     SERIAL_set_baud(baud);
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
     mining_notify notify_message;
     notify_message.job_id = 0;
@@ -128,7 +128,7 @@ void self_test(void *pvParameters)
     ESP_LOGI(TAG, "Sending work");
 
     (*GLOBAL_STATE->ASIC_functions.send_work_fn)(GLOBAL_STATE, job);
-    // vTaskDelay((GLOBAL_STATE->asic_job_frequency_ms - 0.3) / portTICK_PERIOD_MS);
+    // vTaskDelay(pdMS_TO_TICKS((GLOBAL_STATE->asic_job_frequency_ms - 0.3)));
 
     // ESP_LOGI(TAG, "Receiving work");
 

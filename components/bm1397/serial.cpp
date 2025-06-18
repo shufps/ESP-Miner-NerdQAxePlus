@@ -74,7 +74,7 @@ int SERIAL_send(uint8_t *data, int len, bool debug)
 /// @return number of bytes read, or -1 on error
 int16_t SERIAL_rx(uint8_t *buf, uint16_t size, uint16_t timeout_ms)
 {
-    int16_t bytes_read = uart_read_bytes(UART_NUM_1, buf, size, timeout_ms / portTICK_PERIOD_MS);
+    int16_t bytes_read = uart_read_bytes(UART_NUM_1, buf, size, pdMS_TO_TICKS(timeout_ms));
 
 #if BM1368_SERIALRX_DEBUG
     size_t buff_len = 0;

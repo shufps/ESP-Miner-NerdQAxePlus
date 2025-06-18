@@ -154,7 +154,7 @@ void PowerManagementTask::task()
     m_pid->SetControllerDirection(REVERSE);
     m_pid->Initialize();
 
-    vTaskDelay(3000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(3000));
 
     while (1) {
         lock();
@@ -276,6 +276,6 @@ void PowerManagementTask::task()
         }
         unlock();
 
-        vTaskDelay(POLL_RATE / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(POLL_RATE));
     }
 }

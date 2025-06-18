@@ -85,7 +85,7 @@ static void setup_wifi()
     ESP_LOGI(TAG, "Finished, waiting for user input.");
 
     while (1) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -196,7 +196,7 @@ extern "C" void app_main(void)
     bool should_self_test = Config::isSelfTestEnabled();
     if (should_self_test && !best_diff) {
         board->selfTest();
-        vTaskDelay(60 * 60 * 1000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(60 * 60 * 1000));
     }
 
     xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
@@ -234,7 +234,7 @@ extern "C" void app_main(void)
 
     //char* taskList = (char*) malloc(8192);
     while (1) {
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(10000));
         size_t free_internal_heap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 
         if (free_internal_heap < 10000) {

@@ -267,11 +267,11 @@ void System::task() {
         if (result == ESP_OK && (wifiMode == WIFI_MODE_APSTA || wifiMode == WIFI_MODE_AP) &&
             strcmp(m_wifiStatus, "Failed to connect") == 0) {
             showApInformation(nullptr);
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(5000));
         } else {
             updateConnection();
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     m_display->miningScreen();
@@ -308,7 +308,7 @@ void System::task() {
         m_display->updateCurrentSettings();
         m_display->refreshScreen();
 
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 

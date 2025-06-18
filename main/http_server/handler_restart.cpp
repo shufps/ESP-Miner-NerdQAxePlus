@@ -20,7 +20,7 @@ esp_err_t POST_restart(httpd_req_t *req)
     httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
 
     // Delay to ensure the response is sent
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
     // Restart the system
     POWER_MANAGEMENT_MODULE.restart();
