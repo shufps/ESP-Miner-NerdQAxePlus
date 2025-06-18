@@ -166,6 +166,32 @@ bool StratumTask::setupSocketTimeouts(int sock)
         ESP_LOGE(m_tag, "Failed to set socket send timeout");
         return false;
     }
+
+    // Enable TCP Keepalive
+    int enable = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof(enable)) < 0) {
+        ESP_LOGE(m_tag, "Failed to enable SO_KEEPALIVE");
+        return false;
+    }
+
+    // Configure Keepalive parameters
+    int keepidle = 10;   // Start sending keepalive probes after 10 seconds of inactivity
+    int keepintvl = 5;   // Interval of 5 seconds between individual keepalive probes
+    int keepcnt = 3;     // Disconnect after 3 unanswered probes
+
+    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(keepidle)) < 0) {
+        ESP_LOGW(m_tag, "TCP_KEEPIDLE not supported or failed to set");
+        // This might not be critical, so we could just log a warning and continue
+    }
+    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL, &keepintvl, sizeof(keepintvl)) < 0) {
+        ESP_LOGE(m_tag, "Failed to set TCP_KEEPINTVL");
+    }
+    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT, &keepcnt, sizeof(keepcnt)) < 0) {
+        ESP_LOGE(m_tag, "Failed to set TCP_KEEPCNT");
+    }
+
+    ESP_LOGI(m_tag, "TCP Keepalive enabled: idle=%ds, interval=%ds, count=%d", keepidle, keepintvl, keepcnt);
+
     return true;
 }
 
