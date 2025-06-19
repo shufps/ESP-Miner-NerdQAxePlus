@@ -95,5 +95,11 @@ mat-icon{
   font-family: 'Material Icons' !important;
 }
 
+@media (max-width: 767px) {
+  nb-card-body {
+    padding: 1rem;
+  }
+}
+
 /* Importing Bootstrap SCSS file. */
 @import 'bootstrap/scss/bootstrap';
