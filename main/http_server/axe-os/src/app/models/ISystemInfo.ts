@@ -29,6 +29,7 @@ export interface ISystemInfo {
     hostname: string,
     hostip: string,
     macAddr: string,
+    wifiRSSI: number,
     ssid: string,
     wifiPass: string,
     wifiStatus: string,
