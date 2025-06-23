@@ -123,6 +123,21 @@ const char* System::getMacAddress() {
     return connect_get_mac_addr();
 }
 
+// Function to fetch and return the RSSI (dBm) value
+int System::get_wifi_rssi()
+{
+    wifi_ap_record_t ap_info;
+
+    // Query the connected Access Point's information
+    if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+        ESP_LOGI("WIFI_RSSI", "Current RSSI: %d dBm", ap_info.rssi);
+        return ap_info.rssi;  // Return the actual RSSI value
+    } else {
+        ESP_LOGE("WIFI_RSSI", "Failed to fetch RSSI");
+        return -90;  // Return -90 to indicate an error
+    }
+}
+
 double System::calculateNetworkDifficulty(uint32_t nBits) {
     uint32_t mantissa = nBits & 0x007fffff;  // Extract the mantissa from nBits
     uint8_t exponent = (nBits >> 24) & 0xff;  // Extract the exponent from nBits
@@ -335,3 +350,4 @@ void System::notifyFoundNonce(double poolDiff, int asicNr) {
     m_currentHashrate10m = m_history->getCurrentHashrate10m();
     updateHashrate();
 }
+

@@ -33,6 +33,7 @@ const defaultInfo: ISystemInfo = {
   hostname: "Bitaxe",
   hostip: "192.168.0.123",
   macAddr: "DE:AD:C0:DE:0B:7C",
+  wifiRSSI: -90,
   ssid: "default",
   wifiPass: "password",
   wifiStatus: "Connected!",
