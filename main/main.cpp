@@ -154,6 +154,9 @@ extern "C" void app_main(void)
     // shows and saves last reset reason
     SYSTEM_MODULE.showLastResetReason();
 
+    // migrate config
+    Config::migrate_config();
+
 #ifdef NERDQAXEPLUS
     Board *board = new NerdQaxePlus();
 #endif
