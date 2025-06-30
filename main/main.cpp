@@ -30,6 +30,7 @@
 #include "system.h"
 #include "apis_task.h"
 #include "ping_task.h"
+#include "discord.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -152,7 +153,7 @@ extern "C" void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
 
     // shows and saves last reset reason
-    SYSTEM_MODULE.showLastResetReason();
+    esp_reset_reason_t reason = SYSTEM_MODULE.showLastResetReason();
 
 #ifdef NERDQAXEPLUS
     Board *board = new NerdQaxePlus();
@@ -212,6 +213,11 @@ extern "C" void app_main(void)
     if (username) {
         // wifi is connected, switch the AP off
         wifi_softap_off();
+
+        // we only use alerting if we are in a normal operating mode
+        if (reason == ESP_RST_TASK_WDT) {
+            sendDiscordMessageIfEnabled("Device rebootet because there was no share for more than 1h!");
+        }
 
         // and continue with initialization
         POWER_MANAGEMENT_MODULE.lock();

@@ -18,7 +18,7 @@
 #include "handler_ota.h"
 #include "handler_restart.h"
 #include "handler_file.h"
-
+#include "handler_alert.h"
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
@@ -180,6 +180,22 @@ esp_err_t start_rest_server(void * pvParameters)
         .user_ctx = NULL,
     };
     httpd_register_uri_handler(http_server, &system_options_uri);
+
+    /* URI handler for fetching Discord alert settings */
+    httpd_uri_t alert_info_get_uri = {
+        .uri = "/api/alert/info", .method = HTTP_GET, .handler = GET_alert_info, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &alert_info_get_uri);
+
+    /* URI handler for updating Discord alert settings */
+    httpd_uri_t alert_update_patch_uri = {
+        .uri = "/api/alert/update", .method = HTTP_POST, .handler = POST_update_alert, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &alert_update_patch_uri);
+
+    /* URI handler for test webhook */
+    httpd_uri_t alert_test_uri = {
+        .uri = "/api/alert/test", .method = HTTP_POST, .handler = POST_test_alert, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &alert_test_uri);
+
 
     httpd_uri_t update_post_ota_firmware = {
         .uri = "/api/system/OTA", .method = HTTP_POST, .handler = POST_OTA_update, .user_ctx = NULL};

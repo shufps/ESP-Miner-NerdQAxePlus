@@ -225,7 +225,7 @@ void System::suffixString(uint64_t val, char* buf, size_t bufSize, int sigDigits
     }
 }
 
-void System::showLastResetReason() {
+esp_reset_reason_t System::showLastResetReason() {
     esp_reset_reason_t reason = esp_reset_reason();
     switch (reason) {
         case ESP_RST_UNKNOWN: m_lastResetReason = "Unknown"; break;
@@ -242,6 +242,7 @@ void System::showLastResetReason() {
         default: m_lastResetReason = "Not specified"; break;
     }
     ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason);
+    return reason;
 }
 
 void System::showError(const char *error_message, uint32_t error_code) {

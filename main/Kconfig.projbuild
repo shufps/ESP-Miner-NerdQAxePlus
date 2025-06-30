@@ -175,3 +175,30 @@ menu "InfluxDB Configuration"
             This prefix will be prepended to all measurement names, allowing you to easily identify related data.
 
 endmenu
+
+menu "Discord Alert Configuration"
+
+    # Enable or disable the Discord alert system
+    config ALERT_DISCORD_ENABLE
+        bool "Enable Discord Alerts"
+        default n
+        help
+            Enables the Discord webhook-based alert system.
+            If enabled, the firmware will send error or warning messages to the specified Discord channel.
+
+    # Helper int value that maps the bool to 0 or 1 for use in C code
+    config ALERT_DISCORD_ENABLE_VALUE
+        int
+        default 1 if ALERT_DISCORD_ENABLE
+        default 0
+
+    # Webhook URL for sending Discord alerts
+    config ALERT_DISCORD_URL
+        string "Discord Webhook URL"
+        default "https://discord.com/api/webhooks/your_token_here"
+        help
+            Full Discord webhook URL for sending alert messages.
+            You can generate this URL in your Discord server under Integrations → Webhooks.
+            Be sure to keep this secret!
+
+endmenu
