@@ -157,6 +157,14 @@ esp_err_t start_rest_server(void * pvParameters)
         .uri = "/api/system/restart", .method = HTTP_POST, .handler = POST_restart, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &system_restart_uri);
 
+    httpd_uri_t system_restart_options_uri = {
+        .uri = "/api/system/restart",
+        .method = HTTP_OPTIONS,
+        .handler = handle_options_request,
+        .user_ctx = NULL
+    };
+    httpd_register_uri_handler(http_server, &system_restart_options_uri);
+
     httpd_uri_t update_system_settings_uri = {
         .uri = "/api/system", .method = HTTP_PATCH, .handler = PATCH_update_settings, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &update_system_settings_uri);
