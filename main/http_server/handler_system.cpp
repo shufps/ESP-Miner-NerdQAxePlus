@@ -71,6 +71,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["deviceModel"]        = board->getDeviceModel();
     doc["hostip"]             = SYSTEM_MODULE.getIPAddress();
     doc["macAddr"]            = SYSTEM_MODULE.getMacAddress();
+    doc["wifiRSSI"]           = SYSTEM_MODULE.get_wifi_rssi();
 
     // dashboard
     doc["power"]              = POWER_MANAGEMENT_MODULE.getPower();
