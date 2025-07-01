@@ -11,13 +11,13 @@
           An alert will be triggered if the device reboots after failing to submit a share for 1 hour.
         </div>
         <div class="form-row">
-          <nb-checkbox formControlName="alertEnable">Enable</nb-checkbox>
+          <nb-checkbox formControlName="alertDiscordEnable">Enable</nb-checkbox>
         </div>
 
         <div class="form-row">
-          <label for="discordURL" class="form-label">Webhook URL:</label>
+          <label for="alertDiscordWebhook" class="form-label">Webhook URL:</label>
           <div class="form-control-wrapper">
-            <input nbInput id="discordURL" type="text" formControlName="discordURL"
+            <input nbInput id="alertDiscordWebhook" type="password" formControlName="alertDiscordWebhook"
               placeholder="https://discord.com/api/webhooks/..." /><br />
             <small>Webhook from your Discord channel integration</small>
           </div>

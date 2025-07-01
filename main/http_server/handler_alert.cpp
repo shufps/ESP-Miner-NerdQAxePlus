@@ -24,18 +24,19 @@ esp_err_t GET_alert_info(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    char *discordURL = Config::getDiscordWebhook();
+    char *alertDiscordWebhook = Config::getDiscordWebhook();
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
-    doc["discordURL"]  = discordURL;
-    doc["alertEnable"] = Config::isDiscordAlertEnabled() ? 1 : 0;
+    // don't send the alertDiscordWebhook on the API
+    //doc["alertDiscordWebhook"]  = alertDiscordWebhook;
+    doc["alertDiscordEnable"] = Config::isDiscordAlertEnabled() ? 1 : 0;
 
     esp_err_t ret = sendJsonResponse(req, doc);
 
     doc.clear();
-    free(discordURL);
+    free(alertDiscordWebhook);
 
     return ret;
 }
@@ -82,11 +83,11 @@ esp_err_t POST_update_alert(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    if (doc["discordURL"].is<const char*>()) {
-        Config::setDiscordWebhook(doc["discordURL"].as<const char*>());
+    if (doc["alertDiscordWebhook"].is<const char*>()) {
+        Config::setDiscordWebhook(doc["alertDiscordWebhook"].as<const char*>());
     }
-    if (doc["alertEnable"].is<bool>()) {
-        Config::setDiscordAlertEnabled(doc["alertEnable"].as<bool>());
+    if (doc["alertDiscordEnable"].is<bool>()) {
+        Config::setDiscordAlertEnabled(doc["alertDiscordEnable"].as<bool>());
     }
 
     doc.clear();

@@ -203,8 +203,8 @@ export class SystemService {
       return this.httpClient.get(`${uri}/api/alert/info`) as Observable<IAlertSettings>;
     } else {
       return of({
-        alertEnable: 0,
-        discordURL: 'https://discord.com/api/webhooks/xxx/yyy'
+        alertDiscordEnable: 0,
+        alertDiscordWebhook: 'https://discord.com/api/webhooks/xxx/yyy'
       }).pipe(delay(1000));
     }
   }

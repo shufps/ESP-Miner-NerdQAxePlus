@@ -1,4 +1,4 @@
 export interface IAlertSettings {
-  alertEnable: number;
-  discordURL: string;
+  alertDiscordEnable: number;
+  alertDiscordWebhook: string;
 }
