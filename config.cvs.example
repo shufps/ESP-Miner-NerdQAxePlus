@@ -127,3 +127,14 @@ stratumdiff,data,u64,1000
 
 # Measurement prefix – helps identify data source in dashboards
 #influx_prefix,data,string,mainnet_stats
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ↓↓↓ ALERTING ↓↓↓
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Enable discord alerter
+# An alert will be triggered if the device reboots after failing to submit a share for 1 hour.
+#alrt_disc_en,data,u16,0
+
+# Discord Webhook URL
+#alrt_disc_url,data,string,https://discord.com/api/webhooks/your_token_here

@@ -5,8 +5,11 @@
 <ng-container *ngIf="form != null; else loading">
   <form [formGroup]="form">
     <nb-card>
-      <nb-card-header>Discord Alerts</nb-card-header>
+      <nb-card-header>Discord Alert</nb-card-header>
       <nb-card-body>
+        <div class="form-row">
+          An alert will be triggered if the device reboots after failing to submit a share for 1 hour.
+        </div>
         <div class="form-row">
           <nb-checkbox formControlName="alertEnable">Enable</nb-checkbox>
         </div>
