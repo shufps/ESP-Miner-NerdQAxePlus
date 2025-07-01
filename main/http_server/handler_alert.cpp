@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include "ArduinoJson.h"
 
+#include "global_state.h"
 #include "psram_allocator.h"
 #include "nvs_config.h"
 #include "http_cors.h"
@@ -91,6 +92,10 @@ esp_err_t POST_update_alert(httpd_req_t *req)
     doc.clear();
 
     httpd_resp_send_chunk(req, NULL, 0);
+
+    // reload discord alerter config
+    discordAlerter.loadConfig();
+
     return ESP_OK;
 }
 
@@ -101,7 +106,7 @@ esp_err_t POST_test_alert(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    bool success = sendDiscordTestMessage();
+    bool success = discordAlerter.sendTestMessage();
 
     if (success) {
         httpd_resp_sendstr(req, "ok");

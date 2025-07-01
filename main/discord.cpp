@@ -5,23 +5,83 @@
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "nvs_config.h"
+#include "connect.h"
 
 #include "global_state.h"
 
 static const char *TAG = "discord";
 
-static bool sendDiscordRaw(const char* webhookUrl, const char* message)
+#ifdef CONFIG_SPIRAM
+#define MALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
+#define CALLOC(s, t) heap_caps_calloc(s, t, MALLOC_CAP_SPIRAM)
+#define FREE(p)                                                                                                                    \
+    do {                                                                                                                           \
+        if (p) {                                                                                                                   \
+            heap_caps_free(p);                                                                                                     \
+            (p) = NULL;                                                                                                            \
+        }                                                                                                                          \
+    } while (0)
+#else
+#define MALLOC(s) malloc(s)
+#define CALLOC(s, t) calloc(s, t)
+#define FREE(p)                                                                                                                    \
+    do {                                                                                                                           \
+        if (p) {                                                                                                                   \
+            free(p);                                                                                                               \
+            (p) = NULL;                                                                                                            \
+        }                                                                                                                          \
+    } while (0)
+#endif
+
+Alerter::Alerter() : m_messageBuffer(nullptr), m_payloadBuffer(nullptr), m_enabled(false)
 {
-    if (webhookUrl == nullptr || message == nullptr) {
+    // NOP
+}
+
+void Alerter::init() {
+    m_messageBuffer = (char *) MALLOC(messageBufferSize);
+    m_payloadBuffer = (char *) MALLOC(payloadBufferSize);
+}
+
+DiscordAlerter::DiscordAlerter() : Alerter(), m_webhookUrl(nullptr)
+{
+    // NOP
+}
+
+void DiscordAlerter::loadConfig()
+{
+    if (m_webhookUrl) {
+        free(m_webhookUrl);
+        m_webhookUrl = nullptr;
+    }
+
+    m_webhookUrl = Config::getDiscordWebhook();
+    m_enabled = Config::isDiscordAlertEnabled();
+}
+
+void DiscordAlerter::init() {
+    Alerter::init();
+}
+
+bool DiscordAlerter::sendRaw(const char *message)
+{
+    if (m_webhookUrl == nullptr || message == nullptr) {
         ESP_LOGE(TAG, "Webhook URL or message is null");
         return false;
     }
 
-    char post_data[512];
-    snprintf(post_data, sizeof(post_data), "{\"content\": \"%s\"}", message);
+    if (!m_payloadBuffer) {
+        ESP_LOGE(TAG, "payload buffer is nullptr");
+    }
+
+    ESP_LOGI(TAG, "discord message: %s", message);
+
+    snprintf(m_payloadBuffer, payloadBufferSize - 1, "{\"content\": \"%s\"}", message);
+
+    ESP_LOGD(TAG, "discord payload: %s", m_payloadBuffer);
 
     esp_http_client_config_t config = {};
-    config.url = webhookUrl;
+    config.url = m_webhookUrl;
     config.method = HTTP_METHOD_POST;
     config.timeout_ms = 5000;
     config.crt_bundle_attach = esp_crt_bundle_attach;
@@ -34,7 +94,7 @@ static bool sendDiscordRaw(const char* webhookUrl, const char* message)
 
     esp_http_client_set_method(client, HTTP_METHOD_POST);
     esp_http_client_set_header(client, "Content-Type", "application/json");
-    esp_http_client_set_post_field(client, post_data, strlen(post_data));
+    esp_http_client_set_post_field(client, m_payloadBuffer, strlen(m_payloadBuffer));
 
     esp_err_t err = esp_http_client_perform(client);
     if (err != ESP_OK) {
@@ -55,48 +115,35 @@ static bool sendDiscordRaw(const char* webhookUrl, const char* message)
     }
 }
 
-bool sendDiscordMessageIfEnabled(const char *message)
+bool DiscordAlerter::sendMessage(const char *message)
 {
-    if (!Config::isDiscordAlertEnabled()) {
+    if (!m_enabled) {
         ESP_LOGI(TAG, "Alert disabled – skipping Discord send");
         return false;
     }
 
-    char *url = Config::getDiscordWebhook();
-    if (url == nullptr || strlen(url) == 0) {
-        ESP_LOGW(TAG, "No Discord webhook configured");
-        if (url)
-            free(url);
+    if (!m_messageBuffer) {
+        ESP_LOGE(TAG, "message buffer is nullptr");
         return false;
     }
 
-    const char *ip = SYSTEM_MODULE.getIPAddress();
+    char ip[20] = {0};
+    connect_get_ip_addr(ip, sizeof(ip));
+    //ESP_LOGI(TAG, "IP: %s", ip);
     const char *mac = SYSTEM_MODULE.getMacAddress();
+    //ESP_LOGI(TAG, "MAC: %s", mac);
     char *hostname = Config::getHostname();
+    //ESP_LOGI(TAG, "Hostname: %s", hostname);
 
-    char fullMessage[768];
-    snprintf(fullMessage, sizeof(fullMessage), "%s\n```\nHostname: %s\nIP:      %s\nMAC:     %s\n```", message,
-             hostname ? hostname : "unknown", ip ? ip : "unknown", mac ? mac : "unknown");
+    snprintf(m_messageBuffer, messageBufferSize - 1, "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```", message,
+             hostname ? hostname : "unknown", ip, mac ? mac : "unknown");
 
-    bool result = sendDiscordRaw(url, fullMessage);
+    free(hostname);
 
-    free(url);
-    if (hostname)
-        free(hostname);
-    return result;
+    return sendRaw(m_messageBuffer);
 }
 
-bool sendDiscordTestMessage()
+bool DiscordAlerter::sendTestMessage()
 {
-    char *url = Config::getDiscordWebhook();
-    if (url == nullptr || strlen(url) == 0) {
-        ESP_LOGW(TAG, "No Discord webhook configured");
-        if (url)
-            free(url);
-        return false;
-    }
-
-    bool result = sendDiscordRaw(url, "This is a test message!");
-    free(url);
-    return result;
+    return sendRaw("This is a test message!");
 }

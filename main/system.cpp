@@ -293,17 +293,21 @@ void System::task() {
     m_display->miningScreen();
 
     uint8_t countCycle = 10;
-    bool validIp = false;
+
+    char lastIpAddress[20] = {0};
 
     // show initial 0.0.0.0
     m_display->updateIpAddress(m_ipAddress);
     bool lastFoundBlock = false;
+
     while (1) {
         // update IP on the screen if it is available
-        if (!validIp && connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
-            ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
-            m_display->updateIpAddress(m_ipAddress);
-            validIp = true;
+        if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
+            if (strcmp(m_ipAddress, lastIpAddress) != 0) {
+                ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
+                m_display->updateIpAddress(m_ipAddress);
+            }
+            strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
         }
 
         if (m_overheated) {

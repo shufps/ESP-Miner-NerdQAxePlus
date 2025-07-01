@@ -40,6 +40,8 @@ PowerManagementTask POWER_MANAGEMENT_MODULE;
 StratumManager STRATUM_MANAGER;
 APIsFetcher APIs_FETCHER;
 
+DiscordAlerter discordAlerter;
+
 AsicJobs asicJobs;
 
 static const char *TAG = "nerd*axe";
@@ -91,7 +93,7 @@ static void setup_wifi()
 }
 
 // Function to configure the Task Watchdog Timer (TWDT)
-void initWatchdog(TaskHandle_t task)
+void initWatchdog()
 {
     // Initialize the Task Watchdog Timer configuration
     esp_task_wdt_config_t wdt_config = {
@@ -103,11 +105,8 @@ void initWatchdog(TaskHandle_t task)
     // Initialize the Task Watchdog Timer with the configuration
     esp_err_t result = esp_task_wdt_init(&wdt_config);
     if (result != ESP_OK) {
-        printf("Failed to initialize watchdog: %d\n", result);
+        ESP_LOGE(TAG, "Failed to initialize watchdog: %d\n", result);
     }
-
-    // Add current task to the watchdog
-    esp_task_wdt_add(task);
 }
 
 // Custom calloc function that allocates from PSRAM
@@ -143,8 +142,7 @@ void monitor_all_task_watermarks() {
 
 extern "C" void app_main(void)
 {
-    // it could trigger a reset right away after reboot
-    esp_task_wdt_deinit();
+    initWatchdog();
 
     // use PSRAM because TLS costs a lot of internal RAM
     mbedtls_platform_set_calloc_free(psram_calloc, free_psram);
@@ -214,9 +212,12 @@ extern "C" void app_main(void)
         // wifi is connected, switch the AP off
         wifi_softap_off();
 
+        discordAlerter.init();
+        discordAlerter.loadConfig();
+
         // we only use alerting if we are in a normal operating mode
         if (reason == ESP_RST_TASK_WDT) {
-            sendDiscordMessageIfEnabled("Device rebootet because there was no share for more than 1h!");
+            discordAlerter.sendMessage("Device rebootet because there was no share for more than 1h!");
         }
 
         // and continue with initialization
@@ -234,8 +235,6 @@ extern "C" void app_main(void)
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
         xTaskCreate(APIs_FETCHER.taskWrapper, "apis ticker", 4096, (void*) &APIs_FETCHER, 5, NULL);
         xTaskCreate(ping_task, "ping task", 4096, NULL, 1, NULL);
-
-        initWatchdog(stratum_manager_handle);
     }
 
     //char* taskList = (char*) malloc(8192);
