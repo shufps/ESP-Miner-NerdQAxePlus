@@ -470,6 +470,11 @@ void StratumManager::task()
 {
     System *system = &SYSTEM_MODULE;
 
+    ESP_LOGI("StratumManager", "Subscribing to task watchdog.");
+    if (esp_task_wdt_add(NULL) != ESP_OK) {
+        ESP_LOGE("StratumManager", "Failed to add task to watchdog!");
+    }
+
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
         m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
@@ -488,7 +493,7 @@ void StratumManager::task()
         vTaskDelay(pdMS_TO_TICKS(30000));
 
         // Reset watchdog if there was a submit response within the last hour
-        if (((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 3600) {
+        if (m_lastSubmitResponseTimestamp && ((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 3600) {
             esp_task_wdt_reset();
         }
     }

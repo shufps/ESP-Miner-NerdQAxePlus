@@ -4,6 +4,8 @@ import { delay, Observable, of } from 'rxjs';
 import { eASICModel } from '../models/enum/eASICModel';
 import { ISystemInfo } from '../models/ISystemInfo';
 import { IHistory } from '../models/IHistory';
+import { IAlertSettings } from '../models/IAlertSettings';
+
 
 import { environment } from '../../environments/environment';
 import { IInfluxDB } from '../models/IInfluxDB';
@@ -194,4 +196,35 @@ export class SystemService {
   public updateSwarm(uri: string = '', swarmConfig: any) {
     return this.httpClient.patch(`${uri}/api/swarm`, swarmConfig);
   }
+
+
+  public getAlertInfo(uri: string = ''): Observable<IAlertSettings> {
+    if (environment.production) {
+      return this.httpClient.get(`${uri}/api/alert/info`) as Observable<IAlertSettings>;
+    } else {
+      return of({
+        alertEnable: 0,
+        discordURL: 'https://discord.com/api/webhooks/xxx/yyy'
+      }).pipe(delay(1000));
+    }
+  }
+
+  public updateAlertInfo(uri: string = '', data: IAlertSettings): Observable<any> {
+    if (environment.production) {
+      return this.httpClient.post(`${uri}/api/alert/update`, data);
+    } else {
+      console.log('Mock updateAlertInfo called:', data);
+      return of(true).pipe(delay(500));
+    }
+  }
+
+  public sendAlertTest(uri: string = ''): Observable<any> {
+    if (environment.production) {
+      return this.httpClient.post(`${uri}/api/alert/test`, {}, {responseType: 'text' });
+    } else {
+      console.log('Mock sendAlertTest');
+      return of(true).pipe(delay(500));
+    }
+  }
 }
+

@@ -8,6 +8,7 @@ import { SettingsComponent } from './settings/settings.component';
 import { InfluxdbComponent } from './influxdb/influxdb.component';
 import { SystemComponent } from './system/system.component';
 import { SwarmComponent } from './swarm/swarm.component';
+import { AlertComponent } from './alert/alert.component';
 
 const routes: Routes = [{
   path: '',
@@ -37,6 +38,10 @@ const routes: Routes = [{
     {
       path: 'swarm',
       component: SwarmComponent
+    },
+    {
+      path: 'alert',
+      component: AlertComponent
     },
     {
       path: '**',

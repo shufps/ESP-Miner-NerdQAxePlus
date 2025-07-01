@@ -225,7 +225,7 @@ void System::suffixString(uint64_t val, char* buf, size_t bufSize, int sigDigits
     }
 }
 
-void System::showLastResetReason() {
+esp_reset_reason_t System::showLastResetReason() {
     esp_reset_reason_t reason = esp_reset_reason();
     switch (reason) {
         case ESP_RST_UNKNOWN: m_lastResetReason = "Unknown"; break;
@@ -242,6 +242,7 @@ void System::showLastResetReason() {
         default: m_lastResetReason = "Not specified"; break;
     }
     ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason);
+    return reason;
 }
 
 void System::showError(const char *error_message, uint32_t error_code) {
@@ -292,17 +293,21 @@ void System::task() {
     m_display->miningScreen();
 
     uint8_t countCycle = 10;
-    bool validIp = false;
+
+    char lastIpAddress[20] = {0};
 
     // show initial 0.0.0.0
     m_display->updateIpAddress(m_ipAddress);
     bool lastFoundBlock = false;
+
     while (1) {
         // update IP on the screen if it is available
-        if (!validIp && connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
-            ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
-            m_display->updateIpAddress(m_ipAddress);
-            validIp = true;
+        if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
+            if (strcmp(m_ipAddress, lastIpAddress) != 0) {
+                ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
+                m_display->updateIpAddress(m_ipAddress);
+            }
+            strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
         }
 
         if (m_overheated) {

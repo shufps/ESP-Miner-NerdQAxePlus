@@ -46,6 +46,9 @@
 #define NVS_CONFIG_PID_I "pid_i"
 #define NVS_CONFIG_PID_D "pid_d"
 
+#define NVS_CONFIG_ALERT_DISCORD_ENABLE "alrt_disc_en"
+#define NVS_CONFIG_ALERT_DISCORD_URL    "alrt_disc_url"
+
 #define NVS_CONFIG_SWARM "swarmconfig"
 
 #if defined(CONFIG_FAN_MODE_MANUAL)
@@ -82,6 +85,7 @@ namespace Config {
     inline char* getInfluxOrg() { return nvs_config_get_string(NVS_CONFIG_INFLUX_ORG, CONFIG_INFLUX_ORG); }
     inline char* getInfluxPrefix() { return nvs_config_get_string(NVS_CONFIG_INFLUX_PREFIX, CONFIG_INFLUX_PREFIX); }
     inline char* getSwarmConfig() { return nvs_config_get_string(NVS_CONFIG_SWARM, ""); }
+    inline char* getDiscordWebhook() { return nvs_config_get_string(NVS_CONFIG_ALERT_DISCORD_URL, CONFIG_ALERT_DISCORD_URL); }
 
     // ---- String Setters ----
     inline void setWifiSSID(const char* value) { nvs_config_set_string(NVS_CONFIG_WIFI_SSID, value); }
@@ -99,6 +103,7 @@ namespace Config {
     inline void setInfluxOrg(const char* value) { nvs_config_set_string(NVS_CONFIG_INFLUX_ORG, value); }
     inline void setInfluxPrefix(const char* value) { nvs_config_set_string(NVS_CONFIG_INFLUX_PREFIX, value); }
     inline void setSwarmConfig(const char* value) { nvs_config_set_string(NVS_CONFIG_SWARM, value); }
+    inline void setDiscordWebhook(const char* value) { nvs_config_set_string(NVS_CONFIG_ALERT_DISCORD_URL, value); }
 
     // ---- uint16_t Getters ----
     inline uint16_t getStratumPortNumber() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT); }
@@ -138,6 +143,7 @@ namespace Config {
     inline bool isSelfTestEnabled() { return nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0) != 0; }
     inline bool isAutoScreenOffEnabled() { return nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE) != 0; }
     inline bool isInfluxEnabled() { return nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE) != 0; }
+    inline bool isDiscordAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_ENABLE, CONFIG_ALERT_DISCORD_ENABLE_VALUE) != 0; }
 
     // ---- Boolean Setters ----
     inline void setFlipScreen(bool value) { nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, value ? 1 : 0); }
@@ -147,6 +153,7 @@ namespace Config {
     inline void setSelfTest(bool value) { nvs_config_set_u16(NVS_CONFIG_SELF_TEST, value ? 1 : 0); }
     inline void setAutoScreenOff(bool value) { nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, value ? 1 : 0); }
     inline void setInfluxEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, value ? 1 : 0); }
+    inline void setDiscordAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_ENABLE, value ? 1 : 0); }
 
 
     // with board specific default values

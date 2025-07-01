@@ -1,0 +1,37 @@
+<ng-template #loading>
+  <h4>Loading...</h4>
+</ng-template>
+
+<ng-container *ngIf="form != null; else loading">
+  <form [formGroup]="form">
+    <nb-card>
+      <nb-card-header>Discord Alert</nb-card-header>
+      <nb-card-body>
+        <div class="form-row">
+          An alert will be triggered if the device reboots after failing to submit a share for 1 hour.
+        </div>
+        <div class="form-row">
+          <nb-checkbox formControlName="alertEnable">Enable</nb-checkbox>
+        </div>
+
+        <div class="form-row">
+          <label for="discordURL" class="form-label">Webhook URL:</label>
+          <div class="form-control-wrapper">
+            <input nbInput id="discordURL" type="text" formControlName="discordURL"
+              placeholder="https://discord.com/api/webhooks/..." /><br />
+            <small>Webhook from your Discord channel integration</small>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mt-2">
+          <div>
+            <button nbButton size="small" [disabled]="form.invalid" (click)="save()" status="danger">Save</button>
+          </div>
+          <div>
+            <button nbButton size="small" (click)="sendTest()" [disabled]="form.invalid" status="info">Test</button>
+          </div>
+        </div>
+      </nb-card-body>
+    </nb-card>
+  </form>
+</ng-container>

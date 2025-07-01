@@ -23,24 +23,13 @@ export const MENU_ITEMS: NbMenuItem[] = [
     link: '/pages/influxdb',
   },
   {
+    title: 'Alerts',
+    icon: 'bell-outline',
+    link: '/pages/alert',
+  },
+  {
     title: 'System',
     icon: 'menu-outline',
     link: '/pages/system',
   },
-
-
-
-
-
-/*
-  {
-    title: 'Auth',
-    icon: 'lock-outline',
-    link: '/auth',
-  },
-  {
-    title: 'Not found',
-    icon: 'close-circle-outline',
-    link: '/pages/whatever',
-  }*/
 ];

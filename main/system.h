@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "displays/displayDriver.h"
+#include "esp_system.h"
 #include "esp_netif.h"
 #include "freertos/queue.h"
 #include "boards/board.h"
@@ -229,7 +230,7 @@ class System {
         return m_history;
     }
 
-    void showLastResetReason();
+    esp_reset_reason_t showLastResetReason();
 
     const char* getLastResetReason() {
         return m_lastResetReason;

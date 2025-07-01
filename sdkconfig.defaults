@@ -51,4 +51,6 @@ CONFIG_BT_ENABLED=n
 # enable ansii colors for log
 CONFIG_LOG_COLORS=y
 
+# disable wdt at boot
+CONFIG_ESP_TASK_WDT_INIT=n
 
