@@ -30,11 +30,11 @@ export class AlertComponent implements OnInit {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(data => {
         this.form = this.fb.group({
-          discordURL: [data.discordURL, [
+          alertDiscordWebhook: ['WEBHOOK', [
             Validators.required,
             Validators.pattern(/^https:\/\/discord\.com\/api\/webhooks\/.+$/)
           ]],
-          alertEnable: [data.alertEnable === 1]
+          alertDiscordEnable: [data.alertDiscordEnable === 1],
         });
       });
   }
@@ -42,12 +42,11 @@ export class AlertComponent implements OnInit {
   public save() {
     const form = this.form.getRawValue();
 
-    const payload: IAlertSettings = {
-      discordURL: form.discordURL,
-      alertEnable: form.alertEnable
-    };
+    if (form.alertDiscordWebhook === 'WEBHOOK') {
+      delete form.alertDiscordWebhook;
+    }
 
-    this.systemService.updateAlertInfo(this.uri, payload)
+    this.systemService.updateAlertInfo(this.uri, form)
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
         next: () => {
@@ -55,19 +54,6 @@ export class AlertComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.toastrService.danger('Could not save alert settings.', err.message);
-        }
-      });
-  }
-
-  public restart() {
-    this.systemService.restart()
-      .pipe(catchError(error => {
-        this.toastrService.danger('Restart failed.', 'Error');
-        return of(null);
-      }))
-      .subscribe(res => {
-        if (res !== null) {
-          this.toastrService.success('Device restarted.', 'Success');
         }
       });
   }
