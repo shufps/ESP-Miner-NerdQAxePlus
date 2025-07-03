@@ -66,6 +66,7 @@ class History {
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+    HistoryAvg m_avg1m;   // 1-minute average for real-time monitoring
     HistoryAvg m_avg10m;
     HistoryAvg m_avg1h;
     HistoryAvg m_avg1d;
@@ -86,6 +87,7 @@ class History {
     float getHashrate1hSample(int index);
     float getHashrate1dSample(int index);
     uint64_t getCurrentTimestamp(void);
+    double getCurrentHashrate1m();   // 1-minute average for real-time monitoring
     double getCurrentHashrate10m();
     double getCurrentHashrate1h();
     double getCurrentHashrate1d();
