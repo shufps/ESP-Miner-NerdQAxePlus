@@ -28,11 +28,6 @@ menu "Miner Configuration"
         help
             Manual fan control. You set the fan speed yourself.
 
-    config FAN_MODE_CLASSIC
-        bool "Classic automatic"
-        help
-            Automatically adjusts fan speed using a simple temperature-based method.
-
     config FAN_MODE_PID
         bool "Experimental PID"
         help

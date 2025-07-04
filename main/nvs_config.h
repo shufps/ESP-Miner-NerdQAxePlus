@@ -167,4 +167,6 @@ namespace Config {
     inline uint16_t getPidP(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_P, d); }
     inline uint16_t getPidI(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_I, d); }
     inline uint16_t getPidD(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_D, d); }
+
+    void migrate_config();
 }

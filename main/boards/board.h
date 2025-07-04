@@ -57,11 +57,6 @@ class Board {
     float m_maxVin;
     float m_minVin;
 
-    // automatic fan control settings
-    float m_afcMinTemp;
-    float m_afcMinFanSpeed;
-    float m_afcMaxTemp;
-
     // display m_theme
     Theme *m_theme = nullptr;
 
@@ -104,8 +99,6 @@ class Board {
     virtual float getPout() = 0;
 
     virtual void requestBuckTelemtry() = 0;
-
-    virtual float automaticFanSpeed(float temp);
 
     void setChipTemp(int nr, float temp);
     float getMaxChipTemp();
