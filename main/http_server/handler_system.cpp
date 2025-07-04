@@ -84,7 +84,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["temp"]               = POWER_MANAGEMENT_MODULE.getChipTempMax();
     doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
     doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
-    doc["hashRate"]           = history->getCurrentHashrate10m();
+    doc["hashRate"]           = history->getCurrentHashrate10m();  // Keep existing for compatibility
+    doc["hashRate_1m"]        = history->getCurrentHashrate1m();   // NEW: 1-minute average
     doc["hashRate_10m"]       = history->getCurrentHashrate10m();
     doc["hashRate_1h"]        = history->getCurrentHashrate1h();
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
