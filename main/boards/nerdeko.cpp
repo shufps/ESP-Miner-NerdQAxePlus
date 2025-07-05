@@ -11,6 +11,7 @@ NerdEko::NerdEko() : NerdQaxePlus2()
     m_miningAgent = m_deviceModel;
     m_asicModel = "BM1370";
     m_asicCount = 12;
+    m_asicFrequencies = std::vector<int>(m_asicCount, m_defaultAsicFrequency);
     m_numPhases = 6;
     m_imax = 240; // R = 6000 / (num_phases * max_current) = 24K9
     m_ifault = 235.0;

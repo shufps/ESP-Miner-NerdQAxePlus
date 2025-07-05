@@ -7,6 +7,7 @@ NerdOctaxePlus::NerdOctaxePlus() : NerdQaxePlus() {
     m_deviceModel = "NerdOCTAXE+";
     m_miningAgent = m_deviceModel;
     m_asicCount = 8;
+    m_asicFrequencies = std::vector<int>(m_asicCount, m_defaultAsicFrequency);
     m_numPhases = 3;
     m_imax = m_numPhases * 30;
     m_ifault = (float) (m_imax - 5);

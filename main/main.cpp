@@ -35,7 +35,6 @@
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
 System SYSTEM_MODULE;
-
 PowerManagementTask POWER_MANAGEMENT_MODULE;
 StratumManager STRATUM_MANAGER;
 APIsFetcher APIs_FETCHER;
@@ -186,6 +185,7 @@ extern "C" void app_main(void)
     board->loadSettings();
     board->initBoard();
 
+    POWER_MANAGEMENT_MODULE.setAsicCount(board->getAsicCount());
 
     SYSTEM_MODULE.setBoard(board);
 

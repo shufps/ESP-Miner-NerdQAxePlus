@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "boards/board.h"
 #include "pid/PID_v1_bc.h"
+#include <vector>
 
 class PowerManagementTask {
   protected:
@@ -15,6 +16,8 @@ class PowerManagementTask {
     float m_power;
     float m_current;
     PID *m_pid;
+    uint8_t m_asicCount;
+    std::vector<uint16_t> m_vAsicFrequencies;
 
     void requestChipTemps();
     void checkCoreVoltageChanged();
@@ -66,4 +69,6 @@ class PowerManagementTask {
     void unlock() {
         pthread_mutex_unlock(&m_mutex);
     }
+
+    void setAsicCount(uint8_t);
 };

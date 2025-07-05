@@ -20,6 +20,7 @@ class NonceDistribution {
     void init(int numAsics);
     void addShare(int asicNr);
     void toLog();
+    void getDistribution(uint32_t*& ptr, int& len);
 };
 
 class HistoryAvg {

@@ -55,6 +55,7 @@ const defaultInfo: ISystemInfo = {
   isUsingFallbackStratum: false,
   isStratumConnected: false,
   frequency: 485,
+  frequencies: [],
   defaultFrequency: 485,
   version: "2.0",
   flipscreen: 0,
@@ -85,7 +86,8 @@ const defaultInfo: ISystemInfo = {
     hashrate_1h: [],
     hashrate_1d: [],
     timestamps: [],
-    timestampBase: 0
+    timestampBase: 0,
+    nonce_distribution: []
   }
 }
 
@@ -105,7 +107,8 @@ export class SystemService {
 
   public getInfo(ts: number, uri: string = ''): Observable<ISystemInfo> {
     if (environment.production) {
-      return this.httpClient.get(`${uri}/api/system/info?ts=${ts}&cur=${Math.floor(Date.now())}`) as Observable<ISystemInfo>;
+      const ret = this.httpClient.get(`${uri}/api/system/info?ts=${ts}&cur=${Math.floor(Date.now())}`) as Observable<ISystemInfo>;
+      return ret;
     } else {
       return of(defaultInfo).pipe(delay(1000));
     }

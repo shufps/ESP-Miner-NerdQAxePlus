@@ -5,6 +5,7 @@
 #include "bm1368.h"
 #include "nvs_config.h"
 #include "../pid/PID_v1_bc.h"
+#include <vector>
 
 enum FanPolarityGuess {
     POLARITY_UNKNOWN,
@@ -30,6 +31,7 @@ class Board {
     int m_asicJobIntervalMs;
     int m_asicFrequency;
     int m_asicVoltageMillis;
+    std::vector<int> m_asicFrequencies;
 
     // default settings
     int m_defaultAsicFrequency;
@@ -144,6 +146,14 @@ class Board {
     int getAsicFrequency()
     {
         return m_asicFrequency;
+    }
+
+    int getAsicFrequency(uint8_t asic_index)
+    {
+        if (m_asics && asic_index < m_asicCount) {
+            return m_asicFrequencies[asic_index];
+        }
+        return -1;
     }
 
     int getDefaultAsicVoltageMillis()

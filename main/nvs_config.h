@@ -21,6 +21,7 @@
 #define NVS_CONFIG_STRATUM_KEEPALIVE "stratum_keep"
 
 #define NVS_CONFIG_ASIC_FREQ "asicfrequency"
+#define NVS_CONFIG_ASIC_FREQ_SINGLE "asicfrequency_"
 #define NVS_CONFIG_ASIC_VOLTAGE "asicvoltage"
 #define NVS_CONFIG_ASIC_JOB_INTERVAL "asicjobinterval"
 #define NVS_CONFIG_FLIP_SCREEN "flipscreen"
@@ -123,6 +124,7 @@ namespace Config {
 
     // ---- uint16_t Setters ----
     inline void setAsicFrequency(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_ASIC_FREQ, value); }
+    void setAsicFrequency(uint8_t asic_index, uint16_t value);
     inline void setAsicVoltage(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_ASIC_VOLTAGE, value); }
     inline void setAsicJobInterval(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, value); }
     inline void setStratumPortNumber(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_PORT, value); }
@@ -167,6 +169,7 @@ namespace Config {
 
     // with board specific default values
     inline uint16_t getAsicFrequency(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, d); }
+    uint16_t getAsicFrequency(uint8_t asic_index, uint16_t d);
     inline uint16_t getAsicVoltage(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, d); }
     inline uint16_t getAsicJobInterval(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_JOB_INTERVAL, d); }
     inline bool isFlipScreenEnabled(bool d) { return nvs_config_get_u16(NVS_CONFIG_FLIP_SCREEN, d ? 1 : 0) != 0; }

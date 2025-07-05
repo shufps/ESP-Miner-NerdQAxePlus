@@ -5,11 +5,13 @@
 #include "nvs_config.h"
 #include "esp_log.h"
 #include "../displays/displayDriver.h"
+#include <vector>
 
 const static char* TAG = "board";
 
-Board::Board() {
-    m_fanAutoPolarity = true; // default detect polarity
+Board::Board() :
+    m_fanAutoPolarity{ true } // default detect polarity
+{
 }
 
 void Board::loadSettings()
@@ -24,12 +26,19 @@ void Board::loadSettings()
     m_fanAutoPolarity = Config::isAutoFanPolarityEnabled(m_fanAutoPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
 
+    for (uint8_t i = 0; i < getAsicCount(); ++i) {
+        m_asicFrequencies[i] = Config::getAsicFrequency(i, getDefaultAsicFrequency());
+    }
+
     m_pidSettings.targetTemp = Config::getPidTargetTemp(m_pidSettings.targetTemp);
     m_pidSettings.p = Config::getPidP(m_pidSettings.p);
     m_pidSettings.i = Config::getPidI(m_pidSettings.i);
     m_pidSettings.d = Config::getPidD(m_pidSettings.d);
 
     ESP_LOGI(TAG, "ASIC Frequency: %dMHz", m_asicFrequency);
+    for (uint8_t i = 0; i < getAsicCount(); ++i) {
+        ESP_LOGI(TAG, "ASIC %d Frequency: %dMHz", i, m_asicFrequencies[i]);
+    }
     ESP_LOGI(TAG, "ASIC voltage: %dmV", m_asicVoltageMillis);
     ESP_LOGI(TAG, "ASIC job interval: %dms", m_asicJobIntervalMs);
     ESP_LOGI(TAG, "invert fan polarity: %s", m_fanInvertPolarity ? "true" : "false");

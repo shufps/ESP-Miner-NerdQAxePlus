@@ -14,6 +14,7 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
 
     m_asicJobIntervalMs = 500;
     m_defaultAsicFrequency = m_asicFrequency = 600;
+    m_asicFrequencies = std::vector<int>(m_asicCount, m_defaultAsicFrequency);
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1150; // default voltage
     m_initVoltageMillis = 1200;
 
@@ -33,7 +34,7 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
 #ifdef NERDQAXEPLUS2
     m_theme = new ThemeNerdqaxeplus2();
 #endif
-    m_asics = new BM1370();
+    m_asics = new BM1370(m_asicCount);
 }
 
 float NerdQaxePlus2::getTemperature(int index) {

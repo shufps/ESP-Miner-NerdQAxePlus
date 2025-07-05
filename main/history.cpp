@@ -60,6 +60,10 @@ void NonceDistribution::toLog()
     ESP_LOGI(TAG, "nonce distribution: %s", buffer);
 }
 
+ void NonceDistribution::getDistribution(uint32_t*& ptr, int& len) {
+    ptr = m_distribution;
+    len = m_numAsics;
+ }
 
 uint64_t History::getTimestampSample(int index)
 {
@@ -339,6 +343,13 @@ void History::exportHistoryData(JsonObject &json_history, uint64_t start_timesta
 
     // Add base timestamp for reference
     json_history["timestampBase"] = start_timestamp;
+
+    JsonArray nonceDistribution = json_history["nonce_distribution"].to<JsonArray>();
+    uint32_t* distribution{};
+    int numAsics{};
+    m_distribution.getDistribution(distribution, numAsics);
+    for (int i = 0; i < numAsics; ++i)
+       nonceDistribution.add(distribution[i]);
 
     unlock();
 }

@@ -25,7 +25,7 @@ static const char *TAG = "bm1368Module";
 
 static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x68, 0x00, 0x00};
 
-BM1368::BM1368() : Asic() {
+BM1368::BM1368(uint8_t asicCount) : Asic(asicCount) {
     //NOP
 }
 
@@ -96,7 +96,7 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
         send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x82, 0xAA);
     }
 
-    doFrequencyTransition(frequency);
+    doFrequencyTransition(std::numeric_limits<uint8_t>::max(), frequency);
 
     // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
 
@@ -143,4 +143,8 @@ uint8_t BM1368::nonceToAsicNr(uint32_t nonce) {
 
 uint16_t BM1368::getSmallCoreCount() {
     return BM1368_SMALL_CORE_COUNT;
+} 
+
+uint8_t BM1368::asicIndexToChipAddress(uint8_t asic_index) const noexcept {
+   return asic_index * 2;
 }

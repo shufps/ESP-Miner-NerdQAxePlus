@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mining.h"
+#include <vector>
 
 #define CRC5_MASK 0x1F
 
@@ -75,13 +76,15 @@ typedef struct __attribute__((__packed__))
 class Asic {
 protected:
     float m_current_frequency;
+    uint8_t m_asic_count{};
+    std::vector<float> m_vCurrentFrequencies{};
 
     void send(uint8_t header, uint8_t *data, uint8_t data_len, bool debug);
     void send2(uint8_t header, uint8_t b0, uint8_t b1);
     void send6(uint8_t header, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5);
     int count_asics();
-    bool sendHashFrequency(float target_freq);
-    bool doFrequencyTransition(float target_frequency);
+    bool sendHashFrequency(uint8_t asic_index, float target_freq);
+    bool doFrequencyTransition(uint8_t asic_index, float target_frequency);
     void setChipAddress(uint8_t chipAddr);
     void sendReadAddress(void);
     void sendChainInactive(void);
@@ -92,19 +95,25 @@ protected:
     virtual const uint8_t* getChipId() = 0;
     virtual uint8_t jobToAsicId(uint8_t job_id) = 0;
     virtual uint8_t asicToJobId(uint8_t asic_id) = 0;
+    virtual uint8_t asicIndexToChipAddress(uint8_t) const noexcept = 0;
 
 public:
-    Asic();
+    Asic(uint8_t asicCount);
     virtual const char* getName() = 0;
     uint8_t sendWork(uint32_t job_id, bm_job *next_bm_job);
     bool processWork(task_result *result);
     void setJobDifficultyMask(int difficulty);
-    bool setAsicFrequency(float frequency);
+    bool setAsicFrequency(float target_freq);
+    bool setAsicFrequency(uint8_t asic_index, float frequency);
     virtual void requestChipTemp() = 0;
     virtual uint16_t getSmallCoreCount() = 0;
     virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
+    int getAsicFrequency(uint8_t asic_index) const;
 
     // asic models specific
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty) = 0;
     virtual int setMaxBaud(void) = 0;
+     
+private:
+    std::optional<std::array<uint8_t, 6>> getFreqBuf(uint8_t asic_index, float target_freq, float& best_newf) const;
 };
