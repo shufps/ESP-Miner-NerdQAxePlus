@@ -136,4 +136,42 @@ void nvs_config_set_u64(const char *key, const uint64_t value)
     nvs_close(handle);
 }
 
+float nvs_config_get_float(const char *key, const float default_value)
+{
+    nvs_handle handle;
+    esp_err_t err;
+    err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READONLY, &handle);
+    if (err != ESP_OK) {
+        return default_value;
+    }
+
+    size_t size = sizeof(float);
+    float out;
+    err = nvs_get_blob(handle, key, &out, &size);
+    nvs_close(handle);
+
+    if (err != ESP_OK || size != sizeof(float)) {
+        return default_value;
+    }
+    return out;
+}
+
+void nvs_config_set_float(const char *key, const float value)
+{
+    nvs_handle handle;
+    esp_err_t err;
+    err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Could not open nvs");
+        return;
+    }
+
+    err = nvs_set_blob(handle, key, &value, sizeof(float));
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Could not write nvs key: %s, value: %f", key, value);
+    }
+
+    nvs_close(handle);
+}
+
 }

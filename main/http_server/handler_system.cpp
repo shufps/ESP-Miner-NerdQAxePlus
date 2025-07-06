@@ -139,6 +139,9 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
     doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::getTempControlMode();
+    doc["powerOffset"]        = Config::getPowerOffset();
+    doc["voltageOffset"]      = Config::getVoltageOffset();
+    doc["currentOffset"]      = Config::getCurrentOffset();
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -305,6 +308,15 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
     if (doc["pidD"].is<float>()) {
         Config::setPidD((uint16_t) (doc["pidD"].as<float>() * 100.0f));
+    }
+    if (doc["powerOffset"].is<float>()) {
+        Config::setPowerOffset(doc["powerOffset"].as<float>());
+    }
+    if (doc["voltageOffset"].is<float>()) {
+        Config::setVoltageOffset(doc["voltageOffset"].as<float>());
+    }
+    if (doc["currentOffset"].is<float>()) {
+        Config::setCurrentOffset(doc["currentOffset"].as<float>());
     }
 
     doc.clear();
