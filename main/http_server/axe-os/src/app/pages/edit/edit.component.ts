@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, OnInit, TemplateRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { startWith, catchError, of } from 'rxjs';
+import { startWith, catchError, of, interval, switchMap, map, shareReplay, Observable, take } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
+import { ISystemInfo } from '../../models/ISystemInfo';
 
 @Component({
   selector: 'app-edit',
@@ -28,6 +29,7 @@ export class EditComponent implements OnInit {
   public dontShowWarning: boolean = false; // Track checkbox state
 
   public devToolsOpen: boolean = false;
+  public calibrationToolsOpen: boolean = false;
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
 
@@ -56,6 +58,18 @@ export class EditComponent implements OnInit {
   ]);
 
   @Input() uri = '';
+
+  public info$: Observable<ISystemInfo> = interval(5000).pipe(
+    startWith(0),
+    switchMap(() => this.systemService.getInfo(0, this.uri)),
+    map(info => {
+      info.power = parseFloat(info.power.toFixed(1));
+      info.voltage = parseFloat((info.voltage / 1000).toFixed(1));  
+      info.current = parseFloat((info.current / 1000).toFixed(1));
+      return info;
+    }),
+    shareReplay({ refCount: true, bufferSize: 1 })
+  );
 
   constructor(
     private fb: FormBuilder,
@@ -154,7 +168,10 @@ export class EditComponent implements OnInit {
           overheat_temp: [info.overheat_temp, [
             Validators.min(40),
             Validators.max(90),
-            Validators.required]]
+            Validators.required]],
+          measuredPower: [null, [Validators.min(0)]],
+          measuredVoltage: [null, [Validators.min(0)]],
+          measuredCurrent: [null, [Validators.min(0)]]
         });
 
         this.form.controls['autofanspeed'].valueChanges
@@ -241,7 +258,6 @@ export class EditComponent implements OnInit {
       }
 
       if (currentValue !== originalValue) {
-        console.log(`Mismatch on key: ${key}`, currentValue, originalValue);
         return true;
       }
     }
@@ -275,10 +291,78 @@ export class EditComponent implements OnInit {
 
   public setDevToolsOpen(state: boolean) {
     this.devToolsOpen = state;
-    console.log('Advanced Mode:', state); // Debugging output
     this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(this.defaultFrequency), this.form.controls['frequency'].value);
     this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(this.defaultCoreVoltage), this.form.controls['coreVoltage'].value);
     this.updatePIDFieldStates();
+  }
+
+  public setCalibrationToolsOpen(state: boolean) {
+    this.calibrationToolsOpen = state;
+  }
+
+  private clearCalibrationFields(): void {
+    this.form.controls['measuredPower'].setValue(null);
+    this.form.controls['measuredVoltage'].setValue(null);
+    this.form.controls['measuredCurrent'].setValue(null);
+  }
+
+  public calibratePower() {
+    this.info$.pipe(
+      take(1),
+      map(info => {
+        const measuredPower = this.form.controls['measuredPower'].value;
+        const measuredVoltage = this.form.controls['measuredVoltage'].value;
+        const measuredCurrent = this.form.controls['measuredCurrent'].value;
+
+        const updates: any = {};
+
+        if (measuredPower && measuredPower > 0) {
+          updates.powerOffset = measuredPower / info.power;
+        }
+
+        if (measuredVoltage && measuredVoltage > 0) {
+          const voltageOffset = (measuredVoltage * 1000) / (info.voltage * 1000);
+          updates.voltageOffset = voltageOffset;
+        }
+
+        if (measuredCurrent && measuredCurrent > 0) {
+          const currentOffset = (measuredCurrent * 1000) / (info.current * 1000);
+          updates.currentOffset = currentOffset;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          this.systemService.updateSystem(this.uri, updates).subscribe({
+            next: () => {
+              this.toastrService.success('Power calibration updated successfully', 'Success');
+              this.clearCalibrationFields();
+            },
+            error: (error) => {
+              this.toastrService.error('Failed to update calibration', 'Error');
+            }
+          });
+        } else {
+          this.toastrService.warning('Please enter at least one measured value', 'Warning');
+        }
+      })
+    ).subscribe();
+  }
+
+  public resetCalibration() {
+    const resetValues = {
+      powerOffset: 1.0,
+      voltageOffset: 1.25,
+      currentOffset: 1.25
+    };
+
+    this.systemService.updateSystem(this.uri, resetValues).subscribe({
+      next: () => {
+        this.toastrService.success('Power calibration reset to default values', 'Success');
+        this.clearCalibrationFields();
+      },
+      error: (error) => {
+        this.toastrService.error('Failed to reset calibration', 'Error');
+      }
+    });
   }
 
   public isVoltageTooHigh(): boolean {

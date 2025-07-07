@@ -51,6 +51,10 @@
 
 #define NVS_CONFIG_SWARM "swarmconfig"
 
+#define NVS_CONFIG_POWER_OFFSET "power_offset"
+#define NVS_CONFIG_VOLTAGE_OFFSET "voltage_offset"
+#define NVS_CONFIG_CURRENT_OFFSET "current_offset"
+
 #if defined(CONFIG_FAN_MODE_MANUAL)
 #define CONFIG_AUTO_FAN_SPEED_VALUE 0
 #elif defined(CONFIG_FAN_MODE_CLASSIC)
@@ -68,6 +72,8 @@ namespace Config {
     void nvs_config_set_u16(const char* key, uint16_t value);
     uint64_t nvs_config_get_u64(const char* key, uint64_t default_value);
     void nvs_config_set_u64(const char* key, uint64_t value);
+    float nvs_config_get_float(const char* key, float default_value);
+    void nvs_config_set_float(const char* key, float value);
 
     // ---- String Getters ----
     inline char* getWifiSSID() { return nvs_config_get_string(NVS_CONFIG_WIFI_SSID, CONFIG_ESP_WIFI_SSID); }
@@ -167,4 +173,14 @@ namespace Config {
     inline uint16_t getPidP(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_P, d); }
     inline uint16_t getPidI(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_I, d); }
     inline uint16_t getPidD(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_D, d); }
+
+    // ---- Float Getters ----
+    inline float getPowerOffset() { return nvs_config_get_float(NVS_CONFIG_POWER_OFFSET, 1.0f); }
+    inline float getVoltageOffset() { return nvs_config_get_float(NVS_CONFIG_VOLTAGE_OFFSET, 1.25f); }
+    inline float getCurrentOffset() { return nvs_config_get_float(NVS_CONFIG_CURRENT_OFFSET, 1.25f); }
+
+    // ---- Float Setters ----
+    inline void setPowerOffset(float value) { nvs_config_set_float(NVS_CONFIG_POWER_OFFSET, value); }
+    inline void setVoltageOffset(float value) { nvs_config_set_float(NVS_CONFIG_VOLTAGE_OFFSET, value); }
+    inline void setCurrentOffset(float value) { nvs_config_set_float(NVS_CONFIG_CURRENT_OFFSET, value); }
 }

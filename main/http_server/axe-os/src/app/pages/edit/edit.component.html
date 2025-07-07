@@ -253,6 +253,65 @@
             </nb-card-body>
         </nb-card>
         <nb-card>
+            <nb-card-header>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <div>Power Calibration</div>
+                    <div><app-advanced-toggle (advancedToggled)="setCalibrationToolsOpen($event)"></app-advanced-toggle></div>
+                </div>
+            </nb-card-header>
+            <nb-card-body>
+                <div class="form-row">
+                    <label class="form-label">Input Power:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput type="text" [value]="(info$ | async)?.power + ' W'" disabled />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="form-label">Input Voltage:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput type="text" [value]="(info$ | async)?.voltage + ' V'" disabled />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="form-label">Input Current:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput type="text" [value]="(info$ | async)?.current + ' A'" disabled />
+                    </div>
+                </div>
+                
+                <ng-container *ngIf="calibrationToolsOpen">
+                    <div class="form-row-separator" style="border: 1px solid #e8e8e8; border-radius: 6px; padding: 16px; margin-top: 16px; background-color: #f8f9fa;">
+                        <div style="color: #333; font-weight: 600; margin-bottom: 8px;">Power Calibration</div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.4;">
+                            This calibration makes no hardware changes and only improves software accuracy. Use an external power meter either at the power plug or between the PSU and the device to measure actual power consumption, then enter the measured value immediately to calibrate the internal readings for accurate power monitoring and efficiency calculations. This has to be done with every reset and software upgrade.
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Measured Power:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput formControlName="measuredPower" type="number" step="0.1" placeholder="Enter measured power in watts" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Measured Voltage:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput formControlName="measuredVoltage" type="number" step="0.01" placeholder="Enter measured voltage (optional)" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Measured Current:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput formControlName="measuredCurrent" type="number" step="0.01" placeholder="Enter measured current (optional)" />
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
+                            <button nbButton size="small" status="primary" (click)="calibratePower()" type="button">Calibrate</button>
+                            <button nbButton size="small" status="basic" (click)="resetCalibration()" type="button">Reset to Default</button>
+                        </div>
+                    </div>
+                </ng-container>
+            </nb-card-body>
+        </nb-card>
+        <nb-card>
             <nb-card-header>Misc Settings</nb-card-header>
             <nb-card-body>
                 <div class="form-row">
