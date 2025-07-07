@@ -258,7 +258,6 @@ export class EditComponent implements OnInit {
       }
 
       if (currentValue !== originalValue) {
-        console.log(`Mismatch on key: ${key}`, currentValue, originalValue);
         return true;
       }
     }
@@ -292,7 +291,6 @@ export class EditComponent implements OnInit {
 
   public setDevToolsOpen(state: boolean) {
     this.devToolsOpen = state;
-    console.log('Advanced Mode:', state); // Debugging output
     this.frequencyOptions = this.assembleDropdownOptions(this.getPredefinedFrequencies(this.defaultFrequency), this.form.controls['frequency'].value);
     this.voltageOptions = this.assembleDropdownOptions(this.getPredefinedVoltages(this.defaultCoreVoltage), this.form.controls['coreVoltage'].value);
     this.updatePIDFieldStates();
@@ -300,7 +298,12 @@ export class EditComponent implements OnInit {
 
   public setCalibrationToolsOpen(state: boolean) {
     this.calibrationToolsOpen = state;
-    console.log('Calibration Mode:', state); // Debugging output
+  }
+
+  private clearCalibrationFields(): void {
+    this.form.controls['measuredPower'].setValue(null);
+    this.form.controls['measuredVoltage'].setValue(null);
+    this.form.controls['measuredCurrent'].setValue(null);
   }
 
   public calibratePower() {
@@ -314,8 +317,7 @@ export class EditComponent implements OnInit {
         const updates: any = {};
 
         if (measuredPower && measuredPower > 0) {
-          const powerOffset = measuredPower / info.power;
-          updates.powerOffset = powerOffset;
+          updates.powerOffset = measuredPower / info.power;
         }
 
         if (measuredVoltage && measuredVoltage > 0) {
@@ -332,14 +334,10 @@ export class EditComponent implements OnInit {
           this.systemService.updateSystem(this.uri, updates).subscribe({
             next: () => {
               this.toastrService.success('Power calibration updated successfully', 'Success');
-              // Clear the form fields
-              this.form.controls['measuredPower'].setValue(null);
-              this.form.controls['measuredVoltage'].setValue(null);
-              this.form.controls['measuredCurrent'].setValue(null);
+              this.clearCalibrationFields();
             },
             error: (error) => {
-              this.toastrService.danger('Failed to update calibration', 'Error');
-              console.error('Calibration error:', error);
+              this.toastrService.error('Failed to update calibration', 'Error');
             }
           });
         } else {
@@ -359,14 +357,10 @@ export class EditComponent implements OnInit {
     this.systemService.updateSystem(this.uri, resetValues).subscribe({
       next: () => {
         this.toastrService.success('Power calibration reset to default values', 'Success');
-        // Clear the form fields
-        this.form.controls['measuredPower'].setValue(null);
-        this.form.controls['measuredVoltage'].setValue(null);
-        this.form.controls['measuredCurrent'].setValue(null);
+        this.clearCalibrationFields();
       },
       error: (error) => {
-        this.toastrService.danger('Failed to reset calibration', 'Error');
-        console.error('Reset calibration error:', error);
+        this.toastrService.error('Failed to reset calibration', 'Error');
       }
     });
   }
