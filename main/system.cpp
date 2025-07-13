@@ -123,6 +123,21 @@ const char* System::getMacAddress() {
     return connect_get_mac_addr();
 }
 
+// Function to fetch and return the RSSI (dBm) value
+int System::get_wifi_rssi()
+{
+    wifi_ap_record_t ap_info;
+
+    // Query the connected Access Point's information
+    if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+        ESP_LOGI("WIFI_RSSI", "Current RSSI: %d dBm", ap_info.rssi);
+        return ap_info.rssi;  // Return the actual RSSI value
+    } else {
+        ESP_LOGE("WIFI_RSSI", "Failed to fetch RSSI");
+        return -90;  // Return -90 to indicate an error
+    }
+}
+
 double System::calculateNetworkDifficulty(uint32_t nBits) {
     uint32_t mantissa = nBits & 0x007fffff;  // Extract the mantissa from nBits
     uint8_t exponent = (nBits >> 24) & 0xff;  // Extract the exponent from nBits
@@ -210,7 +225,7 @@ void System::suffixString(uint64_t val, char* buf, size_t bufSize, int sigDigits
     }
 }
 
-void System::showLastResetReason() {
+esp_reset_reason_t System::showLastResetReason() {
     esp_reset_reason_t reason = esp_reset_reason();
     switch (reason) {
         case ESP_RST_UNKNOWN: m_lastResetReason = "Unknown"; break;
@@ -227,6 +242,7 @@ void System::showLastResetReason() {
         default: m_lastResetReason = "Not specified"; break;
     }
     ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason);
+    return reason;
 }
 
 void System::showError(const char *error_message, uint32_t error_code) {
@@ -267,27 +283,31 @@ void System::task() {
         if (result == ESP_OK && (wifiMode == WIFI_MODE_APSTA || wifiMode == WIFI_MODE_AP) &&
             strcmp(m_wifiStatus, "Failed to connect") == 0) {
             showApInformation(nullptr);
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(5000));
         } else {
             updateConnection();
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     m_display->miningScreen();
 
     uint8_t countCycle = 10;
-    bool validIp = false;
+
+    char lastIpAddress[20] = {0};
 
     // show initial 0.0.0.0
     m_display->updateIpAddress(m_ipAddress);
     bool lastFoundBlock = false;
+
     while (1) {
         // update IP on the screen if it is available
-        if (!validIp && connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
-            ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
-            m_display->updateIpAddress(m_ipAddress);
-            validIp = true;
+        if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
+            if (strcmp(m_ipAddress, lastIpAddress) != 0) {
+                ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
+                m_display->updateIpAddress(m_ipAddress);
+            }
+            strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
         }
 
         if (m_overheated) {
@@ -308,7 +328,7 @@ void System::task() {
         m_display->updateCurrentSettings();
         m_display->refreshScreen();
 
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 
@@ -335,3 +355,4 @@ void System::notifyFoundNonce(double poolDiff, int asicNr) {
     m_currentHashrate10m = m_history->getCurrentHashrate10m();
     updateHashrate();
 }
+

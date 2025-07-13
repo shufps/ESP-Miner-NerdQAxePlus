@@ -94,4 +94,11 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
     });
   }
 
+  public getRssiTooltip(rssi: number): string {
+    if (rssi <= -85) return 'Signal strength: Very weak (≤ -85 dBm)';
+    if (rssi <= -75) return 'Signal strength: Weak (≤ -75 dBm)';
+    if (rssi <= -65) return 'Signal strength: Moderate (≤ -65 dBm)';
+    if (rssi <= -55) return 'Signal strength: Strong (≤ -55 dBm)';
+    return 'Signal strength: Excellent (> -55 dBm)';
+  }
 }

@@ -17,8 +17,21 @@
                     <td>{{ info.lastResetReason }}</td>
                 </tr>
                 <tr>
-                    <td><b>WiFi Status:</b></td>
-                    <td>{{ info.wifiStatus }}</td>
+                  <td><b>WiFi Status:</b></td>
+                  <td>
+                    <span class="wifi-status-combined">
+                      {{ info.wifiStatus }}
+                      <span class="rssi-inline">
+                        ({{ info.wifiRSSI }} dBm)
+                        <div class="wifi-bars" [attr.title]="getRssiTooltip(info.wifiRSSI)">
+                          <div class="bar" [class.active]="info.wifiRSSI > -85"></div>
+                          <div class="bar" [class.active]="info.wifiRSSI > -75"></div>
+                          <div class="bar" [class.active]="info.wifiRSSI > -65"></div>
+                          <div class="bar" [class.active]="info.wifiRSSI > -55"></div>
+                        </div>
+                      </span>
+                    </span>
+                  </td>
                 </tr>
                 <tr>
                     <td><b>MAC Address:</b></td>
@@ -26,7 +39,7 @@
                 </tr>
                 <tr>
                     <td><b>Free Heap Memory:</b></td>
-                    <td>{{ info.freeHeap }}</td>
+                    <td>SRAM: {{ info.freeHeapInt }}, PSRAM: {{ info.freeHeap }}</td>
                 </tr>
                 <tr>
                     <td><b>Version:</b></td>

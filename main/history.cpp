@@ -81,6 +81,11 @@ float History::getHashrate1dSample(int index)
     return m_hashrate1d[WRAP(index)];
 }
 
+double History::getCurrentHashrate1m()
+{
+    return m_avg1m.getGh();
+}
+
 double History::getCurrentHashrate10m()
 {
     return m_avg10m.getGh();
@@ -122,7 +127,7 @@ bool History::isAvailable()
     return m_shares && m_timestamps && m_hashrate10m && m_hashrate1h && m_hashrate1d;
 }
 
-History::History() : m_avg10m(this, 600llu * 1000llu), m_avg1h(this, 3600llu * 1000llu), m_avg1d(this, 86400llu * 1000llu)
+History::History() : m_avg1m(this, 60llu * 1000llu), m_avg10m(this, 600llu * 1000llu), m_avg1h(this, 3600llu * 1000llu), m_avg1d(this, 86400llu * 1000llu)
 {
     // NOP
 }
@@ -223,6 +228,7 @@ void History::pushShare(uint32_t diff, uint64_t timestamp, int asic_nr)
     m_timestamps[WRAP(m_numSamples)] = timestamp;
     m_numSamples++;
 
+    m_avg1m.update();
     m_avg10m.update();
     m_avg1h.update();
     m_avg1d.update();
@@ -235,11 +241,12 @@ void History::pushShare(uint32_t diff, uint64_t timestamp, int asic_nr)
 
     unlock();
 
+    char preliminary_1m = (m_avg1m.isPreliminary()) ? '*' : ' ';
     char preliminary_10m = (m_avg10m.isPreliminary()) ? '*' : ' ';
     char preliminary_1h = (m_avg1h.isPreliminary()) ? '*' : ' ';
     char preliminary_1d = (m_avg1d.isPreliminary()) ? '*' : ' ';
 
-    ESP_LOGI(TAG, "hashrate: 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", m_avg10m.getGh(), preliminary_10m, m_avg1h.getGh(),
+    ESP_LOGI(TAG, "hashrate: 1m:%.3fGH%c 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", m_avg1m.getGh(), preliminary_1m, m_avg10m.getGh(), preliminary_10m, m_avg1h.getGh(),
              preliminary_1h, m_avg1d.getGh(), preliminary_1d);
 
     m_distribution.toLog();

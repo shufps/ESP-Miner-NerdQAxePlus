@@ -97,26 +97,26 @@ bool NerdaxeGamma::initAsics() {
     setVoltage(0.0);
 
     // wait 500ms
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(500));
 
     // set reset low
     gpio_set_level(BM1370_RST_PIN, 0);
 
     // wait 250ms
-    vTaskDelay(250 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(250));
 
     // set the init voltage
     // use the higher voltage for initialization
     setVoltage((float) MAX(m_initVoltageMillis, m_asicVoltageMillis) / 1000.0f);
 
     // wait 500ms
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(500));
 
     // release reset pin
     gpio_set_level(BM1370_RST_PIN, 1);
 
     // delay for 250ms
-    vTaskDelay(250 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(250));
 
     SERIAL_clear_buffer();
     m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty);
@@ -124,10 +124,13 @@ bool NerdaxeGamma::initAsics() {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;
     }
-    SERIAL_set_baud(m_asics->setMaxBaud());
+    int maxBaud = m_asics->setMaxBaud();
+    // no idea why a delay is needed here starting with esp-idf 5.4 🙈
+    vTaskDelay(pdMS_TO_TICKS(500));
+    SERIAL_set_baud(maxBaud);
     SERIAL_clear_buffer();
 
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(500));
 
     m_isInitialized = true;
     return true;

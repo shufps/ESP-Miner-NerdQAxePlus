@@ -115,7 +115,7 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
 
     httpd_resp_sendstr(req, "Firmware update complete, rebooting now!\n");
     ESP_LOGI(TAG, "Restarting System because of Firmware update complete");
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(1000));
     POWER_MANAGEMENT_MODULE.restart();
 
     return ESP_OK;

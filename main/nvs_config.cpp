@@ -136,4 +136,23 @@ void nvs_config_set_u64(const char *key, const uint64_t value)
     nvs_close(handle);
 }
 
+void migrate_config() {
+    // overwrite previously allowed 0 value to disable
+    // over-temp shutdown
+    uint16_t asic_overheat_temp = Config::getOverheatTemp();
+    if (!asic_overheat_temp) {
+        ESP_LOGW(TAG, "Overheat Temp 0 not longer allowed, setting to 70");
+        setOverheatTemp(70);
+    }
+
+    // check if classic AFC is enabled and disable it
+    uint16_t fan_mode = getTempControlMode();
+    if (fan_mode == 1) {
+        ESP_LOGW(TAG, "Disabled AFC (deprecated), Enabled manual 100%.");
+        setTempControlMode(0);
+        setFanSpeed(100);
+    }
 }
+
+}
+

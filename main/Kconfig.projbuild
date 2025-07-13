@@ -28,11 +28,6 @@ menu "Miner Configuration"
         help
             Manual fan control. You set the fan speed yourself.
 
-    config FAN_MODE_CLASSIC
-        bool "Classic automatic"
-        help
-            Automatically adjusts fan speed using a simple temperature-based method.
-
     config FAN_MODE_PID
         bool "Experimental PID"
         help
@@ -67,7 +62,7 @@ menu "Stratum Configuration"
 
     config STRATUM_USER
         string "Stratum username"
-        default "bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.nerdqaxe"
+        default "bc1q7n70rumyv6lvu8avpml0c3uggvssfu52egum3q.nerdqaxe"
         help
             Stratum user to use with pool
 
@@ -173,5 +168,32 @@ menu "InfluxDB Configuration"
         help
             The prefix for measurement names in InfluxDB.
             This prefix will be prepended to all measurement names, allowing you to easily identify related data.
+
+endmenu
+
+menu "Discord Alert Configuration"
+
+    # Enable or disable the Discord alert system
+    config ALERT_DISCORD_ENABLE
+        bool "Enable Discord Alerts"
+        default n
+        help
+            Enables the Discord webhook-based alert system.
+            If enabled, the firmware will send error or warning messages to the specified Discord channel.
+
+    # Helper int value that maps the bool to 0 or 1 for use in C code
+    config ALERT_DISCORD_ENABLE_VALUE
+        int
+        default 1 if ALERT_DISCORD_ENABLE
+        default 0
+
+    # Webhook URL for sending Discord alerts
+    config ALERT_DISCORD_URL
+        string "Discord Webhook URL"
+        default "https://discord.com/api/webhooks/your_token_here"
+        help
+            Full Discord webhook URL for sending alert messages.
+            You can generate this URL in your Discord server under Integrations → Webhooks.
+            Be sure to keep this secret!
 
 endmenu

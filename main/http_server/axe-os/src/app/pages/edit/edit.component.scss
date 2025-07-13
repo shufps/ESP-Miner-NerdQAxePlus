@@ -67,6 +67,7 @@
 
     input {
         min-width: 100%;
+        width: 100%;
     }
 
     nb-card-body {
@@ -99,6 +100,7 @@
         background: none;
         cursor: pointer;
         padding: 0;
+        width: fit-content;
     }
 
     nb-slider {

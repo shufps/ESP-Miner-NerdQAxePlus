@@ -154,7 +154,7 @@ void PowerManagementTask::task()
     m_pid->SetControllerDirection(REVERSE);
     m_pid->Initialize();
 
-    vTaskDelay(3000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(3000));
 
     while (1) {
         lock();
@@ -253,29 +253,25 @@ void PowerManagementTask::task()
         m_pid->Compute();
 
         switch (temp_control_mode) {
-            case 1:
-                // classic automatic fan control
-                m_fanPerc = board->automaticFanSpeed(m_chipTempMax);
-                board->setFanSpeed(m_fanPerc / 100.0f);
+            case 0:
+                // manual
+                m_fanPerc = Config::getFanSpeed();
+                board->setFanSpeed((float) m_fanPerc / 100.0f);
                 break;
             case 2:
                 // pid
-                m_fanPerc = roundf(pid_output);
-                board->setFanSpeed(m_fanPerc / 100.0f);
+                m_fanPerc = (uint16_t) roundf(pid_output);
+                board->setFanSpeed((float) m_fanPerc / 100.0f);
                 //ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
                 //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:
-                ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual.", temp_control_mode);
-                [[fallthrough]];
-            case 0:
-                // manual
-                m_fanPerc = (float) Config::getFanSpeed();
-                board->setFanSpeed(m_fanPerc / 100.0f);
-                break;
+                ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual mode 100%.", temp_control_mode);
+                m_fanPerc = 100;
+                board->setFanSpeed((float) m_fanPerc / 100.0f);
         }
         unlock();
 
-        vTaskDelay(POLL_RATE / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(POLL_RATE));
     }
 }

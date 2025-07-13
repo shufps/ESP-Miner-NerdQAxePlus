@@ -71,6 +71,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["deviceModel"]        = board->getDeviceModel();
     doc["hostip"]             = SYSTEM_MODULE.getIPAddress();
     doc["macAddr"]            = SYSTEM_MODULE.getMacAddress();
+    doc["wifiRSSI"]           = SYSTEM_MODULE.get_wifi_rssi();
 
     // dashboard
     doc["power"]              = POWER_MANAGEMENT_MODULE.getPower();
@@ -83,7 +84,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["temp"]               = POWER_MANAGEMENT_MODULE.getChipTempMax();
     doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
     doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
-    doc["hashRate"]           = history->getCurrentHashrate10m();
+    doc["hashRate"]           = history->getCurrentHashrate10m();  // Keep existing for compatibility
+    doc["hashRate_1m"]        = history->getCurrentHashrate1m();   // NEW: 1-minute average
     doc["hashRate_10m"]       = history->getCurrentHashrate10m();
     doc["hashRate_1h"]        = history->getCurrentHashrate1h();
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
@@ -143,7 +145,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["uptimeSeconds"]      = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
     doc["lastResetReason"]    = SYSTEM_MODULE.getLastResetReason();
     doc["wifiStatus"]         = SYSTEM_MODULE.getWifiStatus();
-    doc["freeHeap"]           = esp_get_free_heap_size();
+    doc["freeHeap"]           = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    doc["freeHeapInt"]        = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     doc["version"]            = esp_app_get_description()->version;
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
 

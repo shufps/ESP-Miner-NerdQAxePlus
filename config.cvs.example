@@ -23,7 +23,7 @@ stratumurl,data,string,public-pool.io
 stratumport,data,u16,21496
 
 # Stratum username – usually your wallet address + optional worker ID
-stratumuser,data,string,bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.nerdqaxe
+stratumuser,data,string,bc1q7n70rumyv6lvu8avpml0c3uggvssfu52egum3q.nerdqaxe
 
 # Stratum password – often just "x"
 stratumpass,data,string,x
@@ -40,7 +40,7 @@ stratumdiff,data,u64,1000
 #fbstratumport,data,u16,21496
 
 # Fallback Stratum user – can match primary or use a backup worker ID
-#fbstratumuser,data,string,bc1q29hp4fqtks2wzpmfwtpac64fnr8ujw2nvnra04.backupaxe
+#fbstratumuser,data,string,bc1q7n70rumyv6lvu8avpml0c3uggvssfu52egum3q.backupaxe
 
 # Fallback Stratum password – usually same as primary
 #fbstratumpass,data,string,x
@@ -127,3 +127,14 @@ stratumdiff,data,u64,1000
 
 # Measurement prefix – helps identify data source in dashboards
 #influx_prefix,data,string,mainnet_stats
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ↓↓↓ ALERTING ↓↓↓
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Enable discord alerter
+# An alert will be triggered if the device reboots after failing to submit a share for 1 hour.
+#alrt_disc_en,data,u16,0
+
+# Discord Webhook URL
+#alrt_disc_url,data,string,https://discord.com/api/webhooks/your_token_here

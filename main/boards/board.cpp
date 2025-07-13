@@ -9,10 +9,6 @@
 const static char* TAG = "board";
 
 Board::Board() {
-    // afc settings
-    m_afcMinTemp = 45.0f;
-    m_afcMinFanSpeed = 35.0f;
-    m_afcMaxTemp = 65.0f;
     m_fanAutoPolarity = true; // default detect polarity
 }
 
@@ -99,28 +95,9 @@ bool Board::selfTest(){
 
     temp_display->logMessage("Self test not supported on this board...");
     ESP_LOGI("board", "Self test not supported on this board");
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
     return false;
-}
-
-// Adjust the fan speed based on chip temperature, scaling smoothly from m_afcMinFanSpeed up to 100%.
-// The fan starts ramping up once the temperature exceeds m_afcMinTemp and reaches full speed at m_afcMaxTemp.
-float Board::automaticFanSpeed(float temp)
-{
-    float result = 0.0;
-
-    if (temp < m_afcMinTemp) {
-        result = m_afcMinFanSpeed;
-    } else if (temp >= m_afcMaxTemp) {
-        result = 100;
-    } else {
-        float temp_range = m_afcMaxTemp - m_afcMinTemp;
-        float fan_range = 100.0f - m_afcMinFanSpeed;
-        result = ((temp - m_afcMinTemp) / temp_range) * fan_range + m_afcMinFanSpeed;
-    }
-
-    return result;
 }
 
 FanPolarityGuess Board::guessFanPolarity() {
@@ -135,17 +112,17 @@ FanPolarityGuess Board::guessFanPolarity() {
     ESP_LOGI("polarity", "set 50%%");
     setFanPolarity(false);
     setFanSpeed(0.5f);
-    vTaskDelay(settleTimeMs / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
 
     // Test low speed
     setFanSpeed(lowPWM);
-    vTaskDelay(settleTimeMs / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
     getFanSpeed(&rpmLow);
     ESP_LOGI("polarity", "set %.2f%% read: %d", lowPWM, rpmLow);
 
     // Test high speed
     setFanSpeed(highPWM);
-    vTaskDelay(settleTimeMs / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
     getFanSpeed(&rpmHigh);
     ESP_LOGI("polarity", "set %.2f%% read: %d", highPWM, rpmHigh);
 

@@ -179,7 +179,7 @@ bool Asic::doFrequencyTransition(float target_frequency) {
             printf("ERROR: Failed to set frequency to %.2f MHz\n", current);
             return false;
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     // Ramp in the appropriate direction
@@ -190,7 +190,7 @@ bool Asic::doFrequencyTransition(float target_frequency) {
             printf("ERROR: Failed to set frequency to %.2f MHz\n", current);
             return false;
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     // Set the exact target frequency to finalize

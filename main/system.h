@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "displays/displayDriver.h"
+#include "esp_system.h"
 #include "esp_netif.h"
 #include "freertos/queue.h"
 #include "boards/board.h"
@@ -112,7 +113,9 @@ class System {
     // Made public (was protected) to allow usage in external modules like ASIC_result_task for formatting/logging.
     static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
+    // WiFi related
     const char* getMacAddress();
+    int get_wifi_rssi();
 
     // Getter methods for retrieving statistics
     uint64_t getSharesRejected() const
@@ -227,7 +230,7 @@ class System {
         return m_history;
     }
 
-    void showLastResetReason();
+    esp_reset_reason_t showLastResetReason();
 
     const char* getLastResetReason() {
         return m_lastResetReason;

@@ -39,3 +39,45 @@
 :host ::ng-deep .ansi-cyan { color: #00ffff !important; }
 :host ::ng-deep .ansi-white { color: #ffffff !important; }
 
+.rssi-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wifi-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 1rem;
+}
+
+.wifi-bars .bar {
+  width: 5px;
+  background-color: #ccc;
+  opacity: 0.4;
+  transition: 0.3s ease;
+}
+
+.wifi-bars .bar:nth-child(1) { height: 25%; }
+.wifi-bars .bar:nth-child(2) { height: 50%; }
+.wifi-bars .bar:nth-child(3) { height: 75%; }
+.wifi-bars .bar:nth-child(4) { height: 100%; }
+
+.wifi-bars .bar.active {
+  background-color: #4caf50;
+  opacity: 1;
+}
+
+.wifi-status-combined {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 600px) {
+  .wifi-status-combined {
+    flex-wrap: nowrap;
+  }
+}

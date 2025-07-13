@@ -132,12 +132,13 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
 
     int err = ::connect(sock, (struct sockaddr *) &dest_addr, sizeof(dest_addr));
     if (err != 0) {
+        ESP_LOGE(m_tag, "Connect failed to %s:%d (errno %d: %s)", host_ip, port, errno, strerror(errno));
         shutdown(sock, SHUT_RDWR);
         close(sock);
         return 0;
     }
 
-    ESP_LOGI(m_tag, "Connected");
+    ESP_LOGI(m_tag, "Connected to %s:%d", host_ip, port);
 
     if (!setupSocketTimeouts(sock)) {
         ESP_LOGE(m_tag, "Error setting socket timeouts");
@@ -165,6 +166,32 @@ bool StratumTask::setupSocketTimeouts(int sock)
         ESP_LOGE(m_tag, "Failed to set socket send timeout");
         return false;
     }
+
+    // Enable TCP Keepalive
+    int enable = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof(enable)) < 0) {
+        ESP_LOGE(m_tag, "Failed to enable SO_KEEPALIVE");
+        return false;
+    }
+
+    // Configure Keepalive parameters
+    int keepidle = 10;   // Start sending keepalive probes after 10 seconds of inactivity
+    int keepintvl = 5;   // Interval of 5 seconds between individual keepalive probes
+    int keepcnt = 3;     // Disconnect after 3 unanswered probes
+
+    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(keepidle)) < 0) {
+        ESP_LOGW(m_tag, "TCP_KEEPIDLE not supported or failed to set");
+        // This might not be critical, so we could just log a warning and continue
+    }
+    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL, &keepintvl, sizeof(keepintvl)) < 0) {
+        ESP_LOGE(m_tag, "Failed to set TCP_KEEPINTVL");
+    }
+    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT, &keepcnt, sizeof(keepcnt)) < 0) {
+        ESP_LOGE(m_tag, "Failed to set TCP_KEEPCNT");
+    }
+
+    ESP_LOGI(m_tag, "TCP Keepalive enabled: idle=%ds, interval=%ds, count=%d", keepidle, keepintvl, keepcnt);
+
     return true;
 }
 
@@ -181,13 +208,13 @@ void StratumTask::task()
         // we do it here because we could reload the config after
         // it was updated on the UI and settings
         if (!strlen(m_config->host)) {
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
         // should stay stopped?
         if (m_stopFlag) {
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
@@ -196,7 +223,7 @@ void StratumTask::task()
         if (!isWifiConnected()) {
             ESP_LOGI(m_tag, "WiFi disconnected, attempting to reconnect...");
             esp_wifi_connect();
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
@@ -204,7 +231,7 @@ void StratumTask::task()
         char ip[INET_ADDRSTRLEN] = {0};
         if (!resolveHostname(m_config->host, ip, sizeof(ip))) {
             ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config->host);
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
@@ -212,7 +239,7 @@ void StratumTask::task()
 
         if (!(m_sock = connectStratum(ip, m_config->port))) {
             ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config->host, m_config->port, errno);
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
@@ -236,7 +263,7 @@ void StratumTask::task()
         m_manager->disconnectedCallback(m_index);
         m_isConnected = false;
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS); // Delay before attempting to reconnect
+        vTaskDelay(pdMS_TO_TICKS(10000)); // Delay before attempting to reconnect
     }
     vTaskDelete(NULL);
 }
@@ -443,6 +470,11 @@ void StratumManager::task()
 {
     System *system = &SYSTEM_MODULE;
 
+    ESP_LOGI("StratumManager", "Subscribing to task watchdog.");
+    if (esp_task_wdt_add(NULL) != ESP_OK) {
+        ESP_LOGE("StratumManager", "Failed to add task to watchdog!");
+    }
+
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
         m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
@@ -458,10 +490,10 @@ void StratumManager::task()
 
     // Watchdog Task Loop (optional, if needed)
     while (1) {
-        vTaskDelay(30000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(30000));
 
         // Reset watchdog if there was a submit response within the last hour
-        if (((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 3600) {
+        if (m_lastSubmitResponseTimestamp && ((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 3600) {
             esp_task_wdt_reset();
         }
     }
