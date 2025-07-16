@@ -53,6 +53,7 @@ export class EditComponent implements OnInit {
     'invertfanpolarity',
     'autofanpolarity',
     'stratumDifficulty',
+    'stratum_keep',
   ]);
 
   @Input() uri = '';
@@ -91,6 +92,7 @@ export class EditComponent implements OnInit {
         info.overheat_temp = Math.min(info.overheat_temp, 90);
 
         this.form = this.fb.group({
+          stratum_keep: [info.stratum_keep == 1],
           flipscreen: [info.flipscreen == 1],
           invertscreen: [info.invertscreen == 1],
           autoscreenoff: [info.autoscreenoff == 1],
@@ -209,6 +211,8 @@ export class EditComponent implements OnInit {
     if (form.stratumPassword === '*****') {
       delete form.stratumPassword;
     }
+
+    form.stratum_keep = form.stratum_keep ? 1 : 0;
 
     this.systemService.updateSystem(this.uri, form)
       .pipe(this.loadingService.lockUIUntilComplete())

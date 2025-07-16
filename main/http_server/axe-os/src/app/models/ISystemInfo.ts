@@ -62,6 +62,7 @@ export interface ISystemInfo {
     lastResetReason: string,
     jobInterval: number,
     lastpingrtt: number,
+    stratum_keep: number,
 
     boardtemp1?: number,
     boardtemp2?: number,

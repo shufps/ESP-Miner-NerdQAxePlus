@@ -202,3 +202,18 @@ menu "Discord Alert Configuration"
             Be sure to keep this secret!
 
 endmenu
+
+menu "Stratum Keepalive Configuration"
+
+    config STRATUM_KEEPALIVE_ENABLE
+        bool "Enable TCP Keepalive for Stratum connection"
+        default y
+        help
+            Enables TCP keepalive on the Stratum socket to detect broken connections.
+
+    config STRATUM_KEEPALIVE_ENABLE_VALUE
+        int
+        default 1 if STRATUM_KEEPALIVE_ENABLE
+        default 0
+
+endmenu
