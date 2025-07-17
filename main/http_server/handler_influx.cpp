@@ -105,7 +105,8 @@ esp_err_t PATCH_update_influx(httpd_req_t *req)
     }
 
     doc.clear();
-
+    Config::flush_nvs_changes();  // Commit batched Influx settings to NVS
+    ESP_LOGI(TAG, "Influx configuration flushed to NVS");
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
