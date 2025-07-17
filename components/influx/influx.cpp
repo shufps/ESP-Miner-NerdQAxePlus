@@ -399,6 +399,13 @@ void Influx::write()
              m_stats.pwr_vout, m_stats.pwr_iout, m_stats.pwr_pout, m_stats.total_blocks_found,
              m_stats.duplicate_hashes);
 
+    // Append RTT value only if it's valid (> 0); avoids sending meaningless 0.0 on startup
+    if (m_stats.last_ping_rtt > 0.0f) {
+        char rtt_buf[64];
+        snprintf(rtt_buf, sizeof(rtt_buf), ",last_ping_rtt=%.2f", m_stats.last_ping_rtt);
+        strncat(m_big_buffer, rtt_buf, m_big_buffer_SIZE - strlen(m_big_buffer) - 1);
+    }    
+
     snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", m_host, m_port, m_bucket,
              m_org);
 
