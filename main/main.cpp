@@ -4,7 +4,6 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_task_wdt.h"
-#include "esp_timer.h"
 #include "mbedtls/platform.h"
 #include "nvs_flash.h"
 
@@ -112,14 +111,6 @@ void free_psram(void *ptr) {
     heap_caps_free(ptr);
 }
 
-// Periodic NVS flush if any settings are marked dirty
-static void nvs_flush_timer_callback(void* arg) {
-    if (Config::has_dirty()) {
-        ESP_LOGI(TAG, "Auto-flushing dirty config values");
-        Config::flush_nvs_changes();
-    }
-}
-
 #if 0
 const UBaseType_t max_tasks = 30;
 TaskStatus_t task_list[max_tasks];
@@ -149,6 +140,9 @@ extern "C" void app_main(void)
 
     // shows and saves last reset reason
     esp_reset_reason_t reason = SYSTEM_MODULE.showLastResetReason();
+
+    // initialize cache and mutex for config
+    Config::init_cache();
 
     // migrate config
     Config::migrate_config();
@@ -185,23 +179,6 @@ extern "C" void app_main(void)
     // fan and serial and load settings from nvs
     board->loadSettings();
     board->initBoard();
-
-    // Start periodic NVS flush (every 5 minutes)
-    esp_timer_handle_t nvs_flush_timer;
-    esp_timer_create_args_t timer_args = {
-        .callback = &nvs_flush_timer_callback,
-        .arg = NULL,
-        .dispatch_method = ESP_TIMER_TASK,
-        .name = "nvs_flush_timer"
-    };
-
-    esp_err_t err = esp_timer_create(&timer_args, &nvs_flush_timer);
-    if (err != ESP_OK) {
-        ESP_LOGW(TAG, "Failed to create NVS flush timer: %s", esp_err_to_name(err));
-    } else {
-        esp_timer_start_periodic(nvs_flush_timer, 300000000);
-        ESP_LOGI(TAG, "NVS flush timer started");
-    }
 
     SYSTEM_MODULE.setBoard(board);
 

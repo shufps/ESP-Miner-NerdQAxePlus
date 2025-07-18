@@ -224,6 +224,7 @@ namespace Config {
     inline bool isOTPEnabled() { return nvs_config_get_u16(NVS_CONFIG_OTP_ENABLED, 0) != 0; }
 
     void migrate_config();
+    void init_cache();         // Allocate PSRAM-backed cache and mutex
     void flush_nvs_changes();  // Flush cached config values to NVS
     bool has_dirty();          // Check if any cached values are dirty
 }
