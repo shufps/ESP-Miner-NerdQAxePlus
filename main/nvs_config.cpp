@@ -1,10 +1,16 @@
 #include <string.h>
 #include "esp_log.h"
+#include "esp_heap_caps.h" 
 #include "nvs.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "nvs_config.h"
 
 #define NVS_CONFIG_NAMESPACE "main"
 #define MAX_CONFIG_ENTRIES 96
+
+#define CONFIG_LOCK()   xSemaphoreTake(config_mutex, portMAX_DELAY)
+#define CONFIG_UNLOCK() xSemaphoreGive(config_mutex)
 
 namespace Config {
 
@@ -29,13 +35,26 @@ typedef struct {
     } data;
 } ConfigCacheEntry;
 
-static ConfigCacheEntry config_cache[MAX_CONFIG_ENTRIES];
+static ConfigCacheEntry* config_cache = nullptr;
+static SemaphoreHandle_t config_mutex = nullptr;
+
+// --- Initialize cache and mutex ---
+void init_cache() {
+    if (!config_cache) {
+        config_cache = (ConfigCacheEntry*) heap_caps_calloc(MAX_CONFIG_ENTRIES, sizeof(ConfigCacheEntry), MALLOC_CAP_SPIRAM);
+        ESP_LOGE(TAG, "Failed to allocate config cache in PSRAM");
+    }
+    if (!config_mutex) {
+        config_mutex = xSemaphoreCreateMutex();
+    }
+}
 
 // --- Utility to find or create cache entry ---
-static ConfigCacheEntry* get_cache_entry(const char* key, config_type_t type)
-{
+static ConfigCacheEntry* get_cache_entry(const char* key, config_type_t type) {
+    CONFIG_LOCK();
     for (int i = 0; i < MAX_CONFIG_ENTRIES; ++i) {
         if (config_cache[i].key && strcmp(config_cache[i].key, key) == 0) {
+            CONFIG_UNLOCK();
             return &config_cache[i];
         }
     }
@@ -45,22 +64,27 @@ static ConfigCacheEntry* get_cache_entry(const char* key, config_type_t type)
             config_cache[i].type = type;
             config_cache[i].valid = false;
             config_cache[i].dirty = false;
+            CONFIG_UNLOCK();
             return &config_cache[i];
         }
     }
     ESP_LOGW(TAG, "Config cache full, could not store key: %s", key);
+    CONFIG_UNLOCK();
     return NULL;
 }
 
-char *nvs_config_get_string(const char *key, const char *default_value)
-{
+char *nvs_config_get_string(const char *key, const char *default_value) {
     ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_STRING);
     if (!entry) return strdup(default_value);
 
+    CONFIG_LOCK();
     if (entry->valid) {
         ESP_LOGD(TAG, "Cache hit: %s", key);
-        return strdup(entry->data.str_value);
+        char* result = strdup(entry->data.str_value);
+        CONFIG_UNLOCK();
+        return result;
     }
+    CONFIG_UNLOCK();
 
     nvs_handle handle;
     esp_err_t err;
@@ -85,34 +109,40 @@ char *nvs_config_get_string(const char *key, const char *default_value)
         return strdup(default_value);
     }
 
+    CONFIG_LOCK();
     entry->data.str_value = strdup(val);
     entry->valid = true;
+    CONFIG_UNLOCK();
     free(val);
     return strdup(entry->data.str_value);
 }
 
-void nvs_config_set_string(const char *key, const char *value)
-{
+void nvs_config_set_string(const char *key, const char *value) {
     ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_STRING);
     if (!entry) return;
 
+    CONFIG_LOCK();
     if (entry->valid && entry->data.str_value) {
         free(entry->data.str_value);
     }
     entry->data.str_value = strdup(value);
     entry->valid = true;
     entry->dirty = true;
+    CONFIG_UNLOCK();
 }
 
-uint16_t nvs_config_get_u16(const char *key, const uint16_t default_value)
-{
+uint16_t nvs_config_get_u16(const char *key, const uint16_t default_value) {
     ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U16);
     if (!entry) return default_value;
 
+    CONFIG_LOCK();
     if (entry->valid) {
         ESP_LOGD(TAG, "Cache hit: %s (u16)", key);
-        return entry->data.u16_value;
+        uint16_t val = entry->data.u16_value;
+        CONFIG_UNLOCK();
+        return val;
     }
+    CONFIG_UNLOCK();
 
     nvs_handle handle;
     esp_err_t err;
@@ -129,29 +159,36 @@ uint16_t nvs_config_get_u16(const char *key, const uint16_t default_value)
         return default_value;
     }
 
+    CONFIG_LOCK();
     entry->data.u16_value = val;
     entry->valid = true;
+    CONFIG_UNLOCK();
     return val;
 }
 
-void nvs_config_set_u16(const char *key, const uint16_t value)
-{
+void nvs_config_set_u16(const char *key, const uint16_t value) {
     ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U16);
     if (!entry) return;
+
+    CONFIG_LOCK();
     entry->data.u16_value = value;
     entry->valid = true;
     entry->dirty = true;
+    CONFIG_UNLOCK();
 }
 
-uint64_t nvs_config_get_u64(const char *key, const uint64_t default_value)
-{
+uint64_t nvs_config_get_u64(const char *key, const uint64_t default_value) {
     ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U64);
     if (!entry) return default_value;
 
+    CONFIG_LOCK();
     if (entry->valid) {
         ESP_LOGD(TAG, "Cache hit: %s (u64)", key);
-        return entry->data.u64_value;
+        uint64_t val = entry->data.u64_value;
+        CONFIG_UNLOCK();
+        return val;
     }
+    CONFIG_UNLOCK();
 
     nvs_handle handle;
     esp_err_t err;
@@ -168,22 +205,25 @@ uint64_t nvs_config_get_u64(const char *key, const uint64_t default_value)
         return default_value;
     }
 
+    CONFIG_LOCK();
     entry->data.u64_value = val;
     entry->valid = true;
+    CONFIG_UNLOCK();
     return val;
 }
 
-void nvs_config_set_u64(const char *key, const uint64_t value)
-{
+void nvs_config_set_u64(const char *key, const uint64_t value) {
     ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U64);
     if (!entry) return;
+
+    CONFIG_LOCK();
     entry->data.u64_value = value;
     entry->valid = true;
     entry->dirty = true;
+    CONFIG_UNLOCK();
 }
 
-void flush_nvs_changes()
-{
+void flush_nvs_changes() {
     nvs_handle handle;
     esp_err_t err;
     err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
@@ -192,6 +232,7 @@ void flush_nvs_changes()
         return;
     }
 
+    CONFIG_LOCK();
     for (int i = 0; i < MAX_CONFIG_ENTRIES; ++i) {
         if (!config_cache[i].key || !config_cache[i].dirty) continue;
 
@@ -209,10 +250,23 @@ void flush_nvs_changes()
 
         config_cache[i].dirty = false;
     }
+    CONFIG_UNLOCK();
 
     nvs_commit(handle);
     nvs_close(handle);
     ESP_LOGI(TAG, "Configuration changes flushed to NVS");
+}
+
+bool has_dirty() {
+    CONFIG_LOCK();
+    for (int i = 0; i < MAX_CONFIG_ENTRIES; ++i) {
+        if (config_cache[i].key && config_cache[i].dirty) {
+            CONFIG_UNLOCK();
+            return true;
+        }
+    }
+    CONFIG_UNLOCK();
+    return false;
 }
 
 void migrate_config() {
@@ -231,15 +285,6 @@ void migrate_config() {
         setTempControlMode(0);
         setFanSpeed(100);
     }
-}
-
-bool has_dirty() {
-    for (int i = 0; i < MAX_CONFIG_ENTRIES; ++i) {
-        if (config_cache[i].key && config_cache[i].dirty) {
-            return true;
-        }
-    }
-    return false;
 }
 
 } // namespace Config
