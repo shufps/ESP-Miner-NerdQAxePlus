@@ -391,20 +391,13 @@ void Influx::write()
              "best_difficulty=%f,total_best_difficulty=%f,pool_errors=%d,"
              "accepted=%d,not_accepted=%d,total_uptime=%d,blocks_found=%d,"
              "pwr_vin=%f,pwr_iin=%f,pwr_pin=%f,pwr_vout=%f,pwr_iout=%f,pwr_pout=%f,"
-             "total_blocks_found=%d,duplicate_hashes=%d",
+             "total_blocks_found=%d,duplicate_hashes=%d,last_ping_rtt=%.2f",
              m_prefix, m_stats.temp, m_stats.temp2, m_stats.hashing_speed, m_stats.invalid_shares,
              m_stats.valid_shares, m_stats.uptime, m_stats.best_difficulty, m_stats.total_best_difficulty,
              m_stats.pool_errors, m_stats.accepted, m_stats.not_accepted, m_stats.total_uptime,
              m_stats.blocks_found, m_stats.pwr_vin, m_stats.pwr_iin, m_stats.pwr_pin,
              m_stats.pwr_vout, m_stats.pwr_iout, m_stats.pwr_pout, m_stats.total_blocks_found,
-             m_stats.duplicate_hashes);
-
-    // Append RTT value only if it's valid (> 0); avoids sending meaningless 0.0 on startup
-    if (m_stats.last_ping_rtt > 0.0f) {
-        char rtt_buf[64];
-        snprintf(rtt_buf, sizeof(rtt_buf), ",last_ping_rtt=%.2f", m_stats.last_ping_rtt);
-        strncat(m_big_buffer, rtt_buf, m_big_buffer_SIZE - strlen(m_big_buffer) - 1);
-    }    
+             m_stats.duplicate_hashes, m_stats.last_ping_rtt);
 
     snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", m_host, m_port, m_bucket,
              m_org);
