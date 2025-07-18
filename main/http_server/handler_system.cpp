@@ -139,6 +139,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
     doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::getTempControlMode();
+    doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -293,6 +294,11 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
     if (doc["autoscreenoff"].is<bool>()) {
         Config::setAutoScreenOff(doc["autoscreenoff"].as<bool>());
+    }
+    if (doc["stratum_keep"].is<bool>() || doc["stratum_keep"].is<int>()) {
+        bool value = doc["stratum_keep"].as<int>() != 0;
+        Config::setStratumKeepaliveEnabled(value);
+        ESP_LOGI("system", "stratum_keep updated via WebUI: %s", value ? "ENABLED" : "DISABLED");
     }
     if (doc["pidTargetTemp"].is<uint16_t>()) {
         Config::setPidTargetTemp(doc["pidTargetTemp"].as<uint16_t>());

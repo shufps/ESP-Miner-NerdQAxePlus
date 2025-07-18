@@ -70,6 +70,7 @@ const defaultInfo: ISystemInfo = {
   stratumDifficulty: 1000,
   lastpingrtt: 0.00,
   poolDifficulty: 0,
+  stratum_keep: 0,
 
   pidTargetTemp: 55,
   pidP: 2.0,

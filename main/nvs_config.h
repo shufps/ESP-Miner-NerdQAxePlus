@@ -18,6 +18,7 @@
 #define NVS_CONFIG_STRATUM_FALLBACK_USER "fbstratumuser"
 #define NVS_CONFIG_STRATUM_FALLBACK_PASS "fbstratumpass"
 #define NVS_CONFIG_STRATUM_DIFFICULTY "stratumdiff"
+#define NVS_CONFIG_STRATUM_KEEPALIVE "stratum_keep"
 
 #define NVS_CONFIG_ASIC_FREQ "asicfrequency"
 #define NVS_CONFIG_ASIC_VOLTAGE "asicvoltage"
@@ -57,6 +58,12 @@
 #define CONFIG_AUTO_FAN_SPEED_VALUE 1
 #elif defined(CONFIG_FAN_MODE_PID)
 #define CONFIG_AUTO_FAN_SPEED_VALUE 2
+#endif
+
+#ifdef CONFIG_STRATUM_KEEPALIVE_DEFAULT
+#define CONFIG_KEEPALIVE_VALUE 1
+#else
+#define CONFIG_KEEPALIVE_VALUE 0
 #endif
 
 #include <stdint.h>
@@ -144,6 +151,8 @@ namespace Config {
     inline bool isAutoScreenOffEnabled() { return nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE) != 0; }
     inline bool isInfluxEnabled() { return nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE) != 0; }
     inline bool isDiscordAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_ENABLE, CONFIG_ALERT_DISCORD_ENABLE_VALUE) != 0; }
+    inline bool isStratumKeepaliveEnabled() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_KEEPALIVE, CONFIG_STRATUM_KEEPALIVE_ENABLE_VALUE) != 0; }
+
 
     // ---- Boolean Setters ----
     inline void setFlipScreen(bool value) { nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, value ? 1 : 0); }
@@ -154,7 +163,7 @@ namespace Config {
     inline void setAutoScreenOff(bool value) { nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, value ? 1 : 0); }
     inline void setInfluxEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, value ? 1 : 0); }
     inline void setDiscordAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_ENABLE, value ? 1 : 0); }
-
+    inline void setStratumKeepaliveEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_KEEPALIVE, value ? 1 : 0); }
 
     // with board specific default values
     inline uint16_t getAsicFrequency(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, d); }
