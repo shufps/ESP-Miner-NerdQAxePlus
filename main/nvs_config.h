@@ -227,4 +227,5 @@ namespace Config {
     void init_cache();         // Allocate PSRAM-backed cache and mutex
     void flush_nvs_changes();  // Flush cached config values to NVS
     bool has_dirty();          // Check if any cached values are dirty
+    void dump_cache_status();  // in case we want to monitor the nvs-cache - not used currently
 }
