@@ -1,6 +1,6 @@
 #include <string.h>
 #include "esp_log.h"
-#include "esp_heap_caps.h" 
+#include "esp_heap_caps.h"
 #include "nvs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -38,128 +38,149 @@ typedef struct {
 static ConfigCacheEntry* config_cache = nullptr;
 static SemaphoreHandle_t config_mutex = nullptr;
 
+// Duplicates a string into specified memory (PSRAM) using heap_caps_malloc().
+static char* heap_caps_strdup(const char* src, uint32_t caps) {
+    if (!src) return nullptr;
+    size_t len = strlen(src) + 1;
+    char* dst = (char*) heap_caps_malloc(len, caps);
+    if (dst) memcpy(dst, src, len);
+    return dst;
+}
+
 // --- Initialize cache and mutex ---
 void init_cache() {
-    if (!config_cache) {
-        config_cache = (ConfigCacheEntry*) heap_caps_calloc(MAX_CONFIG_ENTRIES, sizeof(ConfigCacheEntry), MALLOC_CAP_SPIRAM);
-        ESP_LOGE(TAG, "Failed to allocate config cache in PSRAM");
-    }
     if (!config_mutex) {
         config_mutex = xSemaphoreCreateMutex();
     }
+
+    if (!config_cache) {
+        config_cache = (ConfigCacheEntry*) heap_caps_calloc(MAX_CONFIG_ENTRIES, sizeof(ConfigCacheEntry), MALLOC_CAP_SPIRAM);
+        if (!config_cache) {
+            ESP_LOGE(TAG, "Failed to allocate config cache in PSRAM");
+            // RFC: This is a fatal error, we should consider halting or restarting at this point
+        }
+    }
 }
 
-// --- Utility to find or create cache entry ---
+// --- Utility to find or create cache entry ->  This function MUST be called within a locked context ---
 static ConfigCacheEntry* get_cache_entry(const char* key, config_type_t type) {
-    CONFIG_LOCK();
+    //  Try to find an existing entry for the key
     for (int i = 0; i < MAX_CONFIG_ENTRIES; ++i) {
         if (config_cache[i].key && strcmp(config_cache[i].key, key) == 0) {
-            CONFIG_UNLOCK();
             return &config_cache[i];
         }
     }
+    // If not found, find a free slot for a new entry
     for (int i = 0; i < MAX_CONFIG_ENTRIES; ++i) {
         if (!config_cache[i].key) {
             config_cache[i].key = key;
             config_cache[i].type = type;
             config_cache[i].valid = false;
             config_cache[i].dirty = false;
-            CONFIG_UNLOCK();
             return &config_cache[i];
         }
     }
-    ESP_LOGW(TAG, "Config cache full, could not store key: %s", key);
-    CONFIG_UNLOCK();
+    ESP_LOGW(TAG, "Config cache is full, could not store key: %s", key);
     return NULL;
 }
 
+// --- API Functions ---
 char *nvs_config_get_string(const char *key, const char *default_value) {
-    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_STRING);
-    if (!entry) return strdup(default_value);
-
     CONFIG_LOCK();
+    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_STRING);
+    if (!entry) {
+        CONFIG_UNLOCK();
+        const char* fallback = default_value ? default_value : ""; // Return default or empty string, but never NULL
+        return heap_caps_strdup(fallback, MALLOC_CAP_SPIRAM);
+    }
+
     if (entry->valid) {
-        ESP_LOGD(TAG, "Cache hit: %s", key);
-        char* result = strdup(entry->data.str_value);
+        ESP_LOGD(TAG, "Cache hit for string key: %s", key);
+        char* result = heap_caps_strdup(entry->data.str_value, MALLOC_CAP_SPIRAM);
         CONFIG_UNLOCK();
         return result;
     }
-    CONFIG_UNLOCK();
+
+    ESP_LOGD(TAG, "Cache miss for string key: %s. Reading from NVS.", key);
 
     nvs_handle handle;
-    esp_err_t err;
-    err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READONLY, &handle);
-    if (err != ESP_OK) {
-        return strdup(default_value);
-    }
+    char* loaded_value = NULL;
 
-    size_t size = 0;
-    err = nvs_get_str(handle, key, NULL, &size);
-    if (err != ESP_OK) {
+    esp_err_t err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READONLY, &handle);
+    if (err == ESP_OK) {
+        size_t size = 0;
+        err = nvs_get_str(handle, key, NULL, &size);
+        if (err == ESP_OK && size > 0) {
+            loaded_value = (char*) heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+            if (loaded_value) {
+                nvs_get_str(handle, key, loaded_value, &size);
+            }
+        }
         nvs_close(handle);
-        return strdup(default_value);
     }
 
-    char *val = (char *) malloc(size);
-    err = nvs_get_str(handle, key, val, &size);
-    nvs_close(handle);
-
-    if (err != ESP_OK) {
-        free(val);
-        return strdup(default_value);
+    // If loading from NVS failed, use the default value.
+    // If default_value is also NULL, use an empty string to prevent crashes.
+    if (!loaded_value) {
+        const char* source_str = default_value ? default_value : "";
+        loaded_value = (char*) heap_caps_strdup(source_str, MALLOC_CAP_SPIRAM);
+    }
+    // Final fallback if strdup fails
+    if (!loaded_value) {
+        loaded_value = (char*) heap_caps_strdup("", MALLOC_CAP_SPIRAM);
     }
 
-    CONFIG_LOCK();
-    entry->data.str_value = strdup(val);
+    entry->data.str_value = loaded_value;
     entry->valid = true;
+
+    char* result = heap_caps_strdup(loaded_value, MALLOC_CAP_SPIRAM);
     CONFIG_UNLOCK();
-    free(val);
-    return strdup(entry->data.str_value);
+    return result;
 }
 
 void nvs_config_set_string(const char *key, const char *value) {
-    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_STRING);
-    if (!entry) return;
-
     CONFIG_LOCK();
-    if (entry->valid && entry->data.str_value) {
-        free(entry->data.str_value);
+    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_STRING);
+    if (!entry) {
+        CONFIG_UNLOCK();
+        return;
     }
-    entry->data.str_value = strdup(value);
+
+    if (entry->valid && entry->data.str_value) {
+        heap_caps_free(entry->data.str_value);
+    }
+
+    const char* source_str = value ? value : "";
+    entry->data.str_value = (char*) heap_caps_strdup(source_str, MALLOC_CAP_SPIRAM);
     entry->valid = true;
     entry->dirty = true;
     CONFIG_UNLOCK();
 }
 
 uint16_t nvs_config_get_u16(const char *key, const uint16_t default_value) {
-    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U16);
-    if (!entry) return default_value;
-
     CONFIG_LOCK();
+    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U16);
+    if (!entry) {
+        CONFIG_UNLOCK();
+        return default_value;
+    }
+
     if (entry->valid) {
-        ESP_LOGD(TAG, "Cache hit: %s (u16)", key);
+        ESP_LOGD(TAG, "Cache hit for u16 key: %s", key);
         uint16_t val = entry->data.u16_value;
         CONFIG_UNLOCK();
         return val;
     }
-    CONFIG_UNLOCK();
 
+    ESP_LOGD(TAG, "Cache miss for u16 key: %s. Reading from NVS.", key);
     nvs_handle handle;
-    esp_err_t err;
-    err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READONLY, &handle);
-    if (err != ESP_OK) {
-        return default_value;
+    uint16_t val = default_value;
+    esp_err_t err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READONLY, &handle);
+    if (err == ESP_OK) {
+        nvs_get_u16(handle, key, &val);
+        nvs_close(handle);
     }
 
-    uint16_t val;
-    err = nvs_get_u16(handle, key, &val);
-    nvs_close(handle);
-
-    if (err != ESP_OK) {
-        return default_value;
-    }
-
-    CONFIG_LOCK();
     entry->data.u16_value = val;
     entry->valid = true;
     CONFIG_UNLOCK();
@@ -167,10 +188,12 @@ uint16_t nvs_config_get_u16(const char *key, const uint16_t default_value) {
 }
 
 void nvs_config_set_u16(const char *key, const uint16_t value) {
-    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U16);
-    if (!entry) return;
-
     CONFIG_LOCK();
+    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U16);
+    if (!entry) {
+        CONFIG_UNLOCK();
+        return;
+    }
     entry->data.u16_value = value;
     entry->valid = true;
     entry->dirty = true;
@@ -178,34 +201,29 @@ void nvs_config_set_u16(const char *key, const uint16_t value) {
 }
 
 uint64_t nvs_config_get_u64(const char *key, const uint64_t default_value) {
-    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U64);
-    if (!entry) return default_value;
-
     CONFIG_LOCK();
+    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U64);
+    if (!entry) {
+        CONFIG_UNLOCK();
+        return default_value;
+    }
+
     if (entry->valid) {
-        ESP_LOGD(TAG, "Cache hit: %s (u64)", key);
+        ESP_LOGD(TAG, "Cache hit for u64 key: %s", key);
         uint64_t val = entry->data.u64_value;
         CONFIG_UNLOCK();
         return val;
     }
-    CONFIG_UNLOCK();
 
+    ESP_LOGD(TAG, "Cache miss for u64 key: %s. Reading from NVS.", key);
     nvs_handle handle;
-    esp_err_t err;
-    err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READONLY, &handle);
-    if (err != ESP_OK) {
-        return default_value;
+    uint64_t val = default_value;
+    esp_err_t err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READONLY, &handle);
+    if (err == ESP_OK) {
+        nvs_get_u64(handle, key, &val);
+        nvs_close(handle);
     }
 
-    uint64_t val;
-    err = nvs_get_u64(handle, key, &val);
-    nvs_close(handle);
-
-    if (err != ESP_OK) {
-        return default_value;
-    }
-
-    CONFIG_LOCK();
     entry->data.u64_value = val;
     entry->valid = true;
     CONFIG_UNLOCK();
@@ -213,10 +231,12 @@ uint64_t nvs_config_get_u64(const char *key, const uint64_t default_value) {
 }
 
 void nvs_config_set_u64(const char *key, const uint64_t value) {
-    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U64);
-    if (!entry) return;
-
     CONFIG_LOCK();
+    ConfigCacheEntry* entry = get_cache_entry(key, CONFIG_TYPE_U64);
+    if (!entry) {
+        CONFIG_UNLOCK();
+        return;
+    }
     entry->data.u64_value = value;
     entry->valid = true;
     entry->dirty = true;
@@ -224,37 +244,75 @@ void nvs_config_set_u64(const char *key, const uint64_t value) {
 }
 
 void flush_nvs_changes() {
-    nvs_handle handle;
-    esp_err_t err;
-    err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (err != ESP_OK) {
-        ESP_LOGW(TAG, "Could not open NVS for flushing");
-        return;
-    }
+    ConfigCacheEntry dirty_copy[MAX_CONFIG_ENTRIES] = {0};
+    int dirty_count = 0;
 
+    ESP_LOGD(TAG, "Scanning for dirty entries to flush.");
     CONFIG_LOCK();
-    for (int i = 0; i < MAX_CONFIG_ENTRIES; ++i) {
-        if (!config_cache[i].key || !config_cache[i].dirty) continue;
+    for (int i = 0; i < MAX_CONFIG_ENTRIES && dirty_count < MAX_CONFIG_ENTRIES; ++i) {
+        if (config_cache[i].key && config_cache[i].dirty) {
+            memcpy(&dirty_copy[dirty_count], &config_cache[i], sizeof(ConfigCacheEntry));
+            dirty_copy[dirty_count].key = config_cache[i].key;
 
-        switch (config_cache[i].type) {
-            case CONFIG_TYPE_STRING:
-                nvs_set_str(handle, config_cache[i].key, config_cache[i].data.str_value);
-                break;
-            case CONFIG_TYPE_U16:
-                nvs_set_u16(handle, config_cache[i].key, config_cache[i].data.u16_value);
-                break;
-            case CONFIG_TYPE_U64:
-                nvs_set_u64(handle, config_cache[i].key, config_cache[i].data.u64_value);
-                break;
+            if (dirty_copy[dirty_count].type == CONFIG_TYPE_STRING && config_cache[i].data.str_value) {
+                dirty_copy[dirty_count].data.str_value = strdup(config_cache[i].data.str_value);
+            } else if (dirty_copy[dirty_count].type == CONFIG_TYPE_STRING) {
+                dirty_copy[dirty_count].data.str_value = NULL;
+            }
+            dirty_count++;
         }
-
-        config_cache[i].dirty = false;
     }
     CONFIG_UNLOCK();
 
+    if (dirty_count == 0) {
+        ESP_LOGD(TAG, "No dirty entries to flush.");
+        return;
+    }
+
+    ESP_LOGI(TAG, "Found %d dirty entries. Flushing to NVS...", dirty_count);
+    nvs_handle handle;
+    esp_err_t err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Could not open NVS for flushing");
+        for(int i = 0; i < dirty_count; ++i) {
+            if(dirty_copy[i].type == CONFIG_TYPE_STRING && dirty_copy[i].data.str_value) free(dirty_copy[i].data.str_value);
+        }
+        return;
+    }
+
+    for (int i = 0; i < dirty_count; ++i) {
+        switch (dirty_copy[i].type) {
+            case CONFIG_TYPE_STRING:
+                if (dirty_copy[i].data.str_value) {
+                    nvs_set_str(handle, dirty_copy[i].key, dirty_copy[i].data.str_value);
+                    free(dirty_copy[i].data.str_value);
+                }
+                break;
+            case CONFIG_TYPE_U16:
+                nvs_set_u16(handle, dirty_copy[i].key, dirty_copy[i].data.u16_value);
+                break;
+            case CONFIG_TYPE_U64:
+                nvs_set_u64(handle, dirty_copy[i].key, dirty_copy[i].data.u64_value);
+                break;
+        }
+    }
+
     nvs_commit(handle);
     nvs_close(handle);
-    ESP_LOGI(TAG, "Configuration changes flushed to NVS");
+
+    CONFIG_LOCK();
+    for (int i = 0; i < dirty_count; ++i) {
+        for (int j = 0; j < MAX_CONFIG_ENTRIES; ++j) {
+            // Use strcmp for guaranteed correctness
+            if (config_cache[j].key && strcmp(config_cache[j].key, dirty_copy[i].key) == 0) {
+                config_cache[j].dirty = false;
+                break;
+            }
+        }
+    }
+    CONFIG_UNLOCK();
+
+    ESP_LOGI(TAG, "Configuration changes flushed to NVS.");
 }
 
 bool has_dirty() {
@@ -267,6 +325,19 @@ bool has_dirty() {
     }
     CONFIG_UNLOCK();
     return false;
+}
+
+// --- Debugging utility ---
+void dump_cache_status() {
+    ESP_LOGI(TAG, "--- Dumping Config Cache Status ---");
+    CONFIG_LOCK();
+    for (int i = 0; i < MAX_CONFIG_ENTRIES; ++i) {
+        if (config_cache[i].key) {
+            ESP_LOGI(TAG, "[%2d] key=%-18s, valid=%d, dirty=%d", i, config_cache[i].key, config_cache[i].valid, config_cache[i].dirty);
+        }
+    }
+    CONFIG_UNLOCK();
+    ESP_LOGI(TAG, "--- End of Cache Dump ---");
 }
 
 void migrate_config() {
