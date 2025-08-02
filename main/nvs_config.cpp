@@ -148,7 +148,7 @@ void migrate_config() {
     // check if classic AFC is enabled and disable it
     uint16_t fan_mode = getTempControlMode();
     if (fan_mode == 1) {
-        ESP_LOGW(TAG, "Disabled AFC (deprecated), Enabled manual 100%.");
+        ESP_LOGW(TAG, "Disabled AFC (deprecated), Enabled manual 100%%.");
         setTempControlMode(0);
         setFanSpeed(100);
     }
