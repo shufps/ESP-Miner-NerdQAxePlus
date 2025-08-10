@@ -49,7 +49,7 @@ CONFIG_LWIP_MAX_SOCKETS=16
 CONFIG_BT_ENABLED=n
 
 # enable ansii colors for log
-CONFIG_LOG_COLORS=y
+#CONFIG_LOG_COLORS=y
 
 # disable wdt at boot
 CONFIG_ESP_TASK_WDT_INIT=n

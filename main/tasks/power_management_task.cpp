@@ -266,7 +266,7 @@ void PowerManagementTask::task()
                 //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:
-                ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual mode 100%.", temp_control_mode);
+                ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual mode 100%%.", temp_control_mode);
                 m_fanPerc = 100;
                 board->setFanSpeed((float) m_fanPerc / 100.0f);
         }

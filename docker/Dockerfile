@@ -1,5 +1,5 @@
-# Use the espressif/idf:release-v5.5 as the base image
-FROM espressif/idf:release-v5.5
+# Use the espressif/idf:release-v5.3 as the base image
+FROM espressif/idf:release-v5.3
 
 # Install Node.js 20.x and Python dependencies
 RUN apt-get update && \
@@ -9,8 +9,12 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Create an unprivileged user with UID:GID 1000:1000
+RUN groupadd -g 1000 builder && \
+    useradd -m -u 1000 -g builder -s /bin/bash builder
+
 # Install bitaxetool
-RUN pip3 install bitaxetool --break-system-packages
+RUN pip3 install bitaxetool
 
 # Clone the esp-idf-nvs-partition-gen repository
 RUN git clone https://github.com/espressif/esp-idf-nvs-partition-gen.git /tmp/esp-idf-nvs-partition-gen
@@ -23,8 +27,8 @@ RUN cp /tmp/esp-idf-nvs-partition-gen/esp_idf_nvs_partition_gen/nvs_partition_ge
 RUN rm -rf /tmp/esp-idf-nvs-partition-gen
 
 # Set working directory
-WORKDIR /home/ubuntu/project
+WORKDIR /home/builder/project
 
 # Switch to the unprivileged user
-USER ubuntu
+USER builder
 
