@@ -37,6 +37,7 @@ void calculate_merkle_root_hash(const char *coinbase_tx, const uint8_t merkle_br
 void construct_bm_job(mining_notify *params, const char *merkle_root, const uint32_t version_mask, bm_job *new_job)
 {
     new_job->version = params->version;
+    new_job->version_mask = version_mask;
     new_job->starting_nonce = 0;
     new_job->target = params->target;
     new_job->ntime = params->ntime;
