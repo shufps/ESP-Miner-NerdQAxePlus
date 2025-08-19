@@ -154,6 +154,12 @@ void System::checkForBestDiff(double diff, uint32_t nbits) {
         suffixString((uint64_t)diff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
     }
 
+    double networkDiff = calculateNetworkDifficulty(nbits);
+    if (diff > networkDiff) {
+        m_foundBlock = true;
+        ESP_LOGI(TAG, "FOUND BLOCK!!! %f > %f", diff, networkDiff);
+    }
+
     if ((uint64_t)diff <= m_bestNonceDiff) {
         return;
     }
@@ -164,11 +170,6 @@ void System::checkForBestDiff(double diff, uint32_t nbits) {
     // Make the best_nonce_diff into a string
     suffixString((uint64_t)diff, m_bestDiffString, DIFF_STRING_SIZE, 0);
 
-    double networkDiff = calculateNetworkDifficulty(nbits);
-    if (diff > networkDiff) {
-        m_foundBlock = true;
-        ESP_LOGI(TAG, "FOUND BLOCK!!! %f > %f", diff, networkDiff);
-    }
     ESP_LOGI(TAG, "Network diff: %f", networkDiff);
 }
 
