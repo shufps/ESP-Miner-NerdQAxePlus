@@ -62,8 +62,8 @@ void ASIC_result_task(void *pvParameters)
         System::suffixString(SYSTEM_MODULE.getBestSessionNonceDiff(), bestDiffString, sizeof(bestDiffString), 3);
 
         // log the ASIC response, including pool and best session difficulty using human-readable SI formatting
-        ESP_LOGI(TAG, "Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 " diff %.1f/%lu/%s",
-            asic_job_id, asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce,
+        ESP_LOGI(TAG, "Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 "; Extranonce2 %s diff %.1f/%lu/%s",
+            asic_job_id, asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce, job->extranonce2,
             nonce_diff, job->pool_diff, bestDiffString);
 
         if (nonce_diff > job->pool_diff) {
