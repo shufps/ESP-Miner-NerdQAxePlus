@@ -30,6 +30,7 @@
 #include "system.h"
 #include "apis_task.h"
 #include "ping_task.h"
+#include "wifi_health.h"
 #include "discord.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
@@ -238,6 +239,7 @@ extern "C" void app_main(void)
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
         xTaskCreate(APIs_FETCHER.taskWrapper, "apis ticker", 4096, (void*) &APIs_FETCHER, 5, NULL);
         xTaskCreate(ping_task, "ping task", 4096, NULL, 1, NULL);
+        xTaskCreate(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
     }
 
     //char* taskList = (char*) malloc(8192);

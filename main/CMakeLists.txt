@@ -45,6 +45,7 @@ SRCS
     "./tasks/ping_task.cpp"
     "./tasks/power_management_task.cpp"
     "./tasks/apis_task.cpp"
+    "./tasks/wifi_health.cpp"
     "./displays/displayDriver.cpp"
     "./displays/ui.cpp"
     "./displays/ui_helpers.cpp"
