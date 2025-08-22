@@ -9,6 +9,7 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
     m_miningAgent = m_deviceModel;
     m_asicModel = "BM1370";
     m_asicCount = 8;
+    m_asicFrequencies = std::vector<int>(m_asicCount, m_defaultAsicFrequency);
     m_numPhases = 4;
     m_imax = 180;
     m_ifault = 140.0;

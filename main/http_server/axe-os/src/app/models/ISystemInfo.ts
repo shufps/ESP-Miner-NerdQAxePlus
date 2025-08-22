@@ -51,6 +51,7 @@ export interface ISystemInfo {
     stratumDifficulty: number,
     poolDifficulty: number,
     frequency: number,
+    frequencies: number[],
     defaultFrequency: number,
     version: string,
     invertfanpolarity: number,

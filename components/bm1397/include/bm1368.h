@@ -13,12 +13,13 @@ protected:
     virtual uint8_t asicToJobId(uint8_t asic_id);
 
 public:
-    BM1368();
+    BM1368(uint8_t);
     virtual const char* getName() { return "BM1368"; };
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty);
     virtual int setMaxBaud(void);
     virtual void requestChipTemp();
     virtual uint16_t getSmallCoreCount();
     virtual uint8_t nonceToAsicNr(uint32_t nonce);
+    uint8_t asicIndexToChipAddress(uint8_t asic_index) const noexcept override;
 };
 

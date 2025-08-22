@@ -36,6 +36,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public dataData1h: number[] = [];
   public dataData1d: number[] = [];
   public chartData?: any;
+  public totalNonces: number = 0;
+  public asicContribution: string[] = [];
+  public identicalAsicFreqs: boolean = false; // Flag to indicate if all ASICs have identical frequencies
 
   private localStorageKey = 'chartData';
   private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
@@ -195,6 +198,12 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         info.coreVoltage = parseFloat((info.coreVoltage / 1000).toFixed(2));
         info.temp = parseFloat(info.temp.toFixed(1));
         info.vrTemp = parseFloat(info.vrTemp.toFixed(1));
+        const totalNonces = info.history.nonce_distribution.reduce((sum: number, value: number) => sum + value, 0);
+        this.asicContribution = info.history.nonce_distribution.map((value: number) => {
+          return Math.round((value / totalNonces) * 100).toString();
+        })
+
+        this.identicalAsicFreqs = info.frequencies.every((freq: number) => freq === info.frequency);
 
         return info;
       }),
@@ -203,7 +212,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.expectedHashRate$ = this.info$.pipe(map(info => {
       if (!info) return 0; // Return 0 if no info
-      return Math.floor(info.frequency * ((info.smallCoreCount * info.asicCount) / 1000));
+      const expected = info.frequencies.reduce((acc: number, freq: number) => {
+        return acc + (freq * (info.smallCoreCount * info.asicCount) / 1000);
+      }, 0);
+      return Math.floor(expected / info.frequencies.length);
     }));
 
     this.quickLink$ = this.info$.pipe(
@@ -225,9 +237,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     } else if (stratumURL.includes('solo.d-central.tech')) {
       return `https://solo.d-central.tech/#/app/${address}`;
     } else if (/^eusolo[46]?.ckpool.org/.test(stratumURL)) {
-      return `https://eusolostats.ckpool.org/users/${address}`;
+      return `https://eusolo.ckpool.org/users/${address}`;
     } else if (/^solo[46]?.ckpool.org/.test(stratumURL)) {
-      return `https://solostats.ckpool.org/users/${address}`;
+      return `https://solo.ckpool.org/users/${address}`;
     } else if (stratumURL.includes('pool.noderunners.network')) {
       return `https://noderunners.network/en/pool/user/${address}`;
     } else if (stratumURL.includes('satoshiradio.nl')) {

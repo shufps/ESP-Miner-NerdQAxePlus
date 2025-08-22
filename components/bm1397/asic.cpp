@@ -11,7 +11,6 @@
 #include "asic.h"
 #include "crc.h"
 
-
 typedef enum
 {
     JOB_PACKET = 0,
@@ -33,8 +32,14 @@ typedef struct __attribute__((__packed__))
 
 const static char* TAG = "asic";
 
-Asic::Asic() {
-    m_current_frequency = 56.25;
+Asic::Asic(uint8_t asicCount) : 
+   m_current_frequency{ 56.25 },
+   m_asic_count{ asicCount }
+{
+   m_vCurrentFrequencies.resize(m_asic_count);
+   for (uint8_t i = 0; i < m_asic_count; ++i) {
+       m_vCurrentFrequencies[i] = m_current_frequency;
+   }
 }
 
 uint16_t Asic::reverseUint16(uint16_t num)
@@ -100,18 +105,16 @@ void Asic::sendReadAddress(void)
     send2(TYPE_CMD | GROUP_ALL | CMD_READ, 0x00, 0x00);
 }
 
-// Function to set the hash frequency
-// gives the same PLL settings as the S21 dumps
-bool Asic::sendHashFrequency(float target_freq) {
-    float max_diff = 0.001;
-    uint8_t freqbuf[6] = {0x00, 0x08, 0x40, 0xA0, 0x02, 0x41};
+std::optional<std::array<uint8_t, 6>> Asic::getFreqBuf(uint8_t asic_index, float target_freq, float& best_newf) const {
+    const float max_diff = 0.001;
+
+    std::array<uint8_t, 6> freqbuf = {0x00, 0x08, 0x40, 0xA0, 0x02, 0x41};
     int postdiv_min = 255;
     int postdiv2_min = 255;
     int refdiv, fb_divider, postdiv1, postdiv2;
     float newf;
     bool found = false;
     int best_refdiv, best_fb_divider, best_postdiv1, best_postdiv2;
-    float best_newf;
 
     for (refdiv = 2; refdiv > 0; refdiv--) {
         for (postdiv1 = 7; postdiv1 > 0; postdiv1--) {
@@ -140,7 +143,7 @@ bool Asic::sendHashFrequency(float target_freq) {
 
     if (!found) {
         ESP_LOGE(TAG, "Didn't find PLL settings for target frequency %.2f", target_freq);
-        return false;
+        return std::nullopt;
     }
 
     freqbuf[2] = (best_fb_divider * 25 / best_refdiv >= 2400) ? 0x50 : 0x40;
@@ -148,16 +151,48 @@ bool Asic::sendHashFrequency(float target_freq) {
     freqbuf[4] = best_refdiv;
     freqbuf[5] = (((best_postdiv1 - 1) & 0xf) << 4) | ((best_postdiv2 - 1) & 0xf);
 
-    send(CMD_WRITE_ALL, freqbuf, sizeof(freqbuf), ASIC_SERIALTX_DEBUG);
-    //ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
+    if (asic_index != std::numeric_limits<uint8_t>::max()) {
+       freqbuf[0] = asicIndexToChipAddress(asic_index);
+    }
 
-    ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)", target_freq, best_newf);
-    m_current_frequency = target_freq;
+    return freqbuf;
+}
+
+bool Asic::sendHashFrequency(uint8_t asic_index, float target_freq) {
+
+    if (asic_index < std::numeric_limits<uint8_t>::max() && asic_index >= m_asic_count) {
+        ESP_LOGE(TAG, "Invalid ASIC index %d, max is %d", asic_index, m_asic_count - 1);
+        return false;
+    }
+
+    float best_newf;
+    auto freqbuf = getFreqBuf(asic_index, target_freq, best_newf);
+    if (!freqbuf.has_value()) {
+        ESP_LOGE(TAG, "Failed to get frequency buffer for target frequency %.2f", target_freq);
+        return false;
+    }
+
+    if (asic_index == std::numeric_limits<uint8_t>::max()) {
+       send(CMD_WRITE_ALL, freqbuf->data(), sizeof(*freqbuf), ASIC_SERIALTX_DEBUG);
+       //ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
+
+       ESP_LOGI(TAG, "Setting Frequency %d to %.2fMHz (%.2f)", asic_index, target_freq, best_newf);
+       m_current_frequency = target_freq;
+       for (uint8_t i = 0; i < m_asic_count; ++i) {
+          m_vCurrentFrequencies[i] = target_freq;
+       }
+    } else {
+       send(CMD_WRITE_SINGLE, freqbuf->data(), sizeof(*freqbuf), ASIC_SERIALTX_DEBUG);
+       //ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
+
+       ESP_LOGI(TAG, "Setting Frequency of ASIC %d to %.2fMHz (%.2f)", asic_index, target_freq, best_newf);
+       m_vCurrentFrequencies[asic_index] = target_freq;
+    }
     return true;
 }
 
 // Function to perform frequency transition up or down
-bool Asic::doFrequencyTransition(float target_frequency) {
+bool Asic::doFrequencyTransition(uint8_t asic_index, float target_frequency) {
     float step = 6.25;
     float current = m_current_frequency;
     float target = target_frequency;
@@ -175,10 +210,10 @@ bool Asic::doFrequencyTransition(float target_frequency) {
             next_dividable = floor(current / step) * step;
         }
         current = next_dividable;
-        if (!sendHashFrequency(current)) {
-            printf("ERROR: Failed to set frequency to %.2f MHz\n", current);
-            return false;
-        }
+         if (!sendHashFrequency(asic_index, current)) {
+             printf("ERROR: Failed to set frequency of ASIC #%d to %.2f MHz\n", asic_index, current);
+             return false;
+         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
@@ -186,18 +221,18 @@ bool Asic::doFrequencyTransition(float target_frequency) {
     while ((direction > 0 && current < target) || (direction < 0 && current > target)) {
         float next_step = fmin(fabs(direction), fabs(target - current));
         current += direction > 0 ? next_step : -next_step;
-        if (!sendHashFrequency(current)) {
-            printf("ERROR: Failed to set frequency to %.2f MHz\n", current);
-            return false;
-        }
+         if (!sendHashFrequency(asic_index, current)) {
+             printf("ERROR: Failed to set frequency of ASIC #%d to %.2f MHz\n", asic_index, current);
+             return false;
+         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     // Set the exact target frequency to finalize
-    if (!sendHashFrequency(target)) {
-        printf("ERROR: Failed to set frequency to %.2f MHz\n", target);
-        return false;
-    }
+     if (!sendHashFrequency(asic_index, target)) {
+         printf("ERROR: Failed to set frequency of ASIC #%d to %.2f MHz\n", asic_index, target);
+         return false;
+     }
     return true;
 }
 
@@ -251,7 +286,16 @@ void Asic::setJobDifficultyMask(int difficulty)
 
 // can ramp up and down in 6.25MHz steps
 bool Asic::setAsicFrequency(float target_freq) {
-    return doFrequencyTransition(target_freq);
+    return doFrequencyTransition(std::numeric_limits<uint8_t>::max(), target_freq);
+}
+
+// pass std::numeric_limits<uint8_t>::max() to set all asics
+bool Asic::setAsicFrequency(uint8_t asic_index, float target_freq) {
+    if (asic_index < std::numeric_limits<uint8_t>::max() && asic_index >= m_asic_count) {
+        ESP_LOGE(TAG, "Invalid ASIC index %d, max is %d", asic_index, m_asic_count - 1);
+        return false;
+    }
+    return doFrequencyTransition(asic_index, target_freq);
 }
 
 
@@ -327,4 +371,17 @@ bool Asic::processWork(task_result *result)
     result->rolled_version = rolled_version;
     result->is_reg_resp = 0;
     return true;
+}
+
+int Asic::getAsicFrequency(uint8_t asic_index) const
+{
+    if (asic_index < std::numeric_limits<uint8_t>::max() && asic_index >= m_asic_count) {
+        ESP_LOGE(TAG, "Invalid ASIC index %d, max is %d", asic_index, m_asic_count - 1);
+        return -1;
+    }
+    if (asic_index == std::numeric_limits<uint8_t>::max()) {
+        ESP_LOGI(TAG, "Returning current frequency for all ASICs: %.2f MHz", m_current_frequency);
+        return m_current_frequency;
+    }
+    return m_vCurrentFrequencies[asic_index];
 }

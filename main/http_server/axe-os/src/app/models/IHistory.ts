@@ -6,5 +6,6 @@ export interface IHistory {
     hashrate_1h: number[],
     hashrate_1d: number[],
     timestamps: number[],
-    timestampBase: number
+    timestampBase: number,
+    nonce_distribution: number[]
 }

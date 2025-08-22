@@ -39,6 +39,7 @@ NerdAxe::NerdAxe() : Board() {
     m_asicCount = 1;
     m_asicJobIntervalMs = 1500;
     m_defaultAsicFrequency = m_asicFrequency = 485;
+    m_asicFrequencies = std::vector<int>(m_asicCount, m_defaultAsicFrequency);
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1200;
     m_fanInvertPolarity = true;
     m_fanPerc = 100;
@@ -62,7 +63,7 @@ NerdAxe::NerdAxe() : Board() {
     m_theme = new ThemeNerdaxe();
 #endif
 
-    m_asics = new BM1366();
+    m_asics = new BM1366(m_asicCount);
 }
 
 /**

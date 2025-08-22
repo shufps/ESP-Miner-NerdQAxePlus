@@ -26,7 +26,7 @@ static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x70, 0x00, 0x00};
 static const uint64_t BM1370_CORE_COUNT = 128;
 static const uint64_t BM1370_SMALL_CORE_COUNT = 2040;
 
-BM1370::BM1370() : BM1368() {
+BM1370::BM1370(uint8_t asicCount) : BM1368(asicCount) {
     // NOP
 }
 
@@ -114,7 +114,7 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     // Core Register Control
     send6(CMD_WRITE_ALL, 0x00, 0x3C, 0x80, 0x00, 0x8D, 0xEE);
 
-    doFrequencyTransition(frequency);
+    doFrequencyTransition(std::numeric_limits<uint8_t>::max(), frequency);
 
     // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
 
@@ -140,4 +140,8 @@ void BM1370::requestChipTemp() {
 
 uint16_t BM1370::getSmallCoreCount() {
     return BM1370_SMALL_CORE_COUNT;
+}
+
+uint8_t BM1370::asicIndexToChipAddress(uint8_t asic_index) const noexcept {
+   return asic_index * 4;
 }

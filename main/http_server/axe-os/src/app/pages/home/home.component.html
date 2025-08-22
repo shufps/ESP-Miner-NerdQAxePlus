@@ -200,13 +200,32 @@
           </nb-card-header>
           <nb-card-body class="no-scroll">
             <div class="row text-center">
-              <div class="col-6">
+              <!-- ASIC Contribution, different frequencies -->
+              <ng-container *ngIf="!identicalAsicFreqs">
+                <div class="col-6"  *ngFor="let _ of [].constructor(info.asicCount); let asicIndex = index;">
+                  <div>{{ asicContribution[asicIndex] }}%</div>
+                  <app-gauge [value]="info.frequencies[asicIndex]" [format]="'1.0-0'" [min]="100" [max]="800" [unit]="'MHz'"
+                    [label]="'ASIC #' + asicIndex + ' Frequency'"></app-gauge>
+                </div>
+              </ng-container>
+              <!-- ASIC Contribution, all frequencies identical -->
+              <div class="col-6" *ngIf="identicalAsicFreqs">
                 <app-gauge [value]="info.frequency" [format]="'1.0-0'" [min]="100" [max]="800" [unit]="'MHz'"
                   [label]="'ASIC Frequency'"></app-gauge>
               </div>
               <div class="col-6">
                 <app-gauge [value]="info.coreVoltageActual" [min]="0.9" [max]="1.8" [unit]="'V'"
                   [label]="'ASIC Voltage Measured'"></app-gauge>
+              </div>
+              <!-- ASIC Contribution Section -->
+              <div class="col-12" *ngIf="identicalAsicFreqs">
+                <div class="mb-2">ASIC Work Contribution</div>
+                <div class="row">
+                  <div class="col-3 mb-2" *ngFor="let contribution of asicContribution; let i = index;">
+                    <div class="mb-1">ASIC #{{ i }}</div>
+                    <div class="fs-5">{{ contribution }}%</div>
+                  </div>
+                </div>
               </div>
             </div>
           </nb-card-body>
@@ -275,7 +294,7 @@
                   {{ info.lastpingrtt !== undefined ? info.lastpingrtt.toFixed(2) + ' ms (avg)' : 'n/a' }}
                 </div>
               </div>
-              
+
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
                   <span class="text-hint">Diff:</span>
@@ -283,7 +302,7 @@
                 <div class="col">
                   {{ info.poolDifficulty }}
                 </div>
-              </div>              
+              </div>
             </nb-card-body>
           </nb-card>
         </ng-container>

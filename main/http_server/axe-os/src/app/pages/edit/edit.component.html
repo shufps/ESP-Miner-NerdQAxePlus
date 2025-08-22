@@ -124,7 +124,7 @@
                         <label for="frequency" class="form-label">Frequency:</label>
                         <div class="form-control-wrapper">
                             <nb-select formControlName="frequency" [ngClass]="{'unsafe-setting': isFrequencyTooHigh()}">
-                                <nb-option *ngFor="let option of frequencyOptions" [value]="option.value">{{ option.name
+                                <nb-option *ngFor="let option of frequencyOptions_all" [value]="option.value">{{ option.name
                                     }}</nb-option>
                             </nb-select>
                         </div>
@@ -142,10 +142,17 @@
 
                 <ng-container *ngIf="devToolsOpen">
                     <div class="form-row">
-                        <label for="frequency" class="form-label">Frequency:</label>
+                      <label for="frequency" class="form-label">Frequency (all):</label>
+                      <div class="form-control-wrapper">
+                        <input (input)="checkFrequencyLimit()" [ngClass]="{'unsafe-setting': isFrequencyTooHigh()}"
+                          nbInput id="frequency" formControlName="frequency" type="number" />
+                      </div>
+                    </div>
+                    <div class="form-row" *ngFor="let _ of [].constructor(asicCount); let asicIndex = index;">
+                      <label [for]="'frequency_' + asicIndex" class="form-label">Frequency ASIC #{{ asicIndex }}:</label>
                         <div class="form-control-wrapper">
-                            <input (input)="checkFrequencyLimit()" [ngClass]="{'unsafe-setting': isFrequencyTooHigh()}"
-                                nbInput id="frequency" formControlName="frequency" type="number" />
+                          <input (input)="checkFrequencyLimit()" [ngClass]="{'unsafe-setting': isFrequencyTooHigh(asicIndex)}"
+                            nbInput [id]="'frequency_' + asicIndex" [formControlName]="'frequency_' + asicIndex" type="number" />
                         </div>
                     </div>
                     <div class="form-row">
