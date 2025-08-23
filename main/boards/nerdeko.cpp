@@ -30,5 +30,7 @@ NerdEko::NerdEko() : NerdQaxePlus2()
     m_theme = new ThemeNerdeko();
 #endif
 
+    m_swarmColorName = "#e76500"; // orange
+
     m_tps = new TPS53667();
 }

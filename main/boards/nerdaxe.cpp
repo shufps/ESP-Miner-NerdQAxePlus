@@ -38,6 +38,8 @@ NerdAxe::NerdAxe() : Board() {
     m_asicModel = "BM1366";
     m_asicCount = 1;
     m_asicJobIntervalMs = 1500;
+    m_asicFrequencies = {400, 425, 450, 475, 485, 500, 525, 550, 575};
+    m_asicVoltages = {1100, 1150, 1200, 1250, 1300};
     m_defaultAsicFrequency = m_asicFrequency = 485;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1200;
     m_fanInvertPolarity = true;
@@ -61,6 +63,8 @@ NerdAxe::NerdAxe() : Board() {
 #ifdef NERDAXE
     m_theme = new ThemeNerdaxe();
 #endif
+
+    m_swarmColorName = "#e7cf00"; // yellow
 
     m_asics = new BM1366();
 }
