@@ -1,15 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
-import { catchError, from, map, mergeMap, of, take, timeout, toArray } from 'rxjs';
+import { catchError, forkJoin, from, map, mergeMap, of, take, timeout, toArray } from 'rxjs';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { SystemService } from 'src/app/services/system.service';
 import { NbToastrService } from '@nebular/theme';
-import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { LoadingService } from '../../services/loading.service';
 
-const SWARM_DATA = 'SWARM_DATA'
+const SWARM_DATA = 'SWARM_DATA';
 const SWARM_REFRESH_TIME = 'SWARM_REFRESH_TIME';
+
 @Component({
   selector: 'app-swarm',
   templateUrl: './swarm.component.html',
@@ -38,6 +38,9 @@ export class SwarmComponent implements OnInit, OnDestroy {
 
   public ipAddress: string;
 
+  // Legende
+  public colorLegend: { color: string; label: string; count: number }[] = [];
+
   constructor(
     private fb: FormBuilder,
     private systemService: SystemService,
@@ -46,9 +49,11 @@ export class SwarmComponent implements OnInit, OnDestroy {
     private localStorageService: LocalStorageService,
     private httpClient: HttpClient
   ) {
-
     this.form = this.fb.group({
-      manualAddIp: [null, [Validators.required, Validators.pattern('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')]]
+      manualAddIp: [null, [
+        Validators.required,
+        Validators.pattern('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
+      ]]
     });
 
     const storedRefreshTime = this.localStorageService.getNumber(SWARM_REFRESH_TIME) ?? 30;
@@ -69,8 +74,6 @@ export class SwarmComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (info) => {
           this.ipAddress = info.hostip;
-          console.log("ip: "+this.ipAddress);
-
           const swarmData = this.localStorageService.getObject(SWARM_DATA);
 
           if (swarmData == null) {
@@ -82,13 +85,16 @@ export class SwarmComponent implements OnInit, OnDestroy {
 
           this.startRefreshInterval();
         },
-        error: (error) => {
-          console.error('Failed to fetch system info:', error);
+        error: () => {
           this.startRefreshInterval(); // Start periodic refresh even if info request fails
         }
       });
   }
 
+  ngOnDestroy(): void {
+    window.clearInterval(this.refreshIntervalRef);
+    this.form.reset();
+  }
 
   private startRefreshInterval(): void {
     this.refreshIntervalRef = window.setInterval(() => {
@@ -99,12 +105,6 @@ export class SwarmComponent implements OnInit, OnDestroy {
         }
       }
     }, 1000);
-  }
-
-
-  ngOnDestroy(): void {
-    window.clearInterval(this.refreshIntervalRef);
-    this.form.reset();
   }
 
   private ipToInt(ip: string): number {
@@ -123,42 +123,64 @@ export class SwarmComponent implements OnInit, OnDestroy {
     return { start: network + 1, end: broadcast - 1 };
   }
 
+  // check if  /asic returns the expected fields
+  private isValidAsicPayload(asic: any): boolean {
+    return !!asic
+      && typeof asic === 'object'
+      && Array.isArray(asic.frequencyOptions)
+      && Array.isArray(asic.voltageOptions)
+      && ('deviceModel' in asic || 'ASICModel' in asic);
+  }
+
   scanNetwork() {
     this.scanning = true;
 
     const { start, end } = this.calculateIpRange(this.ipAddress, '255.255.255.0');
     const ips = Array.from({ length: end - start + 1 }, (_, i) => this.intToIp(start + i));
+
     from(ips).pipe(
       mergeMap(ipAddr =>
-        this.httpClient.get(`http://${ipAddr}/api/system/info`).pipe(
-          map(result => {
-            if ('hashRate' in result) {
-              return {
+        // get /info and /asic in parallel
+        forkJoin({
+          info: this.httpClient.get<any>(`http://${ipAddr}/api/system/info`).pipe(timeout(5000)),
+          asic: this.httpClient.get<any>(`http://${ipAddr}/api/system/asic`).pipe(
+            timeout(5000),
+            catchError(() => of(null)) // /asic can be missing (302 etc.)
+          )
+        }).pipe(
+          map(({ info, asic }) => {
+            if (info && 'hashRate' in info) {
+              const supportsAsicApi = this.isValidAsicPayload(asic);
+              const merged = {
                 IP: ipAddr,
-                ...result
+                ...info,
+                ...(supportsAsicApi ? {
+                  ASICModel: asic.ASICModel ?? info.ASICModel,
+                  asicCount: asic.asicCount ?? info.asicCount,
+                  deviceModel: asic.deviceModel ?? info.deviceModel,
+                  swarmColor: asic.swarmColor ?? 'blue',
+                } : {}),
+                supportsAsicApi,
               };
+              if (!merged['swarmColor']) merged['swarmColor'] = 'blue';
+              return merged;
             }
             return null;
           }),
-          timeout(5000), // Set the timeout to 5 seconds
-          catchError(error => {
-            //console.error(`Request to ${ipAddr}/api/system/info failed or timed out`, error);
-            return []; // Return an empty result or handle as desired
-          })
+          catchError(() => of(null))
         ),
-        128 // Limit concurrency to avoid overload
+        128
       ),
-      toArray() // Collect all results into a single array
+      toArray()
     ).pipe(take(1)).subscribe({
       next: (result) => {
-        // Filter out null items first
         const validResults = result.filter((item): item is NonNullable<typeof item> => item !== null);
-        // Merge new results with existing swarm entries
         const existingIps = new Set(this.swarm.map(item => item.IP));
         const newItems = validResults.filter(item => !existingIps.has(item.IP));
         this.swarm = [...this.swarm, ...newItems].sort(this.sortByIp.bind(this));
         this.localStorageService.setObject(SWARM_DATA, this.swarm);
         this.calculateTotals();
+        this.rebuildColorLegend();
       },
       complete: () => {
         this.scanning = false;
@@ -169,23 +191,50 @@ export class SwarmComponent implements OnInit, OnDestroy {
   public add() {
     const newIp = this.form.value.manualAddIp;
 
-    // Check if IP already exists
     if (this.swarm.some(item => item.IP === newIp)) {
       this.toastrService.warning('This IP address already exists in the swarm', 'Duplicate Entry');
       return;
     }
 
-    this.systemService.getInfo(0, `http://${newIp}`).subscribe((res) => {
-      if (res.ASICModel) {
-        this.swarm.push({ IP: newIp, ...res });
+    forkJoin({
+      info: this.systemService.getInfo(0, `http://${newIp}`),
+      asic: this.httpClient.get<any>(`http://${newIp}/api/system/asic`).pipe(
+        timeout(5000),
+        catchError(() => of(null))
+      )
+    }).subscribe(({ info, asic }) => {
+      if (info?.ASICModel) {
+        const supportsAsicApi = this.isValidAsicPayload(asic);
+        const merged = {
+          IP: newIp,
+          ...info,
+          ...(supportsAsicApi ? {
+            ASICModel: asic.ASICModel ?? info.ASICModel,
+            asicCount: asic.asicCount ?? info.asicCount,
+            deviceModel: asic.deviceModel ?? info.deviceModel,
+            swarmColor: asic.swarmColor ?? 'blue'
+          } : {}),
+          supportsAsicApi,
+        };
+        if (!merged['swarmColor']) merged['swarmColor'] = 'blue';
+
+        this.swarm.push(merged);
         this.swarm = this.swarm.sort(this.sortByIp.bind(this));
         this.localStorageService.setObject(SWARM_DATA, this.swarm);
         this.calculateTotals();
+        this.rebuildColorLegend();
       }
     });
   }
 
   public edit(axe: any) {
+    if (!axe?.supportsAsicApi) {
+      this.toastrService.warning(
+        'To edit settings from the Swarm page, please update this device’s firmware.',
+        'Firmware Update Needed'
+      );
+      return;
+    }
     this.selectedAxeOs = axe;
     this.showEdit = true;
   }
@@ -207,6 +256,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
     this.swarm = this.swarm.filter(axe => axe.IP != axeOs.IP);
     this.localStorageService.setObject(SWARM_DATA, this.swarm);
     this.calculateTotals();
+    this.rebuildColorLegend();
   }
 
   public refreshList() {
@@ -220,21 +270,38 @@ export class SwarmComponent implements OnInit, OnDestroy {
 
     from(ips).pipe(
       mergeMap(ipAddr =>
-        this.httpClient.get(`http://${ipAddr}/api/system/info`).pipe(
-          map(result => {
-            return {
+        forkJoin({
+          info: this.httpClient.get<any>(`http://${ipAddr}/api/system/info`).pipe(timeout(5000)),
+          asic: this.httpClient.get<any>(`http://${ipAddr}/api/system/asic`).pipe(
+            timeout(5000),
+            catchError(() => of(null))
+          )
+        }).pipe(
+          map(({ info, asic }) => {
+            const existingDevice = this.swarm.find(axeOs => axeOs.IP === ipAddr);
+            const supportsAsicApi = this.isValidAsicPayload(asic) || !!existingDevice?.supportsAsicApi;
+            const merged = {
               IP: ipAddr,
-              ...result
-            }
+              ...existingDevice,
+              ...info,
+              ...(this.isValidAsicPayload(asic) ? {
+                ASICModel: asic.ASICModel ?? info?.ASICModel ?? existingDevice?.ASICModel,
+                asicCount: asic.asicCount ?? info?.asicCount ?? existingDevice?.asicCount,
+                deviceModel: asic.deviceModel ?? info?.deviceModel ?? existingDevice?.deviceModel,
+                swarmColor: asic.swarmColor ?? info?.swarmColor ?? existingDevice?.swarmColor
+              } : {}),
+              supportsAsicApi,
+            };
+            if (!merged['swarmColor']) merged['swarmColor'] = existingDevice?.swarmColor ?? 'blue';
+            return merged;
           }),
-          timeout(5000),
           catchError(error => {
             const errorMessage = error?.message || error?.statusText || error?.toString() || 'Unknown error';
             this.toastrService.danger('Failed to get info from ' + ipAddr, errorMessage);
-            // Return existing device with zeroed stats instead of the previous state
             const existingDevice = this.swarm.find(axeOs => axeOs.IP === ipAddr);
             return of({
               ...existingDevice,
+              IP: ipAddr,
               hashRate: 0,
               sharesAccepted: 0,
               power: 0,
@@ -244,17 +311,20 @@ export class SwarmComponent implements OnInit, OnDestroy {
               version: 0,
               uptimeSeconds: 0,
               poolDifficulty: 0,
+              swarmColor: existingDevice?.swarmColor ?? 'blue',
+              supportsAsicApi: existingDevice?.supportsAsicApi ?? false,
             });
           })
         ),
-        128 // Limit concurrency to avoid overload
+        128
       ),
-      toArray() // Collect all results into a single array
+      toArray()
     ).pipe(take(1)).subscribe({
       next: (result) => {
         this.swarm = result.sort(this.sortByIp.bind(this));
         this.localStorageService.setObject(SWARM_DATA, this.swarm);
         this.calculateTotals();
+        this.rebuildColorLegend();
         this.isRefreshing = false;
       },
       complete: () => {
@@ -269,26 +339,24 @@ export class SwarmComponent implements OnInit, OnDestroy {
 
   private convertBestDiffToNumber(bestDiff: string): number {
     if (!bestDiff || typeof bestDiff !== 'string') return 0;
-
     const value = parseFloat(bestDiff);
     if (isNaN(value)) return 0;
-
     const unit = bestDiff.slice(-1).toUpperCase();
     switch (unit) {
-      case 'T': return value * 1000000000000;
-      case 'G': return value * 1000000000;
-      case 'M': return value * 1000000;
-      case 'K': return value * 1000;
+      case 'T': return value * 1_000_000_000_000;
+      case 'G': return value * 1_000_000_000;
+      case 'M': return value * 1_000_000;
+      case 'K': return value * 1_000;
       default: return value;
     }
   }
 
   private formatBestDiff(value: number): string {
     if (!isFinite(value) || isNaN(value)) return '0.00';
-    if (value >= 1000000000000) return `${(value / 1000000000000).toFixed(2)}T`;
-    if (value >= 1000000000) return `${(value / 1000000000).toFixed(2)}G`;
-    if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`;
-    if (value >= 1000) return `${(value / 1000).toFixed(2)}K`;
+    if (value >= 1_000_000_000_000) return `${(value / 1_000_000_000_000).toFixed(2)}T`;
+    if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}G`;
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+    if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
     return value.toFixed(2);
   }
 
@@ -312,4 +380,31 @@ export class SwarmComponent implements OnInit, OnDestroy {
     return this.swarm.some(axe => axe.asicCount > 1) ? '1' : '0.5';
   }
 
+  // Swarm color for the template
+  public getSwarmColor(axe: any): string {
+    return axe?.swarmColor || 'blue';
+  }
+
+  // build legend
+  private rebuildColorLegend(): void {
+    const mapLegend = new Map<string, { count: number; names: Set<string> }>();
+    for (const axe of this.swarm) {
+      const color = (axe?.swarmColor || '#007DB4').toString().trim();
+      const name  = (axe?.deviceModel || axe?.ASICModel || 'Device').toString().trim();
+      const entry = mapLegend.get(color) ?? { count: 0, names: new Set<string>() };
+      entry.count++;
+      if (name) entry.names.add(name);
+      mapLegend.set(color, entry);
+    }
+
+    this.colorLegend = [...mapLegend.entries()].map(([color, { count, names }]) => {
+      const labels = [...names];
+      let label: string;
+      if (labels.length === 1) label = labels[0];
+      else if (labels.length === 2) label = `${labels[0]} + ${labels[1]}`;
+      else label = `${labels[0]} + ${labels[1]} + ${labels.length - 2} more`;
+      return { color, label, count };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+  }
 }
