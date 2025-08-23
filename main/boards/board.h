@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "../displays/images/themes/themes.h"
 #include "asic.h"
 #include "bm1368.h"
@@ -23,6 +24,7 @@ class Board {
     int m_chipsDetected = 0;
     int m_numTempSensors = 0;
     float *m_chipTemps;
+    const char *m_swarmColorName = "blue";
 
     PidSettings m_pidSettings;
 
@@ -31,10 +33,13 @@ class Board {
     int m_asicFrequency;
     int m_asicVoltageMillis;
 
+    // frequency and voltage options
+    std::vector<uint32_t> m_asicFrequencies;
+    std::vector<uint32_t> m_asicVoltages;
+
     // default settings
     int m_defaultAsicFrequency;
     int m_defaultAsicVoltageMillis;
-
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
@@ -203,6 +208,18 @@ class Board {
 
     PidSettings *getPidSettings() {
         return &m_pidSettings;
+    }
+
+    const std::vector<uint32_t>& getFrequencyOptions() const {
+        return m_asicFrequencies;
+    }
+
+    const std::vector<uint32_t>& getVoltageOptions() const {
+        return m_asicVoltages;
+    }
+
+    const char* getSwarmColorName() {
+        return m_swarmColorName;
     }
 
 };

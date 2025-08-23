@@ -232,3 +232,41 @@ nb-slider {
 
 }
 
+/*
+.swarm-table tr {
+  border-left: 4px solid transparent;
+}
+*/
+.swarm-dot {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: 9999px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .25rem .5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(0,0,0,.1);
+  background: rgba(0,0,0,.03);
+}
+
+:host-context(nb-theme-dark) .legend-chip {
+  border-color: rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+}
+
+.legend-label { opacity: .9; }
+.legend-count { opacity: .7; font-variant-numeric: tabular-nums; }
+
+.swarm-dot {
+  display: inline-block;
+  width: .75em;
+  height: .75em;
+  border-radius: 50%;
+}

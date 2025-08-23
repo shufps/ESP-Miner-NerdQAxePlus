@@ -133,6 +133,11 @@ esp_err_t start_rest_server(void * pvParameters)
         .uri = "/api/system/info", .method = HTTP_GET, .handler = GET_system_info, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &system_info_get_uri);
 
+        /* URI handler for fetching system info */
+    httpd_uri_t system_asic_get_uri = {
+        .uri = "/api/system/asic", .method = HTTP_GET, .handler = GET_system_asic, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &system_asic_get_uri);
+
     /* URI handler for fetching system info */
     httpd_uri_t influx_info_get_uri = {
         .uri = "/api/influx/info", .method = HTTP_GET, .handler = GET_influx_info, .user_ctx = rest_context};

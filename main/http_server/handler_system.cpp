@@ -324,3 +324,53 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
 
     return ESP_OK;
 }
+
+esp_err_t GET_system_asic(httpd_req_t *req)
+{
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
+    httpd_resp_set_type(req, "application/json");
+
+    // CORS
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    Board* board = SYSTEM_MODULE.getBoard();
+
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+
+    // Basisfelder
+    doc["ASICModel"]        = board->getAsicModel();
+    doc["deviceModel"]      = board->getDeviceModel();
+    doc["asicCount"]        = board->getAsicCount();
+    doc["defaultFrequency"] = board->getDefaultAsicFrequency();
+    doc["defaultVoltage"]   = board->getDefaultAsicVoltageMillis();
+
+    doc["swarmColor"] = board->getSwarmColorName();
+
+    // frequencyOptions
+    {
+        JsonArray arr = doc["frequencyOptions"].to<JsonArray>();
+        const auto& freqs = board->getFrequencyOptions();
+        for (uint32_t f : freqs) { arr.add(f); }
+    }
+
+    // voltageOptions
+    {
+        JsonArray arr = doc["voltageOptions"].to<JsonArray>();
+        const auto& volts = board->getVoltageOptions();
+        for (uint32_t v : volts) { arr.add(v); }
+    }
+
+    // Verbindung schließen, damit nichts „hängt“
+    httpd_resp_set_hdr(req, "Connection", "close");
+
+    esp_err_t ret = sendJsonResponse(req, doc);
+    doc.clear();
+    return ret;
+}

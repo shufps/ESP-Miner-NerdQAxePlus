@@ -30,6 +30,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicModel = "BM1368";
     m_asicCount = 4;
     m_asicJobIntervalMs = 1200;
+    m_asicFrequencies = {400, 425, 450, 475, 490, 500, 525, 550, 575};
+    m_asicVoltages = {1100, 1150, 1200, 1250, 1300, 1350};
     m_defaultAsicFrequency = m_asicFrequency = 490;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1250; // default voltage
     m_initVoltageMillis = 1250;
@@ -56,6 +58,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
 #ifdef NERDQAXEPLUS
     m_theme = new ThemeNerdqaxeplus();
 #endif
+    m_swarmColorName = "#e700d8"; // pink
 
     m_asics = new BM1368();
     m_tps = new TPS53647();

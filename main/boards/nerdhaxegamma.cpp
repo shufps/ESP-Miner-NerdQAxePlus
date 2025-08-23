@@ -27,4 +27,7 @@ NerdHaxeGamma::NerdHaxeGamma() : NerdQaxePlus2() {
 #ifdef NERDHAXEGAMMA
     m_theme = new ThemeNerdhaxegamma();
 #endif
+
+    m_swarmColorName = "#00e7e2";  // cyan
+
 }

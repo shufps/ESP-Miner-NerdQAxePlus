@@ -1,213 +1,208 @@
 <ng-container>
-    <!-- Manual Addition -->
-    <nb-card>
-        <nb-card-body>
-            <form [formGroup]="form">
-                <div class="d-flex align-items-center gap-3">
-                    <!-- Label container -->
-                    <label class="manual-add-label">Manual Addition</label>
-                    <!-- Input group container -->
-                    <div class="input-group" style="flex: 1; display: flex; flex-flow: nowrap;">
-                        <input nbInput id="manualAddIp" formControlName="manualAddIp" type="text"
-                            placeholder="Enter IP Address" style="flex: 1; width: 100%;" />
-                        <button nbButton status="primary" (click)="add()" [disabled]="form.invalid">Add</button>
-                    </div>
-                </div>
-            </form>
-        </nb-card-body>
-    </nb-card>
-
-
-    <form [formGroup]="form">
-        <!-- Outer container allows wrapping -->
-        <div class="buttons-slider-area">
-            <!-- Left group: Buttons -->
-            <div class="scan-refresh-buttons">
-                <button nbButton status="primary" (click)="scanNetwork()" [disabled]="scanning">
-                    {{ scanning ? 'Scanning...' : 'Automatic Scan' }}
-                </button>
-                <button nbButton status="info" (click)="refreshList()"
-                    [disabled]="scanning || isRefreshing">
-                    {{ isRefreshing ? 'Refreshing...' : 'Refresh List (' + refreshIntervalTime + ')' }}
-                </button>
-            </div>
-
-            <!-- Right group: Label and Slider -->
-            <!-- white-space: nowrap ensures these elements stick together -->
-            <div class="mt-3 mt-md-0 time-slider">
-                <label for="refresh-interval">Refresh Interval:</label>
-                <div class="progress-wrap mx-2">
-                    <input id="refresh-interval" type="range" class="progress" [formControl]="refreshIntervalControl"
-                        [min]="5" [max]="30" step="1" />
-                    <div class="progress-foreground" [style.width.%]="((refreshIntervalControl.value - 5) / 25) * 100">
-                    </div>
-                </div>
-                <span>{{ refreshTimeSet }}s</span>
-            </div>
+  <!-- Manual Addition -->
+  <nb-card>
+    <nb-card-body>
+      <form [formGroup]="form">
+        <div class="d-flex align-items-center gap-3">
+          <!-- Label container -->
+          <label class="manual-add-label">Manual Addition</label>
+          <!-- Input group container -->
+          <div class="input-group" style="flex: 1; display: flex; flex-flow: nowrap;">
+            <input nbInput id="manualAddIp" formControlName="manualAddIp" type="text"
+                   placeholder="Enter IP Address" style="flex: 1; width: 100%;" />
+            <button nbButton status="primary" (click)="add()" [disabled]="form.invalid">Add</button>
+          </div>
         </div>
-    </form>
+      </form>
+    </nb-card-body>
+  </nb-card>
 
+  <form [formGroup]="form">
+    <!-- Outer container allows wrapping -->
+    <div class="buttons-slider-area">
+      <!-- Left group: Buttons -->
+      <div class="scan-refresh-buttons">
+        <button nbButton status="primary" (click)="scanNetwork()" [disabled]="scanning">
+          {{ scanning ? 'Scanning...' : 'Automatic Scan' }}
+        </button>
+        <button nbButton status="info" (click)="refreshList()" [disabled]="scanning || isRefreshing">
+          {{ isRefreshing ? 'Refreshing...' : 'Refresh List (' + refreshIntervalTime + ')' }}
+        </button>
+      </div>
 
-    <!-- Totals -->
-    <div class="d-flex justify-content-between mt-4 mb-3 gap-md-3 totals">
-        <nb-card class="text-center mb-0" style="flex: 1;">
-            <nb-card-body>
-                <span class="text-start">Total Hash Rate</span>
-                <span class="text-primary fw-bold">{{ totals.hashRate * 1000000000 | hashSuffix }}</span>
-            </nb-card-body>
-        </nb-card>
-        <nb-card class="text-center mb-0" style="flex: 1;">
-            <nb-card-body>
-                <span class="text-start">Total Power</span>
-                <span class="text-primary fw-bold">{{ totals.power | number:'1.1-1' }} W</span>
-            </nb-card-body>
-        </nb-card>
-        <nb-card class="text-center mb-0" style="flex: 1;">
-            <nb-card-body>
-                <span class="text-start">Best Diff</span>
-                <!-- <span class="text-primary fw-bold">{{ (totals.bestDiff | number) == "0" ? 0 : totals.bestDiff }}</span> -->
-                <span class="text-primary fw-bold">{{ totals.bestDiff === '0.00' ? 0 : totals.bestDiff }}</span>
-            </nb-card-body>
-        </nb-card>
+      <!-- Right group: Label and Slider -->
+      <div class="mt-3 mt-md-0 time-slider">
+        <label for="refresh-interval">Refresh Interval:</label>
+        <div class="progress-wrap mx-2">
+          <input id="refresh-interval" type="range" class="progress" [formControl]="refreshIntervalControl"
+                 [min]="5" [max]="30" step="1" />
+          <div class="progress-foreground"
+               [style.width.%]="((refreshIntervalControl.value - 5) / 25) * 100">
+          </div>
+        </div>
+        <span>{{ refreshTimeSet }}s</span>
+      </div>
     </div>
+  </form>
 
-    <!-- Swarm Overview Table -->
-    <nb-card class="mb-0">
-        <nb-card-header>Swarm Overview</nb-card-header>
-
-        <nb-card-body *ngIf="swarm.length; else empty">
-            <table class="swarm-table">
-                <thead>
-                    <tr>
-                        <th>IP</th>
-                        <th>Hash Rate</th>
-                        <th>Uptime</th>
-                        <th>Shares</th>
-                        <th>Power</th>
-                        <th>Temp</th>
-                        <th>Pool Diff</th>
-                        <th>Best Diff</th>
-                        <th>Version</th>
-                        <th>&nbsp;</th>
-                        <th>&nbsp;</th>
-                        <th>&nbsp;</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <ng-container *ngFor="let axe of swarm">
-                        <tr>
-                            <!-- IP with conditional color & tooltip (using nbTooltip) -->
-                            <td>
-                                <a [ngClass]="[
-                        axe.asicCount > 1 ? 'text-orange-500' :
-                        axe.ASICModel === 'BM1397' ? 'text-red-500' :
-                        axe.ASICModel === 'BM1366' ? 'text-purple-500' :
-                        axe.ASICModel === 'BM1368' ? 'text-blue-500' :
-                        axe.ASICModel === 'BM1370' ? 'text-green-500' :
-                        ''
-                      ]" [href]="'http://' + axe.IP" target="_blank">
-                                    {{ axe.IP }}
-                                </a><!--nbTooltip="{{ axe.ASICModel }}" tooltipPosition="top"-->
-                                <div class="text-sm">{{ axe.hostname }}</div>
-                            </td>
-                            <!-- Hash Rate -->
-                            <td>{{ axe.hashRate * 1000000000 | hashSuffix }}</td>
-                            <!-- Uptime -->
-                            <td>{{ axe.uptimeSeconds | dateAgo: {intervals: 2} }}</td>
-                            <!-- Shares (Accepted & Rejected) -->
-                            <td>
-                                <div nbTooltip="Shares Accepted" tooltipPosition="top">
-                                    {{ axe.sharesAccepted | number:'1.0-0' }}
-                                </div>
-                                <div nbTooltip="Shares Rejected" tooltipPosition="top" class="text-sm">
-                                    {{ axe.sharesRejected | number:'1.0-0' }}
-                                </div>
-                            </td>
-                            <!-- Power -->
-                            <td>{{ axe.power | number:'1.1-1' }} <small>W</small></td>
-                            <!-- Temperature (with VR temp if available) -->
-                            <td>
-                                <div [ngClass]="{'text-orange-500': axe.temp > 68}">
-                                    {{ axe.temp | number:'1.0-1' }}°<small>C</small>
-                                </div>
-                                <div *ngIf="axe.vrTemp" nbTooltip="Voltage Regulator Temperature" tooltipPosition="top"
-                                    [ngClass]="{'text-orange-500': axe.vrTemp > 90}" class="text-sm">
-                                    {{ axe.vrTemp | number:'1.0-1' }}°<small>C</small>
-                                </div>
-                            </td>
-                            <!-- Stratum Pool Diff -->
-                            <td>{{ axe.poolDifficulty | number:'1.0-0' }}</td>
-                            <!-- Best Diff with Best Session Diff tooltip -->
-                            <td>
-                                <div>{{ axe.bestDiff }}</div>
-                                <div nbTooltip="Best Session Diff" tooltipPosition="top" class="text-sm">
-                                    {{ axe.bestSessionDiff }}
-                                </div>
-                            </td>
-                            <!-- Version -->
-                            <td>{{ axe.version }}</td>
-                            <!-- Action Buttons -->
-                            <td>
-                                <button nbButton status="warning" size="small" (click)="edit(axe)">
-                                    <nb-icon icon="edit-outline"></nb-icon>
-                                </button>
-                            </td>
-                            <td>
-                                <button nbButton status="danger" size="small" (click)="restart(axe)">
-                                    <nb-icon icon="sync-outline"></nb-icon>
-                                </button>
-                            </td>
-                            <td>
-                                <button nbButton status="basic" size="small" (click)="remove(axe)">
-                                    <nb-icon icon="trash-2-outline"></nb-icon>
-                                </button>
-                            </td>
-                        </tr>
-                    </ng-container>
-                </tbody>
-            </table>
-
-            <!-- Legend (Optional) -->
-            <div class="d-flex flex-wrap gap-2 mt-3 text-sm justify-content-center">
-                <div class="d-flex align-items-center gap-1" [style.opacity]="hasModel('BM1397')">
-                    <span class="text-red-500">●</span>
-                    <span>BM1397 (Max)</span>
-                </div>
-                <div class="d-flex align-items-center gap-1" [style.opacity]="hasModel('BM1366')">
-                    <span class="text-purple-500">●</span>
-                    <span>BM1366 (Ultra)</span>
-                </div>
-                <div class="d-flex align-items-center gap-1" [style.opacity]="hasModel('BM1368')">
-                    <span class="text-blue-500">●</span>
-                    <span>BM1368 (Supra)</span>
-                </div>
-                <div class="d-flex align-items-center gap-1" [style.opacity]="hasModel('BM1370')">
-                    <span class="text-green-500">●</span>
-                    <span>BM1370 (Gamma)</span>
-                </div>
-                <div class="d-flex align-items-center gap-1" [style.opacity]="hasMultipleChips()">
-                    <span class="text-orange-500">●</span>
-                    <span>Multiple Chip Device</span>
-                </div>
-            </div>
-        </nb-card-body>
-
-        <ng-template #empty>
-            <div class="p-4 text-center text-secondary">Empty List</div>
-        </ng-template>
+  <!-- Totals -->
+  <div class="d-flex justify-content-between mt-4 mb-3 gap-md-3 totals">
+    <nb-card class="text-center mb-0" style="flex: 1;">
+      <nb-card-body>
+        <span class="text-start">Total Hash Rate</span>
+        <span class="text-primary fw-bold">{{ totals.hashRate * 1000000000 | hashSuffix }}</span>
+      </nb-card-body>
     </nb-card>
+    <nb-card class="text-center mb-0" style="flex: 1;">
+      <nb-card-body>
+        <span class="text-start">Total Power</span>
+        <span class="text-primary fw-bold">{{ totals.power | number:'1.1-1' }} W</span>
+      </nb-card-body>
+    </nb-card>
+    <nb-card class="text-center mb-0" style="flex: 1;">
+      <nb-card-body>
+        <span class="text-start">Best Diff</span>
+        <span class="text-primary fw-bold">{{ totals.bestDiff === '0.00' ? 0 : totals.bestDiff }}</span>
+      </nb-card-body>
+    </nb-card>
+  </div>
 
-    <!-- Edit Modal -->
-    <div *ngIf="showEdit">
-        <div class="modal-backdrop" (click)="showEdit = false"></div>
-        <nb-card class="modal">
-            <nb-card-header>
-                <button nbButton status="danger" size="small" (click)="showEdit = false">&#10006;</button>
-            </nb-card-header>
-            <nb-card-body>
-                <h1>{{ selectedAxeOs?.IP }}</h1>
-                <app-edit [uri]="'http://' + selectedAxeOs?.IP"></app-edit>
-            </nb-card-body>
-        </nb-card>
-    </div>
+  <!-- Swarm Overview Table -->
+  <nb-card class="mb-0">
+    <nb-card-header>Swarm Overview</nb-card-header>
+
+    <nb-card-body *ngIf="swarm.length; else empty">
+      <table class="swarm-table">
+        <thead>
+          <tr>
+            <th>IP</th>
+            <th>Hash Rate</th>
+            <th>Uptime</th>
+            <th>Shares</th>
+            <th>Power</th>
+            <th>Temp</th>
+            <th>Pool Diff</th>
+            <th>Best Diff</th>
+            <th>Version</th>
+            <th>&nbsp;</th>
+            <th>&nbsp;</th>
+            <th>&nbsp;</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let axe of swarm">
+            <tr>
+              <!-- IP with swarmColor dot -->
+              <td>
+                <a [href]="'http://' + axe.IP" target="_blank">
+                  <span class="swarm-dot" [style.background]="axe.swarmColor || 'blue'"></span>
+                  {{ axe.IP }}
+                </a>
+                <div class="text-sm">{{ axe.hostname }}</div>
+              </td>
+
+              <!-- Hash Rate -->
+              <td>{{ axe.hashRate * 1000000000 | hashSuffix }}</td>
+
+              <!-- Uptime -->
+              <td>{{ axe.uptimeSeconds | dateAgo: {intervals: 2} }}</td>
+
+              <!-- Shares (Accepted & Rejected) -->
+              <td>
+                <div nbTooltip="Shares Accepted" tooltipPosition="top">
+                  {{ axe.sharesAccepted | number:'1.0-0' }}
+                </div>
+                <div nbTooltip="Shares Rejected" tooltipPosition="top" class="text-sm">
+                  {{ axe.sharesRejected | number:'1.0-0' }}
+                </div>
+              </td>
+
+              <!-- Power -->
+              <td>{{ axe.power | number:'1.1-1' }} <small>W</small></td>
+
+              <!-- Temperature (with VR temp if available) -->
+              <td>
+                <div [ngClass]="{'text-orange-500': axe.temp > 68}">
+                  {{ axe.temp | number:'1.0-1' }}°<small>C</small>
+                </div>
+                <div *ngIf="axe.vrTemp"
+                     nbTooltip="Voltage Regulator Temperature"
+                     tooltipPosition="top"
+                     [ngClass]="{'text-orange-500': axe.vrTemp > 90}"
+                     class="text-sm">
+                  {{ axe.vrTemp | number:'1.0-1' }}°<small>C</small>
+                </div>
+              </td>
+
+              <!-- Stratum Pool Diff -->
+              <td>{{ axe.poolDifficulty | number:'1.0-0' }}</td>
+
+              <!-- Best Diff with Best Session Diff tooltip -->
+              <td>
+                <div>{{ axe.bestDiff }}</div>
+                <div nbTooltip="Best Session Diff" tooltipPosition="top" class="text-sm">
+                  {{ axe.bestSessionDiff }}
+                </div>
+              </td>
+
+              <!-- Version -->
+              <td>{{ axe.version }}</td>
+
+              <!-- Action Buttons -->
+              <td>
+                <button nbButton status="warning" size="small"
+                        (click)="edit(axe)"
+                        nbTooltip="{{ axe.supportsAsicApi ? 'Edit settings' : 'Firmware update required' }}"
+                        tooltipPosition="top">
+                  <nb-icon icon="edit-outline"></nb-icon>
+                </button>
+              </td>
+              <td>
+                <button nbButton status="danger" size="small" (click)="restart(axe)"
+                  nbTooltip="Restart device" tooltipPosition="top">
+                  <nb-icon icon="sync-outline"></nb-icon>
+                </button>
+              </td>
+              <td>
+                <button nbButton status="basic" size="small" (click)="remove(axe)"
+                nbTooltip="Remove from list" tooltipPosition="top">
+                  <nb-icon icon="trash-2-outline"></nb-icon>
+                </button>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+
+      <!-- Legend -->
+      <div class="d-flex flex-wrap gap-3 mt-3 text-sm justify-content-center">
+        <ng-container *ngFor="let item of colorLegend">
+          <div class="legend-chip" [title]="item.label + ' (' + item.color + ') ×' + item.count">
+            <span class="swarm-dot" [style.background]="item.color"></span>
+            <span class="legend-label">{{ item.label }}</span>
+            <span class="legend-count">×{{ item.count }}</span>
+          </div>
+        </ng-container>
+      </div>
+
+    </nb-card-body>
+
+    <ng-template #empty>
+      <div class="p-4 text-center text-secondary">Empty List</div>
+    </ng-template>
+  </nb-card>
+
+  <!-- Edit Modal -->
+  <div *ngIf="showEdit">
+    <div class="modal-backdrop" (click)="showEdit = false"></div>
+    <nb-card class="modal">
+      <nb-card-header>
+        <button nbButton status="danger" size="small" (click)="showEdit = false">&#10006;</button>
+      </nb-card-header>
+      <nb-card-body>
+        <h1>{{ selectedAxeOs?.IP }}</h1>
+        <app-edit [uri]="'http://' + selectedAxeOs?.IP"></app-edit>
+      </nb-card-body>
+    </nb-card>
+  </div>
 </ng-container>

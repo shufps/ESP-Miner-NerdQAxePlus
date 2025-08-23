@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { NbCardModule, NbButtonModule, NbIconModule, NbInputModule, NbLayoutModule } from '@nebular/theme';
+import { NbCardModule, NbButtonModule, NbIconModule, NbInputModule, NbLayoutModule, NbTooltipModule } from '@nebular/theme';
 import { SwarmComponent } from './swarm.component';
 import { EditModule } from '../edit/edit.module';
 import { PipesModule} from '../../pipes/pipes.module';
@@ -19,6 +19,7 @@ import { PipesModule} from '../../pipes/pipes.module';
     NbIconModule,
     NbInputModule,
     NbLayoutModule,
+    NbTooltipModule,
     EditModule,
     PipesModule
   ],
