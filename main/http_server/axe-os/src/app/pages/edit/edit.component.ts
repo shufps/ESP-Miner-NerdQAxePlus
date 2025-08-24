@@ -148,7 +148,7 @@ export class EditComponent implements OnInit {
         ssid: [info.ssid, [Validators.required]],
         wifiPass: ['*****'],
 
-        coreVoltage: [info.coreVoltage, [Validators.required]],
+        coreVoltage: [info.coreVoltage, [Validators.min(1005), Validators.max(1400), Validators.required]],
         frequency: [info.frequency, [Validators.required]],
         jobInterval: [info.jobInterval, [Validators.required]],
         stratumDifficulty: [info.stratumDifficulty, [Validators.required, Validators.min(1)]],
@@ -182,20 +182,6 @@ export class EditComponent implements OnInit {
           Validators.required
         ]]
       });
-
-      // Derive min/max dynamically from the options
-      if (this.asicVoltageValues.length) {
-        const vmin = Math.min(...this.asicVoltageValues);
-        const vmax = Math.max(...this.asicVoltageValues);
-        this.form.controls['coreVoltage'].setValidators([Validators.required, Validators.min(vmin), Validators.max(vmax)]);
-        this.form.controls['coreVoltage'].updateValueAndValidity({ emitEvent: false });
-      }
-      if (this.asicFrequencyValues.length) {
-        const fmin = Math.min(...this.asicFrequencyValues);
-        const fmax = Math.max(...this.asicFrequencyValues);
-        this.form.controls['frequency'].setValidators([Validators.required, Validators.min(fmin), Validators.max(fmax)]);
-        this.form.controls['frequency'].updateValueAndValidity({ emitEvent: false });
-      }
 
       this.form.controls['autofanspeed'].valueChanges
         .pipe(startWith(this.form.controls['autofanspeed'].value))
