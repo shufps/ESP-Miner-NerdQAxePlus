@@ -144,9 +144,7 @@ bool NerdaxeGamma::initAsics() {
 bool NerdaxeGamma::setVoltage(float core_voltage)
 {
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
-    TPS546_set_vout(core_voltage);
-
-    return true;
+    return Board::setVoltage(core_voltage) && TPS546_set_vout(core_voltage);
 }
 
 float NerdaxeGamma::getTemperature(int index) {

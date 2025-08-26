@@ -472,19 +472,19 @@ float TPS53647::get_iout(void)
  * A value between TPS53647_INIT_VOUT_MIN and TPS53647_INIT_VOUT_MAX
  * send a 0 to turn off the output
  **/
-void TPS53647::set_vout(float volts)
+bool TPS53647::set_vout(float volts)
 {
     if (volts == 0) {
         // turn off output
         // write_byte(PMBUS_OPERATION, OPERATION_OFF);
         power_disable();
-        return;
+        return true;
     }
 
     // make sure we're in range
     if ((volts < m_initVOutMin) || (volts > m_initVOutMax)) {
         ESP_LOGE(TAG, "ERR- Voltage requested (%f V) is out of range", volts);
-        return;
+        return false;
     }
 
     //    write_byte(PMBUS_OPERATION, OPERATION_ON);
@@ -497,6 +497,7 @@ void TPS53647::set_vout(float volts)
     // write_byte(PMBUS_OPERATION, OPERATION_ON);
 
     ESP_LOGI(TAG, "Vout changed to %1.2f V", volts);
+    return true;
 }
 
 void TPS53647::show_voltage_settings(void)

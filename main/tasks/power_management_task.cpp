@@ -77,13 +77,12 @@ void PowerManagementTask::checkAsicFrequencyChanged() {
     static uint16_t last_asic_frequency = 0;
 
     Board* board = SYSTEM_MODULE.getBoard();
-    Asic* asics = board->getAsics();
 
     uint16_t asic_frequency = board->getAsicFrequency();
 
     if (asic_frequency != last_asic_frequency) {
         ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
-        if (asics && !asics->setAsicFrequency((float) asic_frequency)) {
+        if (!board->setAsicFrequency((float) asic_frequency)) {
             ESP_LOGE(TAG, "pll setting not found for %uMHz", asic_frequency);
         }
         last_asic_frequency = asic_frequency;
@@ -158,8 +157,6 @@ void PowerManagementTask::task()
 
     while (1) {
         lock();
-        // the asics are initialized after this task starts
-        Asic* asics = board->getAsics();
 
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
         uint16_t temp_control_mode = Config::getTempControlMode();

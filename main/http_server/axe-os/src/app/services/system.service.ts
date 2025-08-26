@@ -96,6 +96,8 @@ const defaultAsicInfo: AsicInfo = {
   swarmColor: 'blue',
   defaultFrequency: 490,
   defaultVoltage: 1166,
+  absMaxFrequency: 800,
+  absMaxVoltage: 1400,
   frequencyOptions: [400, 425, 450, 475, 485, 490, 500, 525, 550, 575],
   voltageOptions: [1100, 1150, 1166, 1200, 1250, 1300],
 };
