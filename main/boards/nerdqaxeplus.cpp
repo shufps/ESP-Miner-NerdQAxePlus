@@ -188,8 +188,12 @@ void NerdQaxePlus::LDO_disable()
 
 bool NerdQaxePlus::setVoltage(float core_voltage)
 {
+    if (!Board::setVoltage(core_voltage)) {
+        return false;
+    }
+
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
-    return Board::setVoltage(core_voltage) && m_tps->set_vout(core_voltage);
+    return m_tps->set_vout(core_voltage);
 }
 
 void NerdQaxePlus::setFanSpeed(float perc) {

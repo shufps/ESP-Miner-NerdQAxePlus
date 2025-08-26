@@ -165,7 +165,7 @@ bool Board::setVoltage(float core_voltage) {
     // we allow m_absMaxAsicVoltageMillis = 0 for no limit to not break what was
     // working before on nerdaxe and nerdaxegamma
     if (m_absMaxAsicVoltageMillis && millis > m_absMaxAsicVoltageMillis) {
-        ESP_LOGE(TAG, "Not setting ASIC voltage %.3f which is higher than abolute maximum value", core_voltage);
+        ESP_LOGE(TAG, "Not setting ASIC voltage %.3f which is higher than absolute maximum value", core_voltage);
         return false;
     }
     // NOP
@@ -180,7 +180,7 @@ bool Board::setAsicFrequency(float f) {
     // we allow m_absMaxAsicFrequency = 0 for no limit to not break what was
     // working before on nerdaxe and nerdaxegamma
     if (m_absMaxAsicFrequency && f > m_absMaxAsicFrequency) {
-        ESP_LOGE(TAG, "Not setting ASIC Frequency %.3f which is higher than abolute maximum value", f);
+        ESP_LOGE(TAG, "Not setting ASIC Frequency %.3f which is higher than absolute maximum value", f);
         return false;
     }
 
