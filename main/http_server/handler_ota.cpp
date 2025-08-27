@@ -30,42 +30,41 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    // lock the power management module
-    POWER_MANAGEMENT_MODULE.lock();
+    {
+        // lock the power management module
+        LockGuard g(POWER_MANAGEMENT_MODULE);
 
-    // Erase the entire www partition before writing
-    ESP_ERROR_CHECK(esp_partition_erase_range(www_partition, 0, www_partition->size));
+        // Erase the entire www partition before writing
+        ESP_ERROR_CHECK(esp_partition_erase_range(www_partition, 0, www_partition->size));
 
-    // don't put it on the stack
-    char *buf = (char*) malloc(2048);
+        // don't put it on the stack
+        char *buf = (char*) malloc(2048);
 
-    while (remaining > 0) {
-        int recv_len = httpd_req_recv(req, buf, min(remaining, 2048));
+        while (remaining > 0) {
+            int recv_len = httpd_req_recv(req, buf, min(remaining, 2048));
 
-        if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
-            continue;
-        } else if (recv_len <= 0) {
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
-            free(buf);
-            POWER_MANAGEMENT_MODULE.unlock();
-            return ESP_FAIL;
+            if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
+                continue;
+            } else if (recv_len <= 0) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
+                free(buf);
+                return ESP_FAIL;
+            }
+
+            if (esp_partition_write(www_partition, www_partition->size - remaining, (const void *) buf, recv_len) != ESP_OK) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Write Error");
+                free(buf);
+                return ESP_FAIL;
+            }
+
+            remaining -= recv_len;
+
+            // give the scheduler a chance for other tasks
+            vTaskDelay(1);
         }
 
-        if (esp_partition_write(www_partition, www_partition->size - remaining, (const void *) buf, recv_len) != ESP_OK) {
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Write Error");
-            free(buf);
-            POWER_MANAGEMENT_MODULE.unlock();
-            return ESP_FAIL;
-        }
-
-        remaining -= recv_len;
-
-        // give the scheduler a chance for other tasks
-        vTaskDelay(1);
+        free(buf);
     }
-
-    free(buf);
-    POWER_MANAGEMENT_MODULE.unlock();
 
     httpd_resp_sendstr(req, "WWW update complete\n");
     return ESP_OK;
@@ -83,53 +82,52 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
     esp_ota_handle_t ota_handle;
     int remaining = req->content_len;
 
-    // lock the power management module
-    POWER_MANAGEMENT_MODULE.lock();
+    {
+        // lock the power management module
+        LockGuard g(POWER_MANAGEMENT_MODULE);
 
-    const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
-    ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
+        const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
+        ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
 
-    // don't put it on the stack
-    char *buf = (char*) malloc(2048);
+        // don't put it on the stack
+        char *buf = (char*) malloc(2048);
 
-    while (remaining > 0) {
-        int recv_len = httpd_req_recv(req, buf, min(remaining, 2048));
+        while (remaining > 0) {
+            int recv_len = httpd_req_recv(req, buf, min(remaining, 2048));
 
-        // Timeout Error: Just retry
-        if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
-            continue;
+            // Timeout Error: Just retry
+            if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
+                continue;
 
-            // Serious Error: Abort OTA
-        } else if (recv_len <= 0) {
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
-            free(buf);
-            POWER_MANAGEMENT_MODULE.unlock();
-            return ESP_FAIL;
+                // Serious Error: Abort OTA
+            } else if (recv_len <= 0) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
+                free(buf);
+                return ESP_FAIL;
+            }
+
+            // Successful Upload: Flash firmware chunk
+            if (esp_ota_write(ota_handle, (const void *) buf, recv_len) != ESP_OK) {
+                esp_ota_abort(ota_handle);
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Flash Error");
+                free(buf);
+                return ESP_FAIL;
+            }
+
+            remaining -= recv_len;
+
+            // give the scheduler a chance for other tasks
+            vTaskDelay(1);
         }
 
-        // Successful Upload: Flash firmware chunk
-        if (esp_ota_write(ota_handle, (const void *) buf, recv_len) != ESP_OK) {
-            esp_ota_abort(ota_handle);
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Flash Error");
-            free(buf);
-            POWER_MANAGEMENT_MODULE.unlock();
+        free(buf);
+
+        // Validate and switch to new OTA image and reboot
+        if (esp_ota_end(ota_handle) != ESP_OK || esp_ota_set_boot_partition(ota_partition) != ESP_OK) {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Validation / Activation Error");
             return ESP_FAIL;
         }
-
-        remaining -= recv_len;
-
-        // give the scheduler a chance for other tasks
-        vTaskDelay(1);
     }
-
-    free(buf);
-
-    // Validate and switch to new OTA image and reboot
-    if (esp_ota_end(ota_handle) != ESP_OK || esp_ota_set_boot_partition(ota_partition) != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Validation / Activation Error");
-        return ESP_FAIL;
-    }
-    POWER_MANAGEMENT_MODULE.unlock();
 
     httpd_resp_sendstr(req, "Firmware update complete, rebooting now!\n");
     ESP_LOGI(TAG, "Restarting System because of Firmware update complete");
