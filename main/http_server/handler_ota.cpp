@@ -30,6 +30,9 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    // lock the power management module
+    POWER_MANAGEMENT_MODULE.lock();
+
     // Erase the entire www partition before writing
     ESP_ERROR_CHECK(esp_partition_erase_range(www_partition, 0, www_partition->size));
 
@@ -44,19 +47,25 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
         } else if (recv_len <= 0) {
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
             free(buf);
+            POWER_MANAGEMENT_MODULE.unlock();
             return ESP_FAIL;
         }
 
         if (esp_partition_write(www_partition, www_partition->size - remaining, (const void *) buf, recv_len) != ESP_OK) {
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Write Error");
             free(buf);
+            POWER_MANAGEMENT_MODULE.unlock();
             return ESP_FAIL;
         }
 
         remaining -= recv_len;
+
+        // give the scheduler a chance for other tasks
+        vTaskDelay(1);
     }
 
     free(buf);
+    POWER_MANAGEMENT_MODULE.unlock();
 
     httpd_resp_sendstr(req, "WWW update complete\n");
     return ESP_OK;
@@ -73,6 +82,9 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
 
     esp_ota_handle_t ota_handle;
     int remaining = req->content_len;
+
+    // lock the power management module
+    POWER_MANAGEMENT_MODULE.lock();
 
     const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
     ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
@@ -91,6 +103,7 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
         } else if (recv_len <= 0) {
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
             free(buf);
+            POWER_MANAGEMENT_MODULE.unlock();
             return ESP_FAIL;
         }
 
@@ -99,10 +112,14 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
             esp_ota_abort(ota_handle);
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Flash Error");
             free(buf);
+            POWER_MANAGEMENT_MODULE.unlock();
             return ESP_FAIL;
         }
 
         remaining -= recv_len;
+
+        // give the scheduler a chance for other tasks
+        vTaskDelay(1);
     }
 
     free(buf);
@@ -112,6 +129,7 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Validation / Activation Error");
         return ESP_FAIL;
     }
+    POWER_MANAGEMENT_MODULE.unlock();
 
     httpd_resp_sendstr(req, "Firmware update complete, rebooting now!\n");
     ESP_LOGI(TAG, "Restarting System because of Firmware update complete");
