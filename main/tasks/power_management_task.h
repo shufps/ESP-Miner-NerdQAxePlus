@@ -4,6 +4,15 @@
 #include "boards/board.h"
 #include "pid/PID_v1_bc.h"
 
+template <class T>
+class LockGuard {
+public:
+    LockGuard(T& obj) : m_obj(obj) { m_obj.lock(); }
+    ~LockGuard() { m_obj.unlock(); }
+private:
+    T& m_obj;
+};
+
 class PowerManagementTask {
   protected:
     pthread_mutex_t m_mutex;
