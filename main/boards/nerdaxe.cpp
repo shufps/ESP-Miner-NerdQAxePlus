@@ -178,6 +178,10 @@ void NerdAxe::requestBuckTelemtry() {
 
 bool NerdAxe::setVoltage(float core_voltage)
 {
+    if (!validateVoltage(core_voltage)) {
+        return false;
+    }
+
     if (!core_voltage) {
         // inverted
         gpio_set_level(PWR_EN_PIN, 1);

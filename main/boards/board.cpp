@@ -10,6 +10,8 @@ const static char* TAG = "board";
 
 Board::Board() {
     m_fanAutoPolarity = true; // default detect polarity
+    m_absMaxAsicFrequency = 0;
+    m_absMaxAsicVoltageMillis = 0;
 }
 
 void Board::loadSettings()
@@ -156,4 +158,38 @@ FanPolarityGuess Board::guessFanPolarity() {
         ESP_LOGI("polarity", "inverted fan polarity detected");
         return POLARITY_INVERTED;
     }
+}
+
+bool Board::validateVoltage(float core_voltage) {
+    int millis = (int) (core_voltage * 1000.0f);
+    // we allow m_absMaxAsicVoltageMillis = 0 for no limit to not break what was
+    // working before on nerdaxe and nerdaxegamma
+    if (m_absMaxAsicVoltageMillis && millis > m_absMaxAsicVoltageMillis) {
+        ESP_LOGE(TAG, "Validation error. ASIC voltage %d is higher than absolute maximum value %d", millis, m_absMaxAsicVoltageMillis);
+        return false;
+    }
+    return true;
+}
+
+bool Board::validateFrequency(float frequency) {
+    // we allow m_absMaxAsicFrequency = 0 for no limit to not break what was
+    // working before on nerdaxe and nerdaxegamma
+    if (m_absMaxAsicFrequency && frequency > (float) m_absMaxAsicFrequency) {
+        ESP_LOGE(TAG, "Validation error. ASIC Frequency %.3f is higher than absolute maximum value %.3f", frequency, (float) m_absMaxAsicFrequency);
+        return false;
+    }
+    return true;
+}
+
+bool Board::setAsicFrequency(float frequency) {
+    if (!validateFrequency(frequency)) {
+        return false;
+    }
+
+    // not initialized
+    if (!m_asics) {
+        return false;
+    }
+
+    return m_asics->setAsicFrequency(frequency);
 }

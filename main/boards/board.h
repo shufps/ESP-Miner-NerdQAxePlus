@@ -32,6 +32,8 @@ class Board {
     int m_asicJobIntervalMs;
     int m_asicFrequency;
     int m_asicVoltageMillis;
+    int m_absMaxAsicFrequency;
+    int m_absMaxAsicVoltageMillis;
 
     // frequency and voltage options
     std::vector<uint32_t> m_asicFrequencies;
@@ -83,10 +85,13 @@ class Board {
     int getAsicCount();
     int getAsicJobIntervalMs();
     uint32_t getInitialASICDifficulty();
+    virtual bool setAsicFrequency(float f);
+
+    bool validateFrequency(float frequency);
+    bool validateVoltage(float core_voltage);
 
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
-
     virtual void setFanPolarity(bool invert) = 0;
     virtual void setFanSpeed(float perc) = 0;
     virtual void getFanSpeed(uint16_t *rpm) = 0;
@@ -126,6 +131,7 @@ class Board {
     {
         return m_asicMaxDifficulty;
     };
+
     uint32_t getAsicMinDifficulty()
     {
         return m_asicMinDifficulty;
@@ -149,6 +155,14 @@ class Board {
     int getAsicFrequency()
     {
         return m_asicFrequency;
+    }
+
+    int getAbsMaxAsicFrequency() {
+        return m_absMaxAsicFrequency;
+    }
+
+    int getAbsMaxAsicVoltageMillis() {
+        return m_absMaxAsicVoltageMillis;
     }
 
     int getDefaultAsicVoltageMillis()

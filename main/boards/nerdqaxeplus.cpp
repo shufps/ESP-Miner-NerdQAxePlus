@@ -34,6 +34,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicVoltages = {1100, 1150, 1200, 1250, 1300, 1350};
     m_defaultAsicFrequency = m_asicFrequency = 490;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1250; // default voltage
+    m_absMaxAsicFrequency = 800;
+    m_absMaxAsicVoltageMillis = 1400;
     m_initVoltageMillis = 1250;
     m_fanInvertPolarity = false;
     m_fanPerc = 100;
@@ -186,9 +188,12 @@ void NerdQaxePlus::LDO_disable()
 
 bool NerdQaxePlus::setVoltage(float core_voltage)
 {
+    if (!validateVoltage(core_voltage)) {
+        return false;
+    }
+
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
-    m_tps->set_vout(core_voltage);
-    return true;
+    return m_tps->set_vout(core_voltage);
 }
 
 void NerdQaxePlus::setFanSpeed(float perc) {

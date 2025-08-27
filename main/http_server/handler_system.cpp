@@ -350,6 +350,8 @@ esp_err_t GET_system_asic(httpd_req_t *req)
     doc["asicCount"]        = board->getAsicCount();
     doc["defaultFrequency"] = board->getDefaultAsicFrequency();
     doc["defaultVoltage"]   = board->getDefaultAsicVoltageMillis();
+    doc["absMaxFrequency"]  = board->getAbsMaxAsicFrequency();
+    doc["absMaxVoltage"]    = board->getAbsMaxAsicVoltageMillis();
 
     doc["swarmColor"] = board->getSwarmColorName();
 
