@@ -85,10 +85,13 @@ class Board {
     int getAsicCount();
     int getAsicJobIntervalMs();
     uint32_t getInitialASICDifficulty();
-    virtual bool setVoltage(float core_voltage);
     virtual bool setAsicFrequency(float f);
 
+    bool validateFrequency(float frequency);
+    bool validateVoltage(float core_voltage);
+
     // abstract common methos
+    virtual bool setVoltage(float core_voltage) = 0;
     virtual void setFanPolarity(bool invert) = 0;
     virtual void setFanSpeed(float perc) = 0;
     virtual void getFanSpeed(uint16_t *rpm) = 0;

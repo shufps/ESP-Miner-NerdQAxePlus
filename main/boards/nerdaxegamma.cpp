@@ -143,7 +143,7 @@ bool NerdaxeGamma::initAsics() {
 
 bool NerdaxeGamma::setVoltage(float core_voltage)
 {
-    if (!Board::setVoltage(core_voltage)) {
+    if (!validateVoltage(core_voltage)) {
         return false;
     }
 

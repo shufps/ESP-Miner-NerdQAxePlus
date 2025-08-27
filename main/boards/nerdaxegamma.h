@@ -17,7 +17,6 @@ class NerdaxeGamma : public NerdAxe {
 
     virtual void shutdown();
 
-// abstract common methos
     virtual bool setVoltage(float core_voltage);
 
     virtual float getTemperature(int index);
