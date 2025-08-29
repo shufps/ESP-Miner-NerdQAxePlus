@@ -93,12 +93,12 @@ double History::getCurrentHashrate10m()
 
 double History::getCurrentHashrate1h()
 {
-    return m_avg10m.getGh();
+    return m_avg1h.getGh();
 }
 
 double History::getCurrentHashrate1d()
 {
-    return m_avg10m.getGh();
+    return m_avg1d.getGh();
 }
 
 uint32_t History::getShareSample(int index)
