@@ -16,8 +16,8 @@ private:
 class PowerManagementTask {
   protected:
     pthread_mutex_t m_mutex;
-    uint16_t m_fanPerc;
-    uint16_t m_fanRPM;
+    uint16_t m_fanPerc[Board::FAN_COUNT];
+    uint16_t m_fanRPM[Board::FAN_COUNT];
     float m_chipTempMax;
     float m_vrTemp;
     float m_voltage;
@@ -59,13 +59,13 @@ class PowerManagementTask {
     {
         return m_vrTemp;
     };
-    uint16_t getFanRPM()
+    uint16_t getFanRPM(int fan = 0)
     {
-        return m_fanRPM;
+        return m_fanRPM[fan];
     };
-    uint16_t getFanPerc()
+    uint16_t getFanPerc(int fan = 0)
     {
-        return m_fanPerc;
+        return m_fanPerc[fan];
     };
 
     void lock() {

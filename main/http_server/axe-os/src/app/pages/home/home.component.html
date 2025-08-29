@@ -188,6 +188,16 @@
                   [label]="'Fan RPM'"></app-gauge>
               </div>
             </div>
+            <div class="row text-center" *ngIf="info.fan2enabled">
+              <div class="col-{{ heatSectionColModifier }}">
+                <app-gauge [value]="info.fanspeed2" [min]="0" [format]="'1.0-0'" [max]="100" [unit]="'%'"
+                  [label]="'Fan2 Speed'"></app-gauge>
+              </div>
+              <div class="col-{{ heatSectionColModifier }}">
+                <app-gauge [value]="info.fanrpm2" [format]="'1.0-0'" [min]="0" [max]="20000" [unit]="'RPM'"
+                  [label]="'Fan2 RPM'"></app-gauge>
+              </div>
+            </div>
           </nb-card-body>
         </nb-card>
       </div>

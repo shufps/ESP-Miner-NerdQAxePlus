@@ -8,36 +8,30 @@
 
 const char *TAG = "emc2302";
 
-esp_err_t EMC2302_set_fan_speed(float percent)
+esp_err_t EMC2302_set_fan_speed(int fan, float percent)
 {
     int value = (int) (percent * 255.0 + 0.5);
     value = (value > 255) ? 255 : value;
 
-    esp_err_t err;
+    uint8_t base = (fan == 0) ? EMC2302_FAN1 : EMC2302_FAN2;
 
-    ESP_LOGI(TAG, "setting fan speed to %.2f%% (0x%02x)", percent * 100.0, value);
+    ESP_LOGI(TAG, "setting fan %d speed to %.2f%% (0x%02x)", fan, percent * 100.0, value);
 
-    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN1 + EMC2302_OFS_FAN_SETTING, (uint8_t) value);
-    if (err != ESP_OK) {
-        return err;
-    }
-    err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_FAN_SETTING, (uint8_t) value);
-    return err;
+    return i2c_master_register_write_byte(EMC2302_ADDR, base + EMC2302_OFS_FAN_SETTING, (uint8_t) value);
 }
 
-esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
+esp_err_t EMC2302_get_fan_speed(int fan, uint16_t *dst)
 {
     esp_err_t err;
     uint8_t tach_lsb, tach_msb;
 
-    // report only first fan
-    // use channel 2 that is closed to the CPU cooler
-    err = i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1);
+    uint8_t base = (fan == 0) ? EMC2302_FAN1 : EMC2302_FAN2;
+    err = i2c_master_register_read(EMC2302_ADDR, base + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1);
     if (err != ESP_OK) {
         *dst = 0;
         return err;
     }
-    err = i2c_master_register_read(EMC2302_ADDR, EMC2302_FAN2 + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1);
+    err = i2c_master_register_read(EMC2302_ADDR, base + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1);
     if (err != ESP_OK) {
         *dst = 0;
         return err;
@@ -79,7 +73,7 @@ esp_err_t EMC2302_get_fan_speed(uint16_t *dst)
         // on invalid result set it to 0 to indicate an error
         rpm = 0;
     } else {
-        ESP_LOGI(TAG, "fan speed: %dRPM", rpm);
+        ESP_LOGI(TAG, "fan %d speed: %dRPM", fan, rpm);
     }
 
     *dst = rpm;
@@ -124,8 +118,8 @@ bool EMC2302_init(bool invertPolarity)
     return true;
 }
 
-bool EMC2302_set_fan_polarity(bool invert) {
-    // set polarity of ch1 and ch2
+bool EMC2302_set_fan_polarity(int fan, bool invert) {
+    (void)fan;
     esp_err_t err = i2c_master_register_write_byte(EMC2302_ADDR, EMC2302_POLARITY, (invert) ? 0x03 : 0x00);
     return err == ESP_OK;
 }

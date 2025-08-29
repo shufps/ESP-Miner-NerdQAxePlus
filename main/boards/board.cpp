@@ -16,7 +16,10 @@ Board::Board() {
 
 void Board::loadSettings()
 {
-    m_fanPerc = Config::getFanSpeed();
+    m_fanPerc[0] = Config::getFanSpeed();
+    m_fanPerc[1] = Config::getFan2Speed();
+    m_fanEnabled[0] = true;
+    m_fanEnabled[1] = Config::isFan2Enabled();
 
     // default values are initialized in the constructor of each board
     m_asicFrequency = Config::getAsicFrequency(m_asicFrequency);
@@ -35,7 +38,8 @@ void Board::loadSettings()
     ESP_LOGI(TAG, "ASIC voltage: %dmV", m_asicVoltageMillis);
     ESP_LOGI(TAG, "ASIC job interval: %dms", m_asicJobIntervalMs);
     ESP_LOGI(TAG, "invert fan polarity: %s", m_fanInvertPolarity ? "true" : "false");
-    ESP_LOGI(TAG, "fan speed: %d%%", (int) m_fanPerc);
+    ESP_LOGI(TAG, "fan1 speed: %d%%", (int) m_fanPerc[0]);
+    ESP_LOGI(TAG, "fan2 speed: %d%% (enabled: %s)", (int) m_fanPerc[1], m_fanEnabled[1] ? "true" : "false");
 }
 
 bool Board::initBoard() {
@@ -112,25 +116,25 @@ FanPolarityGuess Board::guessFanPolarity() {
 
     // bring it to run at a safe setting
     ESP_LOGI("polarity", "set 50%%");
-    setFanPolarity(false);
-    setFanSpeed(0.5f);
+    setFanPolarity(false, 0);
+    setFanSpeed(0.5f, 0);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
 
     // Test low speed
-    setFanSpeed(lowPWM);
+    setFanSpeed(lowPWM, 0);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
-    getFanSpeed(&rpmLow);
+    getFanSpeed(&rpmLow, 0);
     ESP_LOGI("polarity", "set %.2f%% read: %d", lowPWM, rpmLow);
 
     // Test high speed
-    setFanSpeed(highPWM);
+    setFanSpeed(highPWM, 0);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
-    getFanSpeed(&rpmHigh);
+    getFanSpeed(&rpmHigh, 0);
     ESP_LOGI("polarity", "set %.2f%% read: %d", highPWM, rpmHigh);
 
     // Reset to mid-range to be safe
     ESP_LOGI("polarity", "set 50%%");
-    setFanSpeed(0.5f);
+    setFanSpeed(0.5f, 0);
 
     // No signal at all? Can't tell.
     if (rpmLow == 0 && rpmHigh == 0) {

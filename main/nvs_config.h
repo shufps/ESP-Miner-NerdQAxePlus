@@ -29,6 +29,8 @@
 #define NVS_CONFIG_AUTO_FAN_POLARITY "autofanpol"
 #define NVS_CONFIG_AUTO_FAN_SPEED "autofanspeed"
 #define NVS_CONFIG_FAN_SPEED "fanspeed"
+#define NVS_CONFIG_FAN2_SPEED "fan2speed"
+#define NVS_CONFIG_FAN2_ENABLED "fan2en"
 #define NVS_CONFIG_BEST_DIFF "bestdiff"
 #define NVS_CONFIG_SELF_TEST "selftest"
 #define NVS_CONFIG_AUTO_SCREEN_OFF "autoscreenoff"
@@ -116,6 +118,8 @@ namespace Config {
     inline uint16_t getStratumPortNumber() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_PORT, CONFIG_STRATUM_PORT); }
     inline uint16_t getStratumFallbackPortNumber() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, CONFIG_STRATUM_FALLBACK_PORT); }
     inline uint16_t getFanSpeed() { return nvs_config_get_u16(NVS_CONFIG_FAN_SPEED, CONFIG_FAN_SPEED); }
+    inline uint16_t getFan2Speed() { return nvs_config_get_u16(NVS_CONFIG_FAN2_SPEED, 0); }
+    inline bool isFan2Enabled() { return nvs_config_get_u16(NVS_CONFIG_FAN2_ENABLED, 0) != 0; }
     inline uint16_t getOverheatTemp() { return nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP); }
     inline uint16_t getInfluxPort() { return nvs_config_get_u16(NVS_CONFIG_INFLUX_PORT, CONFIG_INFLUX_PORT); }
     inline uint16_t getTempControlMode() { return nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE); }
@@ -128,6 +132,8 @@ namespace Config {
     inline void setStratumPortNumber(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_PORT, value); }
     inline void setStratumFallbackPortNumber(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_PORT, value); }
     inline void setFanSpeed(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_FAN_SPEED, value); }
+    inline void setFan2Speed(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_FAN2_SPEED, value); }
+    inline void setFan2Enabled(bool value) { nvs_config_set_u16(NVS_CONFIG_FAN2_ENABLED, value ? 1 : 0); }
     inline void setOverheatTemp(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_OVERHEAT_TEMP, value); }
     inline void setInfluxPort(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_PORT, value); }
     inline void setTempControlMode(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, value); }
