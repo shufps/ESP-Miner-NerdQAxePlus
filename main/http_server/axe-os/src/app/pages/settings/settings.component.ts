@@ -88,6 +88,8 @@ export class SettingsComponent {
           autofanspeed: [info.autofanspeed == 1, [Validators.required]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
           fanspeed: [info.fanspeed, [Validators.required]],
+          fan2enabled: [info.fan2enabled == 1, [Validators.required]],
+          fanspeed2: [info.fanspeed2, [Validators.required]],
         });
 
         this.form.controls['autofanspeed'].valueChanges.pipe(
@@ -95,8 +97,21 @@ export class SettingsComponent {
         ).subscribe(autofanspeed => {
           if (autofanspeed) {
             this.form.controls['fanspeed'].disable();
+            this.form.controls['fanspeed2'].disable();
           } else {
             this.form.controls['fanspeed'].enable();
+            if (this.form.controls['fan2enabled'].value) {
+              this.form.controls['fanspeed2'].enable();
+            }
+          }
+        });
+        this.form.controls['fan2enabled'].valueChanges.pipe(
+          startWith(this.form.controls['fan2enabled'].value)
+        ).subscribe(enabled => {
+          if (enabled && !this.form.controls['autofanspeed'].value) {
+            this.form.controls['fanspeed2'].enable();
+          } else {
+            this.form.controls['fanspeed2'].disable();
           }
         });
         // Replace 'γ' with 'Gamma' if present
@@ -129,6 +144,7 @@ export class SettingsComponent {
     form.invertfanpolarity = form.invertfanpolarity == true ? 1 : 0;
     form.autofanspeed = form.autofanspeed == true ? 1 : 0;
     form.autoscreenoff = form.autoscreenoff == true ? 1 : 0;
+    form.fan2enabled = form.fan2enabled == true ? 1 : 0;
 
     // Allow an empty wifi password
     form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;

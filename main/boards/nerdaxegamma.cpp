@@ -33,7 +33,10 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1150;
     m_initVoltageMillis = 1150;
     m_fanInvertPolarity = true;
-    m_fanPerc = 100;
+    m_fanPerc[0] = 100;
+    m_fanPerc[1] = 0;
+    m_fanEnabled[0] = true;
+    m_fanEnabled[1] = false;
     m_flipScreen = true;
     m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
 
@@ -76,7 +79,7 @@ bool NerdaxeGamma::initBoard()
     EMC2101_init(m_fanInvertPolarity);
     EMC2101_set_ideality_factor(EMC2101_IDEALITY_1_0319);
     EMC2101_set_beta_compensation(EMC2101_BETA_11);
-    setFanSpeed(m_fanPerc);
+    setFanSpeed(m_fanPerc[0], 0);
 
     //Init voltage controller
     if (TPS546_init() != ESP_OK) {

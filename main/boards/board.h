@@ -51,9 +51,11 @@ class Board {
     float m_vr_maxTemp = 0.0;
 
     // fans
+    static const int FAN_COUNT = 2;
     bool m_fanInvertPolarity;
     bool m_fanAutoPolarity;
-    float m_fanPerc;
+    float m_fanPerc[FAN_COUNT];
+    bool m_fanEnabled[FAN_COUNT];
 
     // flip screen
     bool m_flipScreen;
@@ -92,9 +94,9 @@ class Board {
 
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
-    virtual void setFanPolarity(bool invert) = 0;
-    virtual void setFanSpeed(float perc) = 0;
-    virtual void getFanSpeed(uint16_t *rpm) = 0;
+    virtual void setFanPolarity(bool invert, int fan = 0) = 0;
+    virtual void setFanSpeed(float perc, int fan = 0) = 0;
+    virtual void getFanSpeed(uint16_t *rpm, int fan = 0) = 0;
     FanPolarityGuess guessFanPolarity();
 
     virtual float getTemperature(int index) = 0;

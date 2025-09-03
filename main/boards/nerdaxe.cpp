@@ -43,7 +43,10 @@ NerdAxe::NerdAxe() : Board() {
     m_defaultAsicFrequency = m_asicFrequency = 485;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1200;
     m_fanInvertPolarity = true;
-    m_fanPerc = 100;
+    m_fanPerc[0] = 100;
+    m_fanPerc[1] = 0;
+    m_fanEnabled[0] = true;
+    m_fanEnabled[1] = false;
     m_flipScreen = true;
     m_numTempSensors = 1;
 
@@ -111,7 +114,7 @@ bool NerdAxe::initBoard()
     }
 
     EMC2101_init(m_fanInvertPolarity);
-    setFanSpeed(m_fanPerc);
+    setFanSpeed(m_fanPerc[0], 0);
 
     // configure gpios
     gpio_pad_select_gpio(PWR_EN_PIN);
@@ -197,16 +200,24 @@ bool NerdAxe::setVoltage(float core_voltage)
     return true;
 }
 
-void NerdAxe::setFanSpeed(float perc) {
-    EMC2101_set_fan_speed(perc);
+void NerdAxe::setFanSpeed(float perc, int fan) {
+    if (fan == 0) {
+        EMC2101_set_fan_speed(perc);
+    }
 }
 
-void NerdAxe::setFanPolarity(bool invert) {
-    EMC2101_set_fan_polarity(invert);
+void NerdAxe::setFanPolarity(bool invert, int fan) {
+    if (fan == 0) {
+        EMC2101_set_fan_polarity(invert);
+    }
 }
 
-void NerdAxe::getFanSpeed(uint16_t* rpm) {
-    *rpm = EMC2101_get_fan_speed();
+void NerdAxe::getFanSpeed(uint16_t* rpm, int fan) {
+    if (fan == 0) {
+        *rpm = EMC2101_get_fan_speed();
+    } else {
+        *rpm = 0;
+    }
 }
 
 float NerdAxe::getTemperature(int index) {

@@ -185,6 +185,13 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <label class="form-label">Enable Fan2:</label>
+                    <div class="form-control-wrapper">
+                        <nb-checkbox formControlName="fan2enabled"></nb-checkbox>
+                    </div>
+                </div>
+
                 <!-- Manual fan speed slider -->
                 <div *ngIf="form.controls['autofanspeed'].value === 0">
                     <div class="form-row">
@@ -200,6 +207,15 @@
                                 Overheating</small>
                             <small *ngIf="form.controls['fanspeed'].value === 100" style="color: #F2A900; margin-left:10px;">S19
                                 Simulator</small>
+                        </div>
+                    </div>
+                    <div class="form-row" *ngIf="form.controls['fan2enabled'].value">
+                        <label>Fan2 Speed {{ form.controls['fanspeed2'].value }}%</label>
+                        <div class="form-control-wrapper">
+                            <div class="progress-wrap">
+                                <input type="range" class="progress" formControlName="fanspeed2" min="0" max="100" step="1" />
+                                <div class="progress-foreground" [style.width.%]="form.controls['fanspeed2'].value"></div>
+                            </div>
                         </div>
                     </div>
                 </div>

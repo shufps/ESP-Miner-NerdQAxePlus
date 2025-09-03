@@ -98,8 +98,11 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
     doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
     doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
-    doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
-    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
+    doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc(0);
+    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
+    doc["fan2enabled"]        = Config::isFan2Enabled() ? 1 : 0;
+    doc["fanspeed2"]          = POWER_MANAGEMENT_MODULE.getFanPerc(1);
+    doc["fanrpm2"]            = POWER_MANAGEMENT_MODULE.getFanRPM(1);
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
 
@@ -291,6 +294,12 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
     if (doc["fanspeed"].is<uint16_t>()) {
         Config::setFanSpeed(doc["fanspeed"].as<uint16_t>());
+    }
+    if (doc["fan2enabled"].is<bool>()) {
+        Config::setFan2Enabled(doc["fan2enabled"].as<bool>());
+    }
+    if (doc["fanspeed2"].is<uint16_t>()) {
+        Config::setFan2Speed(doc["fanspeed2"].as<uint16_t>());
     }
     if (doc["autoscreenoff"].is<bool>()) {
         Config::setAutoScreenOff(doc["autoscreenoff"].as<bool>());

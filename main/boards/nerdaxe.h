@@ -18,9 +18,9 @@ class NerdAxe : public Board {
 
     virtual bool setVoltage(float core_voltage);
 
-    virtual void setFanSpeed(float perc);
-    virtual void getFanSpeed(uint16_t *rpm);
-    virtual void setFanPolarity(bool invert);
+    virtual void setFanSpeed(float perc, int fan = 0);
+    virtual void getFanSpeed(uint16_t *rpm, int fan = 0);
+    virtual void setFanPolarity(bool invert, int fan = 0);
 
     virtual float getTemperature(int index);
     virtual float getVRTemp();

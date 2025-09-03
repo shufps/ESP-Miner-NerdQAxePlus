@@ -38,7 +38,10 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_absMaxAsicVoltageMillis = 1400;
     m_initVoltageMillis = 1250;
     m_fanInvertPolarity = false;
-    m_fanPerc = 100;
+    m_fanPerc[0] = 100;
+    m_fanPerc[1] = 0;
+    m_fanEnabled[0] = true;
+    m_fanEnabled[1] = false;
     m_flipScreen = false;
     m_numPhases = 2;
     m_imax = m_numPhases * 30;
@@ -84,7 +87,8 @@ bool NerdQaxePlus::initBoard()
     ESP_LOGI(TAG, "found %d ASIC temp measuring sensors", m_numTempSensors);
 
     EMC2302_init(m_fanInvertPolarity);
-    setFanSpeed(m_fanPerc);
+    setFanSpeed(m_fanPerc[0], 0);
+    setFanSpeed(m_fanPerc[1], 1);
 
     // configure gpios
     gpio_pad_select_gpio(TPS53647_EN_PIN);
@@ -196,16 +200,16 @@ bool NerdQaxePlus::setVoltage(float core_voltage)
     return m_tps->set_vout(core_voltage);
 }
 
-void NerdQaxePlus::setFanSpeed(float perc) {
-    EMC2302_set_fan_speed(perc);
+void NerdQaxePlus::setFanSpeed(float perc, int fan) {
+    EMC2302_set_fan_speed(fan, perc);
 }
 
-void NerdQaxePlus::getFanSpeed(uint16_t* rpm) {
-    EMC2302_get_fan_speed(rpm);
+void NerdQaxePlus::getFanSpeed(uint16_t* rpm, int fan) {
+    EMC2302_get_fan_speed(fan, rpm);
 }
 
-void NerdQaxePlus::setFanPolarity(bool invert) {
-    EMC2302_set_fan_polarity(invert);
+void NerdQaxePlus::setFanPolarity(bool invert, int fan) {
+    EMC2302_set_fan_polarity(fan, invert);
 }
 
 // return the number of asic temp measuring sensors

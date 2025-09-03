@@ -93,6 +93,10 @@ stratumdiff,data,u64,1000
 
 # Manual fan speed in % (if autofanspeed = 0)
 #fanspeed,data,u16,100
+# Enable second fan (1=on,0=off)
+#fan2en,data,u16,0
+# Manual fan2 speed in % (if autofanspeed = 0)
+#fan2speed,data,u16,0
 
 # Run ASIC self-test on startup – 1: yes, 0: no
 #selftest,data,u16,0

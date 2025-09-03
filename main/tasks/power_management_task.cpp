@@ -133,7 +133,8 @@ void PowerManagementTask::task()
         }
         unlock();
     }
-    board->setFanPolarity(invert);
+    board->setFanPolarity(invert, 0);
+    board->setFanPolarity(invert, 1);
 
     // pointer to pid settings
     PidSettings *pidSettings = board->getPidSettings();
@@ -207,7 +208,9 @@ void PowerManagementTask::task()
         m_voltage = vin * 1000.0;
         m_current = iin * 1000.0;
         m_power = pin;
-        board->getFanSpeed(&m_fanRPM);
+        for (int i = 0; i < Board::FAN_COUNT; ++i) {
+            board->getFanSpeed(i, &m_fanRPM[i]);
+        }
 
         // collect temperatures
         // get the max of all asic measuring temp sensors
@@ -252,20 +255,36 @@ void PowerManagementTask::task()
         switch (temp_control_mode) {
             case 0:
                 // manual
-                m_fanPerc = Config::getFanSpeed();
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
+                m_fanPerc[0] = Config::getFanSpeed();
+                m_fanPerc[1] = Config::getFan2Speed();
+                board->setFanSpeed((float) m_fanPerc[0] / 100.0f, 0);
+                if (Config::isFan2Enabled()) {
+                    board->setFanSpeed((float) m_fanPerc[1] / 100.0f, 1);
+                } else {
+                    m_fanPerc[1] = 0;
+                    board->setFanSpeed(0.0f, 1);
+                }
                 break;
             case 2:
                 // pid
-                m_fanPerc = (uint16_t) roundf(pid_output);
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
+                m_fanPerc[0] = (uint16_t) roundf(pid_output);
+                m_fanPerc[1] = m_fanPerc[0];
+                board->setFanSpeed((float) m_fanPerc[0] / 100.0f, 0);
+                if (Config::isFan2Enabled()) {
+                    board->setFanSpeed((float) m_fanPerc[1] / 100.0f, 1);
+                } else {
+                    m_fanPerc[1] = 0;
+                    board->setFanSpeed(0.0f, 1);
+                }
                 //ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
                 //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:
                 ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual mode 100%%.", temp_control_mode);
-                m_fanPerc = 100;
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
+                m_fanPerc[0] = 100;
+                m_fanPerc[1] = Config::isFan2Enabled() ? 100 : 0;
+                board->setFanSpeed((float) m_fanPerc[0] / 100.0f, 0);
+                board->setFanSpeed((float) m_fanPerc[1] / 100.0f, 1);
         }
         unlock();
 
