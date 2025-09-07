@@ -5,7 +5,7 @@ import { eASICModel } from '../models/enum/eASICModel';
 import { ISystemInfo } from '../models/ISystemInfo';
 import { IHistory } from '../models/IHistory';
 import { IAlertSettings } from '../models/IAlertSettings';
-
+import { AsicInfo } from '../models/IAsicInfo';
 
 import { environment } from '../../environments/environment';
 import { IInfluxDB } from '../models/IInfluxDB';
@@ -70,6 +70,7 @@ const defaultInfo: ISystemInfo = {
   stratumDifficulty: 1000,
   lastpingrtt: 0.00,
   poolDifficulty: 0,
+  stratum_keep: 0,
 
   pidTargetTemp: 55,
   pidP: 2.0,
@@ -88,6 +89,18 @@ const defaultInfo: ISystemInfo = {
   }
 }
 
+const defaultAsicInfo: AsicInfo = {
+  ASICModel: 'BM1368',
+  deviceModel: 'Supra',
+  asicCount: 1,
+  swarmColor: 'blue',
+  defaultFrequency: 490,
+  defaultVoltage: 1166,
+  absMaxFrequency: 800,
+  absMaxVoltage: 1400,
+  frequencyOptions: [400, 425, 450, 475, 485, 490, 500, 525, 550, 575],
+  voltageOptions: [1100, 1150, 1166, 1200, 1250, 1300],
+};
 
 @Injectable({
   providedIn: 'root'
@@ -107,6 +120,14 @@ export class SystemService {
       return this.httpClient.get(`${uri}/api/system/info?ts=${ts}&cur=${Math.floor(Date.now())}`) as Observable<ISystemInfo>;
     } else {
       return of(defaultInfo).pipe(delay(1000));
+    }
+  }
+
+  public getAsicInfo(uri: string = ''): Observable<AsicInfo> {
+    if (environment.production) {
+      return this.httpClient.get<AsicInfo>(`${uri}/api/system/asic`);
+    } else {
+      return of(defaultAsicInfo).pipe(delay(500));
     }
   }
 

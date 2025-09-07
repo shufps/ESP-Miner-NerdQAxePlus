@@ -235,20 +235,34 @@ void DisplayDriver::lvglTimerTask(void *param)
             if (m_button1PressedFlag) {
                 m_button1PressedFlag = false;
                 m_lastKeypressTime = esp_timer_get_time();
-                if (!m_displayIsOn)
-                    displayTurnOn();
-                changeScreen();
+
+                if (m_isActiveOverlay) {
+                    hideFoundBlockOverlay();
+                } else {
+                    if (!m_displayIsOn) {
+                        displayTurnOn();
+                    }
+                    changeScreen();
+                }
             }
             vTaskDelay(pdMS_TO_TICKS(200)); // Delay waiting animation trigger
         }
+
         if (m_button2PressedFlag) {
             m_button2PressedFlag = false;
             m_lastKeypressTime = esp_timer_get_time();
-            if (m_displayIsOn)
-                displayTurnOff();
-            else
+
+            if (m_displayIsOn) {
+                if (m_isActiveOverlay) {
+                    hideFoundBlockOverlay();
+                } else {
+                    displayTurnOff();
+                }
+            } else {
                 displayTurnOn();
+            }
         }
+
 
         // Check if we have a screen turned-on override
         if (m_isActiveOverlay) {

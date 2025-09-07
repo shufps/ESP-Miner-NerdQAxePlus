@@ -103,7 +103,7 @@ void Asic::sendReadAddress(void)
 // Function to set the hash frequency
 // gives the same PLL settings as the S21 dumps
 bool Asic::sendHashFrequency(float target_freq) {
-    float max_diff = 0.001;
+    float min_diff = 2.0;
     uint8_t freqbuf[6] = {0x00, 0x08, 0x40, 0xA0, 0x02, 0x41};
     int postdiv_min = 255;
     int postdiv2_min = 255;
@@ -120,7 +120,7 @@ bool Asic::sendHashFrequency(float target_freq) {
                 newf = 25.0 * fb_divider / (refdiv * postdiv2 * postdiv1);
                 if (
                     fb_divider >= 0xa0 && fb_divider <= 0xef &&
-                    fabs(target_freq - newf) < max_diff &&
+                    fabs(target_freq - newf) <= min_diff &&
                     postdiv1 >= postdiv2 &&
                     postdiv1 * postdiv2 < postdiv_min &&
                     postdiv2 <= postdiv2_min
@@ -132,6 +132,7 @@ bool Asic::sendHashFrequency(float target_freq) {
                     best_postdiv1 = postdiv1;
                     best_postdiv2 = postdiv2;
                     best_newf = newf;
+                    min_diff  = fabs(target_freq - newf);
                     found = true;
                 }
             }
@@ -139,7 +140,7 @@ bool Asic::sendHashFrequency(float target_freq) {
     }
 
     if (!found) {
-        ESP_LOGE(TAG, "Didn't find PLL settings for target frequency %.2f", target_freq);
+        ESP_LOGE(TAG, "Didn't find PLL settings for target frequency %.2f (error: %.2fMHZ)", target_freq, min_diff);
         return false;
     }
 
@@ -151,8 +152,9 @@ bool Asic::sendHashFrequency(float target_freq) {
     send(CMD_WRITE_ALL, freqbuf, sizeof(freqbuf), ASIC_SERIALTX_DEBUG);
     //ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
 
-    ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f)", target_freq, best_newf);
+    ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f) (error: %.2fMHZ)", target_freq, best_newf, min_diff);
     m_current_frequency = target_freq;
+    m_actual_current_frequency = best_newf;
     return true;
 }
 

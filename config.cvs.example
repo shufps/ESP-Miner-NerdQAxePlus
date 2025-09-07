@@ -138,3 +138,10 @@ stratumdiff,data,u64,1000
 
 # Discord Webhook URL
 #alrt_disc_url,data,string,https://discord.com/api/webhooks/your_token_here
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ↓↓↓ STRATUM KEEPALIVE ↓↓↓
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Enable TCP Keepalive for Stratum socket
+#stratum_keep,data,u16,0

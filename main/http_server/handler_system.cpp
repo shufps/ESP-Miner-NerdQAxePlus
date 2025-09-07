@@ -139,6 +139,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
     doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::getTempControlMode();
+    doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -294,6 +295,11 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     if (doc["autoscreenoff"].is<bool>()) {
         Config::setAutoScreenOff(doc["autoscreenoff"].as<bool>());
     }
+    if (doc["stratum_keep"].is<bool>() || doc["stratum_keep"].is<int>()) {
+        bool value = doc["stratum_keep"].as<int>() != 0;
+        Config::setStratumKeepaliveEnabled(value);
+        ESP_LOGI("system", "stratum_keep updated via WebUI: %s", value ? "ENABLED" : "DISABLED");
+    }
     if (doc["pidTargetTemp"].is<uint16_t>()) {
         Config::setPidTargetTemp(doc["pidTargetTemp"].as<uint16_t>());
     }
@@ -317,4 +323,56 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     board->loadSettings();
 
     return ESP_OK;
+}
+
+esp_err_t GET_system_asic(httpd_req_t *req)
+{
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
+    httpd_resp_set_type(req, "application/json");
+
+    // CORS
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    Board* board = SYSTEM_MODULE.getBoard();
+
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+
+    // Basisfelder
+    doc["ASICModel"]        = board->getAsicModel();
+    doc["deviceModel"]      = board->getDeviceModel();
+    doc["asicCount"]        = board->getAsicCount();
+    doc["defaultFrequency"] = board->getDefaultAsicFrequency();
+    doc["defaultVoltage"]   = board->getDefaultAsicVoltageMillis();
+    doc["absMaxFrequency"]  = board->getAbsMaxAsicFrequency();
+    doc["absMaxVoltage"]    = board->getAbsMaxAsicVoltageMillis();
+
+    doc["swarmColor"] = board->getSwarmColorName();
+
+    // frequencyOptions
+    {
+        JsonArray arr = doc["frequencyOptions"].to<JsonArray>();
+        const auto& freqs = board->getFrequencyOptions();
+        for (uint32_t f : freqs) { arr.add(f); }
+    }
+
+    // voltageOptions
+    {
+        JsonArray arr = doc["voltageOptions"].to<JsonArray>();
+        const auto& volts = board->getVoltageOptions();
+        for (uint32_t v : volts) { arr.add(v); }
+    }
+
+    // Verbindung schließen, damit nichts „hängt“
+    httpd_resp_set_hdr(req, "Connection", "close");
+
+    esp_err_t ret = sendJsonResponse(req, doc);
+    doc.clear();
+    return ret;
 }

@@ -27,6 +27,8 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_asicCount = 1;
 
     m_asicJobIntervalMs = 1500;
+    m_asicFrequencies = {500, 515, 525, 550, 575};
+    m_asicVoltages = {1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200};
     m_defaultAsicFrequency = m_asicFrequency = 515;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1150;
     m_initVoltageMillis = 1150;
@@ -51,6 +53,9 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
 #ifdef NERDAXEGAMMA
     m_theme = new ThemeNerdaxegamma();
 #endif
+
+    m_swarmColorName = "#e7cf00"; // yellow
+
     m_asics = new BM1370();
 }
 
@@ -138,10 +143,12 @@ bool NerdaxeGamma::initAsics() {
 
 bool NerdaxeGamma::setVoltage(float core_voltage)
 {
-    ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
-    TPS546_set_vout(core_voltage);
+    if (!validateVoltage(core_voltage)) {
+        return false;
+    }
 
-    return true;
+    ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
+    return TPS546_set_vout(core_voltage);
 }
 
 float NerdaxeGamma::getTemperature(int index) {

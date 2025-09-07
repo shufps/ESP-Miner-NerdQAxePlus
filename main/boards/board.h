@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "../displays/images/themes/themes.h"
 #include "asic.h"
 #include "bm1368.h"
@@ -23,6 +24,7 @@ class Board {
     int m_chipsDetected = 0;
     int m_numTempSensors = 0;
     float *m_chipTemps;
+    const char *m_swarmColorName = "blue";
 
     PidSettings m_pidSettings;
 
@@ -30,11 +32,16 @@ class Board {
     int m_asicJobIntervalMs;
     int m_asicFrequency;
     int m_asicVoltageMillis;
+    int m_absMaxAsicFrequency;
+    int m_absMaxAsicVoltageMillis;
+
+    // frequency and voltage options
+    std::vector<uint32_t> m_asicFrequencies;
+    std::vector<uint32_t> m_asicVoltages;
 
     // default settings
     int m_defaultAsicFrequency;
     int m_defaultAsicVoltageMillis;
-
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
@@ -78,10 +85,13 @@ class Board {
     int getAsicCount();
     int getAsicJobIntervalMs();
     uint32_t getInitialASICDifficulty();
+    virtual bool setAsicFrequency(float f);
+
+    bool validateFrequency(float frequency);
+    bool validateVoltage(float core_voltage);
 
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
-
     virtual void setFanPolarity(bool invert) = 0;
     virtual void setFanSpeed(float perc) = 0;
     virtual void getFanSpeed(uint16_t *rpm) = 0;
@@ -121,6 +131,7 @@ class Board {
     {
         return m_asicMaxDifficulty;
     };
+
     uint32_t getAsicMinDifficulty()
     {
         return m_asicMinDifficulty;
@@ -144,6 +155,14 @@ class Board {
     int getAsicFrequency()
     {
         return m_asicFrequency;
+    }
+
+    int getAbsMaxAsicFrequency() {
+        return m_absMaxAsicFrequency;
+    }
+
+    int getAbsMaxAsicVoltageMillis() {
+        return m_absMaxAsicVoltageMillis;
     }
 
     int getDefaultAsicVoltageMillis()
@@ -203,6 +222,18 @@ class Board {
 
     PidSettings *getPidSettings() {
         return &m_pidSettings;
+    }
+
+    const std::vector<uint32_t>& getFrequencyOptions() const {
+        return m_asicFrequencies;
+    }
+
+    const std::vector<uint32_t>& getVoltageOptions() const {
+        return m_asicVoltages;
+    }
+
+    const char* getSwarmColorName() {
+        return m_swarmColorName;
     }
 
 };

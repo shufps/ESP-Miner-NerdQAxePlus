@@ -168,29 +168,33 @@ bool StratumTask::setupSocketTimeouts(int sock)
     }
 
     // Enable TCP Keepalive
-    int enable = 1;
+    int enable = Config::isStratumKeepaliveEnabled() ? 1 : 0;
     if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof(enable)) < 0) {
         ESP_LOGE(m_tag, "Failed to enable SO_KEEPALIVE");
         return false;
     }
 
-    // Configure Keepalive parameters
-    int keepidle = 10;   // Start sending keepalive probes after 10 seconds of inactivity
-    int keepintvl = 5;   // Interval of 5 seconds between individual keepalive probes
-    int keepcnt = 3;     // Disconnect after 3 unanswered probes
+    if (enable) {
+        // Configure Keepalive parameters
+        int keepidle = 10;   // Start sending keepalive probes after 10 seconds of inactivity
+        int keepintvl = 5;   // Interval of 5 seconds between individual keepalive probes
+        int keepcnt = 3;     // Disconnect after 3 unanswered probes
 
-    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(keepidle)) < 0) {
-        ESP_LOGW(m_tag, "TCP_KEEPIDLE not supported or failed to set");
-        // This might not be critical, so we could just log a warning and continue
-    }
-    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL, &keepintvl, sizeof(keepintvl)) < 0) {
-        ESP_LOGE(m_tag, "Failed to set TCP_KEEPINTVL");
-    }
-    if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT, &keepcnt, sizeof(keepcnt)) < 0) {
-        ESP_LOGE(m_tag, "Failed to set TCP_KEEPCNT");
-    }
+        if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(keepidle)) < 0) {
+            ESP_LOGW(m_tag, "TCP_KEEPIDLE not supported or failed to set");
+            // This might not be critical, so we could just log a warning and continue
+        }
+        if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL, &keepintvl, sizeof(keepintvl)) < 0) {
+            ESP_LOGE(m_tag, "Failed to set TCP_KEEPINTVL");
+        }
+        if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT, &keepcnt, sizeof(keepcnt)) < 0) {
+            ESP_LOGE(m_tag, "Failed to set TCP_KEEPCNT");
+        }
 
-    ESP_LOGI(m_tag, "TCP Keepalive enabled: idle=%ds, interval=%ds, count=%d", keepidle, keepintvl, keepcnt);
+        ESP_LOGI(m_tag, "TCP Keepalive enabled: idle=%ds, interval=%ds, count=%d", keepidle, keepintvl, keepcnt);
+    } else {
+        ESP_LOGI(m_tag, "TCP Keepalive is disabled via config.");
+    }
 
     return true;
 }
@@ -301,10 +305,13 @@ void StratumTask::stratumLoop()
 
     while (1) {
         if (!is_socket_connected(m_sock)) {
-            ESP_LOGE(m_tag, "Socket is not connected ...");
+            if (Config::isStratumKeepaliveEnabled()) {
+                ESP_LOGW(m_tag, "Socket disconnected — possible TCP KeepAlive timeout (enabled)");
+            } else {
+                ESP_LOGW(m_tag, "Socket disconnected — no KeepAlive active");
+            }
             break;
         }
-
         line = m_stratumAPI.receiveJsonRpcLine(m_sock);
         if (!line) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");

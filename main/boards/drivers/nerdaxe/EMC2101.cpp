@@ -5,8 +5,6 @@
 
 static const char * TAG = "EMC2101";
 
-// static const char *TAG = "EMC2101.c";
-
 // run this first. sets up the config register
 bool EMC2101_init(bool invertPolarity)
 {
@@ -14,11 +12,11 @@ bool EMC2101_init(bool invertPolarity)
     // set the TACH input
     esp_err_t ret = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_REG_CONFIG, 0x04);
     if (ret != ESP_OK) {
-        ESP_LOGE("EMC2101", "Failed to write 0x%02X to EMC2101 register 0x%02X, error: 0x%X", 0x04, EMC2101_REG_CONFIG, ret);
+        ESP_LOGE(TAG, "Failed to write 0x%02X to EMC2101 register 0x%02X, error: 0x%X", 0x04, EMC2101_REG_CONFIG, ret);
         return false;
     }
 
-    ESP_LOGI("EMC2101", "Successfully wrote 0x%02X to EMC2101 register 0x%02X", 0x04, EMC2101_REG_CONFIG);
+    ESP_LOGI(TAG, "Successfully wrote 0x%02X to EMC2101 register 0x%02X", 0x04, EMC2101_REG_CONFIG);
 
     EMC2101_set_fan_polarity(invertPolarity);
     return true;
@@ -38,7 +36,10 @@ void EMC2101_set_fan_speed(float percent)
     if (percent > 100) percent = 100;
 
     speed = (uint8_t) (63.0 * percent);
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_REG_FAN_SETTING, speed));
+    esp_err_t err = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_REG_FAN_SETTING, speed);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error setting fan speed");
+    }
 }
 
 // RPM = 5400000/reading
@@ -48,8 +49,17 @@ uint16_t EMC2101_get_fan_speed(void)
     uint16_t reading;
     uint16_t RPM;
 
-    ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_TACH_LSB, &tach_lsb, 1));
-    ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_TACH_MSB, &tach_msb, 1));
+    esp_err_t err = i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_TACH_LSB, &tach_lsb, 1);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error reading tach LSB");
+        return 0;
+    }
+
+    err = i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_TACH_MSB, &tach_msb, 1);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error reading tach MSB");
+        return 0;
+    }
 
     // ESP_LOGI(TAG, "Raw Fan Speed = %02X %02X", tach_msb, tach_lsb);
 
@@ -70,8 +80,17 @@ float EMC2101_get_external_temp(void)
     uint8_t temp_msb, temp_lsb;
     uint16_t reading;
 
-    ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_EXTERNAL_TEMP_MSB, &temp_msb, 1));
-    ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_EXTERNAL_TEMP_LSB, &temp_lsb, 1));
+    esp_err_t err = i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_EXTERNAL_TEMP_MSB, &temp_msb, 1);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error getting external temp MSB");
+        return 0.0f;
+    }
+
+    err = i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_EXTERNAL_TEMP_LSB, &temp_lsb, 1);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error getting external temp LSB");
+        return 0.0f;
+    }
 
     // Combine MSB and LSB, and then right shift to get 11 bits
     reading = (temp_msb << 8) | temp_lsb;
@@ -101,17 +120,27 @@ float EMC2101_get_external_temp(void)
 uint8_t EMC2101_get_internal_temp(void)
 {
     uint8_t temp;
-    ESP_ERROR_CHECK(i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_INTERNAL_TEMP, &temp, 1));
+    esp_err_t err = i2c_master_register_read(EMC2101_I2CADDR_DEFAULT, EMC2101_INTERNAL_TEMP, &temp, 1);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error reading internal temp");
+        return 0;
+    }
     return temp;
 }
 
 void EMC2101_set_ideality_factor(uint8_t ideality){
     //set Ideality Factor
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_IDEALITY_FACTOR, ideality));
+    esp_err_t err = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_IDEALITY_FACTOR, ideality);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error setting ideality factor");
+    }
 }
 
 void EMC2101_set_beta_compensation(uint8_t beta){
     //set Beta Compensation
-    ESP_ERROR_CHECK(i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_BETA_COMPENSATION, beta));
+    esp_err_t err = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_BETA_COMPENSATION, beta);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error setting beta compensation");
+    }
 
 }

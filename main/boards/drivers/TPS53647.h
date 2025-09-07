@@ -43,7 +43,7 @@ public:
     float get_iout();
 
     float get_vout();
-    void set_vout(float volts);
+    bool set_vout(float volts);
     uint16_t get_vout_vid();
 
     void power_enable();

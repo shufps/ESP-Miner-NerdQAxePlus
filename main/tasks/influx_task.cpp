@@ -6,6 +6,7 @@
 
 #include "global_state.h"
 #include "nvs_config.h"
+#include "ping_task.h"
 #include "influx_task.h"
 
 static const char *TAG = "influx_task";
@@ -75,6 +76,9 @@ static void influx_task_fetch_from_system_module(System *module)
 
     // pool difficulty
     influxdb->m_stats.difficulty = module->getPoolDifficulty();
+
+    // Ping RTT
+    influxdb->m_stats.last_ping_rtt = get_last_ping_rtt();
 
     // found block
     // firmware sets the flag but never removes it
