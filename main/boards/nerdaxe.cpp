@@ -127,7 +127,7 @@ bool NerdAxe::initBoard()
 }
 
 void NerdAxe::shutdown() {
-    // NOP / TODO
+    setVoltage(0.0);
 }
 
 bool NerdAxe::initAsics()
