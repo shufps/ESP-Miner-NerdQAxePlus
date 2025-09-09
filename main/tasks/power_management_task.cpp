@@ -20,7 +20,7 @@
 static const char *TAG = "power_management";
 
 PowerManagementTask::PowerManagementTask() {
-    m_mutex = PTHREAD_MUTEX_INITIALIZER;
+    m_mutex = xSemaphoreCreateRecursiveMutex();
 }
 
 void PowerManagementTask::taskWrapper(void *pvParameters) {
@@ -28,15 +28,20 @@ void PowerManagementTask::taskWrapper(void *pvParameters) {
     powerManagementTask->task();
 }
 
-// hardware lock must be acquired before calling this function
 void PowerManagementTask::restart() {
-    ESP_LOGW(TAG, "Restarting firmware ...");
+    ESP_LOGW(TAG, "Shutdown requested ...");
+    // stops the main task
+    lock();
 
+    ESP_LOGW(TAG, "HW lock acquired!");
     // shutdown asics and LDOs before reset
     shutdown();
 
     ESP_LOGW(TAG, "restart");
     esp_restart();
+
+    // unreachable
+    unlock();
 }
 
 void PowerManagementTask::shutdown() {
