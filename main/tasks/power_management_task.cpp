@@ -28,19 +28,22 @@ void PowerManagementTask::taskWrapper(void *pvParameters) {
     powerManagementTask->task();
 }
 
+// hardware lock must be acquired before calling this function
 void PowerManagementTask::restart() {
-    ESP_LOGW(TAG, "Shutdown requested ...");
-    // stops the main task
-    lock();
+    ESP_LOGW(TAG, "Restarting firmware ...");
 
-    ESP_LOGW(TAG, "HW lock acquired!");
     // shutdown asics and LDOs before reset
-    Board* board = SYSTEM_MODULE.getBoard();
-    board->shutdown();
+    shutdown();
 
     ESP_LOGW(TAG, "restart");
     esp_restart();
-    unlock();
+}
+
+void PowerManagementTask::shutdown() {
+    Board* board = SYSTEM_MODULE.getBoard();
+    if (board) {
+        board->shutdown();
+    }
 }
 
 void PowerManagementTask::requestChipTemps() {

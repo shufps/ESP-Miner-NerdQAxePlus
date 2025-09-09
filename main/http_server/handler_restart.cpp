@@ -22,9 +22,12 @@ esp_err_t POST_restart(httpd_req_t *req)
     // Delay to ensure the response is sent
     vTaskDelay(pdMS_TO_TICKS(1000));
 
+    // lock the power management module
+    LockGuard g(POWER_MANAGEMENT_MODULE);
+
     // Restart the system
     POWER_MANAGEMENT_MODULE.restart();
 
-    // This return statement will never be reached, but it's good practice to include it
+    // unreachable
     return ESP_OK;
 }

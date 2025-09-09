@@ -75,4 +75,6 @@ class PowerManagementTask {
     void unlock() {
         pthread_mutex_unlock(&m_mutex);
     }
+
+    void shutdown();
 };
