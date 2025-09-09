@@ -3,6 +3,9 @@
 #include <pthread.h>
 #include "boards/board.h"
 #include "pid/PID_v1_bc.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+
 
 template <class T>
 class LockGuard {
@@ -15,7 +18,7 @@ private:
 
 class PowerManagementTask {
   protected:
-    pthread_mutex_t m_mutex;
+    SemaphoreHandle_t m_mutex;
     uint16_t m_fanPerc;
     uint16_t m_fanRPM;
     float m_chipTempMax;
@@ -69,10 +72,12 @@ class PowerManagementTask {
     };
 
     void lock() {
-        pthread_mutex_lock(&m_mutex);
+        xSemaphoreTakeRecursive(m_mutex, portMAX_DELAY);
     }
 
     void unlock() {
-        pthread_mutex_unlock(&m_mutex);
+        xSemaphoreGiveRecursive(m_mutex);
     }
+
+    void shutdown();
 };

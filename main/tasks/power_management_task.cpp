@@ -20,7 +20,7 @@
 static const char *TAG = "power_management";
 
 PowerManagementTask::PowerManagementTask() {
-    m_mutex = PTHREAD_MUTEX_INITIALIZER;
+    m_mutex = xSemaphoreCreateRecursiveMutex();
 }
 
 void PowerManagementTask::taskWrapper(void *pvParameters) {
@@ -35,12 +35,20 @@ void PowerManagementTask::restart() {
 
     ESP_LOGW(TAG, "HW lock acquired!");
     // shutdown asics and LDOs before reset
-    Board* board = SYSTEM_MODULE.getBoard();
-    board->shutdown();
+    shutdown();
 
     ESP_LOGW(TAG, "restart");
     esp_restart();
+
+    // unreachable
     unlock();
+}
+
+void PowerManagementTask::shutdown() {
+    Board* board = SYSTEM_MODULE.getBoard();
+    if (board) {
+        board->shutdown();
+    }
 }
 
 void PowerManagementTask::requestChipTemps() {

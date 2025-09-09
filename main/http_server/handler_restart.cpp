@@ -25,6 +25,6 @@ esp_err_t POST_restart(httpd_req_t *req)
     // Restart the system
     POWER_MANAGEMENT_MODULE.restart();
 
-    // This return statement will never be reached, but it's good practice to include it
+    // unreachable
     return ESP_OK;
 }
