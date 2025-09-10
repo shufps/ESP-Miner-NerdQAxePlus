@@ -165,6 +165,9 @@ extern "C" void app_main(void)
     // set the startup_done flag
     SYSTEM_MODULE.setStartupDone();
 
+    //start rest server
+    start_rest_server(NULL);
+
     while (!SYSTEM_MODULE.isWifiConnected()) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
