@@ -42,6 +42,7 @@ class System {
 
     // Network and connection info
     std::string m_ssid;        // WiFi SSID (+1 for null terminator)
+    std::string m_apSsid;
     std::string m_wifiStatus;  // WiFi status string
     std::string m_hostname;
     std::string m_ipAddress = "0.0.0.0";
@@ -191,6 +192,11 @@ class System {
         return m_ssid;
     }
 
+    const std::string getApSsid() const
+    {
+        return m_apSsid;
+    }
+
     void setWifiStatus(const std::string& wifiStatus)
     {
         m_wifiStatus = wifiStatus;
@@ -215,6 +221,11 @@ class System {
     void setSsid(const std::string& ssid)
     {
         m_ssid = ssid;
+    }
+
+    void setApSsid(const std::string& ssid)
+    {
+        m_apSsid = ssid;
     }
 
     // Block status and clock sync getters

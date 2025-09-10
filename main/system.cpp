@@ -111,9 +111,7 @@ void System::updateConnection() {
 void System::updateSystemPerformance() {}
 
 void System::showApInformation(const char* error) {
-    //char apSsid[13];
-    //generate_ssid(apSsid);
-    m_display->portalScreen(m_ssid.c_str());
+    m_display->portalScreen(m_apSsid.c_str());
 }
 
 const std::string System::getMacAddress() {
@@ -274,12 +272,8 @@ void System::task() {
 
     ESP_LOGI(TAG, "SYSTEM_task started");
 
-    wifi_mode_t wifiMode;
-    esp_err_t result;
-    while (!m_startupDone) {
-        result = esp_wifi_get_mode(&wifiMode);
-        if (result == ESP_OK && (wifiMode == WIFI_MODE_APSTA || wifiMode == WIFI_MODE_AP) &&
-            m_wifiStatus == "Failed to connect") { // TODO
+    while (!connect_is_sta_connected()) {
+        if (connect_is_ap_running()) {
             showApInformation(nullptr);
             vTaskDelay(pdMS_TO_TICKS(5000));
         } else {
