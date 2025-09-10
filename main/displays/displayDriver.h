@@ -133,7 +133,7 @@ class DisplayDriver {
     void updateTime(System *module);                                // Update the time display
     void updateGlobalState();                                       // Update the global state on the display
     void updateCurrentSettings();                                   // Update the current settings screen
-    void updateIpAddress(char *ipAddressStr);                       // Update the displayed IP address
+    void updateIpAddress(const char *ipAddressStr);                 // Update the displayed IP address
     void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
     void refreshScreen();                                           // Refresh the display
     void logMessage(const char *message);                           // Log a message to the display
