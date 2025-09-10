@@ -688,6 +688,11 @@ void DisplayDriver::miningScreen(void)
     if (m_ui->ui_GlobalStats == NULL)
         m_ui->globalStatsScreenInit();
     m_nextScreen = SCREEN_MINING;
+
+    // nasty hack
+    // needed to be able to switch to the mining screen when the
+    // portal screen was shown and wifi STA recovers
+    m_screenStatus = STATE_INIT_OK;
 }
 
 void DisplayDriver::portalScreen(const char *message)
