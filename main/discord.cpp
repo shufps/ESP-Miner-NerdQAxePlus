@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
@@ -127,10 +128,9 @@ bool DiscordAlerter::sendMessage(const char *message)
         return false;
     }
 
-    char ip[20] = {0};
-    connect_get_ip_addr(ip, sizeof(ip));
+    const char *ip = SYSTEM_MODULE.getIPAddress().c_str();
     //ESP_LOGI(TAG, "IP: %s", ip);
-    const char *mac = SYSTEM_MODULE.getMacAddress();
+    const char *mac = SYSTEM_MODULE.getMacAddress().c_str();
     //ESP_LOGI(TAG, "MAC: %s", mac);
     char *hostname = Config::getHostname();
     //ESP_LOGI(TAG, "Hostname: %s", hostname);

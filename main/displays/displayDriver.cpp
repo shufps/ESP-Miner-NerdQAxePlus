@@ -655,7 +655,7 @@ void DisplayDriver::updateGlobalState()
     lv_label_set_text(m_ui->ui_lbVcore, strData); // Update label
 }
 
-void DisplayDriver::updateIpAddress(char *ip_address_str)
+void DisplayDriver::updateIpAddress(const char *ip_address_str)
 {
     if (m_ui->ui_MiningScreen == NULL)
         return;

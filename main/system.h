@@ -41,11 +41,12 @@ class System {
     bool m_startupDone; // Flag to indicate if system startup is complete
 
     // Network and connection info
-    char m_ssid[33];           // WiFi SSID (+1 for null terminator)
-    char m_wifiStatus[20];     // WiFi status string
+    std::string m_ssid;        // WiFi SSID (+1 for null terminator)
+    std::string m_wifiStatus;  // WiFi status string
+    std::string m_hostname;
+    std::string m_ipAddress = "0.0.0.0";
     bool m_apState;
-    char *m_hostname;
-    char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
+    bool m_wifiConnected;
 
     StratumConfig m_stratumConfig[2];
 
@@ -58,7 +59,7 @@ class System {
     bool m_showsOverlay;    // Flat if overlay is shown
     uint32_t m_currentErrorCode;
 
-    const char* m_lastResetReason;
+    std::string m_lastResetReason;
 
     History *m_history;
 
@@ -114,7 +115,7 @@ class System {
     static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
     // WiFi related
-    const char* getMacAddress();
+    const std::string getMacAddress();
     int get_wifi_rssi();
 
     // Getter methods for retrieving statistics
@@ -180,17 +181,19 @@ class System {
     }
 
     // WiFi-related getters and setters
-    const char *getWifiStatus() const
+    const std::string getWifiStatus() const
     {
         return m_wifiStatus;
     }
-    const char *getSsid() const
+
+    const std::string getSsid() const
     {
         return m_ssid;
     }
-    void setWifiStatus(const char *wifiStatus)
+
+    void setWifiStatus(const std::string& wifiStatus)
     {
-        strncpy(m_wifiStatus, wifiStatus, sizeof(m_wifiStatus));
+        m_wifiStatus = wifiStatus;
     }
 
     void setAPState(bool state) {
@@ -201,9 +204,17 @@ class System {
         return m_apState;
     }
 
-    void setSsid(const char *ssid)
+    void setWifiConnected(bool state) {
+        m_wifiConnected = state;
+    }
+
+    bool isWifiConnected() {
+        return m_wifiConnected;
+    }
+
+    void setSsid(const std::string& ssid)
     {
-        strncpy(m_ssid, ssid, sizeof(m_ssid));
+        m_ssid = ssid;
     }
 
     // Block status and clock sync getters
@@ -232,15 +243,19 @@ class System {
 
     esp_reset_reason_t showLastResetReason();
 
-    const char* getLastResetReason() {
+    const std::string getLastResetReason() {
         return m_lastResetReason;
     }
 
-    const char* getHostname() {
-        return (const char*) m_hostname;
+    const std::string getHostname() {
+        return m_hostname;
     }
 
-    const char* getIPAddress() {
-        return (const char*) m_ipAddress;
+    const std::string getIPAddress() {
+        return m_ipAddress;
+    }
+
+    void setIPAddress(const std::string& ip) {
+        m_ipAddress = ip;
     }
 };

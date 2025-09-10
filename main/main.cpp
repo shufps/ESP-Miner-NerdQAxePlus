@@ -46,52 +46,6 @@ DiscordAlerter discordAlerter;
 AsicJobs asicJobs;
 
 static const char *TAG = "nerd*axe";
-// static const double NONCE_SPACE = 4294967296.0; //  2^32
-
-static void setup_wifi()
-{
-    // pull the wifi credentials and hostname out of NVS
-    char *wifi_ssid = Config::getWifiSSID();
-    char *wifi_pass = Config::getWifiPass();
-    char *hostname = Config::getHostname();
-
-    // copy the wifi ssid to the global state
-    SYSTEM_MODULE.setSsid(wifi_ssid);
-
-    // init and connect to wifi
-    wifi_init(wifi_ssid, wifi_pass, hostname);
-
-    free(wifi_pass);
-    free(hostname);
-
-    // start rest server
-    start_rest_server(NULL);
-
-    // connect
-    EventBits_t result_bits = wifi_connect();
-
-    if (result_bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "Connected to SSID: %s", wifi_ssid);
-        SYSTEM_MODULE.setWifiStatus("Connected!");
-        free(wifi_ssid);
-        return;
-    }
-
-    if (result_bits & WIFI_FAIL_BIT) {
-        ESP_LOGE(TAG, "Failed to connect to SSID: %s", wifi_ssid);
-        SYSTEM_MODULE.setWifiStatus("Failed to connect");
-    } else {
-        ESP_LOGE(TAG, "UNEXPECTED EVENT");
-        SYSTEM_MODULE.setWifiStatus("unexpected error");
-    }
-
-    // User might be trying to configure with AP, just chill here
-    ESP_LOGI(TAG, "Finished, waiting for user input.");
-
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-}
 
 // Function to configure the Task Watchdog Timer (TWDT)
 void initWatchdog()
@@ -205,42 +159,40 @@ extern "C" void app_main(void)
     xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
     xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
 
-    setup_wifi();
+    // init AP and connect to wifi
+    wifi_init();
 
     // set the startup_done flag
     SYSTEM_MODULE.setStartupDone();
 
-    // when a username is configured we will continue with startup and start mining
-    const char *username = Config::nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL);    // TODO
-    if (username) {
-        // wifi is connected, switch the AP off
-        wifi_softap_off();
-
-        discordAlerter.init();
-        discordAlerter.loadConfig();
-
-        // we only use alerting if we are in a normal operating mode
-        if (reason == ESP_RST_TASK_WDT) {
-            discordAlerter.sendMessage("Device rebootet because there was no share for more than 1h!");
-        }
-
-        // and continue with initialization
-        POWER_MANAGEMENT_MODULE.lock();
-        if (!board->initAsics()) {
-            ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
-        }
-        POWER_MANAGEMENT_MODULE.unlock();
-
-        TaskHandle_t stratum_manager_handle;
-
-        xTaskCreate(STRATUM_MANAGER.taskWrapper, "stratum manager", 8192, (void *) &STRATUM_MANAGER, 5, &stratum_manager_handle);
-        xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
-        xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
-        xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
-        xTaskCreate(APIs_FETCHER.taskWrapper, "apis ticker", 4096, (void*) &APIs_FETCHER, 5, NULL);
-        xTaskCreate(ping_task, "ping task", 4096, NULL, 1, NULL);
-        xTaskCreate(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
+    while (!SYSTEM_MODULE.isWifiConnected()) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+
+    discordAlerter.init();
+    discordAlerter.loadConfig();
+
+    // we only use alerting if we are in a normal operating mode
+    if (reason == ESP_RST_TASK_WDT) {
+        discordAlerter.sendMessage("Device rebootet because there was no share for more than 1h!");
+    }
+
+    // and continue with initialization
+    POWER_MANAGEMENT_MODULE.lock();
+    if (!board->initAsics()) {
+        ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
+    }
+    POWER_MANAGEMENT_MODULE.unlock();
+
+    TaskHandle_t stratum_manager_handle;
+
+    xTaskCreate(STRATUM_MANAGER.taskWrapper, "stratum manager", 8192, (void *) &STRATUM_MANAGER, 5, &stratum_manager_handle);
+    xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
+    xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
+    xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
+    xTaskCreate(APIs_FETCHER.taskWrapper, "apis ticker", 4096, (void*) &APIs_FETCHER, 5, NULL);
+    xTaskCreate(ping_task, "ping task", 4096, NULL, 1, NULL);
+    xTaskCreate(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
 
     //char* taskList = (char*) malloc(8192);
     while (1) {
@@ -254,32 +206,3 @@ extern "C" void app_main(void)
     }
 }
 
-void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
-{
-    switch (status) {
-    case WIFI_CONNECTED: {
-        SYSTEM_MODULE.setWifiStatus("Connected!");
-        break;
-    }
-    case WIFI_RETRYING: {
-        char buf[20];
-        snprintf(buf, sizeof(buf), "Retrying: %d", retry_count);
-        SYSTEM_MODULE.setWifiStatus(buf);
-        break;
-    }
-    case WIFI_CONNECT_FAILED: {
-        SYSTEM_MODULE.setWifiStatus("Connect Failed!");
-        break;
-    }
-    case WIFI_DISCONNECTED:
-    case WIFI_CONNECTING:
-    case WIFI_DISCONNECTING: {
-        // NOP
-        break;
-    }
-    }
-}
-
-void MINER_set_ap_status(bool state) {
-    SYSTEM_MODULE.setAPState(state);
-}
