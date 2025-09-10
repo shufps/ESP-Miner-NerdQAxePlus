@@ -110,12 +110,8 @@ esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count)
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 
-     wifi_scan_config_t scan_config = {
-        .ssid = 0,
-        .bssid = 0,
-        .channel = 0,
-        .show_hidden = false
-    };
+    // zero-init
+    wifi_scan_config_t scan_config = {};
 
     esp_err_t err = esp_wifi_scan_start(&scan_config, false);
     if (err != ESP_OK) {
@@ -196,7 +192,7 @@ static void event_handler(void * arg, esp_event_base_t event_base, int32_t event
                 return;
             }
 
-            char buffer[64];
+            char buffer[128];
             snprintf(buffer, sizeof(buffer), "%s (Error %d, retry #%d)", get_wifi_reason_string(event->reason), event->reason, s_retry_num);
             SYSTEM_MODULE.setWifiStatus(buffer);
 
@@ -427,10 +423,16 @@ static const wifi_reason_desc_t wifi_reasons[] = {
     {WIFI_REASON_UNSPECIFIED,                        "Unspecified reason"},
     {WIFI_REASON_AUTH_EXPIRE,                        "Authentication expired"},
     {WIFI_REASON_AUTH_LEAVE,                         "Deauthentication due to leaving"},
+#ifdef WIFI_REASON_DISASSOC_DUE_TO_INACTIVITY
     {WIFI_REASON_DISASSOC_DUE_TO_INACTIVITY,         "Disassociated due to inactivity"},
+#endif
     {WIFI_REASON_ASSOC_TOOMANY,                      "Too many associated stations"},
+#ifdef WIFI_REASON_CLASS2_FRAME_FROM_NONAUTH_STA
     {WIFI_REASON_CLASS2_FRAME_FROM_NONAUTH_STA,      "Class 2 frame from non-authenticated STA"},
+#endif
+#ifdef WIFI_REASON_CLASS3_FRAME_FROM_NONASSOC_STA
     {WIFI_REASON_CLASS3_FRAME_FROM_NONASSOC_STA,     "Class 3 frame from non-associated STA"},
+#endif
     {WIFI_REASON_ASSOC_LEAVE,                        "Deassociated due to leaving"},
     {WIFI_REASON_ASSOC_NOT_AUTHED,                   "Association but not authenticated"},
     {WIFI_REASON_DISASSOC_PWRCAP_BAD,                "Disassociated due to poor power capability"},
