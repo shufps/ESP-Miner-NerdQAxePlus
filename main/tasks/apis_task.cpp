@@ -126,7 +126,8 @@ bool APIsFetcher::fetchData(const char* apiUrl, ApiType type)
     esp_http_client_config_t config = {};
     config.url = apiUrl;
     config.event_handler = http_event_handler;
-    config.crt_bundle_attach = esp_crt_bundle_attach;
+    //config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.crt_bundle_attach = NULL;
     config.user_data = this;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
