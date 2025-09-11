@@ -85,8 +85,10 @@ bool DiscordAlerter::sendRaw(const char *message)
     config.url = m_webhookUrl;
     config.method = HTTP_METHOD_POST;
     config.timeout_ms = 5000;
-    //config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.skip_cert_common_name_check = true;
     config.crt_bundle_attach = NULL;
+    config.cert_pem = NULL;
+    config.use_global_ca_store = false;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (client == nullptr) {
