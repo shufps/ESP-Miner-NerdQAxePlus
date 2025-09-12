@@ -9,30 +9,9 @@
 #include "connect.h"
 
 #include "global_state.h"
+#include "macros.h"
 
 static const char *TAG = "discord";
-
-#ifdef CONFIG_SPIRAM
-#define MALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#define CALLOC(s, t) heap_caps_calloc(s, t, MALLOC_CAP_SPIRAM)
-#define FREE(p)                                                                                                                    \
-    do {                                                                                                                           \
-        if (p) {                                                                                                                   \
-            heap_caps_free(p);                                                                                                     \
-            (p) = NULL;                                                                                                            \
-        }                                                                                                                          \
-    } while (0)
-#else
-#define MALLOC(s) malloc(s)
-#define CALLOC(s, t) calloc(s, t)
-#define FREE(p)                                                                                                                    \
-    do {                                                                                                                           \
-        if (p) {                                                                                                                   \
-            free(p);                                                                                                               \
-            (p) = NULL;                                                                                                            \
-        }                                                                                                                          \
-    } while (0)
-#endif
 
 Alerter::Alerter() : m_messageBuffer(nullptr), m_payloadBuffer(nullptr), m_enabled(false)
 {

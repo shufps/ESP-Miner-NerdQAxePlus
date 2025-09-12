@@ -10,6 +10,7 @@
 
 #include "global_state.h"
 #include "history.h"
+#include "macros.h"
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
@@ -134,11 +135,11 @@ History::History() : m_avg1m(this, 60llu * 1000llu), m_avg10m(this, 600llu * 100
 
 bool History::init(int num_asics)
 {
-    m_shares = (uint32_t *) heap_caps_malloc(HISTORY_MAX_SAMPLES * sizeof(uint32_t), MALLOC_CAP_SPIRAM);
-    m_timestamps = (uint64_t *) heap_caps_malloc(HISTORY_MAX_SAMPLES * sizeof(uint64_t), MALLOC_CAP_SPIRAM);
-    m_hashrate10m = (float *) heap_caps_malloc(HISTORY_MAX_SAMPLES * sizeof(float), MALLOC_CAP_SPIRAM);
-    m_hashrate1h = (float *) heap_caps_malloc(HISTORY_MAX_SAMPLES * sizeof(float), MALLOC_CAP_SPIRAM);
-    m_hashrate1d = (float *) heap_caps_malloc(HISTORY_MAX_SAMPLES * sizeof(float), MALLOC_CAP_SPIRAM);
+    m_shares = (uint32_t *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(uint32_t));
+    m_timestamps = (uint64_t *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(uint64_t));
+    m_hashrate10m = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
+    m_hashrate1h = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
+    m_hashrate1d = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
 
     m_distribution.init(num_asics);
 

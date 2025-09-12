@@ -19,6 +19,7 @@
 #include "handler_restart.h"
 #include "handler_file.h"
 #include "handler_alert.h"
+#include "macros.h"
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"

@@ -19,14 +19,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "macros.h"
+
 // The logging tag for ESP logging.
 static const char *TAG = "stratum_api";
-
-#ifdef CONFIG_SPIRAM
-#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#else
-#define ALLOC(s) malloc(s)
-#endif
 
 void safe_free(char *&ptr)
 {
@@ -38,8 +34,8 @@ void safe_free(char *&ptr)
 
 StratumApi::StratumApi() : m_len(0), m_send_uid(1)
 {
-    m_buffer = (char *) ALLOC(BIG_BUFFER_SIZE);
-    m_requestBuffer = (char *) ALLOC(BUFFER_SIZE);
+    m_buffer = (char *) MALLOC(BIG_BUFFER_SIZE);
+    m_requestBuffer = (char *) MALLOC(BUFFER_SIZE);
     clearBuffer();
 }
 
@@ -150,7 +146,7 @@ char *StratumApi::receiveJsonRpcLine(int sockfd)
     int line_length = newline_ptr - m_buffer;
 
     // Allocate memory for the resulting line.
-    char *line = (char *) ALLOC(line_length + 1);
+    char *line = (char *) MALLOC(line_length + 1);
 
     if (!line) {
         ESP_LOGE(TAG, "Failed to allocate memory for line.");
@@ -190,7 +186,7 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
     switch (message->method) {
     case MINING_NOTIFY: {
         ESP_LOGI(TAG, "mining notify");
-        mining_notify *new_work = (mining_notify *) ALLOC(sizeof(mining_notify));
+        mining_notify *new_work = (mining_notify *) MALLOC(sizeof(mining_notify));
 
         JsonArray params = doc["params"].as<JsonArray>();
 
