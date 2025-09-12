@@ -40,7 +40,6 @@ void System::initSystem() {
     m_bestNonceDiff = Config::getBestDiff();
     m_bestSessionNonceDiff = 0;
     m_startTime = esp_timer_get_time();
-    m_foundBlock = false;
     m_startupDone = false;
     m_poolErrors = 0;
     m_poolDifficulty = 8192;
@@ -61,6 +60,8 @@ void System::initSystem() {
         Config::getStratumFallbackPass()
     };
 
+    m_foundBlocks = 0;
+    m_totalFoundBlocks = Config::getTotalFoundBlocks();
 
     // Initialize overheat flag
     m_overheated = false;
@@ -151,8 +152,12 @@ void System::checkForBestDiff(double diff, uint32_t nbits) {
 
     double networkDiff = calculateNetworkDifficulty(nbits);
     if (diff > networkDiff) {
-        m_foundBlock = true;
+        m_foundBlocks++;
         ESP_LOGI(TAG, "FOUND BLOCK!!! %f > %f", diff, networkDiff);
+
+        // increase total found blocks counter
+        m_totalFoundBlocks++;
+        Config::setTotalFoundBlocks(m_totalFoundBlocks);
     }
 
     if ((uint64_t)diff <= m_bestNonceDiff) {
@@ -288,7 +293,7 @@ void System::task() {
 
     // show initial 0.0.0.0
     m_display->updateIpAddress(m_ipAddress.c_str());
-    bool lastFoundBlock = false;
+    int lastFoundBlocks = 0;
 
     while (1) {
         // update IP on the screen if it is available
@@ -305,10 +310,10 @@ void System::task() {
         }
 
         // trigger the overlay only once when block is found
-        if (m_foundBlock != lastFoundBlock && m_foundBlock) {
+        if (m_foundBlocks != lastFoundBlocks && m_foundBlocks) {
             m_display->showFoundBlockOverlay();
         }
-        lastFoundBlock = m_foundBlock;
+        lastFoundBlocks = m_foundBlocks;
 
         m_display->updateGlobalState();
         m_display->updateCurrentSettings();

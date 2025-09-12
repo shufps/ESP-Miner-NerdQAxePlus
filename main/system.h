@@ -37,8 +37,9 @@ class System {
     char m_bestSessionDiffString[DIFF_STRING_SIZE]; // String representation of the best session difficulty
 
     // System status flags
-    bool m_foundBlock;  // Flag indicating if a block was found
-    bool m_startupDone; // Flag to indicate if system startup is complete
+    int m_foundBlocks;      // Counter number of found blocks
+    int m_totalFoundBlocks; // Counter of all found blocks
+    bool m_startupDone;     // Flag to indicate if system startup is complete
 
     // Network and connection info
     std::string m_ssid;        // WiFi SSID (+1 for null terminator)
@@ -228,10 +229,16 @@ class System {
         m_apSsid = ssid;
     }
 
-    // Block status and clock sync getters
-    bool isFoundBlock() const
+    // Count of found blocks sind reboot
+    int getFoundBlocks() const
     {
-        return m_foundBlock;
+        return m_foundBlocks;
+    }
+
+    // Count of total found blocks
+    int getTotalFoundBlocks() const
+    {
+        return m_totalFoundBlocks;
     }
 
     // Startup status setter

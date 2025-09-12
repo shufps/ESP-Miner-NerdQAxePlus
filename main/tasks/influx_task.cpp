@@ -13,7 +13,7 @@ static const char *TAG = "influx_task";
 
 static Influx *influxdb = 0;
 
-bool last_block_found = false;
+int last_block_found = 0;
 
 // Timer callback function to increment uptime counters
 void uptime_timer_callback(TimerHandle_t xTimer)
@@ -80,10 +80,8 @@ static void influx_task_fetch_from_system_module(System *module)
     // Ping RTT
     influxdb->m_stats.last_ping_rtt = get_last_ping_rtt();
 
-    // found block
-    // firmware sets the flag but never removes it
-    // so detect the "edge"
-    bool found = module->isFoundBlock();
+    // found blocks
+    int found = module->getFoundBlocks();
     if (found && !last_block_found) {
         influxdb->m_stats.blocks_found++;
         influxdb->m_stats.total_blocks_found++;
