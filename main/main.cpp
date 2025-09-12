@@ -32,6 +32,7 @@
 #include "ping_task.h"
 #include "wifi_health.h"
 #include "discord.h"
+#include "macros.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -46,6 +47,10 @@ DiscordAlerter discordAlerter;
 AsicJobs asicJobs;
 
 static const char *TAG = "nerd*axe";
+
+#ifndef CONFIG_SPIRAM
+#error "firmware will not work without psram"
+#endif
 
 // Function to configure the Task Watchdog Timer (TWDT)
 void initWatchdog()
@@ -66,7 +71,7 @@ void initWatchdog()
 
 // Custom calloc function that allocates from PSRAM
 void *psram_calloc(size_t num, size_t size) {
-    void *ptr = heap_caps_calloc(num, size, MALLOC_CAP_SPIRAM);
+    void *ptr = CALLOC(num, size);
     if (!ptr) {
         ESP_LOGE(TAG, "PSRAM allocation failed! Falling back to internal RAM.");
         ptr = heap_caps_calloc(num, size, MALLOC_CAP_DEFAULT);

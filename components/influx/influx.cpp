@@ -11,16 +11,11 @@
 #include <time.h>
 
 #include "influx.h"
+#include "macros.h"
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
 static const char *TAG = "InfluxDB";
-
-#ifdef CONFIG_SPIRAM
-#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#else
-#define ALLOC(s) malloc(s)
-#endif
 
 #define m_big_buffer_SIZE 32768
 
@@ -441,7 +436,7 @@ void Influx::write()
 
 bool Influx::init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix)
 {
-    m_big_buffer = (char*) ALLOC(m_big_buffer_SIZE);
+    m_big_buffer = (char*) MALLOC(m_big_buffer_SIZE);
 
     if (!m_big_buffer) {
         ESP_LOGE(TAG, "error allocating influx message buffer");

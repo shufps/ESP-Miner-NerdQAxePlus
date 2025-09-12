@@ -19,12 +19,7 @@
 #include "psram_allocator.h"
 #include "stratum_task.h"
 #include "system.h"
-
-#ifdef CONFIG_SPIRAM
-#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#else
-#define ALLOC(s) malloc(s)
-#endif
+#include "macros.h"
 
 // fallback can nicely be tested with netcat
 // mkfifo /tmp/ncpipe
@@ -372,7 +367,7 @@ void StratumTask::disconnect()
 
 StratumManager::StratumManager()
 {
-    m_stratum_api_v1_message = (StratumApiV1Message *) ALLOC(sizeof(StratumApiV1Message));
+    m_stratum_api_v1_message = (StratumApiV1Message *) MALLOC(sizeof(StratumApiV1Message));
 }
 
 bool StratumManager::isUsingFallback()
