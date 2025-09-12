@@ -52,6 +52,8 @@
 
 #define NVS_CONFIG_SWARM "swarmconfig"
 
+#define NVS_TOTAL_FOUND_BLOCKS "totalblocks"
+
 #if defined(CONFIG_FAN_MODE_MANUAL)
 #define CONFIG_AUTO_FAN_SPEED_VALUE 0
 #elif defined(CONFIG_FAN_MODE_CLASSIC)
@@ -140,10 +142,12 @@ namespace Config {
     // ---- uint64_t Getters ----
     inline uint64_t getBestDiff() { return nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0); }
     inline uint32_t getStratumDifficulty() { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_STRATUM_DIFFICULTY, CONFIG_STRATUM_DIFFICULTY); }
+    inline uint32_t getTotalFoundBlocks() { return (uint32_t) nvs_config_get_u64(NVS_TOTAL_FOUND_BLOCKS, 0); }
 
     // ---- uint64_t Setters ----
     inline void setBestDiff(uint64_t value) { nvs_config_set_u64(NVS_CONFIG_BEST_DIFF, value); }
     inline void setStratumDifficulty(uint32_t value) { nvs_config_set_u64(NVS_CONFIG_STRATUM_DIFFICULTY, value); }
+    inline void setTotalFoundBlocks(uint32_t value) { nvs_config_set_u64(NVS_TOTAL_FOUND_BLOCKS, value); }
 
     // ---- Boolean Getters (Stored as uint16_t but used as bool) ----
     inline bool isInvertScreenEnabled() { return nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0) != 0; } // todo unused?
