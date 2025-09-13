@@ -26,3 +26,19 @@ input {
 button {
   width: 80px;
 }
+
+
+/* keep titles bold, description muted; keep everything on one line when wide */
+.cb-line .cb-title { font-weight: 600; }
+.cb-line .cb-desc { opacity: 0.78; font-size: 0.95rem; }
+
+/* tighten checkbox spacing a bit */
+:host ::ng-deep nb-checkbox { margin: .25rem 0; }
+
+/* ensure label behaves nicely in one line but wraps gracefully on narrow screens */
+:host ::ng-deep nb-checkbox .label {
+  display: inline-flex;
+  gap: .4rem;
+  align-items: baseline;
+  flex-wrap: wrap; /* allows wrapping on very narrow viewports */
+}

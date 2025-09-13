@@ -173,28 +173,40 @@ endmenu
 
 menu "Discord Alert Configuration"
 
-    # Enable or disable the Discord alert system
-    config ALERT_DISCORD_ENABLE
-        bool "Enable Discord Alerts"
+    # Enable/disable specific Discord alerts
+    config ALERT_DISCORD_WATCHDOG_ENABLE
+        bool "Watchdog alert"
         default n
         help
-            Enables the Discord webhook-based alert system.
-            If enabled, the firmware will send error or warning messages to the specified Discord channel.
+            Sends a Discord alert if the miner watchdog triggers
+            (e.g. device reboots after failing to submit a share for ~1 hour).
 
-    # Helper int value that maps the bool to 0 or 1 for use in C code
-    config ALERT_DISCORD_ENABLE_VALUE
+    config ALERT_DISCORD_BLOCK_FOUND_ENABLE
+        bool "Block-found alert"
+        default n
+        help
+            Sends a Discord alert when your miner finds a block.
+
+    # Internal 0/1 mirrors for C code that prefers ints
+    config ALERT_DISCORD_WATCHDOG_ENABLE_VALUE
         int
         default 1 if ALERT_DISCORD_ENABLE
         default 0
 
-    # Webhook URL for sending Discord alerts
+    config ALERT_DISCORD_BLOCK_FOUND_ENABLE_VALUE
+        int
+        default 1 if ALERT_DISCORD_BLOCK_FOUND_ENABLE
+        default 0
+
+    # Webhook URL for sending Discord alerts (only shown if any alert is enabled)
     config ALERT_DISCORD_URL
-        string "Discord Webhook URL"
-        default "https://discord.com/api/webhooks/your_token_here"
+        string "Discord webhook URL"
+        default ""
         help
-            Full Discord webhook URL for sending alert messages.
-            You can generate this URL in your Discord server under Integrations → Webhooks.
-            Be sure to keep this secret!
+            Full Discord webhook URL used for all enabled alerts.
+            Example: https://discord.com/api/webhooks/<id>/<token>
+            Obtain it from your Discord server under: Integrations → Webhooks.
+            Note: This is stored in plaintext in the firmware unless overridden at runtime.
 
 endmenu
 

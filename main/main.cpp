@@ -182,7 +182,7 @@ extern "C" void app_main(void)
 
     // we only use alerting if we are in a normal operating mode
     if (reason == ESP_RST_TASK_WDT) {
-        discordAlerter.sendMessage("Device rebootet because there was no share for more than 1h!");
+        discordAlerter.sendWatchdogAlert();
     }
 
     // and continue with initialization

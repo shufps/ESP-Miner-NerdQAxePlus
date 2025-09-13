@@ -31,7 +31,8 @@ esp_err_t GET_alert_info(httpd_req_t *req)
 
     // don't send the alertDiscordWebhook on the API
     //doc["alertDiscordWebhook"]  = alertDiscordWebhook;
-    doc["alertDiscordEnable"] = Config::isDiscordAlertEnabled() ? 1 : 0;
+    doc["alertDiscordWatchdogEnable"] = Config::isDiscordWatchdogAlertEnabled() ? 1 : 0;
+    doc["alertDiscordBlockFoundEnable"] = Config::isDiscordBlockFoundAlertEnabled() ? 1 : 0;
 
     esp_err_t ret = sendJsonResponse(req, doc);
 
@@ -86,9 +87,13 @@ esp_err_t POST_update_alert(httpd_req_t *req)
     if (doc["alertDiscordWebhook"].is<const char*>()) {
         Config::setDiscordWebhook(doc["alertDiscordWebhook"].as<const char*>());
     }
-    if (doc["alertDiscordEnable"].is<bool>()) {
-        Config::setDiscordAlertEnabled(doc["alertDiscordEnable"].as<bool>());
+    if (doc["alertDiscordWatchdogEnable"].is<bool>()) {
+        Config::setDiscordWatchdogAlertEnabled(doc["alertDiscordWatchdogEnable"].as<bool>());
     }
+    if (doc["alertDiscordBlockFoundEnable"].is<bool>()) {
+        Config::setDiscordAlertBlockFoundEnabled(doc["alertDiscordBlockFoundEnable"].as<bool>());
+    }
+
 
     doc.clear();
 

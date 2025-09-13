@@ -3,32 +3,53 @@
 </ng-template>
 
 <ng-container *ngIf="form != null; else loading">
+
   <form [formGroup]="form">
     <nb-card>
-      <nb-card-header>Discord Alert</nb-card-header>
+      <nb-card-header>Discord Alerts</nb-card-header>
+
       <nb-card-body>
-        <div class="form-row">
-          An alert will be triggered if the device reboots after failing to submit a share for 1 hour.
+        <div class="form-row mb-2">
+          Configure which Discord alerts you want to receive. The webhook is used for all selected topics.
         </div>
+
+        <!-- Checkboxes with inline descriptions -->
         <div class="form-row">
-          <nb-checkbox formControlName="alertDiscordEnable">Enable</nb-checkbox>
+          <nb-checkbox formControlName="alertDiscordWatchdogEnable" class="cb-line">
+            <span class="cb-title">Miner watchdog triggered</span>
+            <span class="cb-desc">— triggers if the device reboots after failing to submit a share for 1 hour.</span>
+          </nb-checkbox>
         </div>
 
         <div class="form-row">
+          <nb-checkbox formControlName="alertDiscordBlockFoundEnable" class="cb-line">
+            <span class="cb-title">Block found</span>
+            <span class="cb-desc">— triggers when your miner finds a block.</span>
+          </nb-checkbox>
+        </div>
+
+        <!-- Webhook -->
+        <div class="form-row mt-3">
           <label for="alertDiscordWebhook" class="form-label">Webhook URL:</label>
           <div class="form-control-wrapper">
-            <input nbInput id="alertDiscordWebhook" type="password" formControlName="alertDiscordWebhook"
-              placeholder="https://discord.com/api/webhooks/..." /><br />
+            <input
+              nbInput
+              id="alertDiscordWebhook"
+              type="password"
+              formControlName="alertDiscordWebhook"
+              placeholder="https://discord.com/api/webhooks/..."
+            /><br />
             <small>Webhook from your Discord channel integration</small>
           </div>
         </div>
 
-        <div class="d-flex align-items-center justify-content-between mt-2">
+        <!-- Actions -->
+        <div class="d-flex align-items-center justify-content-between mt-3">
           <div>
-            <button nbButton size="small" [disabled]="form.invalid" (click)="save()" status="danger">Save</button>
+            <button nbButton size="small" (click)="save()" status="danger">Save</button>
           </div>
           <div>
-            <button nbButton size="small" (click)="sendTest()" [disabled]="form.invalid" status="info">Test</button>
+            <button nbButton size="small" (click)="sendTest()" status="info">Test</button>
           </div>
         </div>
       </nb-card-body>

@@ -47,8 +47,9 @@
 #define NVS_CONFIG_PID_I "pid_i"
 #define NVS_CONFIG_PID_D "pid_d"
 
-#define NVS_CONFIG_ALERT_DISCORD_ENABLE "alrt_disc_en"
+#define NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE "alrt_disc_en"
 #define NVS_CONFIG_ALERT_DISCORD_URL    "alrt_disc_url"
+#define NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE "alrt_disc_bf_en"
 
 #define NVS_CONFIG_SWARM "swarmconfig"
 
@@ -154,7 +155,8 @@ namespace Config {
     inline bool isSelfTestEnabled() { return nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0) != 0; }
     inline bool isAutoScreenOffEnabled() { return nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE) != 0; }
     inline bool isInfluxEnabled() { return nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE) != 0; }
-    inline bool isDiscordAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_ENABLE, CONFIG_ALERT_DISCORD_ENABLE_VALUE) != 0; }
+    inline bool isDiscordWatchdogAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE, CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE_VALUE) != 0; }
+    inline bool isDiscordBlockFoundAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE_VALUE) != 0; }
     inline bool isStratumKeepaliveEnabled() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_KEEPALIVE, CONFIG_STRATUM_KEEPALIVE_ENABLE_VALUE) != 0; }
 
 
@@ -166,7 +168,8 @@ namespace Config {
     inline void setSelfTest(bool value) { nvs_config_set_u16(NVS_CONFIG_SELF_TEST, value ? 1 : 0); }
     inline void setAutoScreenOff(bool value) { nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, value ? 1 : 0); }
     inline void setInfluxEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, value ? 1 : 0); }
-    inline void setDiscordAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_ENABLE, value ? 1 : 0); }
+    inline void setDiscordWatchdogAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE, value ? 1 : 0); }
+    inline void setDiscordAlertBlockFoundEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, value ? 1 : 0); }
     inline void setStratumKeepaliveEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_KEEPALIVE, value ? 1 : 0); }
 
     // with board specific default values
