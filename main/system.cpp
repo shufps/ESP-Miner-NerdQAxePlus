@@ -158,6 +158,8 @@ void System::checkForBestDiff(double diff, uint32_t nbits) {
         // increase total found blocks counter
         m_totalFoundBlocks++;
         Config::setTotalFoundBlocks(m_totalFoundBlocks);
+
+        discordAlerter.sendBlockFoundAlert(diff, networkDiff);
     }
 
     if ((uint64_t)diff <= m_bestNonceDiff) {
