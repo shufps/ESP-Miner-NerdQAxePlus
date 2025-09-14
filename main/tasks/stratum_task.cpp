@@ -287,6 +287,9 @@ void StratumTask::stratumLoop()
     // mining.suggest_difficulty - ID: 4
     success = success && m_stratumAPI.suggestDifficulty(m_sock, Config::getStratumDifficulty());
 
+    // mining.mining.extranonce.subscribe - ID 5
+    success = success && m_stratumAPI.entranonceSubscribe(m_sock);
+
     if (!success) {
         ESP_LOGE(m_tag, "Error sending Stratum setup commands!");
         return;
@@ -573,6 +576,14 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     case STRATUM_RESULT_VERSION_MASK: {
         ESP_LOGI(tag, "Set version mask: %08lx", m_stratum_api_v1_message->version_mask);
         create_job_set_version_mask(m_stratum_api_v1_message->version_mask);
+        break;
+    }
+
+    case MINING_SET_EXTRANONCE: {
+        // the new extranonce gets active with the next mining.notify
+        ESP_LOGI(tag, "Set next enonce %s enonce2-len: %d", m_stratum_api_v1_message->extranonce_str,
+                 m_stratum_api_v1_message->extranonce_2_len);
+        set_next_enonce(m_stratum_api_v1_message->extranonce_str, m_stratum_api_v1_message->extranonce_2_len);
         break;
     }
 

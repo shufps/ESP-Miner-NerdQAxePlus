@@ -22,8 +22,11 @@ pthread_mutex_t current_stratum_job_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static mining_notify current_job;
 
-static char *extranonce_str = NULL;
+static char *extranonce_str = nullptr;
 static int extranonce_2_len = 0;
+
+static char *next_extranonce_str = nullptr;
+static int next_extranonce_2_len = 0;
 
 static uint32_t stratum_difficulty = 8192;
 static uint32_t active_stratum_difficulty = 8192;
@@ -77,9 +80,31 @@ void create_job_set_enonce(char *enonce, int enonce2_len)
     pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
+void set_next_enonce(char *enonce, int enonce2_len)
+{
+    pthread_mutex_lock(&current_stratum_job_mutex);
+    if (next_extranonce_str) {
+        free(next_extranonce_str);
+    }
+    next_extranonce_str = strdup(enonce);
+    next_extranonce_2_len = enonce2_len;
+    pthread_mutex_unlock(&current_stratum_job_mutex);
+}
+
 void create_job_mining_notify(mining_notify *notifiy)
 {
     pthread_mutex_lock(&current_stratum_job_mutex);
+
+    // do we have a pending extranonce switch?
+    if (next_extranonce_str) {
+        free(extranonce_str);
+        extranonce_str = strdup(next_extranonce_str);
+        extranonce_2_len = next_extranonce_2_len;
+        free(next_extranonce_str);
+        next_extranonce_str = 0;
+        next_extranonce_2_len = 0;
+    }
+
     if (current_job.job_id) {
         free(current_job.job_id);
     }
