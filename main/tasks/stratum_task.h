@@ -98,7 +98,7 @@ class StratumManager {
     const char *m_tag = "stratum-manager"; ///< Debug tag for logging
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER; ///< Mutex for thread safety
-    StratumApiV1Message *m_stratum_api_v1_message;       ///< API message handler
+    StratumApiV1Message m_stratum_api_v1_message;       ///< API message handler
     StratumTask *m_stratumTasks[2] = {nullptr, nullptr}; ///< Primary and secondary Stratum tasks
 
     int m_selected = 0;                         ///< Tracks the currently active pool (0 = primary, 1 = secondary)

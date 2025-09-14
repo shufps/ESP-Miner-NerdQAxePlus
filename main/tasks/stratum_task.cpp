@@ -31,14 +31,6 @@ enum Selected
     SECONDARY = 1
 };
 
-static void safe_free(char *&ptr)
-{
-    if (ptr) {         // Check if pointer is not null
-        free(ptr);     // Free memory
-        ptr = nullptr; // Set pointer to null to prevent dangling pointer issues
-    }
-}
-
 int is_socket_connected(int socket)
 {
     if (socket == -1) {
@@ -372,7 +364,6 @@ void StratumTask::disconnect()
 
 StratumManager::StratumManager()
 {
-    m_stratum_api_v1_message = (StratumApiV1Message *) MALLOC(sizeof(StratumApiV1Message));
 }
 
 bool StratumManager::isUsingFallback()
@@ -539,60 +530,58 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     const char *tag = selected->getTag();
 
-    memset(m_stratum_api_v1_message, 0, sizeof(StratumApiV1Message));
+    // we keep the m_stratum_api_v1_message in the class
+    // to not have the struct on the stack
+    memset(&m_stratum_api_v1_message, 0, sizeof(StratumApiV1Message));
 
-    if (!StratumApi::parse(m_stratum_api_v1_message, doc)) {
+    if (!StratumApi::parse(&m_stratum_api_v1_message, doc)) {
         ESP_LOGE(m_tag, "error in stratum");
+        safe_free(m_stratum_api_v1_message.mining_notification);
+        safe_free(m_stratum_api_v1_message.extranonce_str);
         return;
     }
 
-    switch (m_stratum_api_v1_message->method) {
+    switch (m_stratum_api_v1_message.method) {
     case MINING_NOTIFY: {
-        SYSTEM_MODULE.notifyNewNtime(m_stratum_api_v1_message->mining_notification->ntime);
+        SYSTEM_MODULE.notifyNewNtime(m_stratum_api_v1_message.mining_notification->ntime);
 
         // abandon work clears the asic job list
         // also clear on first job
-        if (selected->m_firstJob || m_stratum_api_v1_message->should_abandon_work) {
+        if (selected->m_firstJob || m_stratum_api_v1_message.should_abandon_work) {
             cleanQueue();
             selected->m_firstJob = false;
         }
-        create_job_mining_notify(m_stratum_api_v1_message->mining_notification);
-
-        // free notify
-        if (m_stratum_api_v1_message->mining_notification) {
-            StratumApi::freeMiningNotify(m_stratum_api_v1_message->mining_notification);
-            free(m_stratum_api_v1_message->mining_notification);
-        }
+        create_job_mining_notify(m_stratum_api_v1_message.mining_notification);
         break;
     }
 
     case MINING_SET_DIFFICULTY: {
-        SYSTEM_MODULE.setPoolDifficulty(m_stratum_api_v1_message->new_difficulty);
-        if (create_job_set_difficulty(m_stratum_api_v1_message->new_difficulty)) {
-            ESP_LOGI(tag, "Set stratum difficulty: %ld", m_stratum_api_v1_message->new_difficulty);
+        SYSTEM_MODULE.setPoolDifficulty(m_stratum_api_v1_message.new_difficulty);
+        if (create_job_set_difficulty(m_stratum_api_v1_message.new_difficulty)) {
+            ESP_LOGI(tag, "Set stratum difficulty: %ld", m_stratum_api_v1_message.new_difficulty);
         }
         break;
     }
 
     case MINING_SET_VERSION_MASK:
     case STRATUM_RESULT_VERSION_MASK: {
-        ESP_LOGI(tag, "Set version mask: %08lx", m_stratum_api_v1_message->version_mask);
-        create_job_set_version_mask(m_stratum_api_v1_message->version_mask);
+        ESP_LOGI(tag, "Set version mask: %08lx", m_stratum_api_v1_message.version_mask);
+        create_job_set_version_mask(m_stratum_api_v1_message.version_mask);
         break;
     }
 
     case MINING_SET_EXTRANONCE: {
         // the new extranonce gets active with the next mining.notify
-        ESP_LOGI(tag, "Set next enonce %s enonce2-len: %d", m_stratum_api_v1_message->extranonce_str,
-                 m_stratum_api_v1_message->extranonce_2_len);
-        set_next_enonce(m_stratum_api_v1_message->extranonce_str, m_stratum_api_v1_message->extranonce_2_len);
+        ESP_LOGI(tag, "Set next enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
+                 m_stratum_api_v1_message.extranonce_2_len);
+        set_next_enonce(m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         break;
     }
 
     case STRATUM_RESULT_SUBSCRIBE: {
-        ESP_LOGI(tag, "Set enonce %s enonce2-len: %d", m_stratum_api_v1_message->extranonce_str,
-                 m_stratum_api_v1_message->extranonce_2_len);
-        create_job_set_enonce(m_stratum_api_v1_message->extranonce_str, m_stratum_api_v1_message->extranonce_2_len);
+        ESP_LOGI(tag, "Set enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
+                 m_stratum_api_v1_message.extranonce_2_len);
+        create_job_set_enonce(m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         break;
     }
 
@@ -602,7 +591,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     }
 
     case STRATUM_RESULT: {
-        if (m_stratum_api_v1_message->response_success) {
+        if (m_stratum_api_v1_message.response_success) {
             ESP_LOGI(tag, "message result accepted");
             SYSTEM_MODULE.notifyAcceptedShare();
         } else {
@@ -614,7 +603,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     }
 
     case STRATUM_RESULT_SETUP: {
-        if (m_stratum_api_v1_message->response_success) {
+        if (m_stratum_api_v1_message.response_success) {
             ESP_LOGI(tag, "setup message accepted");
         } else {
             ESP_LOGE(tag, "setup message rejected");
@@ -626,6 +615,13 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
         // NOP
     }
     }
+
+    // free memory
+    if (m_stratum_api_v1_message.mining_notification) {
+        StratumApi::freeMiningNotify(m_stratum_api_v1_message.mining_notification);
+        safe_free(m_stratum_api_v1_message.mining_notification);
+    }
+    safe_free(m_stratum_api_v1_message.extranonce_str);
 }
 
 void StratumManager::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,

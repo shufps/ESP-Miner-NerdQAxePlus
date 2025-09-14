@@ -2,7 +2,7 @@
 
 #ifdef CONFIG_SPIRAM
 #define MALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#define REALLOC(p, s) heap_caps_realloc(ptr, new_size, MALLOC_CAP_SPIRAM)
+#define REALLOC(p, s) heap_caps_realloc(p, s, MALLOC_CAP_SPIRAM)
 #define CALLOC(s, t) heap_caps_calloc(s, t, MALLOC_CAP_SPIRAM)
 #define FREE(p)                                                                                                                    \
     do {                                                                                                                           \
@@ -24,3 +24,13 @@
     } while (0)
 #endif
 
+#ifdef __cplusplus
+template <typename T>
+static void safe_free(T *&ptr)
+{
+    if (ptr) {
+        free(ptr);
+        ptr = nullptr;
+    }
+}
+#endif

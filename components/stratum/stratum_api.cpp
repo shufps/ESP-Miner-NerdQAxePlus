@@ -24,14 +24,6 @@
 // The logging tag for ESP logging.
 static const char *TAG = "stratum_api";
 
-void safe_free(char *&ptr)
-{
-    if (ptr) {         // Check if pointer is not null
-        free(ptr);     // Free memory
-        ptr = nullptr; // Set pointer to null to prevent dangling pointer issues
-    }
-}
-
 StratumApi::StratumApi() : m_len(0), m_send_uid(1)
 {
     m_buffer = (char *) MALLOC(BIG_BUFFER_SIZE);
