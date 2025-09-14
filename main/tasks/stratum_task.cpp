@@ -527,13 +527,13 @@ void StratumManager::freeStratumV1Message(StratumApiV1Message *message) {
 
 void StratumManager::dispatch(int pool, JsonDocument &doc)
 {
+    // ensure consistent use of m_stratum_api_v1_message
+    PThreadGuard lock(m_mutex);
+
     // only accept data from the selected pool
     if (pool != m_selected) {
         return;
     }
-
-    // ensure consistent use of m_stratum_api_v1_message
-    PThreadGuard lock(m_mutex);
 
     StratumTask *selected = m_stratumTasks[m_selected];
 
