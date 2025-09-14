@@ -231,6 +231,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     if (doc["stratumPort"].is<uint16_t>()) {
         Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
     }
+    if (doc["stratumEnonceSubscribe"].is<bool>()) {
+        Config::setStratumEnonceSubscribe(doc["stratumEnonceSubscribe"].as<bool>());
+    }
     if (doc["fallbackStratumURL"].is<const char*>()) {
         Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
     }
@@ -242,6 +245,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
     if (doc["fallbackStratumPort"].is<uint16_t>()) {
         Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
+    }
+    if (doc["fallbackStratumEnonceSubscribe"].is<bool>()) {
+        Config::setStratumFallbackEnonceSubscribe(doc["fallbackStratumEnonceSubscribe"].as<bool>());
     }
     if (doc["ssid"].is<const char*>()) {
         Config::setWifiSSID(doc["ssid"].as<const char*>());

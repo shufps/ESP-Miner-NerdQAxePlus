@@ -288,7 +288,9 @@ void StratumTask::stratumLoop()
     success = success && m_stratumAPI.suggestDifficulty(m_sock, Config::getStratumDifficulty());
 
     // mining.mining.extranonce.subscribe - ID 5
-    success = success && m_stratumAPI.entranonceSubscribe(m_sock);
+    if (m_config->enonceSub) {
+        success = success && m_stratumAPI.entranonceSubscribe(m_sock);
+    }
 
     if (!success) {
         ESP_LOGE(m_tag, "Error sending Stratum setup commands!");

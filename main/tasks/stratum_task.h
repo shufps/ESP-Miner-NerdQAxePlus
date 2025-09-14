@@ -17,6 +17,7 @@ typedef struct
     int port;             ///< Stratum pool port
     const char *user;     ///< Stratum user credentials
     const char *password; ///< Stratum password credentials
+    bool enonceSub;       ///< Flag is enonce subscription is enabled
 } StratumConfig;
 
 /**
