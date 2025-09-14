@@ -406,13 +406,12 @@ void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
 // Reconnect Timer Callback
 void StratumManager::reconnectTimerCallback(TimerHandle_t xTimer)
 {
-    pthread_mutex_lock(&m_mutex);
+    PThreadGuard lock(m_mutex);
     // Check if primary is still disconnected
     if (!isConnected(Selected::PRIMARY)) {
         connect(Selected::SECONDARY);
         m_selected = Selected::SECONDARY;
     }
-    pthread_mutex_unlock(&m_mutex);
 }
 
 // Start the reconnect timer
@@ -439,15 +438,13 @@ void StratumManager::stopReconnectTimer()
 // Connected Callback
 void StratumManager::connectedCallback(int index)
 {
-    pthread_mutex_lock(&m_mutex);
+    PThreadGuard lock(m_mutex);
 
     if (index == Selected::PRIMARY) {
         m_selected = Selected::PRIMARY;
         disconnect(Selected::SECONDARY);
         stopReconnectTimer(); // Stop reconnect attempts
     }
-
-    pthread_mutex_unlock(&m_mutex);
 }
 
 // Disconnected Callback
@@ -519,12 +516,24 @@ int StratumManager::getCurrentPoolPort()
     return m_stratumTasks[m_selected]->getPort();
 }
 
+void StratumManager::freeStratumV1Message(StratumApiV1Message *message) {
+    if (!message) {
+        return;
+    }
+    StratumApi::freeMiningNotify(message->mining_notification);
+    safe_free(message->mining_notification);
+    safe_free(message->extranonce_str);
+}
+
 void StratumManager::dispatch(int pool, JsonDocument &doc)
 {
     // only accept data from the selected pool
     if (pool != m_selected) {
         return;
     }
+
+    // ensure consistent use of m_stratum_api_v1_message
+    PThreadGuard lock(m_mutex);
 
     StratumTask *selected = m_stratumTasks[m_selected];
 
@@ -536,8 +545,8 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     if (!StratumApi::parse(&m_stratum_api_v1_message, doc)) {
         ESP_LOGE(m_tag, "error in stratum");
-        safe_free(m_stratum_api_v1_message.mining_notification);
-        safe_free(m_stratum_api_v1_message.extranonce_str);
+        // free memory
+        freeStratumV1Message(&m_stratum_api_v1_message);
         return;
     }
 
@@ -617,11 +626,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     }
 
     // free memory
-    if (m_stratum_api_v1_message.mining_notification) {
-        StratumApi::freeMiningNotify(m_stratum_api_v1_message.mining_notification);
-        safe_free(m_stratum_api_v1_message.mining_notification);
-    }
-    safe_free(m_stratum_api_v1_message.extranonce_str);
+    freeStratumV1Message(&m_stratum_api_v1_message);
 }
 
 void StratumManager::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,

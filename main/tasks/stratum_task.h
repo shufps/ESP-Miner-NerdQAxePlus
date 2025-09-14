@@ -129,6 +129,7 @@ class StratumManager {
     void connectedCallback(int index);    ///< Called when a pool successfully connects
     void disconnectedCallback(int index); ///< Called when a pool disconnects
 
+    void freeStratumV1Message(StratumApiV1Message *message);
   public:
     StratumManager();
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution

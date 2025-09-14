@@ -371,6 +371,10 @@ bool StratumApi::parse(StratumApiV1Message *message, JsonDocument &doc)
 //--------------------------------------------------------------------
 void StratumApi::freeMiningNotify(mining_notify *params)
 {
+    // nothing to free
+    if (!params) {
+        return;
+    }
     safe_free(params->job_id);
     safe_free(params->coinbase_1);
     safe_free(params->coinbase_2);

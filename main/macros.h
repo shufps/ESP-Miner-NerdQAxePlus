@@ -33,4 +33,18 @@ static void safe_free(T *&ptr)
         ptr = nullptr;
     }
 }
+
+class PThreadGuard {
+public:
+    explicit PThreadGuard(pthread_mutex_t &m) : m_mutex(m) {
+        pthread_mutex_lock(&m_mutex);
+    }
+    ~PThreadGuard() {
+        pthread_mutex_unlock(&m_mutex);
+    }
+private:
+    pthread_mutex_t &m_mutex;
+};
+
+
 #endif
