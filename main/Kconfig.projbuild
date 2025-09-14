@@ -109,7 +109,7 @@ menu "Stratum Configuration"
             Stratum password to use with fallback pool
 
     config STRATUM_FALLBACK_ENONCE_SUBSCRIBE
-        bool "Enable Extranone Subscribe"
+        bool "Enable Fallback Extranone Subscribe"
         default n
         help
             Enable or disable extranonce subscription
