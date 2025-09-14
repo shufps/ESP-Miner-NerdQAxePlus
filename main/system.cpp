@@ -49,7 +49,8 @@ void System::initSystem() {
         Config::getStratumURL(),
         Config::getStratumPortNumber(),
         Config::getStratumUser(),
-        Config::getStratumPass()
+        Config::getStratumPass(),
+        Config::isStratumEnonceSubscribe(),
     };
 
     m_stratumConfig[1] = {
@@ -57,7 +58,8 @@ void System::initSystem() {
         Config::getStratumFallbackURL(),
         Config::getStratumFallbackPortNumber(),
         Config::getStratumFallbackUser(),
-        Config::getStratumFallbackPass()
+        Config::getStratumFallbackPass(),
+        Config::isStratumFallbackEnonceSubscribe(),
     };
 
     m_foundBlocks = 0;

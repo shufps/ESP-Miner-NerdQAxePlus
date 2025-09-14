@@ -66,6 +66,30 @@ static const char* extract_origin_host(char *origin)
     return (const char*) host;
 }
 
+static bool is_localhost(const char* origin) {
+    if (!origin) return false;
+
+    // remove port
+    const char *colon = strchr(origin, ':');
+    size_t len = colon ? (size_t)(colon - origin) : strlen(origin);
+
+    // must match localhost
+    return (len == strlen("localhost") &&
+            strncmp(origin, "localhost", len) == 0);
+}
+
+static bool is_local(const char* origin) {
+    if (!origin) return false;
+
+    const char *suffix = ".local";
+    size_t origin_len = strlen(origin);
+    size_t suffix_len = strlen(suffix);
+
+    if (origin_len < suffix_len) return false;
+
+    return strcmp(origin + origin_len - suffix_len, suffix) == 0;
+}
+
 esp_err_t is_network_allowed(httpd_req_t * req)
 {
     if (SYSTEM_MODULE.getAPState()) {
@@ -107,7 +131,12 @@ esp_err_t is_network_allowed(httpd_req_t * req)
         std::string hostname = SYSTEM_MODULE.getHostname();
         ESP_LOGI(CORS_TAG, "hostname: %s", hostname.c_str());
         if (std::string(host) == hostname) {
-            ESP_LOGI(CORS_TAG, "origin equals hostname");
+            ESP_LOGI(CORS_TAG, "allowed: origin equals hostname");
+            return ESP_OK;
+        }
+
+        if (is_localhost(host) || is_local(host)) {
+            ESP_LOGI(CORS_TAG, "allowed: localhost or .local");
             return ESP_OK;
         }
 

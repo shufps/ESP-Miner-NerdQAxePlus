@@ -131,6 +131,7 @@ export class EditComponent implements OnInit {
         ]],
         stratumUser: [info.stratumUser, [Validators.required]],
         stratumPassword: ['*****', [Validators.required]],
+        stratumEnonceSubscribe: [info.stratumEnonceSubscribe == 1],
 
         fallbackStratumURL: [info.fallbackStratumURL, [
           Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
@@ -143,6 +144,7 @@ export class EditComponent implements OnInit {
         ]],
         fallbackStratumUser: [info.fallbackStratumUser],
         fallbackStratumPassword: ['*****'],
+        fallbackStratumEnonceSubscribe: [info.fallbackStratumEnonceSubscribe == 1],
 
         hostname: [info.hostname, [Validators.required]],
         ssid: [info.ssid, [Validators.required]],

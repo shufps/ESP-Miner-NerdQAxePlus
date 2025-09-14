@@ -72,6 +72,17 @@ menu "Stratum Configuration"
         help
             Stratum password to use with pool
 
+    config STRATUM_ENONCE_SUBSCRIBE
+        bool "Enable Extranone Subscribe"
+        default n
+        help
+            Enable or disable extranonce subscription
+
+    config STRATUM_ENONCE_SUBSCRIBE_VALUE
+        int
+        default 1 if STRATUM_ENONCE_SUBSCRIBE
+        default 0
+
     config STRATUM_FALLBACK_URL
         string "Stratum fallback Address"
         default ""
@@ -96,6 +107,17 @@ menu "Stratum Configuration"
         default ""
         help
             Stratum password to use with fallback pool
+
+    config STRATUM_FALLBACK_ENONCE_SUBSCRIBE
+        bool "Enable Fallback Extranone Subscribe"
+        default n
+        help
+            Enable or disable extranonce subscription
+
+    config STRATUM_FALLBACK_ENONCE_SUBSCRIBE_VALUE
+        int
+        default 1 if STRATUM_FALLBACK_ENONCE_SUBSCRIBE
+        default 0
 
     config STRATUM_DIFFICULTY
         int "Stratum default difficulty"
