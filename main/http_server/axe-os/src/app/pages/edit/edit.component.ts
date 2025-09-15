@@ -14,6 +14,8 @@ import { LocalStorageService } from 'src/app/services/local-storage.service';
   styleUrls: ['./edit.component.scss']
 })
 export class EditComponent implements OnInit {
+  // constants from ASIC logic
+  private readonly VR_REG_PER_HZ = 196_608_000; // 65536 * 3000
 
   public form!: FormGroup;
 
@@ -33,6 +35,7 @@ export class EditComponent implements OnInit {
 
   public defaultFrequency: number = 0;
   public defaultCoreVoltage: number = 0;
+  public defaultVrFrequency: number = 0;
 
   private originalSettings!: any;
 
@@ -90,6 +93,8 @@ export class EditComponent implements OnInit {
       // Store raw options (can be empty if the endpoint returns nothing)
       this.asicFrequencyValues = asic?.frequencyOptions ?? [];
       this.asicVoltageValues   = asic?.voltageOptions   ?? [];
+
+      this.defaultVrFrequency = info.defaultVrFrequency;
 
       // Dropdown base lists incl. (default) label
       const freqBase = this.asicFrequencyValues.map(v => ({
@@ -182,7 +187,12 @@ export class EditComponent implements OnInit {
           Validators.min(40),
           Validators.max(90),
           Validators.required
-        ]]
+        ]],
+        vrFrequency: [info.vrFrequency, [
+          Validators.min(1000),
+          Validators.max(100000),
+          Validators.required
+        ]],
       });
 
       this.form.controls['autofanspeed'].valueChanges
@@ -390,6 +400,15 @@ export class EditComponent implements OnInit {
     }
     this.dialogRef.close();
     this.updateSystem();
+  }
+
+  get wrapAroundTime(): number {
+    const freq = this.form.get('vrFrequency')?.value;
+    if (!freq || freq <= 0) {
+      return 0;
+    }
+    const wrap = 65536 / freq; // seconds
+    return wrap;
   }
 
 }

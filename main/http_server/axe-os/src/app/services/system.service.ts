@@ -73,6 +73,8 @@ const defaultInfo: ISystemInfo = {
   lastpingrtt: 0.00,
   poolDifficulty: 0,
   stratum_keep: 0,
+  defaultVrFrequency: 25000.0,
+  vrFrequency: 25000.0,
 
   pidTargetTemp: 55,
   pidP: 2.0,

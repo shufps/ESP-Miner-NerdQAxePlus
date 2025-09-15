@@ -20,6 +20,7 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_absMaxAsicFrequency = 800;
     m_absMaxAsicVoltageMillis = 1400;
     m_initVoltageMillis = 1200;
+    m_vrFreqReg = m_defaultVrFreqReg = 0x1eb5;
 
     m_pidSettings.targetTemp = 55;
     m_pidSettings.p = 600;  //  6.00

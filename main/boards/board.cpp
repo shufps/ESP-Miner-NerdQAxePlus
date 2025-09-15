@@ -12,6 +12,7 @@ Board::Board() {
     m_fanAutoPolarity = true; // default detect polarity
     m_absMaxAsicFrequency = 0;
     m_absMaxAsicVoltageMillis = 0;
+    m_vrFreqReg = m_defaultVrFreqReg = 0;
 }
 
 void Board::loadSettings()
@@ -25,6 +26,7 @@ void Board::loadSettings()
     m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
     m_fanAutoPolarity = Config::isAutoFanPolarityEnabled(m_fanAutoPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
+    m_vrFreqReg = Config::getVrFreqReg(m_defaultVrFreqReg);
 
     m_pidSettings.targetTemp = Config::getPidTargetTemp(m_pidSettings.targetTemp);
     m_pidSettings.p = Config::getPidP(m_pidSettings.p);
@@ -160,6 +162,45 @@ FanPolarityGuess Board::guessFanPolarity() {
     }
 }
 
+// requires loadSettings to update the variables
+bool Board::setAsicFrequency(float frequency) {
+    if (!validateFrequency(frequency)) {
+        return false;
+    }
+
+    // not initialized
+    if (!m_asics) {
+        return false;
+    }
+
+    return m_asics->setAsicFrequency(frequency);
+}
+
+// set and get version rolling frequency
+// requires loadSettings to update the variables
+void Board::setVrFrequency(float freq) {
+    if (!m_asics) {
+        return;
+    }
+    m_asics->setVrFrequency(freq);
+}
+
+// requires loadSettings to update the variables
+void Board::setVrFreqReg(uint32_t reg) {
+    if (!m_asics) {
+        return;
+    }
+    m_asics->setVrFreqReg(reg);
+}
+
+float Board::getVrFrequency() {
+    return Asic::vrRegToFreq(m_vrFreqReg);
+}
+
+float Board::getDefaultVrFrequency() {
+    return Asic::vrRegToFreq(m_defaultVrFreqReg);
+}
+
 bool Board::validateVoltage(float core_voltage) {
     int millis = (int) (core_voltage * 1000.0f);
     // we allow m_absMaxAsicVoltageMillis = 0 for no limit to not break what was
@@ -179,17 +220,4 @@ bool Board::validateFrequency(float frequency) {
         return false;
     }
     return true;
-}
-
-bool Board::setAsicFrequency(float frequency) {
-    if (!validateFrequency(frequency)) {
-        return false;
-    }
-
-    // not initialized
-    if (!m_asics) {
-        return false;
-    }
-
-    return m_asics->setAsicFrequency(frequency);
 }

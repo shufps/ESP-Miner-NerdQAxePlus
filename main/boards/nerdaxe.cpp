@@ -46,6 +46,7 @@ NerdAxe::NerdAxe() : Board() {
     m_fanPerc = 100;
     m_flipScreen = true;
     m_numTempSensors = 1;
+    m_vrFreqReg = m_defaultVrFreqReg = 0x151C;
 
     m_pidSettings.targetTemp = 55;
     m_pidSettings.p =  400; // 2.00
@@ -154,7 +155,7 @@ bool NerdAxe::initAsics()
     vTaskDelay(pdMS_TO_TICKS(250));
 
     SERIAL_clear_buffer();
-    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty);
+    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty, m_vrFreqReg);
     if (!m_chipsDetected) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;

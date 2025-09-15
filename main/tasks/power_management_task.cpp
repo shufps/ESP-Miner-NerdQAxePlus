@@ -97,6 +97,18 @@ void PowerManagementTask::checkAsicFrequencyChanged() {
     }
 }
 
+void PowerManagementTask::checkVrFrequencyChanged() {
+    static uint32_t lastVrFreqReg = 0;
+    Board *board = SYSTEM_MODULE.getBoard();
+
+    uint32_t vrFreqReg = board->getVrFreqReg();
+    if (vrFreqReg != lastVrFreqReg) {
+        board->setVrFreqReg(vrFreqReg);
+        ESP_LOGI(TAG, "setting version rolling frequency to %.3fHz", Asic::vrRegToFreq(vrFreqReg));
+        lastVrFreqReg = vrFreqReg;
+    }
+}
+
 void PowerManagementTask::checkPidSettingsChanged() {
     static PidSettings oldPidSettings = {0, 0, 0, 0};
 
@@ -180,6 +192,9 @@ void PowerManagementTask::task()
 
         // check if asic frequency changed
         checkAsicFrequencyChanged();
+
+        // check if version rolling frequency changed
+        checkVrFrequencyChanged();
 
         // check if pid settings changed
         checkPidSettingsChanged();

@@ -33,7 +33,7 @@ const uint8_t* BM1366::getChipId() {
     return (uint8_t*) chip_id;
 }
 
-uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty)
+uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFreqReg)
 {
     // reset is done externally to not have board dependencies
 
@@ -98,13 +98,8 @@ uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     doFrequencyTransition(frequency);
 
-    // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
-
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x11, 0x5A); //S19k Pro Default
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x14, 0x46); //S19XP-Luxos Default
-    send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0x1C); //S19XP-Stock Default
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x0F, 0x00, 0x00); //supposedly the "full" 32bit nonce range
-    //send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0xA4); // S21-Stock Default
+    // set 0x10
+    setVrFreqReg(vrFreqReg);
 
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 

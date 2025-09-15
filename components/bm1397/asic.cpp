@@ -158,6 +158,48 @@ bool Asic::sendHashFrequency(float target_freq) {
     return true;
 }
 
+// Derivation without magic constants (integer math to avoid FP drift).
+// VR tick: 15 MHz I/O clock ÷ 5000 = 3000 Hz ⇒ 1 tick = 1/3000 s.
+// Note: 3000 × 65,536 = 196,608,000 = 48,000 × 4,096 (65,536 = 2^16, 4,096 = 2^12).
+// 196.608 MHz and its relatives are common in audio/PLL clock families (48 kHz × powers of two),
+// suggesting the divider is deliberate rather than approximate.
+// Hence: reg ≈ round(196,608,000 / freq_Hz) and freq_Hz ≈ 196,608,000 / reg.
+// Bottom line: the “rough” 3000 divider is likely intentional.
+
+constexpr uint32_t ASIC_IO_CLK_HZ_U32 = 15'000'000u; // 15 MHz
+constexpr uint32_t VR_TICK_DIV_U32    = 5000u;       // VR counter increments every 5000 IO clock cycles
+constexpr uint32_t VR_TICK_HZ_U32     = ASIC_IO_CLK_HZ_U32 / VR_TICK_DIV_U32; // 3000 Hz
+constexpr uint64_t VR_REG_PER_HZ_U64  = 65536ull * VR_TICK_HZ_U32;            // 196,608,000
+
+// Version rolling frequency register @0x10 (MSB -> LSB)
+void Asic::setVrFreqReg(uint32_t value) {
+    ESP_LOGI(TAG, "setting 0x10 to %08lx", value);
+    send6(CMD_WRITE_ALL, 0x00, 0x10,
+          static_cast<uint8_t>((value >> 24) & 0xFF),
+          static_cast<uint8_t>((value >> 16) & 0xFF),
+          static_cast<uint8_t>((value >>  8) & 0xFF),
+          static_cast<uint8_t>((value >>  0) & 0xFF));
+}
+
+// Convert desired VR frequency (Hz) to register value for 0x10
+uint32_t Asic::vrFreqToReg(float freq_hz) {
+    // reg = round(VR_REG_PER_HZ / freq)
+    double reg = std::round(static_cast<double>(VR_REG_PER_HZ_U64) / static_cast<double>(freq_hz));
+    return static_cast<uint32_t>(reg);
+}
+
+// Convert 0x10 register value back to VR frequency (Hz)
+float Asic::vrRegToFreq(uint32_t reg) {
+    // freq = VR_REG_PER_HZ / reg
+    double freq = static_cast<double>(VR_REG_PER_HZ_U64) / static_cast<double>(reg);
+    return static_cast<float>(freq);
+}
+
+// Usage in your class (comments in English)
+void Asic::setVrFrequency(float freq) {
+    setVrFreqReg(vrFreqToReg(freq));
+}
+
 // Function to perform frequency transition up or down
 bool Asic::doFrequencyTransition(float target_frequency) {
     float step = 6.25;
