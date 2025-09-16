@@ -20,7 +20,6 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_absMaxAsicFrequency = 800;
     m_absMaxAsicVoltageMillis = 1400;
     m_initVoltageMillis = 1200;
-    m_vrFreqReg = m_defaultVrFreqReg = 0x1eb5;
 
     m_pidSettings.targetTemp = 55;
     m_pidSettings.p = 600;  //  6.00
@@ -39,6 +38,7 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_theme = new ThemeNerdqaxeplus2();
 #endif
     m_asics = new BM1370();
+    m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
 }
 
 float NerdQaxePlus2::getTemperature(int index) {

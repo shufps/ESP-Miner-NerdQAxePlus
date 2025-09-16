@@ -172,13 +172,13 @@
                             <small>Mining job switching time in milliseconds.</small>
                         </div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row" *ngIf="defaultVrFrequency !== undefined">
                     <label for="vrFrequency" class="form-label">VR-Frequency:</label>
                     <div class="form-control-wrapper">
                         <input nbInput id="vrFrequency" formControlName="vrFrequency" type="number" /><br />
                     </div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row" *ngIf="defaultVrFrequency !== undefined">
                         <div class="form-control-wrapper-no-label">
                             <small>
                             Version Rolling Frequency.<!-- (Default <b>{{ defaultVrFrequency | number:'1.3-3' }} Hz</b>).-->

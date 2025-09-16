@@ -65,7 +65,7 @@ export interface ISystemInfo {
     jobInterval: number,
     lastpingrtt: number,
     stratum_keep: number,
-    defaultVrFrequency: number,
+    defaultVrFrequency?: number,
     vrFrequency: number,
 
     boardtemp1?: number,

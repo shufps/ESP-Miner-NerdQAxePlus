@@ -181,23 +181,21 @@ void Asic::setVrFreqReg(uint32_t value) {
           static_cast<uint8_t>((value >>  0) & 0xFF));
 }
 
-// Convert desired VR frequency (Hz) to register value for 0x10
-uint32_t Asic::vrFreqToReg(float freq_hz) {
-    // reg = round(VR_REG_PER_HZ / freq)
-    double reg = std::round(static_cast<double>(VR_REG_PER_HZ_U64) / static_cast<double>(freq_hz));
-    return static_cast<uint32_t>(reg);
+// Convert desired VR frequency (Hz, integer) to register value for 0x10
+uint32_t Asic::vrFreqToReg(uint32_t freq_hz) {
+    // reg = round(VR_REG_PER_HZ / freq_hz) using integer division with rounding
+    return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (freq_hz / 2)) / freq_hz);
 }
 
-// Convert 0x10 register value back to VR frequency (Hz)
-float Asic::vrRegToFreq(uint32_t reg) {
-    // freq = VR_REG_PER_HZ / reg
-    double freq = static_cast<double>(VR_REG_PER_HZ_U64) / static_cast<double>(reg);
-    return static_cast<float>(freq);
+// Convert 0x10 register value back to VR frequency (Hz, integer)
+uint32_t Asic::vrRegToFreq(uint32_t reg) {
+    // freq = round(VR_REG_PER_HZ / reg) using integer division with rounding
+    return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (reg / 2)) / reg);
 }
 
-// Usage in your class (comments in English)
-void Asic::setVrFrequency(float freq) {
-    setVrFreqReg(vrFreqToReg(freq));
+// Usage in your class (integer only)
+void Asic::setVrFrequency(uint32_t freq_hz) {
+    setVrFreqReg(vrFreqToReg(freq_hz));
 }
 
 // Function to perform frequency transition up or down

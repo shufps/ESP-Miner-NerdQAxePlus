@@ -43,7 +43,6 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_numPhases = 2;
     m_imax = m_numPhases * 30;
     m_ifault = (float) (m_imax - 5);
-    m_vrFreqReg = m_defaultVrFreqReg = 0x15a4;
 
     m_maxPin = 70.0;
     m_minPin = 30.0;
@@ -64,6 +63,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_swarmColorName = "#e700d8"; // pink
 
     m_asics = new BM1368();
+    m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
+
     m_tps = new TPS53647();
 }
 
@@ -150,7 +151,7 @@ bool NerdQaxePlus::initAsics()
     vTaskDelay(pdMS_TO_TICKS(250));
 
     SERIAL_clear_buffer();
-    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty, m_vrFreqReg);
+    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty, m_vrFrequency);
     if (!m_chipsDetected) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;

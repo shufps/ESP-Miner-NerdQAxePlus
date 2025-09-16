@@ -25,8 +25,8 @@ class Board {
     int m_numTempSensors = 0;
     float *m_chipTemps;
     const char *m_swarmColorName = "blue";
-    uint32_t m_vrFreqReg;
-    uint32_t m_defaultVrFreqReg;
+    uint32_t m_vrFrequency;
+    uint32_t m_defaultVrFrequency;
 
     PidSettings m_pidSettings;
 
@@ -92,10 +92,7 @@ class Board {
     bool validateFrequency(float frequency);
     bool validateVoltage(float core_voltage);
 
-    void setVrFreqReg(uint32_t reg);
-    void setVrFrequency(float freq);
-    float getVrFrequency();
-    float getDefaultVrFrequency();
+    void setVrFrequency(uint32_t freq);
 
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
@@ -182,12 +179,12 @@ class Board {
         return m_defaultAsicFrequency;
     }
 
-    uint32_t getDefaultVrFreqReg() {
-        return m_defaultVrFreqReg;
+    uint32_t getDefaultVrFrequency() {
+        return m_defaultVrFrequency;
     }
 
-    uint32_t getVrFreqReg() {
-        return m_vrFreqReg;
+    uint32_t getVrFrequency() {
+        return m_vrFrequency;
     }
 
     float getMinPin()
