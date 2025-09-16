@@ -15,7 +15,7 @@
 
 static const char *TAG = "http_system";
 
-#define VR_FREQUENCY_ENABLED
+//#define VR_FREQUENCY_ENABLED
 
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
