@@ -12,7 +12,7 @@ Board::Board() {
     m_fanAutoPolarity = true; // default detect polarity
     m_absMaxAsicFrequency = 0;
     m_absMaxAsicVoltageMillis = 0;
-    m_vrFreqReg = m_defaultVrFreqReg = 0;
+    m_vrFrequency = m_defaultVrFrequency = 0;
 }
 
 void Board::loadSettings()
@@ -26,7 +26,7 @@ void Board::loadSettings()
     m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
     m_fanAutoPolarity = Config::isAutoFanPolarityEnabled(m_fanAutoPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
-    m_vrFreqReg = Config::getVrFreqReg(m_defaultVrFreqReg);
+    m_vrFrequency = Config::getVrFrequency(m_defaultVrFrequency);
 
     m_pidSettings.targetTemp = Config::getPidTargetTemp(m_pidSettings.targetTemp);
     m_pidSettings.p = Config::getPidP(m_pidSettings.p);
@@ -183,22 +183,6 @@ void Board::setVrFrequency(uint32_t freq) {
         return;
     }
     m_asics->setVrFrequency(freq);
-}
-
-// requires loadSettings to update the variables
-void Board::setVrFreqReg(uint32_t reg) {
-    if (!m_asics) {
-        return;
-    }
-    m_asics->setVrFreqReg(reg);
-}
-
-uint32_t Board::getVrFrequency() {
-    return Asic::vrRegToFreq(m_vrFreqReg);
-}
-
-uint32_t Board::getDefaultVrFrequency() {
-    return Asic::vrRegToFreq(m_defaultVrFreqReg);
 }
 
 bool Board::validateVoltage(float core_voltage) {

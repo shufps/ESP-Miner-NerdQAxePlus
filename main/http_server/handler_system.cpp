@@ -15,7 +15,7 @@
 
 static const char *TAG = "http_system";
 
-
+#define VR_FREQUENCY_ENABLED
 
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
@@ -328,7 +328,7 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
 #ifdef VR_FREQUENCY_ENABLED
     if (doc["vrFrequency"].is<uint32_t>()) {
-        Config::setVrFreqReg(Asic::vrFreqToReg(doc["vrFrequency"].as<uint32_t>()));
+        Config::setVrFrequency(doc["vrFrequency"].as<uint32_t>());
     }
 #endif
     doc.clear();

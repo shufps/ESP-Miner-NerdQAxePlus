@@ -36,7 +36,6 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_fanPerc = 100;
     m_flipScreen = true;
     m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
-    m_vrFreqReg = m_defaultVrFreqReg = 0x1eb5;
 
     m_pidSettings.targetTemp = 60;
     m_pidSettings.p =  600; // 6.00
@@ -58,6 +57,7 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_swarmColorName = "#e7cf00"; // yellow
 
     m_asics = new BM1370();
+    m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
 }
 
 
@@ -125,7 +125,7 @@ bool NerdaxeGamma::initAsics() {
     vTaskDelay(pdMS_TO_TICKS(250));
 
     SERIAL_clear_buffer();
-    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty, m_vrFreqReg);
+    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty, m_vrFrequency);
     if (!m_chipsDetected) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;

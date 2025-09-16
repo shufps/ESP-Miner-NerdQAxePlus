@@ -82,6 +82,7 @@ protected:
     void send6(uint8_t header, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5);
     int count_asics();
     bool sendHashFrequency(float target_freq);
+    void setVrFreqReg(uint32_t value);
     bool doFrequencyTransition(float target_frequency);
     void setChipAddress(uint8_t chipAddr);
     void sendReadAddress(void);
@@ -94,6 +95,10 @@ protected:
     virtual uint8_t jobToAsicId(uint8_t job_id) = 0;
     virtual uint8_t asicToJobId(uint8_t asic_id) = 0;
 
+    // helper functions
+    uint32_t vrFreqToReg(uint32_t freq_hz);
+    uint32_t vrRegToFreq(uint32_t reg);
+
 public:
     Asic();
     virtual const char* getName() = 0;
@@ -105,15 +110,12 @@ public:
     virtual uint16_t getSmallCoreCount() = 0;
     virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
 
-    void setVrFreqReg(uint32_t value);
     void setVrFrequency(uint32_t freq);
+    virtual uint32_t getDefaultVrFrequency() = 0;
 
-    // static helper functions
-    static uint32_t vrFreqToReg(uint32_t freq_hz);
-    static uint32_t vrRegToFreq(uint32_t reg);
 
     // asic models specific
-    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFreqReg) = 0;
+    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency) = 0;
     virtual int setMaxBaud(void) = 0;
 };
 
