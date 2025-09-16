@@ -94,7 +94,7 @@ export class EditComponent implements OnInit {
       this.asicFrequencyValues = asic?.frequencyOptions ?? [];
       this.asicVoltageValues   = asic?.voltageOptions   ?? [];
 
-      this.defaultVrFrequency = info.defaultVrFrequency;
+      this.defaultVrFrequency = info.defaultVrFrequency ?? undefined;
 
       // Dropdown base lists incl. (default) label
       const freqBase = this.asicFrequencyValues.map(v => ({
@@ -191,7 +191,8 @@ export class EditComponent implements OnInit {
         vrFrequency: [info.vrFrequency, [
           Validators.min(1000),
           Validators.max(100000),
-          Validators.required
+          Validators.pattern(/^\d+$/),   // only ints
+          Validators.required,
         ]],
       });
 

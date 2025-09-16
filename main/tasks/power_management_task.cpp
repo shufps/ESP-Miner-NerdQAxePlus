@@ -104,7 +104,7 @@ void PowerManagementTask::checkVrFrequencyChanged() {
     uint32_t vrFreqReg = board->getVrFreqReg();
     if (vrFreqReg != lastVrFreqReg) {
         board->setVrFreqReg(vrFreqReg);
-        ESP_LOGI(TAG, "setting version rolling frequency to %.3fHz", Asic::vrRegToFreq(vrFreqReg));
+        ESP_LOGI(TAG, "setting version rolling frequency to %luHz", Asic::vrRegToFreq(vrFreqReg));
         lastVrFreqReg = vrFreqReg;
     }
 }

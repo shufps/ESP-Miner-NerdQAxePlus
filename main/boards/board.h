@@ -93,9 +93,9 @@ class Board {
     bool validateVoltage(float core_voltage);
 
     void setVrFreqReg(uint32_t reg);
-    void setVrFrequency(float freq);
-    float getVrFrequency();
-    float getDefaultVrFrequency();
+    void setVrFrequency(uint32_t freq);
+    uint32_t getVrFrequency();
+    uint32_t getDefaultVrFrequency();
 
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;

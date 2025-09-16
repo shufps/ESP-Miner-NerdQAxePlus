@@ -144,8 +144,10 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::getTempControlMode();
     doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
+#ifdef VR_FREQUENCY_ENABLED
     doc["vrFrequency"]        = board->getVrFrequency();
     doc["defaultVrFrequency"] = board->getDefaultVrFrequency();
+#endif
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -324,10 +326,11 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     if (doc["pidD"].is<float>()) {
         Config::setPidD((uint16_t) (doc["pidD"].as<float>() * 100.0f));
     }
-    if (doc["vrFrequency"].is<float>()) {
-        Config::setVrFreqReg(Asic::vrFreqToReg(doc["vrFrequency"].as<float>()));
+#ifdef VR_FREQUENCY_ENABLED
+    if (doc["vrFrequency"].is<uint32_t>()) {
+        Config::setVrFreqReg(Asic::vrFreqToReg(doc["vrFrequency"].as<uint32_t>()));
     }
-
+#endif
     doc.clear();
 
     // Signal the end of the response

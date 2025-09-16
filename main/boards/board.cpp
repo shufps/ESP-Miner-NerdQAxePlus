@@ -178,7 +178,7 @@ bool Board::setAsicFrequency(float frequency) {
 
 // set and get version rolling frequency
 // requires loadSettings to update the variables
-void Board::setVrFrequency(float freq) {
+void Board::setVrFrequency(uint32_t freq) {
     if (!m_asics) {
         return;
     }
@@ -193,11 +193,11 @@ void Board::setVrFreqReg(uint32_t reg) {
     m_asics->setVrFreqReg(reg);
 }
 
-float Board::getVrFrequency() {
+uint32_t Board::getVrFrequency() {
     return Asic::vrRegToFreq(m_vrFreqReg);
 }
 
-float Board::getDefaultVrFrequency() {
+uint32_t Board::getDefaultVrFrequency() {
     return Asic::vrRegToFreq(m_defaultVrFreqReg);
 }
 
