@@ -25,6 +25,7 @@ class System {
     // Share statistics
     uint64_t m_sharesAccepted; // Number of accepted shares
     uint64_t m_sharesRejected; // Number of rejected shares
+    uint64_t m_duplicateHWNonces; // Numer of duplicates - counted with HW difficulty
 
     // Display and UI
     int m_screenPage;   // Current screen page (for OLED or other displays)
@@ -113,6 +114,8 @@ class System {
     void notifyMiningStarted();                              // Notify system that mining has started
     void notifyNewNtime(uint32_t ntime);                     // Notify system of new `ntime` received from the pool
 
+    void countDuplicateHWNonces();
+
     // Made public (was protected) to allow usage in external modules like ASIC_result_task for formatting/logging.
     static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
@@ -125,10 +128,17 @@ class System {
     {
         return m_sharesRejected;
     }
+
     uint64_t getSharesAccepted() const
     {
         return m_sharesAccepted;
     }
+
+    uint64_t getDuplicateHWNonces() const
+    {
+        return m_duplicateHWNonces;
+    }
+
     const char *getBestDiffString() const
     {
         return m_bestDiffString;

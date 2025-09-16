@@ -37,6 +37,7 @@ void System::initSystem() {
     m_screenPage = 0;
     m_sharesAccepted = 0;
     m_sharesRejected = 0;
+    m_duplicateHWNonces = 0;
     m_bestNonceDiff = Config::getBestDiff();
     m_bestSessionNonceDiff = 0;
     m_startTime = esp_timer_get_time();
@@ -335,6 +336,10 @@ void System::notifyAcceptedShare() {
 void System::notifyRejectedShare() {
     ++m_sharesRejected;
     updateShares();
+}
+
+void System::countDuplicateHWNonces() {
+    ++m_duplicateHWNonces;
 }
 
 void System::notifyMiningStarted() {}
