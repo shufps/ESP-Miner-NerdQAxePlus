@@ -8,14 +8,15 @@ import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
 
+enum SupportLevel { Safe = 0, Advanced = 1, Pro = 2 }
+
 @Component({
   selector: 'app-edit',
   templateUrl: './edit.component.html',
   styleUrls: ['./edit.component.scss']
 })
 export class EditComponent implements OnInit {
-  // constants from ASIC logic
-  private readonly VR_REG_PER_HZ = 196_608_000; // 65536 * 3000
+  public supportLevel: SupportLevel = SupportLevel.Safe;
 
   public form!: FormGroup;
 
@@ -29,7 +30,6 @@ export class EditComponent implements OnInit {
 
   public dontShowWarning: boolean = false;
 
-  public devToolsOpen: boolean = false;
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
 
@@ -224,7 +224,7 @@ export class EditComponent implements OnInit {
     } else if (mode === 2) {
       disable('fanspeed');
       enable('pidTargetTemp');
-      if (this.devToolsOpen) {
+      if (this.supportLevel >= 1) {
         enable('pidP');
         enable('pidI');
         enable('pidD');
@@ -312,9 +312,9 @@ export class EditComponent implements OnInit {
     this.showWifiPassword = !this.showWifiPassword;
   }
 
-  public setDevToolsOpen(state: boolean) {
-    this.devToolsOpen = state;
-    console.log('Advanced Mode:', state);
+  public setDevToolsOpen(supportLevel: number) {
+    this.supportLevel = supportLevel;
+    console.log('Advanced Mode:', supportLevel);
 
     const freqBase = this.asicFrequencyValues.map(v => ({
       name: v === this.defaultFrequency ? `${v} (default)` : `${v}`,
