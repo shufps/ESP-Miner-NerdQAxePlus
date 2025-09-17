@@ -96,6 +96,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
     doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
     doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
+    doc["duplicateHWNonces"]  = SYSTEM_MODULE.getDuplicateHWNonces();
     doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
     doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
