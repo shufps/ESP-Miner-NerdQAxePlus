@@ -1,7 +1,11 @@
 <button nbButton size="small"
-        [nbTooltip]="isAdvanced ? 'Danger Zone' : 'Danger Zone'"
-        [nbTooltipStatus]="isAdvanced ? 'danger' : 'danger'" nbTooltipPlacement="top" [class.enabled]="isAdvanced"
-        (click)="toggleAdvanced()" [status]="isAdvanced ? 'danger' : 'basic'"
-        [style.opacity]="isAdvanced ? '1' : '0.1'">
-        <nb-icon icon="alert-triangle-outline"></nb-icon>
+        [nbTooltip]="'Danger Zone'"
+        [nbTooltipStatus]="'danger'"
+        nbTooltipPlacement="top"
+        [class.enabled]="supportLevel > 0"
+        (click)="toggleAdvanced()"
+        (dblclick)="onAdvancedDblClick()"
+        [status]="supportLevel === 0 ? 'basic' : supportLevel === 1 ? 'danger' : 'warning'"
+        [style.opacity]="supportLevel === 0 ? '0.1' : '1'">
+  <nb-icon icon="alert-triangle-outline"></nb-icon>
 </button>

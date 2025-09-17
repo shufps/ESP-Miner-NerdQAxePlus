@@ -125,7 +125,7 @@
                 </div>
             </nb-card-header>
             <nb-card-body>
-                <ng-container *ngIf="!devToolsOpen">
+                <ng-container *ngIf="supportLevel === 0">
                     <div class="form-row">
                         <label for="frequency" class="form-label">Frequency:</label>
                         <div class="form-control-wrapper">
@@ -146,7 +146,7 @@
                     </div>
                 </ng-container>
 
-                <ng-container *ngIf="devToolsOpen">
+                <ng-container *ngIf="supportLevel >= 1">
                     <div class="form-row">
                         <label for="frequency" class="form-label">Frequency:</label>
                         <div class="form-control-wrapper">
@@ -161,6 +161,8 @@
                                 nbInput id="coreVoltage" formControlName="coreVoltage" type="number" />
                         </div>
                     </div>
+                </ng-container>
+                <ng-container *ngIf="supportLevel >= 2">
                     <div class="form-row">
                         <label for="jobInterval" class="form-label">Job Interval:</label>
                         <div class="form-control-wrapper">
@@ -189,6 +191,8 @@
                             </small>
                         </div>
                     </div>
+                </ng-container>
+                <ng-container *ngIf="supportLevel >= 1">
                     <div class="form-row">
                         <label for="stratumDifficulty" class="form-label">Difficulty:</label>
                         <div class="form-control-wrapper">
@@ -240,9 +244,9 @@
                         </div>
                     </div>
 
-                    <div *ngIf="devToolsOpen" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
+                    <div *ngIf="supportLevel >= 1" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
 
-                    <div *ngIf="devToolsOpen">
+                    <div *ngIf="supportLevel >= 1">
                         <div class="form-row">
                             <label class="form-label">PID P:</label>
                             <div class="form-control-wrapper">
@@ -269,10 +273,10 @@
                         <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" />
                     </div>
                 </div>
-                <div class="form-row" *ngIf="devToolsOpen">
+                <div class="form-row" *ngIf="supportLevel >= 1">
                     <nb-checkbox formControlName="autofanpolarity">Autodetect Fan Polarity <small>(Recommended)</small></nb-checkbox>
                 </div>
-                <div class="form-row" *ngIf="devToolsOpen">
+                <div class="form-row" *ngIf="supportLevel >= 1">
                     <nb-checkbox formControlName="invertfanpolarity">Invert Fan Polarity</nb-checkbox>
                 </div>
 
