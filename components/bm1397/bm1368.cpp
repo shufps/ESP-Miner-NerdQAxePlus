@@ -119,6 +119,12 @@ int BM1368::setMaxBaud(void)
     return 1000000;
 }
 
+void BM1368::resetCounter(uint8_t reg) {
+}
+
+void BM1368::readCounter(uint8_t reg) {
+}
+
 void BM1368::requestChipTemp() {
     send2(CMD_READ_ALL, 0x00, 0xB4);
     send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x80, 0x00, 0x00, 0x00);
@@ -140,6 +146,9 @@ uint8_t BM1368::nonceToAsicNr(uint32_t nonce) {
     return (uint8_t) ((nonce & 0x0000fc00) >> 10);
 }
 
+uint8_t BM1368::chipIndexFromAddr(uint8_t addr) {
+    return addr >> 1;
+}
 
 uint16_t BM1368::getSmallCoreCount() {
     return BM1368_SMALL_CORE_COUNT;

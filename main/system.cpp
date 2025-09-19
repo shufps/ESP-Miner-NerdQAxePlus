@@ -147,6 +147,13 @@ double System::calculateNetworkDifficulty(uint32_t nBits) {
     return difficulty;
 }
 
+float System::getCurrentHashrate() {
+    if (!m_board->hasHashrateCounter()) {
+        return getCurrentHashrate10m();
+    }
+    return m_board->getTotalChipHashrate();
+}
+
 void System::checkForBestDiff(double diff, uint32_t nbits) {
     if ((uint64_t)diff > m_bestSessionNonceDiff) {
         m_bestSessionNonceDiff = (uint64_t)diff;

@@ -202,6 +202,10 @@ extern "C" void app_main(void)
     xTaskCreate(ping_task, "ping task", 4096, NULL, 1, NULL);
     xTaskCreate(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
 
+    if (board->hasHashrateCounter()) {
+        xTaskCreate(POWER_MANAGEMENT_MODULE.hashrateTaskWrapper, "hashrate", 4096, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
+    }
+
     //char* taskList = (char*) malloc(8192);
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(10000));

@@ -4,8 +4,10 @@
 
 #define CRC5_MASK 0x1F
 
-#define ASIC_SERIALTX_DEBUG false
-#define ASIC_SERIALRX_DEBUG false
+// debug serial
+//#define ASIC_SERIALTX_DEBUG
+//#define ASIC_SERIALRX_DEBUG
+
 #define ASIC_DEBUG_WORK false
 #define ASIC_DEBUG_JOBS false
 
@@ -77,7 +79,7 @@ protected:
     float m_current_frequency;
     float m_actual_current_frequency;
 
-    void send(uint8_t header, uint8_t *data, uint8_t data_len, bool debug);
+    void send(uint8_t header, uint8_t *data, uint8_t data_len);
     void send2(uint8_t header, uint8_t b0, uint8_t b1);
     void send6(uint8_t header, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5);
     int count_asics();
@@ -94,6 +96,7 @@ protected:
     virtual const uint8_t* getChipId() = 0;
     virtual uint8_t jobToAsicId(uint8_t job_id) = 0;
     virtual uint8_t asicToJobId(uint8_t asic_id) = 0;
+    virtual uint8_t chipIndexFromAddr(uint8_t addr) = 0;
 
     // helper functions
     uint32_t vrFreqToReg(uint32_t freq_hz);
@@ -107,6 +110,8 @@ public:
     void setJobDifficultyMask(int difficulty);
     bool setAsicFrequency(float frequency);
     virtual void requestChipTemp() = 0;
+    virtual void resetCounter(uint8_t reg) = 0;
+    virtual void readCounter(uint8_t reg) = 0;
     virtual uint16_t getSmallCoreCount() = 0;
     virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
 

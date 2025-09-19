@@ -46,6 +46,15 @@ void ASIC_result_task(void *pvParameters)
                     }
                     break;
                 }
+                case 0x8c: {
+                    uint64_t samplingTimestamp = POWER_MANAGEMENT_MODULE.getHashrateSampleTime();
+                    if (!samplingTimestamp) {
+                        break;
+                    }
+                    double chipHashRate = (double) asic_result.data * 4.096 / ((double) samplingTimestamp / 1.0e6);
+                    ESP_LOGI(TAG, "hashrate of %d: %.3fGH/s", asic_result.asic_nr, chipHashRate);
+                    board->setChipHashrate(asic_result.asic_nr, chipHashRate);
+                }
                 default: {
                     // NOP
                     break;

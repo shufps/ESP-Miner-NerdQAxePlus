@@ -19,7 +19,10 @@ public:
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency);
     virtual int setMaxBaud(void);
     virtual void requestChipTemp();
+    virtual void resetCounter(uint8_t reg);
+    virtual void readCounter(uint8_t reg);
     virtual uint16_t getSmallCoreCount();
     virtual uint8_t nonceToAsicNr(uint32_t nonce);
+    virtual uint8_t chipIndexFromAddr(uint8_t addr);
 };
 

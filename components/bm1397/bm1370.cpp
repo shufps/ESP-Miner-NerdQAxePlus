@@ -26,6 +26,8 @@ static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x70, 0x00, 0x00};
 static const uint64_t BM1370_CORE_COUNT = 128;
 static const uint64_t BM1370_SMALL_CORE_COUNT = 2040;
 
+#define REG_NONCE_TOTAL_CNT 0x8c
+
 BM1370::BM1370() : BM1368() {
     // NOP
 }
@@ -132,6 +134,19 @@ uint8_t BM1370::nonceToAsicNr(uint32_t nonce) {
     return (uint8_t) ((nonce & 0x0000fc00) >> 11);
 }
 
+uint8_t BM1370::chipIndexFromAddr(uint8_t addr) {
+    return addr >> 2;
+}
+
+
+void BM1370::resetCounter(uint8_t reg) {
+    send6(CMD_WRITE_ALL, 0x00, reg, 0x00, 0x00, 0x00, 0x00);
+}
+
+void BM1370::readCounter(uint8_t reg) {
+    send2(CMD_READ_ALL, 0x00, reg);
+}
+
 void BM1370::requestChipTemp() {
     // NOP
 }
@@ -139,3 +154,4 @@ void BM1370::requestChipTemp() {
 uint16_t BM1370::getSmallCoreCount() {
     return BM1370_SMALL_CORE_COUNT;
 }
+

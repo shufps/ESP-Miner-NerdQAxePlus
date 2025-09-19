@@ -488,7 +488,7 @@ void DisplayDriver::updateHashrate(System *module, float power)
     char strData[20];
 
     float efficiency = power / (module->getCurrentHashrate10m() / 1000.0);
-    float hashrate = module->getCurrentHashrate10m();
+    float hashrate = module->getCurrentHashrate();
 
     // >= 10T doesn't fit on the screen with a decimal place
     if (hashrate >= 10000.0) {

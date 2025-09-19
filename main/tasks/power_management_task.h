@@ -28,20 +28,30 @@ class PowerManagementTask {
     float m_current;
     PID *m_pid;
 
+    uint64_t m_hashrateSampleTime = 0;
+
+    TaskHandle_t m_hrTaskHandle = nullptr;
+
     void requestChipTemps();
     void checkCoreVoltageChanged();
     void checkAsicFrequencyChanged();
     void checkPidSettingsChanged();
     void checkVrFrequencyChanged();
-    void task();
 
+    void task();
+    void hashrateTask();
   public:
     PowerManagementTask();
 
     // synchronized rebooting to now mess up i2c comms
     void restart();
 
+    static void hashrateTaskWrapper(void *pvParameters);
     static void taskWrapper(void *pvParameters);
+
+    uint64_t getHashrateSampleTime() {
+        return m_hashrateSampleTime;
+    }
 
     float getPower()
     {

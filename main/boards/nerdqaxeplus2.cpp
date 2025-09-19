@@ -49,3 +49,4 @@ float NerdQaxePlus2::getTemperature(int index) {
     // we can't read the real chip temps but this should be about right
     return temp + 10.0f; // offset of 10°C
 }
+
