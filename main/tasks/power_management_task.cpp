@@ -16,12 +16,8 @@
 #include "boards/board.h"
 
 #define POLL_RATE 2000
-#define HR_PERIOD_MS   1000
-
 
 static const char *TAG = "power_management";
-
-
 
 PowerManagementTask::PowerManagementTask() {
     m_mutex = xSemaphoreCreateRecursiveMutex();
@@ -295,6 +291,7 @@ void PowerManagementTask::task()
                 board->setFanSpeed((float) m_fanPerc / 100.0f);
         }
         unlock();
+
         vTaskDelay(pdMS_TO_TICKS(POLL_RATE));
     }
 }
