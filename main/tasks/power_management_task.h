@@ -28,14 +28,11 @@ class PowerManagementTask {
     float m_current;
     PID *m_pid;
 
-    TaskHandle_t m_hrTaskHandle = nullptr;
-
     void requestChipTemps();
     void checkCoreVoltageChanged();
     void checkAsicFrequencyChanged();
     void checkPidSettingsChanged();
     void checkVrFrequencyChanged();
-
     void task();
   public:
     PowerManagementTask();
