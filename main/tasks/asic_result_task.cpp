@@ -40,7 +40,7 @@ void ASIC_result_task(void *pvParameters)
             switch (asic_result.reg) {
                 case 0xb4: {
                     if (asic_result.data & 0x80000000) {
-                        float ftemp = (float) (asic_result.data & 0x0000ffff) * 0.171342f - 299.5144f;;
+                        float ftemp = (float) (asic_result.data & 0x0000ffff) * 0.171342f - 299.5144f;
                         ESP_LOGI(TAG, "asic %d temp: %.3f", (int) asic_result.asic_nr, ftemp);
                         board->setChipTemp(asic_result.asic_nr, ftemp);
                     }
@@ -52,6 +52,7 @@ void ASIC_result_task(void *pvParameters)
                         break;
                     }
                     double chipHashRate = (double) asic_result.data * 4.096 / ((double) samplingTimestamp / 1.0e6);
+                    chipHashRate *= 1.046; // errata, reported 4.6% too few
                     ESP_LOGI(TAG, "hashrate of %d: %.3fGH/s", asic_result.asic_nr, chipHashRate);
                     board->setChipHashrate(asic_result.asic_nr, chipHashRate);
                 }

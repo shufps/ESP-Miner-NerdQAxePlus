@@ -155,8 +155,8 @@ void PowerManagementTask::hashrateTask()
 
         vTaskDelay(pdMS_TO_TICKS(10000));
 
-        asics->readCounter(0x8c);
         m_hashrateSampleTime = esp_timer_get_time() - start;
+        asics->readCounter(0x8c);
 
         // enough to receive the latest result
         vTaskDelay(pdMS_TO_TICKS(500));
