@@ -33,12 +33,16 @@
 #include "wifi_health.h"
 #include "discord.h"
 #include "macros.h"
+#include "hashrate_monitor_task.h"
+
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
 System SYSTEM_MODULE;
 
 PowerManagementTask POWER_MANAGEMENT_MODULE;
+HashrateMonitor HASHRATE_MONITOR;
+
 StratumManager STRATUM_MANAGER;
 APIsFetcher APIs_FETCHER;
 
@@ -203,7 +207,7 @@ extern "C" void app_main(void)
     xTaskCreate(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
 
     if (board->hasHashrateCounter()) {
-        xTaskCreate(POWER_MANAGEMENT_MODULE.hashrateTaskWrapper, "hashrate", 4096, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
+        HASHRATE_MONITOR.start(board, board->getAsics(), /*period_ms*/ 1000, /*window_ms*/ 10000, /*settle_ms*/ 500);
     }
 
     //char* taskList = (char*) malloc(8192);

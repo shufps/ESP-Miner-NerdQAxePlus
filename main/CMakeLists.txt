@@ -45,6 +45,7 @@ SRCS
     "./tasks/influx_task.cpp"
     "./tasks/ping_task.cpp"
     "./tasks/power_management_task.cpp"
+    "./tasks/hashrate_monitor_task.cpp"
     "./tasks/apis_task.cpp"
     "./tasks/wifi_health.cpp"
     "./displays/displayDriver.cpp"

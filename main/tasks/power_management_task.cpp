@@ -21,6 +21,8 @@
 
 static const char *TAG = "power_management";
 
+
+
 PowerManagementTask::PowerManagementTask() {
     m_mutex = xSemaphoreCreateRecursiveMutex();
 }
@@ -128,44 +130,6 @@ void PowerManagementTask::checkPidSettingsChanged() {
         m_pid->SetTunings(pidP, pidI, pidD);
         m_pid->SetTarget((float) pidSettings->targetTemp);
         ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pid->GetTarget(), m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());        oldPidSettings = *pidSettings;
-    }
-}
-
-void PowerManagementTask::hashrateTaskWrapper(void *pvParameters) {
-    auto *self = static_cast<PowerManagementTask*>(pvParameters);
-    self->hashrateTask();
-}
-
-void PowerManagementTask::hashrateTask()
-{
-    ESP_LOGW(TAG, "hashrate sampling task started");
-
-    Board* board = SYSTEM_MODULE.getBoard();
-    Asic*  asics = board ? board->getAsics() : nullptr;
-
-    for (;;) {
-        vTaskDelay(pdMS_TO_TICKS(HR_PERIOD_MS));
-        if (!asics) {
-            continue;
-        }
-
-        // hashrate counter
-        uint64_t start = esp_timer_get_time();
-        asics->resetCounter(0x8c);
-
-        vTaskDelay(pdMS_TO_TICKS(10000));
-
-        m_hashrateSampleTime = esp_timer_get_time() - start;
-        asics->readCounter(0x8c);
-
-        // enough to receive the latest result
-        vTaskDelay(pdMS_TO_TICKS(500));
-
-        // show hashrate if available
-        float totalHashrate = board ? board->getTotalChipHashrate() : 0.0f;
-        if (totalHashrate > 0.0f) {
-            ESP_LOGW(TAG, "total hashrate reported by chips: %.3fGH/s", totalHashrate);
-        }
     }
 }
 
