@@ -10,7 +10,7 @@
 #include "esp_log.h"
 #include "soc/uart_struct.h"
 
-#include "bm1368.h"
+#include "asic.h"
 #include "serial.h"
 #include "utils.h"
 
@@ -54,13 +54,14 @@ void SERIAL_set_baud(int baud)
     uart_set_baudrate(UART_NUM_1, baud);
 }
 
-int SERIAL_send(uint8_t *data, int len, bool debug)
+int SERIAL_send(uint8_t *data, int len)
 {
     // lock the transport
     pthread_mutex_lock(&tx_mute);
-    if (debug) {
-        ESP_LOG_BUFFER_HEX_LEVEL("serial_tx", data, len, ESP_LOG_INFO);
-    }
+
+#ifdef ASIC_SERIALTX_DEBUG
+    ESP_LOG_BUFFER_HEX_LEVEL("serial_tx", data, len, ESP_LOG_INFO);
+#endif
 
     int written = uart_write_bytes(UART_NUM_1, (const char *) data, len);
     pthread_mutex_unlock(&tx_mute);
@@ -76,7 +77,7 @@ int16_t SERIAL_rx(uint8_t *buf, uint16_t size, uint16_t timeout_ms)
 {
     int16_t bytes_read = uart_read_bytes(UART_NUM_1, buf, size, pdMS_TO_TICKS(timeout_ms));
 
-#if BM1368_SERIALRX_DEBUG
+#ifdef ASIC_SERIALRX_DEBUG
     size_t buff_len = 0;
     if (bytes_read > 0) {
         uart_get_buffered_data_len(UART_NUM_1, &buff_len);

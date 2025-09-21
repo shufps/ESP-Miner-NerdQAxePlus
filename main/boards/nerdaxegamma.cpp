@@ -57,6 +57,7 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     m_swarmColorName = "#e7cf00"; // yellow
 
     m_asics = new BM1370();
+    m_hasHashCounter = true;
     m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
 }
 

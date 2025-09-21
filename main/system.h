@@ -160,6 +160,8 @@ class System {
         return m_currentHashrate10m;
     }
 
+    float getCurrentHashrate();
+
     StratumConfig *getStratumConfig(uint8_t index) {
         return &m_stratumConfig[index];
     }

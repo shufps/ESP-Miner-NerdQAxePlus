@@ -111,14 +111,6 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     return chip_counter;
 }
 
-int BM1368::setMaxBaud(void)
-{
-//    return 115749;
-    ESP_LOGI(TAG, "Setting max baud of 1000000 ");
-    send6(CMD_WRITE_ALL, 0x00, 0x28, 0x11, 0x30, 0x02, 0x00);
-    return 1000000;
-}
-
 void BM1368::requestChipTemp() {
     send2(CMD_READ_ALL, 0x00, 0xB4);
     send6(CMD_WRITE_ALL, 0x00, 0xB0, 0x80, 0x00, 0x00, 0x00);
@@ -139,7 +131,6 @@ uint8_t BM1368::asicToJobId(uint8_t asic_id) {
 uint8_t BM1368::nonceToAsicNr(uint32_t nonce) {
     return (uint8_t) ((nonce & 0x0000fc00) >> 10);
 }
-
 
 uint16_t BM1368::getSmallCoreCount() {
     return BM1368_SMALL_CORE_COUNT;

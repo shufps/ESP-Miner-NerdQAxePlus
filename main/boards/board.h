@@ -24,9 +24,11 @@ class Board {
     int m_chipsDetected = 0;
     int m_numTempSensors = 0;
     float *m_chipTemps;
+    float *m_chipHashrate;
     const char *m_swarmColorName = "blue";
     uint32_t m_vrFrequency;
     uint32_t m_defaultVrFrequency;
+    bool m_hasHashCounter;
 
     PidSettings m_pidSettings;
 
@@ -91,6 +93,9 @@ class Board {
     virtual bool setAsicFrequency(float f);
     bool validateFrequency(float frequency);
     bool validateVoltage(float core_voltage);
+
+    void setChipHashrate(int nr, float temp);
+    float getTotalChipHashrate();
 
     void setVrFrequency(uint32_t freq);
 
@@ -246,6 +251,10 @@ class Board {
 
     const char* getSwarmColorName() {
         return m_swarmColorName;
+    }
+
+    virtual bool hasHashrateCounter() {
+        return m_hasHashCounter;
     }
 
 };

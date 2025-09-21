@@ -110,18 +110,6 @@ uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     return chip_counter;
 }
 
-int BM1366::setMaxBaud(void)
-{
-//    return 115749;
-    ESP_LOGI(TAG, "Setting max baud of 1000000 ");
-    send6(CMD_WRITE_ALL, 0x00, 0x28, 0x11, 0x30, 0x02, 0x00);
-    return 1000000;
-}
-
-void BM1366::requestChipTemp() {
-    // NOP
-}
-
 uint8_t BM1366::jobToAsicId(uint8_t job_id) {
     return (job_id * 8) & 0x7f;
 }

@@ -40,11 +40,14 @@ void ASIC_result_task(void *pvParameters)
             switch (asic_result.reg) {
                 case 0xb4: {
                     if (asic_result.data & 0x80000000) {
-                        float ftemp = (float) (asic_result.data & 0x0000ffff) * 0.171342f - 299.5144f;;
+                        float ftemp = (float) (asic_result.data & 0x0000ffff) * 0.171342f - 299.5144f;
                         ESP_LOGI(TAG, "asic %d temp: %.3f", (int) asic_result.asic_nr, ftemp);
                         board->setChipTemp(asic_result.asic_nr, ftemp);
                     }
                     break;
+                }
+                case 0x8c: {
+                    HASHRATE_MONITOR.onRegisterReply(asic_result.asic_nr, asic_result.data);
                 }
                 default: {
                     // NOP

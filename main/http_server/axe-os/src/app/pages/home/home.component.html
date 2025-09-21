@@ -15,7 +15,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
               <div>
                 <div class="font-weight-bold text-lg">
-                  {{ info.hashRate_10m | number: '1.2-2' }}
+                  {{ info.hashRate | number: '1.2-2' }}
                   <small>Gh/s</small>
                 </div>
               </div>
@@ -82,7 +82,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
               <div>
                 <div class="font-weight-bold text-lg">
-                  {{ info.power / (info.hashRate_10m / 1000) | number: '1.2-2' }}
+                  {{ info.power / (info.hashRate / 1000) | number: '1.2-2' }}
                   <small>J/Th</small>
                 </div>
               </div>
@@ -275,7 +275,7 @@
                   {{ info.lastpingrtt !== undefined ? info.lastpingrtt.toFixed(2) + ' ms (avg)' : 'n/a' }}
                 </div>
               </div>
-              
+
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
                   <span class="text-hint">Diff:</span>
@@ -283,7 +283,7 @@
                 <div class="col">
                   {{ info.poolDifficulty }}
                 </div>
-              </div>              
+              </div>
             </nb-card-body>
           </nb-card>
         </ng-container>
