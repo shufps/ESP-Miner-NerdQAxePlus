@@ -193,10 +193,31 @@ uint32_t Asic::vrRegToFreq(uint32_t reg) {
     return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (reg / 2)) / reg);
 }
 
-// Usage in your class (integer only)
 void Asic::setVrFrequency(uint32_t freq_hz) {
     setVrFreqReg(vrFreqToReg(freq_hz));
 }
+
+// default calculation
+uint8_t Asic::chipIndexFromAddr(uint8_t addr) {
+    return addr >> 1;
+}
+
+uint8_t Asic::addrFromChipIndex(uint8_t idx) {
+    return idx << 1;
+}
+
+void Asic::requestChipTemp() {
+    // NOP
+}
+
+void Asic::resetCounter(uint8_t reg) {
+    // nOP
+}
+
+void Asic::readCounter(uint8_t reg) {
+    // NOP
+}
+
 
 // Function to perform frequency transition up or down
 bool Asic::doFrequencyTransition(float target_frequency) {

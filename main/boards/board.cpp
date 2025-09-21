@@ -13,6 +13,7 @@ Board::Board() {
     m_absMaxAsicFrequency = 0;
     m_absMaxAsicVoltageMillis = 0;
     m_vrFrequency = m_defaultVrFrequency = 0;
+    m_hasHashCounter = false;
 }
 
 void Board::loadSettings()

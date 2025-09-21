@@ -9,8 +9,4 @@
 class NerdHaxeGamma : public NerdQaxePlus2 {
   public:
     NerdHaxeGamma();
-
-  virtual bool hasHashrateCounter() {
-    return true;
-  }
 };

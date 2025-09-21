@@ -19,5 +19,6 @@ public:
     virtual uint16_t getSmallCoreCount();
     virtual uint8_t nonceToAsicNr(uint32_t nonce);
     virtual uint8_t chipIndexFromAddr(uint8_t addr);
+    virtual uint8_t addrFromChipIndex(uint8_t idx);
 };
 

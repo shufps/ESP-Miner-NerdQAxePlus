@@ -29,8 +29,4 @@ class NerdaxeGamma : public NerdAxe {
     virtual float getVout();
     virtual float getIout();
     virtual float getPout();
-
-    virtual bool hasHashrateCounter() {
-        return true;
-    }
 };

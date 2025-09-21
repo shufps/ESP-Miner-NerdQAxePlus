@@ -138,6 +138,13 @@ uint8_t BM1370::chipIndexFromAddr(uint8_t addr) {
     return addr >> 2;
 }
 
+uint8_t BM1370::addrFromChipIndex(uint8_t idx) {
+    return idx << 2;
+}
+
+void BM1370::requestChipTemp() {
+    // NOP
+}
 
 void BM1370::resetCounter(uint8_t reg) {
     send6(CMD_WRITE_ALL, 0x00, reg, 0x00, 0x00, 0x00, 0x00);
@@ -145,10 +152,6 @@ void BM1370::resetCounter(uint8_t reg) {
 
 void BM1370::readCounter(uint8_t reg) {
     send2(CMD_READ_ALL, 0x00, reg);
-}
-
-void BM1370::requestChipTemp() {
-    // NOP
 }
 
 uint16_t BM1370::getSmallCoreCount() {

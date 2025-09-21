@@ -148,10 +148,10 @@ double System::calculateNetworkDifficulty(uint32_t nBits) {
 }
 
 float System::getCurrentHashrate() {
-    if (!m_board->hasHashrateCounter()) {
-        return getCurrentHashrate10m();
+    if (m_board->hasHashrateCounter()) {
+        return m_board->getTotalChipHashrate();
     }
-    return m_board->getTotalChipHashrate();
+    return getCurrentHashrate10m();
 }
 
 void System::checkForBestDiff(double diff, uint32_t nbits) {

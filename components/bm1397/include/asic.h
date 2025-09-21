@@ -96,7 +96,8 @@ protected:
     virtual const uint8_t* getChipId() = 0;
     virtual uint8_t jobToAsicId(uint8_t job_id) = 0;
     virtual uint8_t asicToJobId(uint8_t asic_id) = 0;
-    virtual uint8_t chipIndexFromAddr(uint8_t addr) = 0;
+    virtual uint8_t chipIndexFromAddr(uint8_t addr);
+    virtual uint8_t addrFromChipIndex(uint8_t idx);
 
     // helper functions
     uint32_t vrFreqToReg(uint32_t freq_hz);
@@ -109,9 +110,9 @@ public:
     bool processWork(task_result *result);
     void setJobDifficultyMask(int difficulty);
     bool setAsicFrequency(float frequency);
-    virtual void requestChipTemp() = 0;
-    virtual void resetCounter(uint8_t reg) = 0;
-    virtual void readCounter(uint8_t reg) = 0;
+    virtual void requestChipTemp();
+    virtual void resetCounter(uint8_t reg);
+    virtual void readCounter(uint8_t reg);
     virtual uint16_t getSmallCoreCount() = 0;
     virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
 

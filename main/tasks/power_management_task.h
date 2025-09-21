@@ -34,6 +34,7 @@ class PowerManagementTask {
     void checkPidSettingsChanged();
     void checkVrFrequencyChanged();
     void task();
+
   public:
     PowerManagementTask();
 

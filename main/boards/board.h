@@ -28,6 +28,7 @@ class Board {
     const char *m_swarmColorName = "blue";
     uint32_t m_vrFrequency;
     uint32_t m_defaultVrFrequency;
+    bool m_hasHashCounter;
 
     PidSettings m_pidSettings;
 
@@ -253,7 +254,7 @@ class Board {
     }
 
     virtual bool hasHashrateCounter() {
-        return false;
+        return m_hasHashCounter;
     }
 
 };

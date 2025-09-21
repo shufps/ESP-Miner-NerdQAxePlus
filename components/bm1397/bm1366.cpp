@@ -118,16 +118,6 @@ int BM1366::setMaxBaud(void)
     return 1000000;
 }
 
-void BM1366::resetCounter(uint8_t reg) {
-}
-
-void BM1366::readCounter(uint8_t reg) {
-}
-
-void BM1366::requestChipTemp() {
-    // NOP
-}
-
 uint8_t BM1366::jobToAsicId(uint8_t job_id) {
     return (job_id * 8) & 0x7f;
 }
@@ -138,10 +128,6 @@ uint8_t BM1366::asicToJobId(uint8_t asic_id) {
 
 uint8_t BM1366::nonceToAsicNr(uint32_t nonce) {
     return (uint8_t) ((nonce & 0x0000fc00) >> 10);
-}
-
-uint8_t BM1366::chipIndexFromAddr(uint8_t addr) {
-    return addr >> 1;
 }
 
 uint16_t BM1366::getSmallCoreCount() {

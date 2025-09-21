@@ -56,7 +56,7 @@ void HashrateMonitor::taskLoop()
         // Send broadcast RESET for 0x8C.
         m_asic->resetCounter(REG_NONCE_TOTAL_CNT);
 
-        // Measurement window (blocking here; you can replace with esp_timer one-shot if desired)
+        // Measurement window (blocking here
         vTaskDelay(pdMS_TO_TICKS(m_window_ms));
 
         // Measure actual window length in µs and then READ back all counters
