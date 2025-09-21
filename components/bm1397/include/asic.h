@@ -103,6 +103,8 @@ protected:
     uint32_t vrFreqToReg(uint32_t freq_hz);
     uint32_t vrRegToFreq(uint32_t reg);
 
+    virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
+
 public:
     Asic();
     virtual const char* getName() = 0;
@@ -114,15 +116,12 @@ public:
     virtual void resetCounter(uint8_t reg);
     virtual void readCounter(uint8_t reg);
     virtual uint16_t getSmallCoreCount() = 0;
-    virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
 
     void setVrFrequency(uint32_t freq);
     virtual uint32_t getDefaultVrFrequency() = 0;
 
-
-    // asic models specific
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency) = 0;
-    virtual int setMaxBaud(void) = 0;
+    virtual int setMaxBaud(void);
 };
 
 

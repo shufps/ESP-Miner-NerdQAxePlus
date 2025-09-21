@@ -158,14 +158,15 @@ bool Asic::sendHashFrequency(float target_freq) {
     return true;
 }
 
-// Derivation without magic constants (integer math to avoid FP drift).
-// VR tick: 15 MHz I/O clock ÷ 5000 = 3000 Hz ⇒ 1 tick = 1/3000 s.
-// Note: 3000 × 65,536 = 196,608,000 = 48,000 × 4,096 (65,536 = 2^16, 4,096 = 2^12).
-// 196.608 MHz and its relatives are common in audio/PLL clock families (48 kHz × powers of two),
-// suggesting the divider is deliberate rather than approximate.
-// Hence: reg ≈ round(196,608,000 / freq_Hz) and freq_Hz ≈ 196,608,000 / reg.
-// Bottom line: the “rough” 3000 divider is likely intentional.
+int Asic::setMaxBaud(void)
+{
+//    return 115749;
+    ESP_LOGI(TAG, "Setting max baud of 1000000 ");
+    send6(CMD_WRITE_ALL, 0x00, 0x28, 0x11, 0x30, 0x02, 0x00);
+    return 1000000;
+}
 
+// set version rolling frequency
 constexpr uint32_t ASIC_IO_CLK_HZ_U32 = 15'000'000u; // 15 MHz
 constexpr uint32_t VR_TICK_DIV_U32    = 5000u;       // VR counter increments every 5000 IO clock cycles
 constexpr uint32_t VR_TICK_HZ_U32     = ASIC_IO_CLK_HZ_U32 / VR_TICK_DIV_U32; // 3000 Hz

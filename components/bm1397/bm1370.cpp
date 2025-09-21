@@ -28,7 +28,7 @@ static const uint64_t BM1370_SMALL_CORE_COUNT = 2040;
 
 #define REG_NONCE_TOTAL_CNT 0x8c
 
-BM1370::BM1370() : BM1368() {
+BM1370::BM1370() : Asic() {
     // NOP
 }
 
@@ -130,6 +130,15 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     return chip_counter;
 }
 
+uint8_t BM1370::jobToAsicId(uint8_t job_id) {
+    // job-IDs: 00, 18, 30, 48, 60, 78, 10, 28, 40, 58, 70, 08, 20, 38, 50, 68
+    return (job_id * 24) & 0x7f;
+}
+
+uint8_t BM1370::asicToJobId(uint8_t asic_id) {
+    return (asic_id & 0xf0) >> 1;
+}
+
 uint8_t BM1370::nonceToAsicNr(uint32_t nonce) {
     return (uint8_t) ((nonce & 0x0000fc00) >> 11);
 }
@@ -140,10 +149,6 @@ uint8_t BM1370::chipIndexFromAddr(uint8_t addr) {
 
 uint8_t BM1370::addrFromChipIndex(uint8_t idx) {
     return idx << 2;
-}
-
-void BM1370::requestChipTemp() {
-    // NOP
 }
 
 void BM1370::resetCounter(uint8_t reg) {
