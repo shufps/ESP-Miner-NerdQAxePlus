@@ -63,6 +63,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_swarmColorName = "#e700d8"; // pink
 
     m_asics = new BM1368();
+    m_hasHashCounter = true;
     m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
 
     m_tps = new TPS53647();

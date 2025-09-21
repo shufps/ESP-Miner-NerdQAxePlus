@@ -212,11 +212,11 @@ void Asic::requestChipTemp() {
 }
 
 void Asic::resetCounter(uint8_t reg) {
-    // nOP
+    send6(CMD_WRITE_ALL, 0x00, reg, 0x00, 0x00, 0x00, 0x00);
 }
 
 void Asic::readCounter(uint8_t reg) {
-    // NOP
+    send2(CMD_READ_ALL, 0x00, reg);
 }
 
 
