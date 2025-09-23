@@ -14,7 +14,8 @@ class Asic;
 
 class HashrateMonitor {
   private:
-    const double ERRATA_FACTOR = 1.046; // default +4.6%
+    // confirmed by long-term averages
+    const double ERRATA_FACTOR = 1.046;
 
     // Task + config
     uint32_t m_period_ms = 1000;

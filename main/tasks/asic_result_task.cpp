@@ -46,7 +46,7 @@ void ASIC_result_task(void *pvParameters)
                     }
                     break;
                 }
-                case 0x8c: {
+                case 0x90: {
                     HASHRATE_MONITOR.onRegisterReply(asic_result.asic_nr, asic_result.data);
                 }
                 default: {

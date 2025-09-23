@@ -4,7 +4,7 @@
 #include "mining.h" // for Asic
 
 static const char *HR_TAG = "hashrate_monitor";
-static constexpr uint8_t REG_NONCE_TOTAL_CNT = 0x8C;
+static constexpr uint8_t REG_NONCE_TOTAL_CNT = 0x90;
 
 HashrateMonitor::HashrateMonitor()
 {}
