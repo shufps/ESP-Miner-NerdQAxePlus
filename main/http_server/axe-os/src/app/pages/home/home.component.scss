@@ -80,3 +80,17 @@ nb-card-header {
     flex-shrink: 0;
   }
 }
+
+.icon-xxs {
+  /* Eva icons scale with font-size */
+  font-size: 1.2rem;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: help;
+  margin-top: -3px;
+}
+
+.icon-help-primary  { color: var(--color-primary-500); }
+.icon-help-success  { color: var(--color-success-500); }
+.icon-help-warning  { color: var(--color-warning-500); }
+.icon-help-muted    { color: var(--text-hint-color); }

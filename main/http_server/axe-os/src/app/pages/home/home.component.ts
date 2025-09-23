@@ -7,6 +7,7 @@ import { Chart } from 'chart.js';  // Import Chart.js
 import { ElementRef, ViewChild } from "@angular/core";
 import { TimeScale} from "chart.js/auto";
 import { NbThemeService } from '@nebular/theme';
+import { NbTrigger } from '@nebular/theme';
 
 @Component({
   selector: 'app-home',
@@ -14,8 +15,9 @@ import { NbThemeService } from '@nebular/theme';
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
-
   @ViewChild("myChart") ctx: ElementRef<HTMLCanvasElement>;
+
+  protected readonly NbTrigger = NbTrigger;
 
   private chart: Chart;
   private themeSubscription: any;
