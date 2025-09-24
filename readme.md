@@ -75,6 +75,8 @@ cd ..
 
 export BOARD="NERDQAXEPLUS2"
 ./docker/idf.sh set-target esp32-s3
+
+# after each change on the source code
 ./docker/idf.sh build
 ```
 
