@@ -65,6 +65,22 @@ bitaxetool --config ./config.cvs --firmware esp-miner-factory-NERDQAXEPLUS-v1.0.
 
 Docker containers allow to use the toolchain without installing `esp-idf` or `Node 20.x` on the system.
 
+#### 0. TL;DR - `esp-miner.bin`, `www.bin`
+```bash
+
+# only once
+cd docker
+./build_docker.sh
+cd ..
+
+export BOARD="NERDQAXEPLUS2"
+./docker/idf.sh set-target esp32-s3
+./docker/idf.sh build
+```
+
+Afterwards you will have a `esp-miner.bin` and `www.bin` in your `build` directory.
+
+
 #### 1. First build the docker container
 
 ```bash
@@ -108,6 +124,9 @@ The default `builder` user has `uid:gid = 1000:1000` (like the main user on *bun
 # start idf-shell
 ./docker/idf-shell.sh
 
+# set board
+export BOARD="NERDQAXEPLUS2"
+
 # set target and build the binaries
 idf.py set-target esp32s3
 idf.py build
@@ -125,6 +144,9 @@ bitaxetool --config config.cvs --firmware esp-miner-factory-nerdqaxe+.bin  -p /d
 ```bash
 # start idf-shell
 ./docker/idf-shell.sh
+
+# set board
+export BOARD="NERDQAXEPLUS2"
 
 # set target and build the binaries
 idf.py set-target esp32s3
@@ -148,7 +170,6 @@ esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 \
 ```
 
 
-
 When done just `exit` the shell.
 
 
@@ -167,34 +188,3 @@ pip install --upgrade bitaxetool
 The NerdQaxe+ firmware supports Influx and the repository provides an installation with Grafana dashboard that can be started with a few bash commands: https://github.com/shufps/ESP-Miner-NerdQAxePlus/tree/master/monitoring
 
 
-## API
-Nerdaxe uses the same bitaxe API functions.
-
-For more details take a look at `main/http_server/http_server.c`.
-
-Things that can be done are:
-
-  - Get System Info
-  - Get Swarm Info
-  - Update Swarm
-  - Swarm Options
-  - System Restart Action
-  - Update System Settings Action
-  - System Options
-  - Update OTA Firmware
-  - Update OTA WWW
-  - WebSocket
-
-Some API examples in curl:
-  ```bash
-  # Get system information
-  curl http://YOUR-BITAXE-IP/api/system/info
-  ```
-  ```bash
-  # Get swarm information
-  curl http://YOUR-BITAXE-IP/api/swarm/info
-  ```
-  ```bash
-  # System restart action
-  curl -X POST http://YOUR-BITAXE-IP/api/system/restart
-  ```
