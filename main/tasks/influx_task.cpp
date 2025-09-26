@@ -64,12 +64,16 @@ static void influx_task_fetch_from_system_module(System *module)
 
     // fetch hashrate
     influxdb->m_stats.hashing_speed = module->getCurrentHashrate();
+    influxdb->m_stats.hashing_speed_1m = module->getCurrentHashrate1m();
 
     // accepted
     influxdb->m_stats.accepted = module->getSharesAccepted();
 
     // rejected
     influxdb->m_stats.not_accepted = module->getSharesRejected();
+
+    // duplicate
+    influxdb->m_stats.duplicate_hashes = module->getDuplicateHWNonces();
 
     // pool errors
     influxdb->m_stats.pool_errors = module->getPoolErrors();
