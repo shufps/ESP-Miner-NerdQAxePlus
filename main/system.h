@@ -20,6 +20,7 @@ class System {
   protected:
     // Hashrate and timing
     double m_currentHashrate10m; // Current hashrate averaged over 10 minutes
+    double m_currentHashrate1m;  // Current hashrate averaged over 1 minute
     int64_t m_startTime;         // System start time (in milliseconds)
 
     // Share statistics
@@ -159,7 +160,10 @@ class System {
     {
         return m_currentHashrate10m;
     }
-
+    double getCurrentHashrate1m() const
+    {
+        return m_currentHashrate1m;
+    }
     float getCurrentHashrate();
 
     StratumConfig *getStratumConfig(uint8_t index) {
