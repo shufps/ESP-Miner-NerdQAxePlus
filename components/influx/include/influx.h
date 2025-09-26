@@ -7,6 +7,7 @@ typedef struct
     float temp;
     float temp2;
     float hashing_speed;
+    float hashing_speed_1m;
     int invalid_shares; // not implemented
     int valid_shares;   // not implemented
     int difficulty;
@@ -26,7 +27,7 @@ typedef struct
     float pwr_vout;
     float pwr_iout;
     float pwr_pout;
-    float last_ping_rtt; 
+    float last_ping_rtt;
 } Stats;
 
 class Influx {
