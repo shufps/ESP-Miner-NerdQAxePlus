@@ -49,7 +49,7 @@ function filterInterceptorRequest(req: HttpRequest<any>): boolean {
         NbWindowModule.forRoot(),
         NbToastrModule.forRoot(),
         TranslateModule.forRoot({
-            defaultLanguage: 'en-US',
+            defaultLanguage: 'en',
             isolate: false,
             loader: {
                 provide: TranslateLoader,

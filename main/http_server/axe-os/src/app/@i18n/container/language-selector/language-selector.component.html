@@ -1,4 +1,33 @@
-<div>
-  <button (click)="setLanguage('en')">EN</button>
-  <button (click)="setLanguage('fr')">FR</button>
+<div class="language-selector">
+  <nb-select
+    placeholder="Language"
+    [value]="currentLanguage$ | async"
+    (selectedChange)="setLanguage($event)"
+    shape="semi-round"
+    size="small">
+    <nb-option value="en">
+      <span class="flag-icon flag-icon-us"></span>
+      English
+    </nb-option>
+    <nb-option value="fr">
+      <span class="flag-icon flag-icon-fr"></span>
+      Français
+    </nb-option>
+    <nb-option value="es">
+      <span class="flag-icon flag-icon-es"></span>
+      Español
+    </nb-option>
+    <nb-option value="de">
+      <span class="flag-icon flag-icon-de"></span>
+      Deutsch
+    </nb-option>
+    <nb-option value="it">
+      <span class="flag-icon flag-icon-it"></span>
+      Italiano
+    </nb-option>
+    <nb-option value="ro">
+      <span class="flag-icon flag-icon-ro"></span>
+      Română
+    </nb-option>
+  </nb-select>
 </div>

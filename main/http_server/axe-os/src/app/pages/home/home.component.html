@@ -1,5 +1,5 @@
 <ng-template #loading>
-  <h4>Loading...</h4>
+  <h4>{{ 'COMMON.LOADING' | translate }}</h4>
 </ng-template>
 
 <div>
@@ -9,10 +9,10 @@
       <div class="col-12 col-lg-6 col-xl-3">
         <nb-card class="h-100">
           <nb-card-header>
-            <span class="text-hint">Hash Rate</span>
+            <span class="text-hint">{{ 'HOME.HASH_RATE' | translate }}</span>
             <nb-icon
               icon="question-mark-circle-outline" pack="eva" class="ms-1 icon-xxs icon-help-muted"
-              nbTooltip="Hashrate reported by the ASICs."
+              [nbTooltip]="'HOME.HASH_RATE_TOOLTIP' | translate"
               [nbTooltipTrigger]="NbTrigger.CLICK"
               nbTooltipPlacement="top">
             </nb-icon>
@@ -24,7 +24,7 @@
               <div>
                 <div class="font-weight-bold text-lg">
                   {{ info.hashRate | number: '1.2-2' }}
-                  <small>Gh/s</small>
+                  <small>{{ 'UNITS.HASHRATE' | translate }}</small>
                 </div>
               </div>
               <div class="d-flex align-items-center justify-content-center bg-orange-100 rounded-circle"
@@ -33,8 +33,8 @@
               </div>
             </div>
             <ng-container *ngIf="expectedHashRate$ | async as expectedHashRate">
-              <span class="text-success">{{ expectedHashRate }} <small>Gh/s</small></span>
-              <span class="text-hint">&nbsp;expected</span>
+              <span class="text-success">{{ expectedHashRate }} <small>{{ 'UNITS.HASHRATE' | translate }}</small></span>
+              <span class="text-hint">&nbsp;{{ 'HOME.EXPECTED' | translate }}</span>
             </ng-container>
           </nb-card-body>
         </nb-card>
@@ -46,11 +46,11 @@
         <nb-card class="h-100">
           <nb-card-header style="position: relative;">
             <div class="d-flex justify-content-between align-items-center">
-              <span class="text-hint">Shares</span>
+              <span class="text-hint">{{ 'HOME.SHARES' | translate }}</span>
               <nb-badge [text]="
             !info.isStratumConnected
-              ? 'Disconnected'
-              : (info.isUsingFallbackStratum ? 'Fallback Pool' : 'Primary Pool')
+              ? ('HOME.DISCONNECTED' | translate)
+              : (info.isUsingFallbackStratum ? ('HOME.FALLBACK_POOL' | translate) : ('HOME.PRIMARY_POOL' | translate))
           " [status]="
             !info.isStratumConnected
               ? 'danger'
@@ -71,7 +71,7 @@
               </div>
             </div>
             <span class="text-danger">{{ info.sharesRejected }}</span>
-            <span class="text-hint">&nbsp;rejected</span>&nbsp;
+            <span class="text-hint">&nbsp;{{ 'HOME.REJECTED' | translate }}</span>&nbsp;
             <span class="text-hint">
               ({{ (info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2' }}%)
             </span>
@@ -84,7 +84,7 @@
       <div class="col-12 col-lg-6 col-xl-3 ps-lg-1">
         <nb-card class="h-100">
           <nb-card-header>
-            <span class="text-hint">Efficiency</span>
+            <span class="text-hint">{{ 'HOME.EFFICIENCY' | translate }}</span>
           </nb-card-header>
           <nb-card-body>
             <div class="d-flex justify-content-between align-items-center mb-3">
