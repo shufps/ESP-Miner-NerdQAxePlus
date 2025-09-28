@@ -38,7 +38,7 @@ const defaultInfo: ISystemInfo = {
   wifiRSSI: -90,
   ssid: "default",
   wifiPass: "password",
-  wifiStatus: "Connected!",
+  wifiStatus: "SYSTEM.WIFI_CONNECTED",
   sharesAccepted: 1,
   sharesRejected: 0,
   uptimeSeconds: 38,

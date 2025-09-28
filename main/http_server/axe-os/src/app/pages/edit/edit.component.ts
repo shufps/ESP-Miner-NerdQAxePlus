@@ -123,6 +123,7 @@ export class EditComponent implements OnInit {
         flipscreen: [info.flipscreen == 1],
         invertscreen: [info.invertscreen == 1],
         autoscreenoff: [info.autoscreenoff == 1],
+        timeFormat: [this.localStorageService.getItem('timeFormat') || '24h'],
         stratumURL: [info.stratumURL, [
           Validators.required,
           Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
@@ -238,6 +239,14 @@ export class EditComponent implements OnInit {
 
   public updateSystem() {
     const form = this.form.getRawValue();
+
+    // Save client-side preferences to localStorage
+    if (form.timeFormat) {
+      this.localStorageService.setItem('timeFormat', form.timeFormat);
+      // Emit custom event to notify other components
+      window.dispatchEvent(new CustomEvent('timeFormatChanged', { detail: form.timeFormat }));
+      delete form.timeFormat; // Don't send to server
+    }
 
     // Allow an empty wifi password
     form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;

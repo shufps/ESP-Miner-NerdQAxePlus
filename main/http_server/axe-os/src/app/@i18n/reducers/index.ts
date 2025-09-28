@@ -36,3 +36,5 @@ export const getCurrentLanguage = createSelector(
   selectLanguageState,
   fromLanguage.getLanguage
 );
+
+export const selectLanguage = getCurrentLanguage;

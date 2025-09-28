@@ -6,6 +6,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { IAlertSettings } from '../../models/IAlertSettings';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-alert',
@@ -21,7 +22,8 @@ export class AlertComponent implements OnInit {
     private fb: FormBuilder,
     private systemService: SystemService,
     private toastrService: NbToastrService,
-    private loadingService: LoadingService
+    private loadingService: LoadingService,
+    private translateService: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -59,10 +61,10 @@ export class AlertComponent implements OnInit {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
         next: () => {
-          this.toastrService.success('Saved alert settings.', 'Success');
+          this.toastrService.success(this.translateService.instant('ALERTS.SETTINGS_SAVED'), this.translateService.instant('COMMON.SUCCESS'));
         },
         error: (err: HttpErrorResponse) => {
-          this.toastrService.danger('Could not save alert settings.', err.message);
+          this.toastrService.danger(this.translateService.instant('ALERTS.SETTINGS_SAVE_FAILED'), err.message);
         }
       });
   }
@@ -72,10 +74,10 @@ export class AlertComponent implements OnInit {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
         next: () => {
-          this.toastrService.success('Test alert sent to Discord.', 'Success');
+          this.toastrService.success(this.translateService.instant('ALERTS.TEST_ALERT_SENT'), this.translateService.instant('COMMON.SUCCESS'));
         },
         error: () => {
-          this.toastrService.danger('Failed to send test alert.', 'Error');
+          this.toastrService.danger(this.translateService.instant('ALERTS.TEST_ALERT_FAILED'), this.translateService.instant('COMMON.ERROR'));
         }
       });
   }

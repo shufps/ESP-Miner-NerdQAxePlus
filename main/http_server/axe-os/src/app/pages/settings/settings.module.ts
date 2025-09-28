@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { EditModule } from '../edit/edit.module';
 import { NbSpinnerModule } from '@nebular/theme';
 import { NbProgressBarModule } from '@nebular/theme';
+import { I18nModule } from '../../@i18n/i18n.module';
 
 @NgModule({
   declarations: [SettingsComponent],
@@ -19,6 +20,7 @@ import { NbProgressBarModule } from '@nebular/theme';
     EditModule,
     NbSpinnerModule,
     NbProgressBarModule,
+    I18nModule,
   ]
 })
 export class SettingsModule { }

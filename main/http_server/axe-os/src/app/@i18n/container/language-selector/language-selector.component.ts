@@ -19,7 +19,8 @@ export class LanguageSelectorComponent implements OnInit {
 
   ngOnInit() {}
 
-  setLanguage(language: Language) {
+  setLanguage(languageCode: string) {
+    const language: Language = languageCode as Language;
     this.store.dispatch(LanguageActions.set({ language }));
   }
 }

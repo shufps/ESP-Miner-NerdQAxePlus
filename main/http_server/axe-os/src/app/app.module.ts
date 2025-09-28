@@ -78,7 +78,6 @@ function filterInterceptorRequest(req: HttpRequest<any>): boolean {
         { provide: NB_AUTH_TOKEN_INTERCEPTOR_FILTER, useValue: filterInterceptorRequest },
         { provide: APP_BASE_HREF, useValue: "/" },
         { provide: NbTokenStorage, useClass: NbCustomTokenStorage },
-        //{ provide: LOCALE_ID, useValue: 'it-IT' },
         provideHttpClient(withInterceptorsFromDi()),
     ] })
 export class AppModule { }

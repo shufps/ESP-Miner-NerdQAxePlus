@@ -8,6 +8,8 @@ import { ElementRef, ViewChild } from "@angular/core";
 import { TimeScale} from "chart.js/auto";
 import { NbThemeService } from '@nebular/theme';
 import { NbTrigger } from '@nebular/theme';
+import { TranslateService } from '@ngx-translate/core';
+import { LocalStorageService } from '../../services/local-storage.service';
 
 @Component({
   selector: 'app-home',
@@ -23,6 +25,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private themeSubscription: any;
   private chartInitialized = false;
   private _info : any;
+  private timeFormatListener: any;
 
   private wasLoaded = false;
 
@@ -64,7 +67,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   constructor(
     private themeService: NbThemeService,
-    private systemService: SystemService
+    private systemService: SystemService,
+    private translateService: TranslateService,
+    private localStorage: LocalStorageService
   ) {
     const documentStyle = getComputedStyle(document.documentElement);
     const bodyStyle = getComputedStyle(document.body);
@@ -76,7 +81,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       datasets: [
         {
           type: 'line',
-          label: 'Hashrate 10m',
+          label: this.translateService.instant('HOME.HASHRATE_10M'),
           data: this.dataData10m,
           fill: false,
           backgroundColor: '#6484f6',
@@ -87,7 +92,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         {
           type: 'line',
-          label: 'Hashrate 1h',
+          label: this.translateService.instant('HOME.HASHRATE_1H'),
           data: this.dataData1h,
           fill: false,
           backgroundColor: '#7464f6',
@@ -98,7 +103,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         {
           type: 'line',
-          label: 'Hashrate 1d',
+          label: this.translateService.instant('HOME.HASHRATE_1D'),
           data: this.dataData1d,
           fill: false,
           backgroundColor: '#a564f6',
@@ -121,6 +126,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         tooltip: {
           callbacks: {
+            title: (context: any) => {
+              const date = new Date(context[0].parsed.x);
+              const format = this.localStorage.getItem('timeFormat') === '12h';
+              return format
+                ? date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric' })
+                : date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, month: 'short', day: 'numeric' });
+            },
             label: (x: any) => `${x.dataset.label}: ${HashSuffixPipe.transform(x.raw)}`
           }
         },
@@ -130,6 +142,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           type: 'time',
           time: {
             unit: 'hour',
+            displayFormats: {
+              hour: this.localStorage.getItem('timeFormat') === '12h' ? 'h:mm A' : 'HH:mm'
+            }
           },
           ticks: {
             color: textColorSecondary
@@ -246,9 +261,38 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.themeSubscription = this.themeService.getJsTheme().subscribe(() => {
       this.updateThemeColors();
     });
+
+    // Listen for timeFormat changes
+    this.timeFormatListener = () => {
+      this.updateTimeFormat();
+    };
+    window.addEventListener('timeFormatChanged', this.timeFormatListener);
   }
 
   ngOnDestroy(): void {
+    if (this.timeFormatListener) {
+      window.removeEventListener('timeFormatChanged', this.timeFormatListener);
+    }
+  }
+
+  public updateTimeFormat(): void {
+    const timeFormat = this.localStorage.getItem('timeFormat') === '12h' ? 'h:mm A' : 'HH:mm';
+    if (this.chartOptions.scales?.x?.time?.displayFormats) {
+      this.chartOptions.scales.x.time.displayFormats.hour = timeFormat;
+
+      // Update tooltip format as well
+      this.chartOptions.plugins.tooltip.callbacks.title = (context: any) => {
+        const date = new Date(context[0].parsed.x);
+        const format = this.localStorage.getItem('timeFormat') === '12h';
+        return format
+          ? date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric' })
+          : date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, month: 'short', day: 'numeric' });
+      };
+
+      if (this.chart) {
+        this.chart.update();
+      }
+    }
   }
 
   private importHistoricalData(data: any) {

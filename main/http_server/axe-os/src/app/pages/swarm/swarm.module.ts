@@ -5,6 +5,7 @@ import { NbCardModule, NbButtonModule, NbIconModule, NbInputModule, NbLayoutModu
 import { SwarmComponent } from './swarm.component';
 import { EditModule } from '../edit/edit.module';
 import { PipesModule} from '../../pipes/pipes.module';
+import { I18nModule } from '../../@i18n/i18n.module';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { PipesModule} from '../../pipes/pipes.module';
     NbLayoutModule,
     NbTooltipModule,
     EditModule,
-    PipesModule
+    PipesModule,
+    I18nModule
   ],
   exports: [
     SwarmComponent

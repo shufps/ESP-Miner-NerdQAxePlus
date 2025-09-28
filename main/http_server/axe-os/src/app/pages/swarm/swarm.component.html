@@ -5,12 +5,12 @@
       <form [formGroup]="form">
         <div class="d-flex align-items-center gap-3">
           <!-- Label container -->
-          <label class="manual-add-label">Manual Addition</label>
+          <label class="manual-add-label">{{ 'UPDATE.MANUAL_ADDITION' | translate }}</label>
           <!-- Input group container -->
           <div class="input-group" style="flex: 1; display: flex; flex-flow: nowrap;">
             <input nbInput id="manualAddIp" formControlName="manualAddIp" type="text"
-                   placeholder="Enter IP Address" style="flex: 1; width: 100%;" />
-            <button nbButton status="primary" (click)="add()" [disabled]="form.invalid">Add</button>
+                   [placeholder]="'UPDATE.ENTER_IP_ADDRESS' | translate" style="flex: 1; width: 100%;" />
+            <button nbButton status="primary" (click)="add()" [disabled]="form.invalid">{{ 'UPDATE.ADD' | translate }}</button>
           </div>
         </div>
       </form>
@@ -23,16 +23,16 @@
       <!-- Left group: Buttons -->
       <div class="scan-refresh-buttons">
         <button nbButton status="primary" (click)="scanNetwork()" [disabled]="scanning">
-          {{ scanning ? 'Scanning...' : 'Automatic Scan' }}
+          {{ scanning ? ('UPDATE.SCANNING' | translate) : ('UPDATE.AUTOMATIC_SCAN' | translate) }}
         </button>
         <button nbButton status="info" (click)="refreshList()" [disabled]="scanning || isRefreshing">
-          {{ isRefreshing ? 'Refreshing...' : 'Refresh List (' + refreshIntervalTime + ')' }}
+          {{ isRefreshing ? ('UPDATE.REFRESHING' | translate) : (('UPDATE.REFRESH_LIST' | translate) + ' (' + refreshIntervalTime + ')') }}
         </button>
       </div>
 
       <!-- Right group: Label and Slider -->
       <div class="mt-3 mt-md-0 time-slider">
-        <label for="refresh-interval">Refresh Interval:</label>
+        <label for="refresh-interval">{{ 'UPDATE.REFRESH_INTERVAL' | translate }}:</label>
         <div class="progress-wrap mx-2">
           <input id="refresh-interval" type="range" class="progress" [formControl]="refreshIntervalControl"
                  [min]="5" [max]="30" step="1" />
@@ -49,19 +49,19 @@
   <div class="d-flex justify-content-between mt-4 mb-3 gap-md-3 totals">
     <nb-card class="text-center mb-0" style="flex: 1;">
       <nb-card-body>
-        <span class="text-start">Total Hash Rate</span>
+        <span class="text-start">{{ 'SWARM.TOTAL_HASH_RATE' | translate }}</span>
         <span class="text-primary fw-bold">{{ totals.hashRate * 1000000000 | hashSuffix }}</span>
       </nb-card-body>
     </nb-card>
     <nb-card class="text-center mb-0" style="flex: 1;">
       <nb-card-body>
-        <span class="text-start">Total Power</span>
+        <span class="text-start">{{ 'SWARM.TOTAL_POWER' | translate }}</span>
         <span class="text-primary fw-bold">{{ totals.power | number:'1.1-1' }} W</span>
       </nb-card-body>
     </nb-card>
     <nb-card class="text-center mb-0" style="flex: 1;">
       <nb-card-body>
-        <span class="text-start">Best Diff</span>
+        <span class="text-start">{{ 'SWARM.BEST_DIFF' | translate }}</span>
         <span class="text-primary fw-bold">{{ totals.bestDiff === '0.00' ? 0 : totals.bestDiff }}</span>
       </nb-card-body>
     </nb-card>
@@ -69,21 +69,21 @@
 
   <!-- Swarm Overview Table -->
   <nb-card class="mb-0">
-    <nb-card-header>Swarm Overview</nb-card-header>
+    <nb-card-header>{{ 'SWARM.OVERVIEW' | translate }}</nb-card-header>
 
     <nb-card-body *ngIf="swarm.length; else empty">
       <table class="swarm-table">
         <thead>
           <tr>
-            <th>IP</th>
-            <th>Hash Rate</th>
-            <th>Uptime</th>
-            <th>Shares</th>
-            <th>Power</th>
-            <th>Temp</th>
-            <th>Pool Diff</th>
-            <th>Best Diff</th>
-            <th>Version</th>
+            <th>{{ 'SWARM.IP_ADDRESS' | translate }}</th>
+            <th>{{ 'SWARM.HASH_RATE' | translate }}</th>
+            <th>{{ 'SWARM.UPTIME' | translate }}</th>
+            <th>{{ 'SWARM.SHARES' | translate }}</th>
+            <th>{{ 'SWARM.POWER' | translate }}</th>
+            <th>{{ 'SWARM.TEMP' | translate }}</th>
+            <th>{{ 'SWARM.POOL_DIFF' | translate }}</th>
+            <th>{{ 'SWARM.BEST_DIFF' | translate }}</th>
+            <th>{{ 'SWARM.VERSION' | translate }}</th>
             <th>&nbsp;</th>
             <th>&nbsp;</th>
             <th>&nbsp;</th>
@@ -109,10 +109,10 @@
 
               <!-- Shares (Accepted & Rejected) -->
               <td>
-                <div nbTooltip="Shares Accepted" tooltipPosition="top">
+                <div [nbTooltip]="'UPDATE.SHARES_ACCEPTED' | translate" tooltipPosition="top">
                   {{ axe.sharesAccepted | number:'1.0-0' }}
                 </div>
-                <div nbTooltip="Shares Rejected" tooltipPosition="top" class="text-sm">
+                <div [nbTooltip]="'UPDATE.SHARES_REJECTED' | translate" tooltipPosition="top" class="text-sm">
                   {{ axe.sharesRejected | number:'1.0-0' }}
                 </div>
               </td>
@@ -126,7 +126,7 @@
                   {{ axe.temp | number:'1.0-1' }}°<small>C</small>
                 </div>
                 <div *ngIf="axe.vrTemp"
-                     nbTooltip="Voltage Regulator Temperature"
+                     [nbTooltip]="'UPDATE.VOLTAGE_REGULATOR_TEMPERATURE' | translate"
                      tooltipPosition="top"
                      [ngClass]="{'text-orange-500': axe.vrTemp > 90}"
                      class="text-sm">
@@ -140,7 +140,7 @@
               <!-- Best Diff with Best Session Diff tooltip -->
               <td>
                 <div>{{ axe.bestDiff }}</div>
-                <div nbTooltip="Best Session Diff" tooltipPosition="top" class="text-sm">
+                <div [nbTooltip]="'UPDATE.BEST_SESSION_DIFF' | translate" tooltipPosition="top" class="text-sm">
                   {{ axe.bestSessionDiff }}
                 </div>
               </td>
@@ -152,20 +152,20 @@
               <td>
                 <button nbButton status="warning" size="small"
                         (click)="edit(axe)"
-                        nbTooltip="{{ axe.supportsAsicApi ? 'Edit settings' : 'Firmware update required' }}"
+                        [nbTooltip]="axe.supportsAsicApi ? ('UPDATE.EDIT_SETTINGS' | translate) : ('UPDATE.FIRMWARE_UPDATE_REQUIRED' | translate)"
                         tooltipPosition="top">
                   <nb-icon icon="edit-outline"></nb-icon>
                 </button>
               </td>
               <td>
                 <button nbButton status="danger" size="small" (click)="restart(axe)"
-                  nbTooltip="Restart device" tooltipPosition="top">
+                  [nbTooltip]="'UPDATE.RESTART_DEVICE' | translate" tooltipPosition="top">
                   <nb-icon icon="sync-outline"></nb-icon>
                 </button>
               </td>
               <td>
                 <button nbButton status="basic" size="small" (click)="remove(axe)"
-                nbTooltip="Remove from list" tooltipPosition="top">
+                [nbTooltip]="'UPDATE.REMOVE_FROM_LIST' | translate" tooltipPosition="top">
                   <nb-icon icon="trash-2-outline"></nb-icon>
                 </button>
               </td>
@@ -188,7 +188,7 @@
     </nb-card-body>
 
     <ng-template #empty>
-      <div class="p-4 text-center text-secondary">Empty List</div>
+      <div class="p-4 text-center text-secondary">{{ 'SWARM.EMPTY_LIST' | translate }}</div>
     </ng-template>
   </nb-card>
 

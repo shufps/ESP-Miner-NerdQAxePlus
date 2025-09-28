@@ -1,7 +1,7 @@
 <div class="language-selector">
   <nb-select
-    placeholder="Language"
-    [value]="currentLanguage$ | async"
+    [placeholder]="'LANGUAGE.SELECTOR' | translate"
+    [selected]="currentLanguage$ | async"
     (selectedChange)="setLanguage($event)"
     shape="semi-round"
     size="small">
@@ -20,14 +20,6 @@
     <nb-option value="de">
       <span class="flag-icon flag-icon-de"></span>
       Deutsch
-    </nb-option>
-    <nb-option value="it">
-      <span class="flag-icon flag-icon-it"></span>
-      Italiano
-    </nb-option>
-    <nb-option value="ro">
-      <span class="flag-icon flag-icon-ro"></span>
-      Română
     </nb-option>
   </nb-select>
 </div>

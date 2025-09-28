@@ -168,13 +168,13 @@ static void event_handler(void * arg, esp_event_base_t event_base, int32_t event
 
         if (event_id == WIFI_EVENT_STA_START) {
             ESP_LOGI(TAG, "Connecting...");
-            SYSTEM_MODULE.setWifiStatus("Connecting...");
+            SYSTEM_MODULE.setWifiStatus("SYSTEM.WIFI_CONNECTING");
             esp_wifi_connect();
         }
 
         if (event_id == WIFI_EVENT_STA_CONNECTED) {
             ESP_LOGI(TAG, "Connected!");
-            SYSTEM_MODULE.setWifiStatus("Connected!");
+            SYSTEM_MODULE.setWifiStatus("SYSTEM.WIFI_CONNECTED");
         }
 
         if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
