@@ -64,6 +64,7 @@ export interface ISystemInfo {
     lastResetReason: string,
     jobInterval: number,
     lastpingrtt: number,
+    recentpingloss: number,
     stratum_keep: number,
     defaultVrFrequency?: number,
     vrFrequency: number,

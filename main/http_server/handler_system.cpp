@@ -102,6 +102,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
     doc["lastpingrtt"]        = get_last_ping_rtt();
+    doc["recentpingloss"]     = get_recent_ping_loss();
     doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
     doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
     doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();

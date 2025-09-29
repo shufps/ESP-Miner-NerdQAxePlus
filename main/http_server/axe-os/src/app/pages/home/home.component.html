@@ -292,6 +292,15 @@
 
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
+                  <span class="text-hint">Loss:</span>
+                </div>
+                <div class="col">
+                  {{ info.recentpingloss !== undefined ? (info.recentpingloss * 100).toFixed(2) + ' % ' : 'n/a' }}
+                </div>
+              </div>
+
+              <div class="row flex-nowrap">
+                <div class="col-fixed-width">
                   <span class="text-hint">Diff:</span>
                 </div>
                 <div class="col">
