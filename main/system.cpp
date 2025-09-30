@@ -150,7 +150,7 @@ double System::calculateNetworkDifficulty(uint32_t nBits) {
 
 float System::getCurrentHashrate() {
     if (m_board->hasHashrateCounter()) {
-        return m_board->getTotalChipHashrate();
+        return HASHRATE_MONITOR.getSmoothedTotalChipHashrate();
     }
     return getCurrentHashrate10m();
 }

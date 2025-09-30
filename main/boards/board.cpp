@@ -43,7 +43,6 @@ void Board::loadSettings()
 
 bool Board::initBoard() {
     m_chipTemps = new float[m_asicCount]();
-    m_chipHashrate = new float[m_asicCount]();
     return true;
 }
 
@@ -53,22 +52,6 @@ void Board::setChipTemp(int nr, float temp) {
     }
     m_chipTemps[nr] = temp;
 }
-
-void Board::setChipHashrate(int nr, float temp) {
-    if (nr < 0 || nr >= m_asicCount) {
-        return;
-    }
-    m_chipHashrate[nr] = temp;
-}
-
-float Board::getTotalChipHashrate() {
-    float total = 0.0f;
-    for (int i=0;i < m_asicCount; i++) {
-        total += m_chipHashrate[i];
-    }
-    return total;
-}
-
 
 float Board::getMaxChipTemp() {
     float maxTemp = 0.0f;

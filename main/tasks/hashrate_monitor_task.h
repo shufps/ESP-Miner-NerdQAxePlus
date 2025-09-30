@@ -24,6 +24,11 @@ class HashrateMonitor {
 
     uint64_t m_window_us = 0;
 
+    int m_asicCount = 0;
+    float *m_chipHashrate = nullptr;
+    float m_smoothedHashrate = 0.0f;
+
+
     // Task plumbing
     static void taskWrapper(void *pv);
     void taskLoop();
@@ -35,6 +40,9 @@ class HashrateMonitor {
     Board *m_board = nullptr;
     Asic *m_asic = nullptr;
 
+    void setChipHashrate(int nr, float temp);
+    float getTotalChipHashrate();
+
   public:
     HashrateMonitor();
 
@@ -45,4 +53,8 @@ class HashrateMonitor {
     // Called from RX dispatcher for each register reply.
     // 'data_ticks' is the 32-bit counter (host-endian).
     void onRegisterReply(uint8_t asic_idx, uint32_t data_ticks);
+
+    float getSmoothedTotalChipHashrate() {
+      return m_smoothedHashrate;
+    }
 };
