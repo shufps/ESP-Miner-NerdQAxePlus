@@ -22,9 +22,29 @@ bool HashrateMonitor::start(Board *board, Asic *asic, uint32_t period_ms, uint32
         return false;
     }
 
+    m_asicCount = board->getAsicCount();
+
+    m_chipHashrate = new float[m_asicCount]();
+
+
     xTaskCreate(&HashrateMonitor::taskWrapper, "hr_monitor", 4096, (void *) this, 10, NULL);
     ESP_LOGI(HR_TAG, "started (period=%lums, window=%lums, settle=%lums)", m_period_ms, m_window_ms, m_settle_ms);
     return true;
+}
+
+void HashrateMonitor::setChipHashrate(int nr, float temp) {
+    if (nr < 0 || nr >= m_asicCount) {
+        return;
+    }
+    m_chipHashrate[nr] = temp;
+}
+
+float HashrateMonitor::getTotalChipHashrate() {
+    float total = 0.0f;
+    for (int i=0;i < m_asicCount; i++) {
+        total += m_chipHashrate[i];
+    }
+    return total;
 }
 
 void HashrateMonitor::taskWrapper(void *pv)
@@ -35,7 +55,7 @@ void HashrateMonitor::taskWrapper(void *pv)
 
 void HashrateMonitor::publishTotalIfComplete()
 {
-    float hashrate = m_board->getTotalChipHashrate();
+    float hashrate = getTotalChipHashrate();
     ESP_LOGI(HR_TAG, "total hash reported by chips: %.3f GH/s", hashrate);
 }
 
@@ -66,6 +86,15 @@ void HashrateMonitor::taskLoop()
         // Give RX some time to deliver replies
         vTaskDelay(pdMS_TO_TICKS(m_settle_ms));
 
+        // apply a slight smoothing
+        if (!m_smoothedHashrate) {
+            m_smoothedHashrate = getTotalChipHashrate();
+        }
+
+        m_smoothedHashrate = 0.5f * m_smoothedHashrate + 0.5f * getTotalChipHashrate();
+
+        //ESP_LOGI(HR_TAG, "smooth: %.3f unsmooth: %.3f", m_smoothedHashrate, getTotalChipHashrate());
+
         // In case not all replies arrived, still publish what we have
         publishTotalIfComplete();
     }
@@ -83,6 +112,6 @@ void HashrateMonitor::onRegisterReply(uint8_t asic_idx, uint32_t data_ticks)
 
     if (m_board) {
         ESP_LOGI(HR_TAG, "hashrate of chip %u: %.3f GH/s", asic_idx, (float) chip_ghs);
-        m_board->setChipHashrate(asic_idx, chip_ghs);
+        setChipHashrate(asic_idx, chip_ghs);
     }
 }
