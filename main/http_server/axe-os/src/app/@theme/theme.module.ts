@@ -56,6 +56,7 @@ import {
   } from './layouts';
 import { TranslateModule } from "@ngx-translate/core";
 import { CustomDirectivesModule } from "./directives/directives.modules";
+import { I18nModule } from '../@i18n/i18n.module';
 
 const NB_MODULES : any= [
     NbLayoutModule,
@@ -105,8 +106,8 @@ const PIPES = [
 ];
 
 @NgModule({
-    imports: [CommonModule, TranslateModule, ...NB_MODULES, CustomDirectivesModule],
-    exports: [CommonModule, ...PIPES, ...COMPONENTS, CustomDirectivesModule],
+    imports: [CommonModule, TranslateModule, I18nModule, ...NB_MODULES, CustomDirectivesModule],
+    exports: [CommonModule, ...PIPES, ...COMPONENTS, I18nModule, CustomDirectivesModule],
     declarations: [...COMPONENTS, ...PIPES],
   })
   export class ThemeModule {

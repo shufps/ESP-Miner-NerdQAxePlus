@@ -3,9 +3,17 @@
 
   <!-- Settings Card (stays separate) -->
   <nb-card>
-    <nb-card-header>Settings</nb-card-header>
+    <nb-card-header>{{ 'SETTINGS.TITLE' | translate }}</nb-card-header>
     <nb-card-body>
       <app-edit></app-edit>
+    </nb-card-body>
+  </nb-card>
+
+  <!-- Language Settings Card -->
+  <nb-card>
+    <nb-card-header>{{ 'LANGUAGE.TITLE' | translate }}</nb-card-header>
+    <nb-card-body>
+      <app-language-selector></app-language-selector>
     </nb-card-body>
   </nb-card>
 
@@ -15,13 +23,13 @@
     <!-- Release Info Card (shows one of two versions based on checkLatestRelease) -->
     <nb-card class="card-item" *ngIf="!checkLatestRelease">
       <nb-card-header>
-        Current Version: {{ (info$ | async)?.version }}
+        {{ 'UPDATE.CURRENT_VERSION' | translate }}: {{ (info$ | async)?.version }}
       </nb-card-header>
       <nb-card-body>
         <h2>
-          Latest Release:
+          {{ 'UPDATE.LATEST_RELEASE' | translate }}:
           <button nbButton size="small" [status]="'primary'" (click)="checkLatestRelease = true">
-            Check
+            {{ 'UPDATE.CHECK' | translate }}
           </button>
         </h2>
       </nb-card-body>
@@ -29,11 +37,11 @@
 
     <nb-card class="card-item" *ngIf="checkLatestRelease">
       <nb-card-header>
-        Current Version: {{ (info$ | async)?.version }}
+        {{ 'UPDATE.CURRENT_VERSION' | translate }}: {{ (info$ | async)?.version }}
       </nb-card-header>
       <nb-card-body>
         <ng-container *ngIf="latestRelease$ | async as latestRelease">
-          <h2>Latest Release: {{ latestRelease.name }}</h2>
+          <h2>{{ 'UPDATE.LATEST_RELEASE' | translate }}: {{ latestRelease.name }}</h2>
           <div *ngFor="let asset of latestRelease.assets">
             <div *ngIf="asset.name === expectedFileName">
               <a nbButton outline size="small" [status]="'primary'" target="_blank" [href]="asset.browser_download_url">
@@ -52,7 +60,7 @@
 
     <nb-card class="card-item" style="position: relative;">
       <nb-card-header>
-        Update Firmware
+        {{ 'UPDATE.UPDATE_FIRMWARE' | translate }}
         <span *ngIf="firmwareUpdateProgress != null && firmwareUpdateProgress > 0">
           {{ firmwareUpdateProgress }}%
         </span>
@@ -69,12 +77,12 @@
           <!-- Custom "Browse" button -->
           <button nbButton [status]="'primary'" size="small" (click)="firmwareInput.click()">
             <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
-            Browse
+            {{ 'UPDATE.BROWSE' | translate }}
           </button>
           <!-- "Upload" button -->
           <button nbButton [status]="'primary'" size="small" [nbSpinner]="isFirmwareUploading" (click)="uploadFirmwareFile()">
             <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
-            Flash
+            {{ 'UPDATE.FLASH' | translate }}
           </button>
         </div>
         <small>({{ expectedFileName }})</small>
@@ -83,7 +91,7 @@
 
     <nb-card class="card-item" style="position: relative;">
       <nb-card-header>
-        Update Website
+        {{ 'UPDATE.UPDATE_WEBSITE' | translate }}
         <span *ngIf="websiteUpdateProgress != null && websiteUpdateProgress > 0">
           {{ websiteUpdateProgress }}%
         </span>
@@ -100,12 +108,12 @@
           <!-- Custom "Browse" button -->
           <button nbButton [status]="'primary'" size="small" (click)="websiteInput.click()">
             <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
-            Browse
+            {{ 'UPDATE.BROWSE' | translate }}
           </button>
           <!-- "Upload" button -->
           <button nbButton [status]="'primary'" size="small" [nbSpinner]="isWebsiteUploading" (click)="uploadWebsiteFile()">
             <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
-            Flash
+            {{ 'UPDATE.FLASH' | translate }}
           </button>
         </div>
         <small>(www.bin)</small>

@@ -1,5 +1,5 @@
 <ng-template #loading>
-  <h4>Loading...</h4>
+  <h4>{{ 'COMMON.LOADING' | translate }}</h4>
 </ng-template>
 
 <div>
@@ -9,10 +9,10 @@
       <div class="col-12 col-lg-6 col-xl-3">
         <nb-card class="h-100">
           <nb-card-header>
-            <span class="text-hint">Hash Rate</span>
+            <span class="text-hint">{{ 'HOME.HASH_RATE' | translate }}</span>
             <nb-icon
               icon="question-mark-circle-outline" pack="eva" class="ms-1 icon-xxs icon-help-muted"
-              nbTooltip="Hashrate reported by the ASICs."
+              [nbTooltip]="'HOME.HASH_RATE_TOOLTIP' | translate"
               [nbTooltipTrigger]="NbTrigger.CLICK"
               nbTooltipPlacement="top">
             </nb-icon>
@@ -24,7 +24,7 @@
               <div>
                 <div class="font-weight-bold text-lg">
                   {{ info.hashRate | number: '1.2-2' }}
-                  <small>Gh/s</small>
+                  <small>{{ 'UNITS.HASHRATE' | translate }}</small>
                 </div>
               </div>
               <div class="d-flex align-items-center justify-content-center bg-orange-100 rounded-circle"
@@ -33,8 +33,8 @@
               </div>
             </div>
             <ng-container *ngIf="expectedHashRate$ | async as expectedHashRate">
-              <span class="text-success">{{ expectedHashRate }} <small>Gh/s</small></span>
-              <span class="text-hint">&nbsp;expected</span>
+              <span class="text-success">{{ expectedHashRate }} <small>{{ 'UNITS.HASHRATE' | translate }}</small></span>
+              <span class="text-hint">&nbsp;{{ 'HOME.EXPECTED' | translate }}</span>
             </ng-container>
           </nb-card-body>
         </nb-card>
@@ -46,11 +46,11 @@
         <nb-card class="h-100">
           <nb-card-header style="position: relative;">
             <div class="d-flex justify-content-between align-items-center">
-              <span class="text-hint">Shares</span>
+              <span class="text-hint">{{ 'HOME.SHARES' | translate }}</span>
               <nb-badge [text]="
             !info.isStratumConnected
-              ? 'Disconnected'
-              : (info.isUsingFallbackStratum ? 'Fallback Pool' : 'Primary Pool')
+              ? ('HOME.DISCONNECTED' | translate)
+              : (info.isUsingFallbackStratum ? ('HOME.FALLBACK_POOL' | translate) : ('HOME.PRIMARY_POOL' | translate))
           " [status]="
             !info.isStratumConnected
               ? 'danger'
@@ -71,7 +71,7 @@
               </div>
             </div>
             <span class="text-danger">{{ info.sharesRejected }}</span>
-            <span class="text-hint">&nbsp;rejected</span>&nbsp;
+            <span class="text-hint">&nbsp;{{ 'HOME.REJECTED' | translate }}</span>&nbsp;
             <span class="text-hint">
               ({{ (info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2' }}%)
             </span>
@@ -84,7 +84,7 @@
       <div class="col-12 col-lg-6 col-xl-3 ps-lg-1">
         <nb-card class="h-100">
           <nb-card-header>
-            <span class="text-hint">Efficiency</span>
+            <span class="text-hint">{{ 'HOME.EFFICIENCY' | translate }}</span>
           </nb-card-header>
           <nb-card-body>
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -107,14 +107,14 @@
       <div class="col-12 col-lg-6 col-xl-3 ps-lg-1">
         <nb-card class="h-100">
           <nb-card-header>
-            <span class="text-hint">Best Difficulty</span>
+            <span class="text-hint">{{ 'HOME.BEST_DIFF' | translate }}</span>
           </nb-card-header>
           <nb-card-body>
             <div class="d-flex justify-content-between align-items-center mb-3">
               <div>
                 <div class="font-weight-bold text-lg">
                   {{ info.bestDiff }}
-                  <small class="text-hint">all-time best</small>
+                  <small class="text-hint">{{ 'HOME.BEST_DIFF_ALLTIME' | translate }}</small>
                 </div>
               </div>
               <div class="d-flex align-items-center justify-content-center bg-orange-100 rounded-circle"
@@ -123,7 +123,7 @@
               </div>
             </div>
             <span class="font-weight-bold">{{ info.bestSessionDiff }}</span>
-            <span class="text-hint">&nbsp;since system boot</span>
+            <span class="text-hint">&nbsp;{{ 'HOME.BEST_DIFF_BOOT' | translate }}</span>
           </nb-card-body>
         </nb-card>
       </div>
@@ -134,10 +134,10 @@
       <div class="col-12">
         <nb-card>
           <nb-card-header>
-            <span class="text-hint">Hash Rate Chart</span>
+            <span class="text-hint">{{ 'HOME.HASH_RATE_CHART' | translate }}</span>
             <nb-icon
               icon="question-mark-circle-outline" pack="eva" class="ms-1 icon-xxs icon-help-muted"
-              nbTooltip="Hashrate estimated by found shares."
+              [nbTooltip]="'HOME.HASHRATE_ESTIMATED' | translate"
               [nbTooltipTrigger]="NbTrigger.CLICK"
               nbTooltipPlacement="top">
             </nb-icon>
@@ -154,21 +154,21 @@
       <div class="col-12 col-lg-4">
         <nb-card class="h-100">
           <nb-card-header>
-            <span class="text-hint">Power</span>
+            <span class="text-hint">{{ 'PERFORMANCE.POWER' | translate }}</span>
           </nb-card-header>
           <nb-card-body class="no-scroll">
             <div class="row text-center">
               <div class="col-4">
                 <app-gauge [value]="info.power" [min]="info.minPower" [max]="info.maxPower" [unit]="'W'"
-                  [label]="'Power'" [format]="'1.1-1'"></app-gauge>
+                  [label]="'PERFORMANCE.POWER' | translate" [format]="'1.1-1'"></app-gauge>
               </div>
               <div class="col-4">
                 <app-gauge [value]="info.voltage" [format]="'1.1-1'" [min]="info.minVoltage" [max]="info.maxVoltage"
-                  [unit]="'V'" [label]="'Input Voltage'"></app-gauge>
+                  [unit]="'V'" [label]="'PERFORMANCE.INPUT_VOLTAGE' | translate"></app-gauge>
               </div>
               <div class="col-4">
                 <app-gauge [value]="info.coreVoltage" [min]="0.9" [max]="1.8" [unit]="'V'"
-                  [label]="'ASIC Voltage'"></app-gauge>
+                  [label]="'PERFORMANCE.ASIC_VOLTAGE' | translate"></app-gauge>
               </div>
             </div>
           </nb-card-body>
@@ -179,7 +179,7 @@
       <div class="col-12 col-lg-4 px-lg-1">
         <nb-card class="h-100">
           <nb-card-header>
-            <span class="text-hint">Heat</span>
+            <span class="text-hint">{{ 'PERFORMANCE.HEAT' | translate }}</span>
           </nb-card-header>
           <nb-card-body class="no-scroll">
             @let heatSectionColModifier = info.vrTemp > 0 ? 6 : 4;
@@ -187,19 +187,19 @@
             <div class="row text-center">
               <div class="col-{{ heatSectionColModifier }}">
                 <app-gauge [value]="info.temp" [min]="20" [max]="75" [format]="'1.1-1'" [unit]="'°C'"
-                  [label]="'ASIC Temp'"></app-gauge>
+                  [label]="'PERFORMANCE.ASIC_TEMP' | translate"></app-gauge>
               </div>
               <div class="col-6" *ngIf="info.vrTemp > 0">
                 <app-gauge [value]="info.vrTemp" [min]="20" [max]="145" [format]="'1.1-1'" [unit]="'°C'"
-                  [label]="'VR Temp'"></app-gauge>
+                  [label]="'PERFORMANCE.VR_TEMP' | translate"></app-gauge>
               </div>
               <div class="col-{{ heatSectionColModifier }}">
                 <app-gauge [value]="info.fanspeed" [min]="0" [format]="'1.0-0'" [max]="100" [unit]="'%'"
-                  [label]="'Fan Speed'"></app-gauge>
+                  [label]="'HOME.FAN_SPEED' | translate"></app-gauge>
               </div>
               <div class="col-{{ heatSectionColModifier }}">
                 <app-gauge [value]="info.fanrpm" [format]="'1.0-0'" [min]="0" [max]="20000" [unit]="'RPM'"
-                  [label]="'Fan RPM'"></app-gauge>
+                  [label]="'PERFORMANCE.FAN_RPM' | translate"></app-gauge>
               </div>
             </div>
           </nb-card-body>
@@ -210,17 +210,17 @@
       <div class="col-12 col-lg-4">
         <nb-card class="h-100">
           <nb-card-header>
-            <span class="text-hint">Performance</span>
+            <span class="text-hint">{{ 'PERFORMANCE.TITLE' | translate }}</span>
           </nb-card-header>
           <nb-card-body class="no-scroll">
             <div class="row text-center">
               <div class="col-6">
                 <app-gauge [value]="info.frequency" [format]="'1.0-0'" [min]="100" [max]="800" [unit]="'MHz'"
-                  [label]="'ASIC Frequency'"></app-gauge>
+                  [label]="'PERFORMANCE.ASIC_FREQUENCY' | translate"></app-gauge>
               </div>
               <div class="col-6">
                 <app-gauge [value]="info.coreVoltageActual" [min]="0.9" [max]="1.8" [unit]="'V'"
-                  [label]="'ASIC Voltage Measured'"></app-gauge>
+                  [label]="'PERFORMANCE.ASIC_VOLTAGE_MEASURED' | translate"></app-gauge>
               </div>
             </div>
           </nb-card-body>
@@ -239,14 +239,14 @@
           <nb-card class="h-100">
             <nb-card-header>
               <span class="text-hint">
-                Pool ({{ info.isUsingFallbackStratum ? 'Fallback' : 'Primary' }})
+                {{ 'POOL_INFO.TITLE' | translate }} ({{ info.isUsingFallbackStratum ? ('POOL_INFO.FALLBACK' | translate) : ('POOL_INFO.PRIMARY' | translate) }})
               </span>
             </nb-card-header>
 
             <nb-card-body class="no-scroll">
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
-                  <span class="text-hint">Host:</span>
+                  <span class="text-hint">{{ 'POOL_INFO.HOST' | translate }}:</span>
                 </div>
                 <div class="col break-all">
                   <a [href]="info.isUsingFallbackStratum ? (fallbackQuickLink$ | async) || info.fallbackStratumURL : (quickLink$ | async)" target="_blank">
@@ -257,7 +257,7 @@
 
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
-                  <span class="text-hint">Port:</span>
+                  <span class="text-hint">{{ 'POOL_INFO.PORT' | translate }}:</span>
                 </div>
                 <div class="col">
                   {{ info.isUsingFallbackStratum ? info.fallbackStratumPort : info.stratumPort }}
@@ -265,7 +265,7 @@
               </div>
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
-                  <span class="text-hint">User:</span>
+                  <span class="text-hint">{{ 'POOL_INFO.USER' | translate }}:</span>
                 </div>
                 <div class="col">
                   @let currentStratumUser = info.isUsingFallbackStratum ? info.fallbackStratumUser : info.stratumUser;
@@ -283,16 +283,16 @@
               </div>
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
-                  <span class="text-hint">Ping:</span>
+                  <span class="text-hint">{{ 'POOL_INFO.PING' | translate }}:</span>
                 </div>
                 <div class="col">
-                  {{ info.lastpingrtt !== undefined ? info.lastpingrtt.toFixed(2) + ' ms (avg)' : 'n/a' }}
+                  {{ info.lastpingrtt !== undefined ? info.lastpingrtt.toFixed(2) + ' ' + ('PERFORMANCE.MS' | translate) + ' (' + ('PERFORMANCE.AVG' | translate) + ')' : 'n/a' }}
                 </div>
               </div>
 
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
-                  <span class="text-hint">Diff:</span>
+                  <span class="text-hint">{{ 'POOL_INFO.DIFF' | translate }}:</span>
                 </div>
                 <div class="col">
                   {{ info.poolDifficulty }}
@@ -306,7 +306,7 @@
         <ng-template #disconnected>
           <nb-card class="h-100">
             <nb-card-header>
-              <span class="text-hint">Pool Information</span>
+              <span class="text-hint">{{ 'POOL_INFO.TITLE' | translate }}</span>
             </nb-card-header>
             <nb-card-body>
               <nb-alert status="danger" size="small" class="mb-0">

@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { NbCardModule, NbButtonModule, NbCheckboxModule, NbInputModule } from '@nebular/theme';
+import { TranslateModule } from '@ngx-translate/core';
 import { AlertComponent } from './alert.component';
 
 @NgModule({
@@ -15,7 +16,8 @@ import { AlertComponent } from './alert.component';
     NbCardModule,
     NbButtonModule,
     NbCheckboxModule,
-    NbInputModule
+    NbInputModule,
+    TranslateModule
   ],
   exports: [
     AlertComponent
