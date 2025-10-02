@@ -87,6 +87,7 @@ INCLUDE_DIRS
     "esp_event"
     "esp_http_server"
     "esp_http_client"
+    "esp_https_ota"
     "esp_netif"
     "esp_timer"
     "esp-tls"
