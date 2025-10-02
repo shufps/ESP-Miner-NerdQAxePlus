@@ -1,21 +1,23 @@
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 //import { ToastrService } from 'ngx-toastr';
 //import { FileUploadHandlerEvent } from 'primeng/fileupload';
-import { map, Observable, catchError, of, shareReplay, startWith } from 'rxjs';
-import { GithubUpdateService } from '../../services/github-update.service';
+import { map, Observable, catchError, of, shareReplay, startWith, tap, switchMap, Subscription } from 'rxjs';
+import { GithubUpdateService, UpdateStatus, VersionComparison } from '../../services/github-update.service';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService } from '@nebular/theme';
+import { WebsocketService } from '../../services/web-socket.service';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss']
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit, OnDestroy {
 
   public form!: FormGroup;
 
@@ -27,7 +29,7 @@ export class SettingsComponent {
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
 
-  public checkLatestRelease: boolean = false;
+  public checkLatestRelease: boolean = true; // Auto-check enabled by default
   public latestRelease$: Observable<any>;
   public expectedFileName: string = "";
 
@@ -39,30 +41,55 @@ export class SettingsComponent {
   public isWebsiteUploading = false;
   public isFirmwareUploading = false;
 
+  // New properties for enhanced update system
+  public updateStatus: UpdateStatus = UpdateStatus.UNKNOWN;
+  public UpdateStatus = UpdateStatus; // Make enum available in template
+  public versionComparison: VersionComparison | null = null;
+  public showChangelog: boolean = false;
+  public changelog: string = '';
+  public currentVersion: string = '';
+  public latestRelease: any = null;
+
+  // Enhanced progress tracking
+  public updateStep: 'idle' | 'downloading' | 'uploading' | 'flashing' | 'complete' = 'idle';
+  public downloadProgress: number = 0;
+  public isDirectUpdateInProgress: boolean = false;
+  public updateStatusMessage: string = '';
+  public otaProgress: number = 0;
+  private wsSubscription?: Subscription;
+  private rebootCheckInterval?: any;
+
   constructor(
     private fb: FormBuilder,
     private systemService: SystemService,
     private toastrService: NbToastrService,
     private loadingService: LoadingService,
-    private githubUpdateService: GithubUpdateService
+    private githubUpdateService: GithubUpdateService,
+    private websocketService: WebsocketService,
+    private translate: TranslateService
   ) {
-
-
-
     window.addEventListener('resize', this.checkDevTools);
     this.checkDevTools();
 
-    this.latestRelease$ = this.githubUpdateService.getReleases().pipe(map(releases => {
-      return releases[0];
-    }));
+    this.latestRelease$ = this.githubUpdateService.getReleases().pipe(
+      map(releases => releases[0]),
+      tap(release => {
+        this.latestRelease = release;
+        this.updateVersionStatus();
+      }),
+      shareReplay({ refCount: true, bufferSize: 1 })
+    );
 
-    this.info$ = this.systemService.getInfo(0).pipe(shareReplay({ refCount: true, bufferSize: 1 }))
+    this.info$ = this.systemService.getInfo(0).pipe(shareReplay({ refCount: true, bufferSize: 1 }));
+  }
 
-
+  ngOnInit() {
     this.info$.pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
+        this.currentVersion = info.version;
         this.deviceModel = info.deviceModel;
         this.ASICModel = info.ASICModel;
+
         this.form = this.fb.group({
           flipscreen: [info.flipscreen == 1],
           invertscreen: [info.invertscreen == 1],
@@ -99,10 +126,89 @@ export class SettingsComponent {
             this.form.controls['fanspeed'].enable();
           }
         });
-        // Replace 'γ' with 'Gamma' if present
-        this.expectedFileName = `esp-miner-${this.deviceModel}.bin`.replace('γ', 'Gamma');
+
+        // Replace 'γ' with 'Gamma' if present and remove spaces
+        // Keep special characters like + as GitHub releases use them
+        const normalizedModel = this.deviceModel
+          .replace(/γ/g, 'Gamma')
+          .replace(/\s+/g, '');     // Remove spaces only
+
+        this.expectedFileName = `esp-miner-${normalizedModel}.bin`;
+
+        console.log('Device model from API:', this.deviceModel);
+        console.log('Expected filename:', this.expectedFileName);
+
+        // Update version status after we have both current version and latest release
+        this.updateVersionStatus();
       });
 
+    // Subscribe to WebSocket for OTA progress updates
+    this.wsSubscription = this.websocketService.ws$.subscribe({
+      next: (message: string) => {
+        // Parse OTA progress messages
+        const progressMatch = message.match(/OTA_PROGRESS:\s*(\d+)%/);
+        if (progressMatch) {
+          this.otaProgress = parseInt(progressMatch[1], 10);
+
+          // When OTA reaches 100%, device will reboot - start checking for it to come back online
+          if (this.otaProgress === 100 && this.isFirmwareUploading) {
+            this.updateStatusMessage = 'Redémarrage en cours...';
+            this.startRebootCheck();
+          }
+        }
+      },
+      error: (err) => console.error('WebSocket error:', err)
+    });
+  }
+
+  ngOnDestroy() {
+    // Unsubscribe from WebSocket
+    if (this.wsSubscription) {
+      this.wsSubscription.unsubscribe();
+    }
+    // Clear reboot check interval
+    if (this.rebootCheckInterval) {
+      clearInterval(this.rebootCheckInterval);
+    }
+  }
+
+  /**
+   * Start checking if device has rebooted and is back online
+   */
+  private startRebootCheck() {
+    // Wait 5 seconds before starting to check (give device time to actually reboot)
+    setTimeout(() => {
+      let attemptCount = 0;
+      const maxAttempts = 60; // Try for 60 seconds
+
+      this.rebootCheckInterval = setInterval(() => {
+        attemptCount++;
+
+        // Try to fetch system info
+        this.systemService.getInfo(0).subscribe({
+          next: (info) => {
+            // Device is back online!
+            clearInterval(this.rebootCheckInterval);
+            this.updateStatusMessage = 'Redémarrage terminé, rechargement de la page...';
+
+            // Reload page after a short delay
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          },
+          error: (err) => {
+            // Device not ready yet, keep trying
+            this.updateStatusMessage = `Redémarrage en cours... (${attemptCount}/${maxAttempts})`;
+
+            if (attemptCount >= maxAttempts) {
+              clearInterval(this.rebootCheckInterval);
+              this.updateStatusMessage = 'Le redémarrage prend plus de temps que prévu. Veuillez rafraîchir manuellement.';
+              this.isFirmwareUploading = false;
+            }
+          }
+        });
+      }, 1000); // Check every second
+    }, 5000); // Wait 5 seconds before starting
   }
   private checkDevTools = () => {
     if (
@@ -148,10 +254,10 @@ export class SettingsComponent {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
         next: () => {
-          this.toastrService.success('Success!', 'Saved.');
+          this.toastrService.success(this.translate.instant('TOAST.SAVED'), this.translate.instant('TOAST.SUCCESS'));
         },
         error: (err: HttpErrorResponse) => {
-          this.toastrService.danger('Error.', `Could not save. ${err.message}`);
+          this.toastrService.danger(`${this.translate.instant('TOAST.COULD_NOT_SAVE')}. ${err.message}`, this.translate.instant('TOAST.ERROR'));
         }
       });
   }
@@ -166,12 +272,12 @@ export class SettingsComponent {
 
   public uploadFirmwareFile() {
     if (!this.selectedFirmwareFile) {
-      this.toastrService.warning('No file selected', 'Warning');
+      this.toastrService.warning(this.translate.instant('TOAST.NO_FILE_SELECTED'), this.translate.instant('TOAST.WARNING'));
       return;
     }
 
     if (this.selectedFirmwareFile.name !== this.expectedFileName) {
-      this.toastrService.danger(`Incorrect file, expected: ${this.expectedFileName}`, 'Error');
+      this.toastrService.danger(`${this.translate.instant('TOAST.INCORRECT_FILE')}: ${this.expectedFileName}`, this.translate.instant('TOAST.ERROR'));
       return;
     }
 
@@ -187,11 +293,11 @@ export class SettingsComponent {
             this.firmwareUpdateProgress = Math.round(100 * event.loaded / event.total);
           } else if (event.type === HttpEventType.Response) {
             this.firmwareUpdateProgress = 100;
-            this.toastrService.success('Firmware updated successfully', 'Success');
+            this.toastrService.success(this.translate.instant('TOAST.FIRMWARE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
           }
         },
         error: (err) => {
-          this.toastrService.danger(`Upload failed: ${err.message}`, 'Error');
+          this.toastrService.danger(`${this.translate.instant('TOAST.UPLOAD_FAILED')}: ${err.message}`, this.translate.instant('TOAST.ERROR'));
           this.isFirmwareUploading = false;
           this.firmwareUpdateProgress = 0;
         },
@@ -215,12 +321,12 @@ export class SettingsComponent {
 
   public uploadWebsiteFile() {
     if (!this.selectedWebsiteFile) {
-      this.toastrService.warning('No file selected', 'Warning');
+      this.toastrService.warning(this.translate.instant('TOAST.NO_FILE_SELECTED'), this.translate.instant('TOAST.WARNING'));
       return;
     }
 
     if (this.selectedWebsiteFile.name !== 'www.bin') {
-      this.toastrService.danger('Incorrect file, expected: www.bin', 'Error');
+      this.toastrService.danger(`${this.translate.instant('TOAST.INCORRECT_FILE')}: www.bin`, this.translate.instant('TOAST.ERROR'));
       return;
     }
 
@@ -237,12 +343,12 @@ export class SettingsComponent {
           this.websiteUpdateProgress = Math.round(100 * event.loaded / event.total);
         } else if (event.type === HttpEventType.Response) {
           this.websiteUpdateProgress = 100;
-          this.toastrService.success('Website updated successfully', 'Success');
+          this.toastrService.success(this.translate.instant('TOAST.WEBSITE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
           setTimeout(() => window.location.reload(), 1000);
         }
       },
       error: (err) => {
-        this.toastrService.danger(`Upload failed: ${err.message}`, 'Error');
+        this.toastrService.danger(`${this.translate.instant('TOAST.UPLOAD_FAILED')}: ${err.message}`, this.translate.instant('TOAST.ERROR'));
         this.isWebsiteUploading = false;
         this.websiteUpdateProgress = 0;
       },
@@ -257,15 +363,197 @@ export class SettingsComponent {
   }
 
 
+  /**
+   * Update version status based on current and latest versions
+   */
+  private updateVersionStatus() {
+    if (this.currentVersion && this.latestRelease) {
+      this.updateStatus = this.githubUpdateService.getUpdateStatus(this.currentVersion, this.latestRelease);
+      this.versionComparison = this.githubUpdateService.getVersionComparison(this.currentVersion, this.latestRelease);
+    }
+  }
+
+  /**
+   * Get status badge color based on update status
+   */
+  public getStatusBadgeColor(): string {
+    switch (this.updateStatus) {
+      case UpdateStatus.UP_TO_DATE:
+        return 'success';
+      case UpdateStatus.UPDATE_AVAILABLE:
+        return 'warning';
+      case UpdateStatus.OUTDATED:
+        return 'danger';
+      default:
+        return 'basic';
+    }
+  }
+
+  /**
+   * Get translation key for status badge
+   * Converts 'up-to-date' to 'UPDATE.STATUS_UP_TO_DATE'
+   */
+  public getStatusTranslationKey(): string {
+    const statusKey = this.updateStatus.toUpperCase().replace(/-/g, '_');
+    return `UPDATE.STATUS_${statusKey}`;
+  }
+
+  /**
+   * Toggle changelog visibility
+   */
+  public toggleChangelog() {
+    if (!this.showChangelog && this.latestRelease) {
+      this.changelog = this.githubUpdateService.getChangelog(this.latestRelease);
+    }
+    this.showChangelog = !this.showChangelog;
+  }
+
+  /**
+   * Direct update from GitHub via backend proxy
+   */
+  public directUpdateFromGithub(updateType: 'firmware' | 'website') {
+    if (!this.latestRelease) {
+      this.toastrService.warning(this.translate.instant('TOAST.NO_RELEASE_INFO'), this.translate.instant('TOAST.WARNING'));
+      return;
+    }
+
+    const filename = updateType === 'firmware' ? this.expectedFileName : 'www.bin';
+    console.log('Looking for file:', filename);
+    console.log('Device model:', this.deviceModel);
+    console.log('Available assets:', this.latestRelease.assets?.map(a => a.name));
+
+    let asset = this.githubUpdateService.findAsset(this.latestRelease, filename);
+
+    // Fallback: try to find by partial match if exact match fails
+    if (!asset && updateType === 'firmware') {
+      // Normalize for comparison: keep alphanumeric and + character
+      const normalizedModel = this.deviceModel.toLowerCase().replace(/[^a-z0-9+]/g, '');
+      asset = this.latestRelease.assets?.find(a => {
+        const normalizedAsset = a.name.toLowerCase().replace(/[^a-z0-9+]/g, '');
+        // Exclude factory versions and www.bin
+        return normalizedAsset.includes(normalizedModel)
+          && a.name.endsWith('.bin')
+          && !a.name.includes('www')
+          && !a.name.includes('factory');
+      });
+
+      if (asset) {
+        console.log('Found asset by partial match:', asset.name);
+      }
+    }
+
+    if (!asset) {
+      const availableFiles = this.latestRelease.assets?.map(a => a.name).join(', ') || 'none';
+      this.toastrService.danger(
+        `File "${filename}" not found. Available files: ${availableFiles}`,
+        'Error',
+        { duration: 10000 }
+      );
+      return;
+    }
+
+    // Reset OTA progress
+    this.otaProgress = 0;
+
+    if (updateType === 'firmware') {
+      this.isFirmwareUploading = true;
+      this.firmwareUpdateProgress = 0;
+    } else {
+      this.isWebsiteUploading = true;
+      this.websiteUpdateProgress = 0;
+    }
+
+    // Call backend to download from GitHub and flash
+    this.systemService.performGithubOTAUpdate(asset.browser_download_url)
+      .subscribe({
+        next: () => {
+          // Success will be reflected via WebSocket progress updates
+          if (updateType === 'firmware') {
+            this.toastrService.success(this.translate.instant('TOAST.FIRMWARE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
+          } else {
+            this.toastrService.success(this.translate.instant('TOAST.WEBSITE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
+            setTimeout(() => window.location.reload(), 2000);
+          }
+        },
+        error: (err) => {
+          this.toastrService.danger(`${this.translate.instant('TOAST.UPDATE_FAILED')}: ${err.message}`, this.translate.instant('TOAST.ERROR'));
+          this.resetUpdateState(updateType);
+        }
+      });
+  }
+
+  /**
+   * Get download URL for direct link
+   */
+  public getDownloadUrl(updateType: 'firmware' | 'website'): string | null {
+    if (!this.latestRelease) {
+      return null;
+    }
+
+    const filename = updateType === 'firmware' ? this.expectedFileName : 'www.bin';
+    let asset = this.githubUpdateService.findAsset(this.latestRelease, filename);
+
+    // Fallback: try to find by partial match if exact match fails
+    if (!asset && updateType === 'firmware') {
+      // Normalize for comparison: keep alphanumeric and + character
+      const normalizedModel = this.deviceModel.toLowerCase().replace(/[^a-z0-9+]/g, '');
+      asset = this.latestRelease.assets?.find(a => {
+        const normalizedAsset = a.name.toLowerCase().replace(/[^a-z0-9+]/g, '');
+        // Exclude factory versions and www.bin
+        return normalizedAsset.includes(normalizedModel)
+          && a.name.endsWith('.bin')
+          && !a.name.includes('www')
+          && !a.name.includes('factory');
+      });
+    }
+
+    return asset ? asset.browser_download_url : null;
+  }
+
+  /**
+   * Reset update state after completion or error
+   */
+  private resetUpdateState(updateType: 'firmware' | 'website') {
+    this.isDirectUpdateInProgress = false;
+    this.updateStep = 'idle';
+    this.downloadProgress = 0;
+
+    if (updateType === 'firmware') {
+      this.isFirmwareUploading = false;
+      this.firmwareUpdateProgress = 0;
+    } else {
+      this.isWebsiteUploading = false;
+      this.websiteUpdateProgress = 0;
+    }
+  }
+
+  /**
+   * Get current update step label
+   */
+  public getUpdateStepLabel(): string {
+    switch (this.updateStep) {
+      case 'downloading':
+        return 'Downloading from GitHub...';
+      case 'uploading':
+        return 'Uploading to device...';
+      case 'flashing':
+        return 'Flashing...';
+      case 'complete':
+        return 'Complete!';
+      default:
+        return '';
+    }
+  }
+
   public restart() {
     this.systemService.restart().pipe(
       catchError(error => {
-        this.toastrService.danger(`Failed to restart Device`, 'Error');
+        this.toastrService.danger(this.translate.instant('TOAST.RESTART_FAILED'), this.translate.instant('TOAST.ERROR'));
         return of(null);
       })
     ).subscribe(res => {
       if (res !== null) {
-        this.toastrService.success(`Device restarted`, 'Success');
+        this.toastrService.success(this.translate.instant('TOAST.DEVICE_RESTARTED'), this.translate.instant('TOAST.SUCCESS'));
       }
     });
   }

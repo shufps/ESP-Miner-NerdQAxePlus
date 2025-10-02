@@ -211,6 +211,10 @@ esp_err_t start_rest_server(void * pvParameters)
         .uri = "/api/system/OTAWWW", .method = HTTP_POST, .handler = POST_WWW_update, .user_ctx = NULL};
     httpd_register_uri_handler(http_server, &update_post_ota_www);
 
+    httpd_uri_t update_post_ota_from_url = {
+        .uri = "/api/system/OTA/github", .method = HTTP_POST, .handler = POST_OTA_update_from_url, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &update_post_ota_from_url);
+
     httpd_uri_t ws = {.uri = "/api/ws", .method = HTTP_GET, .handler = echo_handler, .user_ctx = NULL, .is_websocket = true};
     httpd_register_uri_handler(http_server, &ws);
 

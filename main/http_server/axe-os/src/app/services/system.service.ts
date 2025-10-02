@@ -212,6 +212,12 @@ export class SystemService {
     return this.otaUpdate(file, `/api/system/OTAWWW`);
   }
 
+  public performGithubOTAUpdate(url: string) {
+    return this.httpClient.post('/api/system/OTA/github', { url }, {
+      responseType: 'text'
+    });
+  }
+
 
   public getSwarmInfo(uri: string = ''): Observable<{ ip: string }[]> {
     return this.httpClient.get(`${uri}/api/swarm/info`) as Observable<{ ip: string }[]>;
