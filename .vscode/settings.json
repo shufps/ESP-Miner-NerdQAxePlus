@@ -89,7 +89,10 @@
         "cinttypes": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "charconv": "c",
+        "span": "c",
+        "format": "c"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

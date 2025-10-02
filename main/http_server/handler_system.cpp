@@ -15,7 +15,7 @@
 
 static const char *TAG = "http_system";
 
-
+#define VR_FREQUENCY_ENABLED
 
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
@@ -84,8 +84,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["temp"]               = POWER_MANAGEMENT_MODULE.getChipTempMax();
     doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
     doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
-    doc["hashRate"]           = history->getCurrentHashrate10m();  // Keep existing for compatibility
-    doc["hashRate_1m"]        = history->getCurrentHashrate1m();   // NEW: 1-minute average
+    doc["hashRate"]           = SYSTEM_MODULE.getCurrentHashrate();
+    doc["hashRate_1m"]        = history->getCurrentHashrate1m();
     doc["hashRate_10m"]       = history->getCurrentHashrate10m();
     doc["hashRate_1h"]        = history->getCurrentHashrate1h();
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
@@ -96,12 +96,15 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
     doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
     doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
+    doc["duplicateHWNonces"]  = SYSTEM_MODULE.getDuplicateHWNonces();
     doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
     doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
+    doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
+    doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
 
     // If history was requested, add the history data as a nested object
     if (history_requested) {
@@ -124,9 +127,11 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["stratumURL"]         = stratumURL;
     doc["stratumPort"]        = Config::getStratumPortNumber();
     doc["stratumUser"]        = stratumUser;
+    doc["stratumEnonceSubscribe"] = Config::isStratumEnonceSubscribe();
     doc["fallbackStratumURL"] = fallbackStratumURL;
     doc["fallbackStratumPort"]= Config::getStratumFallbackPortNumber();
     doc["fallbackStratumUser"] = fallbackStratumUser;
+    doc["fallbackStratumEnonceSubscribe"] = Config::isStratumFallbackEnonceSubscribe();
     doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
     doc["frequency"]          = board->getAsicFrequency();
     doc["defaultFrequency"]   = board->getDefaultAsicFrequency();
@@ -140,6 +145,10 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::getTempControlMode();
     doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
+#ifdef VR_FREQUENCY_ENABLED
+    doc["vrFrequency"]        = board->getVrFrequency();
+    doc["defaultVrFrequency"] = board->getDefaultVrFrequency();
+#endif
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -229,6 +238,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     if (doc["stratumPort"].is<uint16_t>()) {
         Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
     }
+    if (doc["stratumEnonceSubscribe"].is<bool>()) {
+        Config::setStratumEnonceSubscribe(doc["stratumEnonceSubscribe"].as<bool>());
+    }
     if (doc["fallbackStratumURL"].is<const char*>()) {
         Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
     }
@@ -240,6 +252,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
     if (doc["fallbackStratumPort"].is<uint16_t>()) {
         Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
+    }
+    if (doc["fallbackStratumEnonceSubscribe"].is<bool>()) {
+        Config::setStratumFallbackEnonceSubscribe(doc["fallbackStratumEnonceSubscribe"].as<bool>());
     }
     if (doc["ssid"].is<const char*>()) {
         Config::setWifiSSID(doc["ssid"].as<const char*>());
@@ -312,7 +327,11 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     if (doc["pidD"].is<float>()) {
         Config::setPidD((uint16_t) (doc["pidD"].as<float>() * 100.0f));
     }
-
+#ifdef VR_FREQUENCY_ENABLED
+    if (doc["vrFrequency"].is<uint32_t>()) {
+        Config::setVrFrequency(doc["vrFrequency"].as<uint32_t>());
+    }
+#endif
     doc.clear();
 
     // Signal the end of the response

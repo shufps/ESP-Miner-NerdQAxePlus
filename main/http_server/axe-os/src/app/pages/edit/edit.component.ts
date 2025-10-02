@@ -8,12 +8,15 @@ import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
 
+enum SupportLevel { Safe = 0, Advanced = 1, Pro = 2 }
+
 @Component({
   selector: 'app-edit',
   templateUrl: './edit.component.html',
   styleUrls: ['./edit.component.scss']
 })
 export class EditComponent implements OnInit {
+  public supportLevel: SupportLevel = SupportLevel.Safe;
 
   public form!: FormGroup;
 
@@ -27,12 +30,12 @@ export class EditComponent implements OnInit {
 
   public dontShowWarning: boolean = false;
 
-  public devToolsOpen: boolean = false;
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
 
   public defaultFrequency: number = 0;
   public defaultCoreVoltage: number = 0;
+  public defaultVrFrequency: number = 0;
 
   private originalSettings!: any;
 
@@ -91,6 +94,8 @@ export class EditComponent implements OnInit {
       this.asicFrequencyValues = asic?.frequencyOptions ?? [];
       this.asicVoltageValues   = asic?.voltageOptions   ?? [];
 
+      this.defaultVrFrequency = info.defaultVrFrequency ?? undefined;
+
       // Dropdown base lists incl. (default) label
       const freqBase = this.asicFrequencyValues.map(v => ({
         name: v === this.defaultFrequency ? `${v} (default)` : `${v}`,
@@ -131,6 +136,7 @@ export class EditComponent implements OnInit {
         ]],
         stratumUser: [info.stratumUser, [Validators.required]],
         stratumPassword: ['*****', [Validators.required]],
+        stratumEnonceSubscribe: [info.stratumEnonceSubscribe == 1],
 
         fallbackStratumURL: [info.fallbackStratumURL, [
           Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
@@ -143,6 +149,7 @@ export class EditComponent implements OnInit {
         ]],
         fallbackStratumUser: [info.fallbackStratumUser],
         fallbackStratumPassword: ['*****'],
+        fallbackStratumEnonceSubscribe: [info.fallbackStratumEnonceSubscribe == 1],
 
         hostname: [info.hostname, [Validators.required]],
         ssid: [info.ssid, [Validators.required]],
@@ -180,7 +187,13 @@ export class EditComponent implements OnInit {
           Validators.min(40),
           Validators.max(90),
           Validators.required
-        ]]
+        ]],
+        vrFrequency: [info.vrFrequency, [
+          Validators.min(1000),
+          Validators.max(100000),
+          Validators.pattern(/^\d+$/),   // only ints
+          Validators.required,
+        ]],
       });
 
       this.form.controls['autofanspeed'].valueChanges
@@ -211,7 +224,7 @@ export class EditComponent implements OnInit {
     } else if (mode === 2) {
       disable('fanspeed');
       enable('pidTargetTemp');
-      if (this.devToolsOpen) {
+      if (this.supportLevel >= 1) {
         enable('pidP');
         enable('pidI');
         enable('pidD');
@@ -299,9 +312,9 @@ export class EditComponent implements OnInit {
     this.showWifiPassword = !this.showWifiPassword;
   }
 
-  public setDevToolsOpen(state: boolean) {
-    this.devToolsOpen = state;
-    console.log('Advanced Mode:', state);
+  public setDevToolsOpen(supportLevel: number) {
+    this.supportLevel = supportLevel;
+    console.log('Advanced Mode:', supportLevel);
 
     const freqBase = this.asicFrequencyValues.map(v => ({
       name: v === this.defaultFrequency ? `${v} (default)` : `${v}`,
@@ -388,6 +401,15 @@ export class EditComponent implements OnInit {
     }
     this.dialogRef.close();
     this.updateSystem();
+  }
+
+  get wrapAroundTime(): number {
+    const freq = this.form.get('vrFrequency')?.value;
+    if (!freq || freq <= 0) {
+      return 0;
+    }
+    const wrap = 65536 / freq; // seconds
+    return wrap;
   }
 
 }

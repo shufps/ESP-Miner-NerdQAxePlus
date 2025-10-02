@@ -34,13 +34,14 @@ System::System() {
 
 void System::initSystem() {
     m_currentHashrate10m = 0.0;
+    m_currentHashrate1m = 0.0;
     m_screenPage = 0;
     m_sharesAccepted = 0;
     m_sharesRejected = 0;
+    m_duplicateHWNonces = 0;
     m_bestNonceDiff = Config::getBestDiff();
     m_bestSessionNonceDiff = 0;
     m_startTime = esp_timer_get_time();
-    m_foundBlock = false;
     m_startupDone = false;
     m_poolErrors = 0;
     m_poolDifficulty = 8192;
@@ -50,7 +51,8 @@ void System::initSystem() {
         Config::getStratumURL(),
         Config::getStratumPortNumber(),
         Config::getStratumUser(),
-        Config::getStratumPass()
+        Config::getStratumPass(),
+        Config::isStratumEnonceSubscribe(),
     };
 
     m_stratumConfig[1] = {
@@ -58,9 +60,12 @@ void System::initSystem() {
         Config::getStratumFallbackURL(),
         Config::getStratumFallbackPortNumber(),
         Config::getStratumFallbackUser(),
-        Config::getStratumFallbackPass()
+        Config::getStratumFallbackPass(),
+        Config::isStratumFallbackEnonceSubscribe(),
     };
 
+    m_foundBlocks = 0;
+    m_totalFoundBlocks = Config::getTotalFoundBlocks();
 
     // Initialize overheat flag
     m_overheated = false;
@@ -76,14 +81,11 @@ void System::initSystem() {
     suffixString(m_bestNonceDiff, m_bestDiffString, DIFF_STRING_SIZE, 0);
     suffixString(m_bestSessionNonceDiff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
 
-    // Clear the ssid string
-    memset(m_ssid, 0, sizeof(m_ssid));
-
-    // Clear the wifi_status string
-    memset(m_wifiStatus, 0, 20);
-
     // initialize AP state
     m_apState = false;
+
+    // initialize connected flag
+    m_wifiConnected = false;
 
     // Initialize the display
     m_display = new DisplayDriver();
@@ -108,18 +110,16 @@ void System::updateEsp32Info() {}
 void System::initConnection() {}
 
 void System::updateConnection() {
-    m_display->updateWifiStatus(m_wifiStatus);
+    m_display->updateWifiStatus(m_wifiStatus.c_str());
 }
 
 void System::updateSystemPerformance() {}
 
 void System::showApInformation(const char* error) {
-    char apSsid[13];
-    generate_ssid(apSsid);
-    m_display->portalScreen(apSsid);
+    m_display->portalScreen(m_apSsid.c_str());
 }
 
-const char* System::getMacAddress() {
+const std::string System::getMacAddress() {
     return connect_get_mac_addr();
 }
 
@@ -148,6 +148,13 @@ double System::calculateNetworkDifficulty(uint32_t nBits) {
     return difficulty;
 }
 
+float System::getCurrentHashrate() {
+    if (m_board->hasHashrateCounter()) {
+        return HASHRATE_MONITOR.getSmoothedTotalChipHashrate();
+    }
+    return getCurrentHashrate10m();
+}
+
 void System::checkForBestDiff(double diff, uint32_t nbits) {
     if ((uint64_t)diff > m_bestSessionNonceDiff) {
         m_bestSessionNonceDiff = (uint64_t)diff;
@@ -156,8 +163,14 @@ void System::checkForBestDiff(double diff, uint32_t nbits) {
 
     double networkDiff = calculateNetworkDifficulty(nbits);
     if (diff > networkDiff) {
-        m_foundBlock = true;
+        m_foundBlocks++;
         ESP_LOGI(TAG, "FOUND BLOCK!!! %f > %f", diff, networkDiff);
+
+        // increase total found blocks counter
+        m_totalFoundBlocks++;
+        Config::setTotalFoundBlocks(m_totalFoundBlocks);
+
+        discordAlerter.sendBlockFoundAlert(diff, networkDiff);
     }
 
     if ((uint64_t)diff <= m_bestNonceDiff) {
@@ -242,7 +255,7 @@ esp_reset_reason_t System::showLastResetReason() {
         case ESP_RST_SDIO: m_lastResetReason = "SDIO reset"; break;
         default: m_lastResetReason = "Not specified"; break;
     }
-    ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason);
+    ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason.c_str());
     return reason;
 }
 
@@ -277,12 +290,8 @@ void System::task() {
 
     ESP_LOGI(TAG, "SYSTEM_task started");
 
-    wifi_mode_t wifiMode;
-    esp_err_t result;
-    while (!m_startupDone) {
-        result = esp_wifi_get_mode(&wifiMode);
-        if (result == ESP_OK && (wifiMode == WIFI_MODE_APSTA || wifiMode == WIFI_MODE_AP) &&
-            strcmp(m_wifiStatus, "Failed to connect") == 0) {
+    while (!connect_is_sta_connected()) {
+        if (connect_is_ap_running()) {
             showApInformation(nullptr);
             vTaskDelay(pdMS_TO_TICKS(5000));
         } else {
@@ -295,20 +304,14 @@ void System::task() {
 
     uint8_t countCycle = 10;
 
-    char lastIpAddress[20] = {0};
-
     // show initial 0.0.0.0
-    m_display->updateIpAddress(m_ipAddress);
-    bool lastFoundBlock = false;
+    m_display->updateIpAddress(m_ipAddress.c_str());
+    int lastFoundBlocks = 0;
 
     while (1) {
         // update IP on the screen if it is available
-        if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
-            if (strcmp(m_ipAddress, lastIpAddress) != 0) {
-                ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
-                m_display->updateIpAddress(m_ipAddress);
-            }
-            strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
+        if (m_ipAddress != "") {
+            m_display->updateIpAddress(m_ipAddress.c_str());
         }
 
         if (m_overheated) {
@@ -320,10 +323,10 @@ void System::task() {
         }
 
         // trigger the overlay only once when block is found
-        if (m_foundBlock != lastFoundBlock && m_foundBlock) {
+        if (m_foundBlocks != lastFoundBlocks && m_foundBlocks) {
             m_display->showFoundBlockOverlay();
         }
-        lastFoundBlock = m_foundBlock;
+        lastFoundBlocks = m_foundBlocks;
 
         m_display->updateGlobalState();
         m_display->updateCurrentSettings();
@@ -343,6 +346,10 @@ void System::notifyRejectedShare() {
     updateShares();
 }
 
+void System::countDuplicateHWNonces() {
+    ++m_duplicateHWNonces;
+}
+
 void System::notifyMiningStarted() {}
 
 void System::notifyNewNtime(uint32_t ntime) {}
@@ -354,6 +361,7 @@ void System::notifyFoundNonce(double poolDiff, int asicNr) {
     m_history->pushShare(poolDiff, timestamp, asicNr);
 
     m_currentHashrate10m = m_history->getCurrentHashrate10m();
+    m_currentHashrate1m = m_history->getCurrentHashrate1m();
     updateHashrate();
 }
 

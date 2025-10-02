@@ -72,6 +72,17 @@ menu "Stratum Configuration"
         help
             Stratum password to use with pool
 
+    config STRATUM_ENONCE_SUBSCRIBE
+        bool "Enable Extranone Subscribe"
+        default n
+        help
+            Enable or disable extranonce subscription
+
+    config STRATUM_ENONCE_SUBSCRIBE_VALUE
+        int
+        default 1 if STRATUM_ENONCE_SUBSCRIBE
+        default 0
+
     config STRATUM_FALLBACK_URL
         string "Stratum fallback Address"
         default ""
@@ -96,6 +107,17 @@ menu "Stratum Configuration"
         default ""
         help
             Stratum password to use with fallback pool
+
+    config STRATUM_FALLBACK_ENONCE_SUBSCRIBE
+        bool "Enable Fallback Extranone Subscribe"
+        default n
+        help
+            Enable or disable extranonce subscription
+
+    config STRATUM_FALLBACK_ENONCE_SUBSCRIBE_VALUE
+        int
+        default 1 if STRATUM_FALLBACK_ENONCE_SUBSCRIBE
+        default 0
 
     config STRATUM_DIFFICULTY
         int "Stratum default difficulty"
@@ -173,28 +195,40 @@ endmenu
 
 menu "Discord Alert Configuration"
 
-    # Enable or disable the Discord alert system
-    config ALERT_DISCORD_ENABLE
-        bool "Enable Discord Alerts"
+    # Enable/disable specific Discord alerts
+    config ALERT_DISCORD_WATCHDOG_ENABLE
+        bool "Watchdog alert"
         default n
         help
-            Enables the Discord webhook-based alert system.
-            If enabled, the firmware will send error or warning messages to the specified Discord channel.
+            Sends a Discord alert if the miner watchdog triggers
+            (e.g. device reboots after failing to submit a share for ~1 hour).
 
-    # Helper int value that maps the bool to 0 or 1 for use in C code
-    config ALERT_DISCORD_ENABLE_VALUE
+    config ALERT_DISCORD_BLOCK_FOUND_ENABLE
+        bool "Block-found alert"
+        default n
+        help
+            Sends a Discord alert when your miner finds a block.
+
+    # Internal 0/1 mirrors for C code that prefers ints
+    config ALERT_DISCORD_WATCHDOG_ENABLE_VALUE
         int
         default 1 if ALERT_DISCORD_ENABLE
         default 0
 
-    # Webhook URL for sending Discord alerts
+    config ALERT_DISCORD_BLOCK_FOUND_ENABLE_VALUE
+        int
+        default 1 if ALERT_DISCORD_BLOCK_FOUND_ENABLE
+        default 0
+
+    # Webhook URL for sending Discord alerts (only shown if any alert is enabled)
     config ALERT_DISCORD_URL
-        string "Discord Webhook URL"
-        default "https://discord.com/api/webhooks/your_token_here"
+        string "Discord webhook URL"
+        default ""
         help
-            Full Discord webhook URL for sending alert messages.
-            You can generate this URL in your Discord server under Integrations → Webhooks.
-            Be sure to keep this secret!
+            Full Discord webhook URL used for all enabled alerts.
+            Example: https://discord.com/api/webhooks/<id>/<token>
+            Obtain it from your Discord server under: Integrations → Webhooks.
+            Note: This is stored in plaintext in the firmware unless overridden at runtime.
 
 endmenu
 
@@ -210,5 +244,73 @@ menu "Stratum Keepalive Configuration"
         int
         default 1 if STRATUM_KEEPALIVE_ENABLE
         default 0
+
+endmenu
+
+menu "WiFi Configuration"
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the example to connect to.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+
+    choice ESP_WIFI_SAE_MODE
+        prompt "WPA3 SAE mode selection"
+        default ESP_WPA3_SAE_PWE_BOTH
+        help
+            Select mode for SAE as Hunt and Peck, H2E or both.
+        config ESP_WPA3_SAE_PWE_HUNT_AND_PECK
+            bool "HUNT AND PECK"
+        config ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT
+            bool "H2E"
+        config ESP_WPA3_SAE_PWE_BOTH
+            bool "BOTH"
+    endchoice
+
+    config ESP_WIFI_PW_ID
+        string "PASSWORD IDENTIFIER"
+        depends on  ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT|| ESP_WPA3_SAE_PWE_BOTH
+        default ""
+        help
+            password identifier for SAE H2E
+
+    config ESP_MAXIMUM_RETRY
+        int "Maximum retry"
+        default 420
+        help
+            Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+
+    choice ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
+        prompt "WiFi Scan auth mode threshold"
+        default ESP_WIFI_AUTH_WPA2_PSK
+        help
+            The weakest authmode to accept in the scan mode.
+            This value defaults to ESP_WIFI_AUTH_WPA2_PSK incase password is present and ESP_WIFI_AUTH_OPEN is used.
+            Please select ESP_WIFI_AUTH_WEP/ESP_WIFI_AUTH_WPA_PSK incase AP is operating in WEP/WPA mode.
+
+        config ESP_WIFI_AUTH_OPEN
+            bool "OPEN"
+        config ESP_WIFI_AUTH_WEP
+            bool "WEP"
+        config ESP_WIFI_AUTH_WPA_PSK
+            bool "WPA PSK"
+        config ESP_WIFI_AUTH_WPA2_PSK
+            bool "WPA2 PSK"
+        config ESP_WIFI_AUTH_WPA_WPA2_PSK
+            bool "WPA/WPA2 PSK"
+        config ESP_WIFI_AUTH_WPA3_PSK
+            bool "WPA3 PSK"
+        config ESP_WIFI_AUTH_WPA2_WPA3_PSK
+            bool "WPA2/WPA3 PSK"
+        config ESP_WIFI_AUTH_WAPI_PSK
+            bool "WAPI PSK"
+    endchoice
 
 endmenu

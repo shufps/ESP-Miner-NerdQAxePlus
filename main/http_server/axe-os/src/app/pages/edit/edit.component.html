@@ -68,6 +68,9 @@
                             </button>
                         </div>
                     </div>
+                    <div class="form-row">
+                        <nb-checkbox formControlName="stratumEnonceSubscribe">Enable Extranonce Subscribe</nb-checkbox>
+                    </div>
                 </nb-card-body>
             </nb-tab>
 
@@ -107,6 +110,9 @@
                             </button>
                         </div>
                     </div>
+                    <div class="form-row">
+                        <nb-checkbox formControlName="fallbackStratumEnonceSubscribe">Enable Extranonce Subscribe</nb-checkbox>
+                    </div>
                 </nb-card-body>
             </nb-tab>
         </nb-tabset>
@@ -119,7 +125,7 @@
                 </div>
             </nb-card-header>
             <nb-card-body>
-                <ng-container *ngIf="!devToolsOpen">
+                <ng-container *ngIf="supportLevel === 0">
                     <div class="form-row">
                         <label for="frequency" class="form-label">Frequency:</label>
                         <div class="form-control-wrapper">
@@ -140,7 +146,7 @@
                     </div>
                 </ng-container>
 
-                <ng-container *ngIf="devToolsOpen">
+                <ng-container *ngIf="supportLevel >= 1">
                     <div class="form-row">
                         <label for="frequency" class="form-label">Frequency:</label>
                         <div class="form-control-wrapper">
@@ -155,13 +161,38 @@
                                 nbInput id="coreVoltage" formControlName="coreVoltage" type="number" />
                         </div>
                     </div>
+                </ng-container>
+                <ng-container *ngIf="supportLevel >= 2">
                     <div class="form-row">
                         <label for="jobInterval" class="form-label">Job Interval:</label>
                         <div class="form-control-wrapper">
                             <input nbInput id="jobInterval" formControlName="jobInterval" type="number" /><br />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-control-wrapper-no-label">
                             <small>Mining job switching time in milliseconds.</small>
                         </div>
                     </div>
+                    <div class="form-row" *ngIf="defaultVrFrequency !== undefined">
+                    <label for="vrFrequency" class="form-label">VR-Frequency:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="vrFrequency" formControlName="vrFrequency" type="number" /><br />
+                    </div>
+                    </div>
+                    <div class="form-row" *ngIf="defaultVrFrequency !== undefined">
+                        <div class="form-control-wrapper-no-label">
+                            <small>
+                            Version Rolling Frequency.<!-- (Default <b>{{ defaultVrFrequency | number:'1.3-3' }} Hz</b>).-->
+                            </small>
+                            <br/>
+                            <small>
+                            Calculated wrap-around time: <b>{{ wrapAroundTime | number:'1.2-2' }} s</b>
+                            </small>
+                        </div>
+                    </div>
+                </ng-container>
+                <ng-container *ngIf="supportLevel >= 1">
                     <div class="form-row">
                         <label for="stratumDifficulty" class="form-label">Difficulty:</label>
                         <div class="form-control-wrapper">
@@ -213,9 +244,9 @@
                         </div>
                     </div>
 
-                    <div *ngIf="devToolsOpen" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
+                    <div *ngIf="supportLevel >= 1" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
 
-                    <div *ngIf="devToolsOpen">
+                    <div *ngIf="supportLevel >= 1">
                         <div class="form-row">
                             <label class="form-label">PID P:</label>
                             <div class="form-control-wrapper">
@@ -242,10 +273,10 @@
                         <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" />
                     </div>
                 </div>
-                <div class="form-row" *ngIf="devToolsOpen">
+                <div class="form-row" *ngIf="supportLevel >= 1">
                     <nb-checkbox formControlName="autofanpolarity">Autodetect Fan Polarity <small>(Recommended)</small></nb-checkbox>
                 </div>
-                <div class="form-row" *ngIf="devToolsOpen">
+                <div class="form-row" *ngIf="supportLevel >= 1">
                     <nb-checkbox formControlName="invertfanpolarity">Invert Fan Polarity</nb-checkbox>
                 </div>
 

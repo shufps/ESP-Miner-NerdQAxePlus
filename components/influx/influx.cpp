@@ -11,16 +11,11 @@
 #include <time.h>
 
 #include "influx.h"
+#include "macros.h"
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
 static const char *TAG = "InfluxDB";
-
-#ifdef CONFIG_SPIRAM
-#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#else
-#define ALLOC(s) malloc(s)
-#endif
 
 #define m_big_buffer_SIZE 32768
 
@@ -387,12 +382,12 @@ void Influx::write()
 
     snprintf(m_big_buffer, m_big_buffer_SIZE,
              "%s temperature=%f,temperature2=%f,"
-             "hashing_speed=%f,invalid_shares=%d,valid_shares=%d,uptime=%d,"
+             "hashing_speed=%f,hashing_speed_1m=%f,invalid_shares=%d,valid_shares=%d,uptime=%d,"
              "best_difficulty=%f,total_best_difficulty=%f,pool_errors=%d,"
              "accepted=%d,not_accepted=%d,total_uptime=%d,blocks_found=%d,"
              "pwr_vin=%f,pwr_iin=%f,pwr_pin=%f,pwr_vout=%f,pwr_iout=%f,pwr_pout=%f,"
              "total_blocks_found=%d,duplicate_hashes=%d,last_ping_rtt=%.2f",
-             m_prefix, m_stats.temp, m_stats.temp2, m_stats.hashing_speed, m_stats.invalid_shares,
+             m_prefix, m_stats.temp, m_stats.temp2, m_stats.hashing_speed, m_stats.hashing_speed_1m, m_stats.invalid_shares,
              m_stats.valid_shares, m_stats.uptime, m_stats.best_difficulty, m_stats.total_best_difficulty,
              m_stats.pool_errors, m_stats.accepted, m_stats.not_accepted, m_stats.total_uptime,
              m_stats.blocks_found, m_stats.pwr_vin, m_stats.pwr_iin, m_stats.pwr_pin,
@@ -441,7 +436,7 @@ void Influx::write()
 
 bool Influx::init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix)
 {
-    m_big_buffer = (char*) ALLOC(m_big_buffer_SIZE);
+    m_big_buffer = (char*) MALLOC(m_big_buffer_SIZE);
 
     if (!m_big_buffer) {
         ESP_LOGE(TAG, "error allocating influx message buffer");

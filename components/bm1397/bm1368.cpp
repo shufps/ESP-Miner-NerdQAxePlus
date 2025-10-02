@@ -33,7 +33,12 @@ const uint8_t* BM1368::getChipId() {
     return (uint8_t*) chip_id;
 }
 
-uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty)
+uint32_t BM1368::getDefaultVrFrequency() {
+    return vrRegToFreq(0x15a4);
+};
+
+
+uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency)
 {
     // reset is done externally to not have board dependencies
 
@@ -98,25 +103,12 @@ uint8_t BM1368::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     doFrequencyTransition(frequency);
 
-    // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
-
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x11, 0x5A); //S19k Pro Default
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x14, 0x46); //S19XP-Luxos Default
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0x1C); //S19XP-Stock Default
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x0F, 0x00, 0x00); //supposedly the "full" 32bit nonce range
-    send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0xA4); // S21-Stock Default
+    // set 0x10
+    setVrFrequency(vrFrequency);
 
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
     return chip_counter;
-}
-
-int BM1368::setMaxBaud(void)
-{
-//    return 115749;
-    ESP_LOGI(TAG, "Setting max baud of 1000000 ");
-    send6(CMD_WRITE_ALL, 0x00, 0x28, 0x11, 0x30, 0x02, 0x00);
-    return 1000000;
 }
 
 void BM1368::requestChipTemp() {
@@ -139,7 +131,6 @@ uint8_t BM1368::asicToJobId(uint8_t asic_id) {
 uint8_t BM1368::nonceToAsicNr(uint32_t nonce) {
     return (uint8_t) ((nonce & 0x0000fc00) >> 10);
 }
-
 
 uint16_t BM1368::getSmallCoreCount() {
     return BM1368_SMALL_CORE_COUNT;

@@ -3,6 +3,7 @@
 #include "http_cors.h"
 #include "http_utils.h"
 #include "http_websocket.h"
+#include "macros.h"
 
 static const char* TAG = "http_websocket";
 

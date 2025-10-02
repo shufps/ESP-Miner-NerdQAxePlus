@@ -46,6 +46,12 @@
         flex: 1;
     }
 
+    .form-control-wrapper-no-label {
+        flex: 1;
+        margin-left: 115px;
+        margin-top: -10px;
+    }
+
     .password-container {
         display: flex;
         align-items: center;
@@ -163,5 +169,6 @@
         transition: background-color 0.3s ease-in-out, border 0.3s ease-in-out !important; // Smooth transition
     }
 
+    .btn-support { user-select: none; }
 
 }

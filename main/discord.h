@@ -8,8 +8,6 @@ class Alerter {
     char* m_messageBuffer = nullptr;
     char* m_payloadBuffer = nullptr;
 
-    bool m_enabled = false;
-
   public:
     Alerter();
 
@@ -33,4 +31,6 @@ class DiscordAlerter : public Alerter {
     virtual void loadConfig();
     virtual bool sendTestMessage();
     virtual bool sendMessage(const char* message);
+    virtual bool sendWatchdogAlert();
+    virtual bool sendBlockFoundAlert(double diff, double networkDiff);
 };

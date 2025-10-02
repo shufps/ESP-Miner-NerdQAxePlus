@@ -19,27 +19,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "macros.h"
+
 // The logging tag for ESP logging.
 static const char *TAG = "stratum_api";
 
-#ifdef CONFIG_SPIRAM
-#define ALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#else
-#define ALLOC(s) malloc(s)
-#endif
-
-void safe_free(char *&ptr)
-{
-    if (ptr) {         // Check if pointer is not null
-        free(ptr);     // Free memory
-        ptr = nullptr; // Set pointer to null to prevent dangling pointer issues
-    }
-}
-
 StratumApi::StratumApi() : m_len(0), m_send_uid(1)
 {
-    m_buffer = (char *) ALLOC(BIG_BUFFER_SIZE);
-    m_requestBuffer = (char *) ALLOC(BUFFER_SIZE);
+    m_buffer = (char *) MALLOC(BIG_BUFFER_SIZE);
+    m_requestBuffer = (char *) MALLOC(BUFFER_SIZE);
     clearBuffer();
 }
 
@@ -150,7 +138,7 @@ char *StratumApi::receiveJsonRpcLine(int sockfd)
     int line_length = newline_ptr - m_buffer;
 
     // Allocate memory for the resulting line.
-    char *line = (char *) ALLOC(line_length + 1);
+    char *line = (char *) MALLOC(line_length + 1);
 
     if (!line) {
         ESP_LOGE(TAG, "Failed to allocate memory for line.");
@@ -182,6 +170,8 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
         message->method = MINING_SET_VERSION_MASK;
     } else if (strcmp(method_str, "client.reconnect") == 0) {
         message->method = CLIENT_RECONNECT;
+    } else if (strcmp(method_str, "mining.set_extranonce") == 0) {
+        message->method = MINING_SET_EXTRANONCE;
     } else {
         ESP_LOGI(TAG, "Unhandled method in stratum message: %s", method_str);
         return false;
@@ -190,7 +180,7 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
     switch (message->method) {
     case MINING_NOTIFY: {
         ESP_LOGI(TAG, "mining notify");
-        mining_notify *new_work = (mining_notify *) ALLOC(sizeof(mining_notify));
+        mining_notify *new_work = (mining_notify *) MALLOC(sizeof(mining_notify));
 
         JsonArray params = doc["params"].as<JsonArray>();
 
@@ -227,6 +217,30 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
     case MINING_SET_VERSION_MASK:
         message->version_mask = strtoul(doc["params"][0].as<const char *>(), NULL, 16);
         break;
+    case MINING_SET_EXTRANONCE: {
+        ESP_LOGI(TAG, "mining.set_extranonce");
+
+        // format:
+        // {"id": null, "method": "mining.set_extranonce", "params": ["<new_extranonce1>", <extranonce2_size>]}
+        JsonArray params = doc["params"].as<JsonArray>();
+
+        if (params.size() < 2) {
+            ESP_LOGE(TAG, "Invalid result array for subscribe.");
+            return false;
+        }
+        message->extranonce_2_len = params[1].as<int>();
+
+        const char *extranonce_str = params[0].as<const char *>();
+        if (!extranonce_str) {
+            ESP_LOGE(TAG, "extranonce is null");
+            return false;
+        }
+        message->extranonce_str = strdup(extranonce_str);
+
+        ESP_LOGI(TAG, "extranonce_str: %s", message->extranonce_str);
+        ESP_LOGI(TAG, "extranonce_2_len: %d", message->extranonce_2_len);
+        break;
+    }
     default:
         break;
     }
@@ -307,6 +321,11 @@ bool StratumApi::parseSetupResponses(JsonDocument &doc, StratumApiV1Message *mes
         message->response_success = parseResult(doc);
         break;
     }
+    case STRATUM_ID_EXTRANONCE_SUBSCRIBE: {
+        message->method = STRATUM_RESULT_SETUP;
+        message->response_success = parseResult(doc);
+        break;
+    }
     default:
         ESP_LOGW(TAG, "unhandled ID");
         return false;
@@ -340,7 +359,7 @@ bool StratumApi::parse(StratumApiV1Message *message, JsonDocument &doc)
     if (method_str) {
         return parseMethods(doc, method_str, message);
     } else {
-        if (message->message_id < 5) {
+        if (message->message_id <= STRATUM_LAST_SETUP_ID) {
             return parseSetupResponses(doc, message);
         }
         return parseResponses(doc, message);
@@ -352,6 +371,10 @@ bool StratumApi::parse(StratumApiV1Message *message, JsonDocument &doc)
 //--------------------------------------------------------------------
 void StratumApi::freeMiningNotify(mining_notify *params)
 {
+    // nothing to free
+    if (!params) {
+        return;
+    }
     safe_free(params->job_id);
     safe_free(params->coinbase_1);
     safe_free(params->coinbase_2);
@@ -382,10 +405,23 @@ bool StratumApi::send(int socket, const char *message)
 //--------------------------------------------------------------------
 bool StratumApi::subscribe(int socket, const char *device, const char *asic)
 {
-    const esp_app_desc_t *app_desc = esp_ota_get_app_description();
+    const esp_app_desc_t *app_desc = esp_app_get_description();
     const char *version = app_desc->version;
     snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"%s/%s/%s\"]}\n",
              m_send_uid++, device, asic, version);
+
+    return send(socket, m_requestBuffer);
+}
+
+//--------------------------------------------------------------------
+// subscribe()
+//--------------------------------------------------------------------
+bool StratumApi::entranonceSubscribe(int socket)
+{
+    const esp_app_desc_t *app_desc = esp_app_get_description();
+    const char *version = app_desc->version;
+    snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.extranonce.subscribe\", \"params\": []}\n",
+        m_send_uid++);
 
     return send(socket, m_requestBuffer);
 }

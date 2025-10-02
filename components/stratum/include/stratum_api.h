@@ -16,6 +16,7 @@ typedef enum
     MINING_NOTIFY,
     MINING_SET_DIFFICULTY,
     MINING_SET_VERSION_MASK,
+    MINING_SET_EXTRANONCE,
     STRATUM_RESULT,
     STRATUM_RESULT_SETUP,
     STRATUM_RESULT_VERSION_MASK,
@@ -27,6 +28,9 @@ static const int STRATUM_ID_SUBSCRIBE = 1;
 static const int STRATUM_ID_CONFIGURE = 2;
 static const int STRATUM_ID_AUTHORIZE = 3;
 static const int STRATUM_ID_SUGGEST_DIFFICULTY = 4;
+static const int STRATUM_ID_EXTRANONCE_SUBSCRIBE = 5;
+
+#define STRATUM_LAST_SETUP_ID STRATUM_ID_EXTRANONCE_SUBSCRIBE
 
 typedef struct
 {
@@ -102,6 +106,9 @@ class StratumApi {
 
     // Sends a subscribe message.
     bool subscribe(int socket, const char *device, const char *asic);
+
+    // Sends a extranonce subscribe message
+    bool entranonceSubscribe(int socket);
 
     // Sends a suggest-difficulty message.
     bool suggestDifficulty(int socket, uint32_t difficulty);

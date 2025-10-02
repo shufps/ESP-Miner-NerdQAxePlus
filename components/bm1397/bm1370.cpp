@@ -26,7 +26,9 @@ static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x70, 0x00, 0x00};
 static const uint64_t BM1370_CORE_COUNT = 128;
 static const uint64_t BM1370_SMALL_CORE_COUNT = 2040;
 
-BM1370::BM1370() : BM1368() {
+#define REG_NONCE_TOTAL_CNT 0x8c
+
+BM1370::BM1370() : Asic() {
     // NOP
 }
 
@@ -34,7 +36,11 @@ const uint8_t* BM1370::getChipId() {
     return (uint8_t*) chip_id;
 }
 
-uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty)
+uint32_t BM1370::getDefaultVrFrequency() {
+    return vrRegToFreq(0x1eb5);
+};
+
+uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency)
 {
     // reset is done externally to not have board dependencies
 
@@ -116,28 +122,36 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     doFrequencyTransition(frequency);
 
-    // register 10 is still a bit of a mystery. discussion: https://github.com/skot/ESP-Miner/pull/167
-
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x11, 0x5A); //S19k Pro Default
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x14, 0x46); //S19XP-Luxos Default
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0x1C); //S19XP-Stock Default
-    // send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x0F, 0x00, 0x00); //supposedly the "full" 32bit nonce range
-    //send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x15, 0xA4); // S21-Stock Default
-    send6(CMD_WRITE_ALL, 0x00, 0x10, 0x00, 0x00, 0x1e, 0xB5); // S21-Pro
+    // set 0x10
+    setVrFrequency(vrFrequency);
 
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
     return chip_counter;
 }
 
+uint8_t BM1370::jobToAsicId(uint8_t job_id) {
+    // job-IDs: 00, 18, 30, 48, 60, 78, 10, 28, 40, 58, 70, 08, 20, 38, 50, 68
+    return (job_id * 24) & 0x7f;
+}
+
+uint8_t BM1370::asicToJobId(uint8_t asic_id) {
+    return (asic_id & 0xf0) >> 1;
+}
+
 uint8_t BM1370::nonceToAsicNr(uint32_t nonce) {
     return (uint8_t) ((nonce & 0x0000fc00) >> 11);
 }
 
-void BM1370::requestChipTemp() {
-    // NOP
+uint8_t BM1370::chipIndexFromAddr(uint8_t addr) {
+    return addr >> 2;
+}
+
+uint8_t BM1370::addrFromChipIndex(uint8_t idx) {
+    return idx << 2;
 }
 
 uint16_t BM1370::getSmallCoreCount() {
     return BM1370_SMALL_CORE_COUNT;
 }
+

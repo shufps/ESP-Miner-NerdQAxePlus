@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
@@ -8,32 +9,15 @@
 #include "connect.h"
 
 #include "global_state.h"
+#include "macros.h"
 
 static const char *TAG = "discord";
 
-#ifdef CONFIG_SPIRAM
-#define MALLOC(s) heap_caps_malloc(s, MALLOC_CAP_SPIRAM)
-#define CALLOC(s, t) heap_caps_calloc(s, t, MALLOC_CAP_SPIRAM)
-#define FREE(p)                                                                                                                    \
-    do {                                                                                                                           \
-        if (p) {                                                                                                                   \
-            heap_caps_free(p);                                                                                                     \
-            (p) = NULL;                                                                                                            \
-        }                                                                                                                          \
-    } while (0)
-#else
-#define MALLOC(s) malloc(s)
-#define CALLOC(s, t) calloc(s, t)
-#define FREE(p)                                                                                                                    \
-    do {                                                                                                                           \
-        if (p) {                                                                                                                   \
-            free(p);                                                                                                               \
-            (p) = NULL;                                                                                                            \
-        }                                                                                                                          \
-    } while (0)
+#ifndef DIFF_STRING_SIZE
+#define DIFF_STRING_SIZE 32
 #endif
 
-Alerter::Alerter() : m_messageBuffer(nullptr), m_payloadBuffer(nullptr), m_enabled(false)
+Alerter::Alerter() : m_messageBuffer(nullptr), m_payloadBuffer(nullptr)
 {
     // NOP
 }
@@ -56,7 +40,6 @@ void DiscordAlerter::loadConfig()
     }
 
     m_webhookUrl = Config::getDiscordWebhook();
-    m_enabled = Config::isDiscordAlertEnabled();
 }
 
 void DiscordAlerter::init() {
@@ -78,7 +61,7 @@ bool DiscordAlerter::sendRaw(const char *message)
 
     snprintf(m_payloadBuffer, payloadBufferSize - 1, "{\"content\": \"%s\"}", message);
 
-    ESP_LOGD(TAG, "discord payload: %s", m_payloadBuffer);
+    ESP_LOGD(TAG, "discord payload: '%s'", m_payloadBuffer);
 
     esp_http_client_config_t config = {};
     config.url = m_webhookUrl;
@@ -117,33 +100,62 @@ bool DiscordAlerter::sendRaw(const char *message)
 
 bool DiscordAlerter::sendMessage(const char *message)
 {
-    if (!m_enabled) {
-        ESP_LOGI(TAG, "Alert disabled – skipping Discord send");
-        return false;
-    }
-
     if (!m_messageBuffer) {
         ESP_LOGE(TAG, "message buffer is nullptr");
         return false;
     }
 
-    char ip[20] = {0};
-    connect_get_ip_addr(ip, sizeof(ip));
-    //ESP_LOGI(TAG, "IP: %s", ip);
-    const char *mac = SYSTEM_MODULE.getMacAddress();
-    //ESP_LOGI(TAG, "MAC: %s", mac);
+    const std::string ip  = SYSTEM_MODULE.getIPAddress();
+    const std::string mac = SYSTEM_MODULE.getMacAddress();
     char *hostname = Config::getHostname();
+
+    //ESP_LOGI(TAG, "IP: %s", ip.c_str());
+    //ESP_LOGI(TAG, "MAC: %s", mac.c_str());
     //ESP_LOGI(TAG, "Hostname: %s", hostname);
 
-    snprintf(m_messageBuffer, messageBufferSize - 1, "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```", message,
-             hostname ? hostname : "unknown", ip, mac ? mac : "unknown");
+    snprintf(m_messageBuffer, messageBufferSize - 1,
+            "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```",
+            message,
+            hostname ? hostname : "unknown",
+            ip.empty()  ? "unknown" : ip.c_str(),
+            mac.empty() ? "unknown" : mac.c_str());
 
     free(hostname);
 
     return sendRaw(m_messageBuffer);
 }
 
+bool DiscordAlerter::sendWatchdogAlert() {
+    if (!Config::isDiscordWatchdogAlertEnabled()) {
+        ESP_LOGI(TAG, "discord watchdog alert not enabled");
+        return false;
+    }
+
+    return discordAlerter.sendMessage("Device rebootet because there was no share for more than 1h!");
+}
+
+bool DiscordAlerter::sendBlockFoundAlert(double diff, double networkDiff)
+{
+    if (!Config::isDiscordBlockFoundAlertEnabled()) {
+        ESP_LOGI(TAG, "discord block found alert not enabled");
+        return false;
+    }
+
+    char diffStr[DIFF_STRING_SIZE];
+    char netStr[DIFF_STRING_SIZE];
+    SYSTEM_MODULE.suffixString((uint64_t)diff,        diffStr, DIFF_STRING_SIZE, 0);
+    SYSTEM_MODULE.suffixString((uint64_t)networkDiff, netStr,  DIFF_STRING_SIZE, 0);
+
+    char base[192];
+    snprintf(base, sizeof(base) - 1,
+             ":tada: Block found!\\nDiff: %s (network: %s)",
+             diffStr, netStr);
+
+    return sendMessage(base);
+}
+
+
 bool DiscordAlerter::sendTestMessage()
 {
-    return sendRaw("This is a test message!");
+    return sendMessage("This is a test message!");
 }

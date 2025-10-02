@@ -32,6 +32,7 @@ class PowerManagementTask {
     void checkCoreVoltageChanged();
     void checkAsicFrequencyChanged();
     void checkPidSettingsChanged();
+    void checkVrFrequencyChanged();
     void task();
 
   public:

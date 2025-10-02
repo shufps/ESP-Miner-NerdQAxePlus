@@ -10,12 +10,20 @@
         <nb-card class="h-100">
           <nb-card-header>
             <span class="text-hint">Hash Rate</span>
+            <nb-icon
+              icon="question-mark-circle-outline" pack="eva" class="ms-1 icon-xxs icon-help-muted"
+              nbTooltip="Hashrate reported by the ASICs."
+              [nbTooltipTrigger]="NbTrigger.CLICK"
+              nbTooltipPlacement="top">
+            </nb-icon>
+
+
           </nb-card-header>
           <nb-card-body>
             <div class="d-flex justify-content-between align-items-center mb-3">
               <div>
                 <div class="font-weight-bold text-lg">
-                  {{ info.hashRate_10m | number: '1.2-2' }}
+                  {{ info.hashRate | number: '1.2-2' }}
                   <small>Gh/s</small>
                 </div>
               </div>
@@ -82,7 +90,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
               <div>
                 <div class="font-weight-bold text-lg">
-                  {{ info.power / (info.hashRate_10m / 1000) | number: '1.2-2' }}
+                  {{ info.power / (info.hashRate / 1000) | number: '1.2-2' }}
                   <small>J/Th</small>
                 </div>
               </div>
@@ -127,6 +135,12 @@
         <nb-card>
           <nb-card-header>
             <span class="text-hint">Hash Rate Chart</span>
+            <nb-icon
+              icon="question-mark-circle-outline" pack="eva" class="ms-1 icon-xxs icon-help-muted"
+              nbTooltip="Hashrate estimated by found shares."
+              [nbTooltipTrigger]="NbTrigger.CLICK"
+              nbTooltipPlacement="top">
+            </nb-icon>
           </nb-card-header>
           <nb-card-body>
             <canvas #myChart width="400" height="400"></canvas>
@@ -275,7 +289,7 @@
                   {{ info.lastpingrtt !== undefined ? info.lastpingrtt.toFixed(2) + ' ms (avg)' : 'n/a' }}
                 </div>
               </div>
-              
+
               <div class="row flex-nowrap">
                 <div class="col-fixed-width">
                   <span class="text-hint">Diff:</span>
@@ -283,7 +297,7 @@
                 <div class="col">
                   {{ info.poolDifficulty }}
                 </div>
-              </div>              
+              </div>
             </nb-card-body>
           </nb-card>
         </ng-container>

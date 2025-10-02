@@ -42,7 +42,7 @@ uint16_t Asic::reverseUint16(uint16_t num)
     return (num >> 8) | (num << 8);
 }
 
-void Asic::send(uint8_t header, uint8_t *data, uint8_t data_len, bool debug)
+void Asic::send(uint8_t header, uint8_t *data, uint8_t data_len)
 {
     packet_type_t packet_type = (header & TYPE_JOB) ? JOB_PACKET : CMD_PACKET;
     uint8_t total_length = (packet_type == JOB_PACKET) ? (data_len + 6) : (data_len + 5);
@@ -72,17 +72,17 @@ void Asic::send(uint8_t header, uint8_t *data, uint8_t data_len, bool debug)
     }
 
     // send serial data
-    SERIAL_send(buf, total_length, debug);
+    SERIAL_send(buf, total_length);
 }
 
 void Asic::send6(uint8_t header, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5) {
     uint8_t buf[6] = {b0, b1, b2, b3, b4, b5};
-    send(header, buf, sizeof(buf), ASIC_SERIALTX_DEBUG);
+    send(header, buf, sizeof(buf));
 }
 
 void Asic::send2(uint8_t header, uint8_t b0, uint8_t b1) {
     uint8_t buf[2] = {b0, b1};
-    send(header, buf, sizeof(buf), ASIC_SERIALTX_DEBUG);
+    send(header, buf, sizeof(buf));
 }
 
 void Asic::sendChainInactive(void)
@@ -149,7 +149,7 @@ bool Asic::sendHashFrequency(float target_freq) {
     freqbuf[4] = best_refdiv;
     freqbuf[5] = (((best_postdiv1 - 1) & 0xf) << 4) | ((best_postdiv2 - 1) & 0xf);
 
-    send(CMD_WRITE_ALL, freqbuf, sizeof(freqbuf), ASIC_SERIALTX_DEBUG);
+    send(CMD_WRITE_ALL, freqbuf, sizeof(freqbuf));
     //ESP_LOG_BUFFER_HEX(TAG, freqbuf, sizeof(freqbuf));
 
     ESP_LOGI(TAG, "Setting Frequency to %.2fMHz (%.2f) (error: %.2fMHZ)", target_freq, best_newf, min_diff);
@@ -157,6 +157,68 @@ bool Asic::sendHashFrequency(float target_freq) {
     m_actual_current_frequency = best_newf;
     return true;
 }
+
+int Asic::setMaxBaud(void)
+{
+//    return 115749;
+    ESP_LOGI(TAG, "Setting max baud of 1000000 ");
+    send6(CMD_WRITE_ALL, 0x00, 0x28, 0x11, 0x30, 0x02, 0x00);
+    return 1000000;
+}
+
+// set version rolling frequency
+constexpr uint32_t ASIC_IO_CLK_HZ_U32 = 15'000'000u; // 15 MHz
+constexpr uint32_t VR_TICK_DIV_U32    = 5000u;       // VR counter increments every 5000 IO clock cycles
+constexpr uint32_t VR_TICK_HZ_U32     = ASIC_IO_CLK_HZ_U32 / VR_TICK_DIV_U32; // 3000 Hz
+constexpr uint64_t VR_REG_PER_HZ_U64  = 65536ull * VR_TICK_HZ_U32;            // 196,608,000
+
+// Version rolling frequency register @0x10 (MSB -> LSB)
+void Asic::setVrFreqReg(uint32_t value) {
+    ESP_LOGI(TAG, "setting 0x10 to %08lx", value);
+    send6(CMD_WRITE_ALL, 0x00, 0x10,
+          static_cast<uint8_t>((value >> 24) & 0xFF),
+          static_cast<uint8_t>((value >> 16) & 0xFF),
+          static_cast<uint8_t>((value >>  8) & 0xFF),
+          static_cast<uint8_t>((value >>  0) & 0xFF));
+}
+
+// Convert desired VR frequency (Hz, integer) to register value for 0x10
+uint32_t Asic::vrFreqToReg(uint32_t freq_hz) {
+    // reg = round(VR_REG_PER_HZ / freq_hz) using integer division with rounding
+    return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (freq_hz / 2)) / freq_hz);
+}
+
+// Convert 0x10 register value back to VR frequency (Hz, integer)
+uint32_t Asic::vrRegToFreq(uint32_t reg) {
+    // freq = round(VR_REG_PER_HZ / reg) using integer division with rounding
+    return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (reg / 2)) / reg);
+}
+
+void Asic::setVrFrequency(uint32_t freq_hz) {
+    setVrFreqReg(vrFreqToReg(freq_hz));
+}
+
+// default calculation
+uint8_t Asic::chipIndexFromAddr(uint8_t addr) {
+    return addr >> 1;
+}
+
+uint8_t Asic::addrFromChipIndex(uint8_t idx) {
+    return idx << 1;
+}
+
+void Asic::requestChipTemp() {
+    // NOP
+}
+
+void Asic::resetCounter(uint8_t reg) {
+    send6(CMD_WRITE_ALL, 0x00, reg, 0x00, 0x00, 0x00, 0x00);
+}
+
+void Asic::readCounter(uint8_t reg) {
+    send2(CMD_READ_ALL, 0x00, reg);
+}
+
 
 // Function to perform frequency transition up or down
 bool Asic::doFrequencyTransition(float target_frequency) {
@@ -248,7 +310,7 @@ void Asic::setJobDifficultyMask(int difficulty)
 
     ESP_LOGI(TAG, "Setting ASIC difficulty mask to %d", difficulty);
 
-    send((CMD_WRITE_ALL), job_difficulty_mask, 6, ASIC_SERIALTX_DEBUG);
+    send((CMD_WRITE_ALL), job_difficulty_mask, 6);
 }
 
 // can ramp up and down in 6.25MHz steps
@@ -271,7 +333,7 @@ uint8_t Asic::sendWork(uint32_t job_id, bm_job *next_bm_job)
     memcpy(job.prev_block_hash, next_bm_job->prev_block_hash_be, 32);
     memcpy(&job.version, &next_bm_job->version, 4);
 
-    send((TYPE_JOB | GROUP_SINGLE | CMD_WRITE), (uint8_t*) &job, sizeof(BM1368_job), ASIC_DEBUG_WORK);
+    send((TYPE_JOB | GROUP_SINGLE | CMD_WRITE), (uint8_t*) &job, sizeof(BM1368_job));
 
     // we return it because different asics calculate it differently
     return job.job_id;
@@ -313,7 +375,7 @@ bool Asic::processWork(task_result *result)
         result->data = __bswap32(asic_result.nonce);
         result->reg = asic_result.job_id;
         result->is_reg_resp = 1;
-        result->asic_nr = asic_result.midstate_num >> 1;
+        result->asic_nr = chipIndexFromAddr(asic_result.midstate_num);
         return true;
     }
 

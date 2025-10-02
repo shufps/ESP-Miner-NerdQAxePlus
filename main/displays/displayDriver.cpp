@@ -488,7 +488,7 @@ void DisplayDriver::updateHashrate(System *module, float power)
     char strData[20];
 
     float efficiency = power / (module->getCurrentHashrate10m() / 1000.0);
-    float hashrate = module->getCurrentHashrate10m();
+    float hashrate = module->getCurrentHashrate();
 
     // >= 10T doesn't fit on the screen with a decimal place
     if (hashrate >= 10000.0) {
@@ -655,7 +655,7 @@ void DisplayDriver::updateGlobalState()
     lv_label_set_text(m_ui->ui_lbVcore, strData); // Update label
 }
 
-void DisplayDriver::updateIpAddress(char *ip_address_str)
+void DisplayDriver::updateIpAddress(const char *ip_address_str)
 {
     if (m_ui->ui_MiningScreen == NULL)
         return;
@@ -688,6 +688,11 @@ void DisplayDriver::miningScreen(void)
     if (m_ui->ui_GlobalStats == NULL)
         m_ui->globalStatsScreenInit();
     m_nextScreen = SCREEN_MINING;
+
+    // nasty hack
+    // needed to be able to switch to the mining screen when the
+    // portal screen was shown and wifi STA recovers
+    m_screenStatus = STATE_INIT_OK;
 }
 
 void DisplayDriver::portalScreen(const char *message)

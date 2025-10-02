@@ -13,10 +13,12 @@
 #define NVS_CONFIG_STRATUM_PORT "stratumport"
 #define NVS_CONFIG_STRATUM_USER "stratumuser"
 #define NVS_CONFIG_STRATUM_PASS "stratumpass"
+#define NVS_CONFIG_STRATUM_ENONCE_SUB "stratumesub"
 #define NVS_CONFIG_STRATUM_FALLBACK_URL "fbstratumurl"
 #define NVS_CONFIG_STRATUM_FALLBACK_PORT "fbstratumport"
 #define NVS_CONFIG_STRATUM_FALLBACK_USER "fbstratumuser"
 #define NVS_CONFIG_STRATUM_FALLBACK_PASS "fbstratumpass"
+#define NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB "fbstratumesub"
 #define NVS_CONFIG_STRATUM_DIFFICULTY "stratumdiff"
 #define NVS_CONFIG_STRATUM_KEEPALIVE "stratum_keep"
 
@@ -47,10 +49,15 @@
 #define NVS_CONFIG_PID_I "pid_i"
 #define NVS_CONFIG_PID_D "pid_d"
 
-#define NVS_CONFIG_ALERT_DISCORD_ENABLE "alrt_disc_en"
+#define NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE "alrt_disc_en"
 #define NVS_CONFIG_ALERT_DISCORD_URL    "alrt_disc_url"
+#define NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE "alrt_disc_bf_en"
 
 #define NVS_CONFIG_SWARM "swarmconfig"
+
+#define NVS_TOTAL_FOUND_BLOCKS "totalblocks"
+
+#define NVS_CONFIG_VR_FREQUENCY "vr_frequency"
 
 #if defined(CONFIG_FAN_MODE_MANUAL)
 #define CONFIG_AUTO_FAN_SPEED_VALUE 0
@@ -140,19 +147,24 @@ namespace Config {
     // ---- uint64_t Getters ----
     inline uint64_t getBestDiff() { return nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0); }
     inline uint32_t getStratumDifficulty() { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_STRATUM_DIFFICULTY, CONFIG_STRATUM_DIFFICULTY); }
+    inline uint32_t getTotalFoundBlocks() { return (uint32_t) nvs_config_get_u64(NVS_TOTAL_FOUND_BLOCKS, 0); }
 
     // ---- uint64_t Setters ----
     inline void setBestDiff(uint64_t value) { nvs_config_set_u64(NVS_CONFIG_BEST_DIFF, value); }
     inline void setStratumDifficulty(uint32_t value) { nvs_config_set_u64(NVS_CONFIG_STRATUM_DIFFICULTY, value); }
+    inline void setTotalFoundBlocks(uint32_t value) { nvs_config_set_u64(NVS_TOTAL_FOUND_BLOCKS, value); }
+    inline void setVrFrequency(uint32_t value) { nvs_config_set_u64(NVS_CONFIG_VR_FREQUENCY, value); }
 
     // ---- Boolean Getters (Stored as uint16_t but used as bool) ----
     inline bool isInvertScreenEnabled() { return nvs_config_get_u16(NVS_CONFIG_INVERT_SCREEN, 0) != 0; } // todo unused?
     inline bool isSelfTestEnabled() { return nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0) != 0; }
     inline bool isAutoScreenOffEnabled() { return nvs_config_get_u16(NVS_CONFIG_AUTO_SCREEN_OFF, CONFIG_AUTO_SCREEN_OFF_VALUE) != 0; }
     inline bool isInfluxEnabled() { return nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE) != 0; }
-    inline bool isDiscordAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_ENABLE, CONFIG_ALERT_DISCORD_ENABLE_VALUE) != 0; }
+    inline bool isDiscordWatchdogAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE, CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE_VALUE) != 0; }
+    inline bool isDiscordBlockFoundAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE_VALUE) != 0; }
     inline bool isStratumKeepaliveEnabled() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_KEEPALIVE, CONFIG_STRATUM_KEEPALIVE_ENABLE_VALUE) != 0; }
-
+    inline bool isStratumEnonceSubscribe() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_ENONCE_SUB, CONFIG_STRATUM_ENONCE_SUBSCRIBE_VALUE) != 0; }
+    inline bool isStratumFallbackEnonceSubscribe() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB, CONFIG_STRATUM_FALLBACK_ENONCE_SUBSCRIBE_VALUE) != 0; }
 
     // ---- Boolean Setters ----
     inline void setFlipScreen(bool value) { nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, value ? 1 : 0); }
@@ -162,8 +174,11 @@ namespace Config {
     inline void setSelfTest(bool value) { nvs_config_set_u16(NVS_CONFIG_SELF_TEST, value ? 1 : 0); }
     inline void setAutoScreenOff(bool value) { nvs_config_set_u16(NVS_CONFIG_AUTO_SCREEN_OFF, value ? 1 : 0); }
     inline void setInfluxEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, value ? 1 : 0); }
-    inline void setDiscordAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_ENABLE, value ? 1 : 0); }
+    inline void setDiscordWatchdogAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE, value ? 1 : 0); }
+    inline void setDiscordAlertBlockFoundEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, value ? 1 : 0); }
     inline void setStratumKeepaliveEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_KEEPALIVE, value ? 1 : 0); }
+    inline void setStratumEnonceSubscribe(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_ENONCE_SUB, value ? 1 : 0); }
+    inline void setStratumFallbackEnonceSubscribe(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB, value ? 1 : 0); }
 
     // with board specific default values
     inline uint16_t getAsicFrequency(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, d); }
@@ -176,6 +191,7 @@ namespace Config {
     inline uint16_t getPidP(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_P, d); }
     inline uint16_t getPidI(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_I, d); }
     inline uint16_t getPidD(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_D, d); }
+    inline uint32_t getVrFrequency(uint32_t d) { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_VR_FREQUENCY, d); }
 
     void migrate_config();
 }

@@ -20,11 +20,13 @@ class System {
   protected:
     // Hashrate and timing
     double m_currentHashrate10m; // Current hashrate averaged over 10 minutes
+    double m_currentHashrate1m;  // Current hashrate averaged over 1 minute
     int64_t m_startTime;         // System start time (in milliseconds)
 
     // Share statistics
     uint64_t m_sharesAccepted; // Number of accepted shares
     uint64_t m_sharesRejected; // Number of rejected shares
+    uint64_t m_duplicateHWNonces; // Numer of duplicates - counted with HW difficulty
 
     // Display and UI
     int m_screenPage;   // Current screen page (for OLED or other displays)
@@ -37,15 +39,18 @@ class System {
     char m_bestSessionDiffString[DIFF_STRING_SIZE]; // String representation of the best session difficulty
 
     // System status flags
-    bool m_foundBlock;  // Flag indicating if a block was found
-    bool m_startupDone; // Flag to indicate if system startup is complete
+    int m_foundBlocks;      // Counter number of found blocks
+    int m_totalFoundBlocks; // Counter of all found blocks
+    bool m_startupDone;     // Flag to indicate if system startup is complete
 
     // Network and connection info
-    char m_ssid[33];           // WiFi SSID (+1 for null terminator)
-    char m_wifiStatus[20];     // WiFi status string
+    std::string m_ssid;        // WiFi SSID (+1 for null terminator)
+    std::string m_apSsid;
+    std::string m_wifiStatus;  // WiFi status string
+    std::string m_hostname;
+    std::string m_ipAddress = "0.0.0.0";
     bool m_apState;
-    char *m_hostname;
-    char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
+    bool m_wifiConnected;
 
     StratumConfig m_stratumConfig[2];
 
@@ -58,7 +63,7 @@ class System {
     bool m_showsOverlay;    // Flat if overlay is shown
     uint32_t m_currentErrorCode;
 
-    const char* m_lastResetReason;
+    std::string m_lastResetReason;
 
     History *m_history;
 
@@ -110,11 +115,13 @@ class System {
     void notifyMiningStarted();                              // Notify system that mining has started
     void notifyNewNtime(uint32_t ntime);                     // Notify system of new `ntime` received from the pool
 
+    void countDuplicateHWNonces();
+
     // Made public (was protected) to allow usage in external modules like ASIC_result_task for formatting/logging.
     static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
     // WiFi related
-    const char* getMacAddress();
+    const std::string getMacAddress();
     int get_wifi_rssi();
 
     // Getter methods for retrieving statistics
@@ -122,10 +129,17 @@ class System {
     {
         return m_sharesRejected;
     }
+
     uint64_t getSharesAccepted() const
     {
         return m_sharesAccepted;
     }
+
+    uint64_t getDuplicateHWNonces() const
+    {
+        return m_duplicateHWNonces;
+    }
+
     const char *getBestDiffString() const
     {
         return m_bestDiffString;
@@ -146,6 +160,11 @@ class System {
     {
         return m_currentHashrate10m;
     }
+    double getCurrentHashrate1m() const
+    {
+        return m_currentHashrate1m;
+    }
+    float getCurrentHashrate();
 
     StratumConfig *getStratumConfig(uint8_t index) {
         return &m_stratumConfig[index];
@@ -180,17 +199,24 @@ class System {
     }
 
     // WiFi-related getters and setters
-    const char *getWifiStatus() const
+    const std::string getWifiStatus() const
     {
         return m_wifiStatus;
     }
-    const char *getSsid() const
+
+    const std::string getSsid() const
     {
         return m_ssid;
     }
-    void setWifiStatus(const char *wifiStatus)
+
+    const std::string getApSsid() const
     {
-        strncpy(m_wifiStatus, wifiStatus, sizeof(m_wifiStatus));
+        return m_apSsid;
+    }
+
+    void setWifiStatus(const std::string& wifiStatus)
+    {
+        m_wifiStatus = wifiStatus;
     }
 
     void setAPState(bool state) {
@@ -201,15 +227,34 @@ class System {
         return m_apState;
     }
 
-    void setSsid(const char *ssid)
-    {
-        strncpy(m_ssid, ssid, sizeof(m_ssid));
+    void setWifiConnected(bool state) {
+        m_wifiConnected = state;
     }
 
-    // Block status and clock sync getters
-    bool isFoundBlock() const
+    bool isWifiConnected() {
+        return m_wifiConnected;
+    }
+
+    void setSsid(const std::string& ssid)
     {
-        return m_foundBlock;
+        m_ssid = ssid;
+    }
+
+    void setApSsid(const std::string& ssid)
+    {
+        m_apSsid = ssid;
+    }
+
+    // Count of found blocks sind reboot
+    int getFoundBlocks() const
+    {
+        return m_foundBlocks;
+    }
+
+    // Count of total found blocks
+    int getTotalFoundBlocks() const
+    {
+        return m_totalFoundBlocks;
     }
 
     // Startup status setter
@@ -232,15 +277,19 @@ class System {
 
     esp_reset_reason_t showLastResetReason();
 
-    const char* getLastResetReason() {
+    const std::string getLastResetReason() {
         return m_lastResetReason;
     }
 
-    const char* getHostname() {
-        return (const char*) m_hostname;
+    const std::string getHostname() {
+        return m_hostname;
     }
 
-    const char* getIPAddress() {
-        return (const char*) m_ipAddress;
+    const std::string getIPAddress() {
+        return m_ipAddress;
+    }
+
+    void setIPAddress(const std::string& ip) {
+        m_ipAddress = ip;
     }
 };
