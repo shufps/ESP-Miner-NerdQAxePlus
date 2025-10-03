@@ -7,6 +7,7 @@
 #include "nvs_config.h"
 #include "global_state.h"
 #include "stratum_task.h"
+#include "macros.h"
 
 // Configuration for ping intervals and history
 #define PING_COUNT 7           // number of pings per round
@@ -33,9 +34,9 @@ struct PingHistory {
     uint16_t received;
 };
 
-static PingHistory ping_history[HISTORY_SIZE];  // buffer storing ping results
-static int history_index = 0;
-static int history_count = 0;
+static PingHistory *ping_history = NULL;  // buffer storing ping results in PSRAM
+static int history_index;
+static int history_count;
 
 static void record_ping_result(uint16_t sent, uint16_t received) {
     ping_history[history_index].sent = sent;
@@ -45,6 +46,17 @@ static void record_ping_result(uint16_t sent, uint16_t received) {
     if (history_count < HISTORY_SIZE) {
         history_count++;
     }
+}
+
+static int init_ping_history(size_t size) {
+    ping_history = (struct PingHistory *)MALLOC(size * sizeof(struct PingHistory));
+    if (!ping_history) {
+        ESP_LOGE(TAG, "Failed to allocate ping_history in PSRAM");
+        return -1; // allocation failed
+    }
+    history_index = 0;
+    history_count = 0;
+    return 0;
 }
 
 static double get_recent_packet_loss() {
@@ -181,6 +193,11 @@ PingResult perform_ping(const char* ip_str, const char* hostname_str) {
 
 // Periodic task that pings stratum target every PING_DELAY using resolved IP
 void ping_task(void *pvParameters) {
+    if (!ping_history && init_ping_history(HISTORY_SIZE) < 0) {
+    ESP_LOGE(TAG, "Failed to init ping history. Task exiting.");
+    vTaskDelete(NULL);
+        return;
+    }
     const StratumConfig* last_config = nullptr;
 
     while (true) {
