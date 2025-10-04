@@ -16,6 +16,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private destroy$: Subject<void> = new Subject<void>();
   userPictureOnly: boolean = false;
   user: any;
+  private sidebarCollapsed: boolean = false;
 
   themes = [
     {
@@ -51,6 +52,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadThemeFromLocalStorage();
+    this.loadSidebarStateFromLocalStorage();
 
     const { xl } = this.breakpointService.getBreakpointsMap();
     this.themeService
@@ -94,8 +96,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   toggleSidebar(): boolean {
-    this.sidebarService.toggle(true, 'menu-sidebar');
+    if (this.sidebarCollapsed) {
+      this.sidebarService.expand('menu-sidebar');
+      this.sidebarCollapsed = false;
+    } else {
+      this.sidebarService.compact('menu-sidebar');
+      this.sidebarCollapsed = true;
+    }
+
     this.layoutService.changeLayoutSize();
+
+    // Save the new state
+    localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed ? 'true' : 'false');
+
     return false;
   }
 
@@ -122,5 +135,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private saveThemeToLocalStorage(theme: string) {
     localStorage.setItem('selectedTheme', theme);
+  }
+
+  private loadSidebarStateFromLocalStorage() {
+    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed');
+    if (sidebarCollapsed === 'true') {
+      this.sidebarCollapsed = true;
+      // Compact the sidebar if it was collapsed before (shows icons only)
+      setTimeout(() => {
+        this.sidebarService.compact('menu-sidebar');
+      }, 100);
+    } else {
+      this.sidebarCollapsed = false;
+    }
   }
 }

@@ -105,18 +105,9 @@ esp_err_t APIsFetcher::http_event_handler(esp_http_client_event_t *evt) {
     switch (evt->event_id) {
         case HTTP_EVENT_ERROR:
         case HTTP_EVENT_DISCONNECTED: {
-            int tls_err = 0, x509_flags = 0;
-            esp_err_t r = esp_http_client_get_and_clear_last_tls_error(
-                              evt->client, &tls_err, &x509_flags);
-            if (r != ESP_OK || tls_err != 0 || x509_flags != 0) {
-                char mbedstr[128] = {0};
-                if (tls_err) mbedtls_strerror(tls_err, mbedstr, sizeof(mbedstr));
-                ESP_LOGE("APIsFetcher",
-                         "TLS(last): ret=%s(%d), mbedTLS=-0x%04X (%s), x509_flags=0x%X, errno=%d, transport=%s",
-                         esp_err_to_name(r), (int)r, -tls_err, tls_err ? mbedstr : "none",
-                         x509_flags, esp_http_client_get_errno(evt->client),
-                         esp_http_client_get_transport_type(evt->client)==HTTP_TRANSPORT_OVER_SSL?"SSL":"TCP");
-            }
+            ESP_LOGE("APIsFetcher", "HTTP connection error/disconnected, errno=%d, transport=%s",
+                     esp_http_client_get_errno(evt->client),
+                     esp_http_client_get_transport_type(evt->client)==HTTP_TRANSPORT_OVER_SSL?"SSL":"TCP");
             break;
         }
 
@@ -157,17 +148,9 @@ bool APIsFetcher::fetchData(const char* apiUrl, ApiType type)
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
 
-        int tls_err = 0, x509_flags = 0;
-        esp_err_t r = esp_http_client_get_and_clear_last_tls_error(client, &tls_err, &x509_flags);
-        if (r != ESP_OK || tls_err != 0 || x509_flags != 0) {
-            char mbedstr[128] = {0};
-            if (tls_err) mbedtls_strerror(tls_err, mbedstr, sizeof(mbedstr));
-            ESP_LOGE(TAG,
-                    "TLS(err): ret=%s(%d), mbedTLS=-0x%04X (%s), x509_flags=0x%X, errno=%d, transport=%s",
-                    esp_err_to_name(r), (int)r, -tls_err, tls_err ? mbedstr : "none",
-                    x509_flags, esp_http_client_get_errno(client),
-                    esp_http_client_get_transport_type(client)==HTTP_TRANSPORT_OVER_SSL?"SSL":"TCP");
-        }
+        ESP_LOGE(TAG, "HTTP request error details: errno=%d, transport=%s",
+                 esp_http_client_get_errno(client),
+                 esp_http_client_get_transport_type(client)==HTTP_TRANSPORT_OVER_SSL?"SSL":"TCP");
 
         esp_http_client_cleanup(client);
         return false;

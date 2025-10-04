@@ -1,0 +1,23 @@
+.language-selector {
+  .flag-icon {
+    width: 16px;
+    height: 12px;
+    margin-right: 8px;
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    border-radius: 2px;
+  }
+
+  .flag-icon-us {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjRkYwMDAwIi8+CjxwYXRoIGQ9Ik0wIDIuMzA3NjlIMzBWNEgwVjIuMzA3NjlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4=');
+  }
+
+  .flag-icon-fr {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDA1NEIyIi8+CjxyZWN0IHg9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMjAiIGZpbGw9IndoaXRlIi8+CjxyZWN0IHg9IjIwIiB3aWR0aD0iMTAiIGhlaWdodD0iMjAiIGZpbGw9IiNGRjAwMDAiLz4KPC9zdmc+');
+  }
+
+  .flag-icon-es, .flag-icon-de, .flag-icon-it, .flag-icon-ro {
+    background-color: #ccc;
+  }
+}

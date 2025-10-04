@@ -150,7 +150,7 @@ double System::calculateNetworkDifficulty(uint32_t nBits) {
 
 float System::getCurrentHashrate() {
     if (m_board->hasHashrateCounter()) {
-        return m_board->getTotalChipHashrate();
+        return HASHRATE_MONITOR.getSmoothedTotalChipHashrate();
     }
     return getCurrentHashrate10m();
 }
@@ -242,18 +242,18 @@ void System::suffixString(uint64_t val, char* buf, size_t bufSize, int sigDigits
 esp_reset_reason_t System::showLastResetReason() {
     esp_reset_reason_t reason = esp_reset_reason();
     switch (reason) {
-        case ESP_RST_UNKNOWN: m_lastResetReason = "Unknown"; break;
-        case ESP_RST_POWERON: m_lastResetReason = "Power on reset"; break;
-        case ESP_RST_EXT: m_lastResetReason = "External reset"; break;
-        case ESP_RST_SW: m_lastResetReason = "Software reset"; break;
-        case ESP_RST_PANIC: m_lastResetReason = "Software panic reset"; break;
-        case ESP_RST_INT_WDT: m_lastResetReason = "Interrupt watchdog reset"; break;
-        case ESP_RST_TASK_WDT: m_lastResetReason = "Task watchdog reset"; break;
-        case ESP_RST_WDT: m_lastResetReason = "Other watchdog reset"; break;
-        case ESP_RST_DEEPSLEEP: m_lastResetReason = "Exiting deep sleep"; break;
-        case ESP_RST_BROWNOUT: m_lastResetReason = "Brownout reset"; break;
-        case ESP_RST_SDIO: m_lastResetReason = "SDIO reset"; break;
-        default: m_lastResetReason = "Not specified"; break;
+        case ESP_RST_UNKNOWN: m_lastResetReason = "SYSTEM.RESET_UNKNOWN"; break;
+        case ESP_RST_POWERON: m_lastResetReason = "SYSTEM.RESET_POWERON"; break;
+        case ESP_RST_EXT: m_lastResetReason = "SYSTEM.RESET_EXTERNAL"; break;
+        case ESP_RST_SW: m_lastResetReason = "SYSTEM.RESET_SOFTWARE"; break;
+        case ESP_RST_PANIC: m_lastResetReason = "SYSTEM.RESET_PANIC"; break;
+        case ESP_RST_INT_WDT: m_lastResetReason = "SYSTEM.RESET_INT_WATCHDOG"; break;
+        case ESP_RST_TASK_WDT: m_lastResetReason = "SYSTEM.RESET_TASK_WATCHDOG"; break;
+        case ESP_RST_WDT: m_lastResetReason = "SYSTEM.RESET_OTHER_WATCHDOG"; break;
+        case ESP_RST_DEEPSLEEP: m_lastResetReason = "SYSTEM.RESET_DEEPSLEEP"; break;
+        case ESP_RST_BROWNOUT: m_lastResetReason = "SYSTEM.RESET_BROWNOUT"; break;
+        case ESP_RST_SDIO: m_lastResetReason = "SYSTEM.RESET_SDIO"; break;
+        default: m_lastResetReason = "SYSTEM.RESET_NOT_SPECIFIED"; break;
     }
     ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason.c_str());
     return reason;

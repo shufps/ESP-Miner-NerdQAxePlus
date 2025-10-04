@@ -4,6 +4,7 @@ import { SystemService } from '../../services/system.service';
 import { WebsocketService } from '../../services/web-socket.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
 import { NbToastrService } from '@nebular/theme';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-logs',
@@ -27,7 +28,8 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
   constructor(
     private websocketService: WebsocketService,
     private toastrService: NbToastrService,
-    private systemService: SystemService
+    private systemService: SystemService,
+    private translateService: TranslateService
   ) {
 
 
@@ -84,21 +86,21 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
   public restart() {
     this.systemService.restart().pipe(
       catchError(error => {
-        this.toastrService.danger(`Failed to restart Device`, 'Error');
+        this.toastrService.danger(this.translateService.instant('SYSTEM.RESTART_FAILED'), this.translateService.instant('COMMON.ERROR'));
         return of(null);
       })
     ).subscribe(res => {
       if (res !== null) {
-        this.toastrService.success(`Device restarted`, 'Success');
+        this.toastrService.success(this.translateService.instant('SYSTEM.RESTART_SUCCESS'), this.translateService.instant('COMMON.SUCCESS'));
       }
     });
   }
 
   public getRssiTooltip(rssi: number): string {
-    if (rssi <= -85) return 'Signal strength: Very weak (≤ -85 dBm)';
-    if (rssi <= -75) return 'Signal strength: Weak (≤ -75 dBm)';
-    if (rssi <= -65) return 'Signal strength: Moderate (≤ -65 dBm)';
-    if (rssi <= -55) return 'Signal strength: Strong (≤ -55 dBm)';
-    return 'Signal strength: Excellent (> -55 dBm)';
+    if (rssi <= -85) return this.translateService.instant('SYSTEM.SIGNAL_VERY_WEAK');
+    if (rssi <= -75) return this.translateService.instant('SYSTEM.SIGNAL_WEAK');
+    if (rssi <= -65) return this.translateService.instant('SYSTEM.SIGNAL_MODERATE');
+    if (rssi <= -55) return this.translateService.instant('SYSTEM.SIGNAL_STRONG');
+    return this.translateService.instant('SYSTEM.SIGNAL_EXCELLENT');
   }
 }
