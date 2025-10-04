@@ -464,7 +464,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
 
     // Call backend to download from GitHub and flash
-    this.systemService.performGithubOTAUpdate(asset.browser_download_url)
+    const otaType = updateType === 'firmware' ? 'firmware' : 'www';
+    this.systemService.performGithubOTAUpdate(asset.browser_download_url, otaType)
       .subscribe({
         next: () => {
           // Success will be reflected via WebSocket progress updates
@@ -543,6 +544,30 @@ export class SettingsComponent implements OnInit, OnDestroy {
       default:
         return '';
     }
+  }
+
+  /**
+   * Get filtered assets (only matching firmware and www.bin)
+   */
+  public getFilteredAssets(): any[] {
+    if (!this.latestRelease?.assets) {
+      return [];
+    }
+
+    const normalizedModel = this.deviceModel.toLowerCase().replace(/[^a-z0-9+]/g, '');
+
+    return this.latestRelease.assets.filter(asset => {
+      // Always include www.bin
+      if (asset.name === 'www.bin') {
+        return true;
+      }
+
+      // Include matching firmware (excluding factory versions)
+      const normalizedAsset = asset.name.toLowerCase().replace(/[^a-z0-9+]/g, '');
+      return normalizedAsset.includes(normalizedModel)
+        && asset.name.endsWith('.bin')
+        && !asset.name.includes('factory');
+    });
   }
 
   public restart() {

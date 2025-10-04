@@ -212,8 +212,8 @@ export class SystemService {
     return this.otaUpdate(file, `/api/system/OTAWWW`);
   }
 
-  public performGithubOTAUpdate(url: string) {
-    return this.httpClient.post('/api/system/OTA/github', { url }, {
+  public performGithubOTAUpdate(url: string, type: 'firmware' | 'www' = 'firmware') {
+    return this.httpClient.post('/api/system/OTA/github', { url, type }, {
       responseType: 'text'
     });
   }

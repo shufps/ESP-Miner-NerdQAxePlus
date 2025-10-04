@@ -45,10 +45,10 @@
             </div>
 
             <!-- Available Files (Debug info) -->
-            <div class="version-row" *ngIf="latestRelease.assets && latestRelease.assets.length > 0">
+            <div class="version-row" *ngIf="getFilteredAssets().length > 0">
               <strong>{{ 'UPDATE.AVAILABLE_FILES' | translate }}:</strong>
               <div class="assets-list">
-                <small *ngFor="let asset of latestRelease.assets">
+                <small *ngFor="let asset of getFilteredAssets()">
                   {{ asset.name }}
                   <span *ngIf="asset.name === expectedFileName" class="badge-match">✓ Match</span>
                 </small>
