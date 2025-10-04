@@ -165,7 +165,8 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
 
 /*
  * Handle OTA update from GitHub URL
- * Expects JSON body: {"url": "https://github.com/..."}
+ * Expects JSON body: {"url": "https://github.com/...", "type": "firmware|www"}
+ * type defaults to "firmware" if not specified
  */
 esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
 {
@@ -209,92 +210,220 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing 'url' field");
     }
 
+    // Get update type (defaults to "firmware")
+    cJSON *type_item = cJSON_GetObjectItem(json, "type");
+    bool is_www_update = false;
+    if (type_item != NULL && cJSON_IsString(type_item)) {
+        if (strcmp(type_item->valuestring, "www") == 0) {
+            is_www_update = true;
+        }
+    }
+
     const char *url = url_item->valuestring;
-    ESP_LOGI(TAG, "Starting OTA update from GitHub URL: %s", url);
+    ESP_LOGI(TAG, "Starting %s update from GitHub URL: %s", is_www_update ? "WWW" : "firmware", url);
 
     // Lock power management and shutdown hardware BEFORE OTA
     LockGuard g(POWER_MANAGEMENT_MODULE);
     POWER_MANAGEMENT_MODULE.shutdown();
 
-    // Use esp_https_ota which handles redirects automatically
-    esp_http_client_config_t config = {};
-    config.url = url;
-    config.timeout_ms = 60000;  // 60 second timeout
-    config.crt_bundle_attach = esp_crt_bundle_attach;
-    config.keep_alive_enable = true;
-    config.buffer_size = 8192;  // Increase buffer for large files
-    config.buffer_size_tx = 4096;
+    esp_err_t err = ESP_OK;
 
-    esp_https_ota_config_t ota_config = {};
-    ota_config.http_config = &config;
-
-    ESP_LOGI(TAG, "OTA_PROGRESS: 0%%");
-    ESP_LOGI(TAG, "Starting esp_https_ota...");
-
-    esp_https_ota_handle_t https_ota_handle = NULL;
-    esp_err_t err = esp_https_ota_begin(&ota_config, &https_ota_handle);
-
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_https_ota_begin failed: %s", esp_err_to_name(err));
-        cJSON_Delete(json);
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA begin failed");
-    }
-
-    esp_app_desc_t app_desc;
-    err = esp_https_ota_get_img_desc(https_ota_handle, &app_desc);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_https_ota_get_img_desc failed");
-        esp_https_ota_abort(https_ota_handle);
-        cJSON_Delete(json);
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get image descriptor");
-    }
-
-    int total_size = esp_https_ota_get_image_size(https_ota_handle);
-    int downloaded = 0;
-    int last_progress = 0;
-
-    while (1) {
-        err = esp_https_ota_perform(https_ota_handle);
-        if (err != ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
-            break;
+    if (is_www_update) {
+        // WWW partition update - download to data partition
+        const esp_partition_t *www_partition =
+            esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, "www");
+        if (www_partition == NULL) {
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "WWW partition not found");
         }
 
-        downloaded = esp_https_ota_get_image_len_read(https_ota_handle);
-        int progress = (downloaded * 100) / total_size;
+        // Setup HTTP client
+        esp_http_client_config_t config = {};
+        config.url = url;
+        config.timeout_ms = 60000;
+        config.crt_bundle_attach = esp_crt_bundle_attach;
+        config.keep_alive_enable = true;
+        config.buffer_size = 8192;
+        config.buffer_size_tx = 4096;
 
-        // Log progress every 5% to avoid flooding
-        if (progress >= last_progress + 5 || progress == 100) {
-            ESP_LOGI(TAG, "OTA_PROGRESS: %d%%", progress);
-            last_progress = progress;
+        esp_http_client_handle_t client = esp_http_client_init(&config);
+        if (client == NULL) {
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "HTTP client init failed");
         }
 
-        taskYIELD();
-    }
+        err = esp_http_client_open(client, 0);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to open HTTP connection: %s", esp_err_to_name(err));
+            esp_http_client_cleanup(client);
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "HTTP connection failed");
+        }
 
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_https_ota_perform failed: %s", esp_err_to_name(err));
-        esp_https_ota_abort(https_ota_handle);
+        int content_length = esp_http_client_fetch_headers(client);
+        if (content_length <= 0 || content_length > www_partition->size) {
+            ESP_LOGE(TAG, "Invalid content length: %d", content_length);
+            esp_http_client_close(client);
+            esp_http_client_cleanup(client);
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid file size");
+        }
+
+        // Erase partition
+        ESP_LOGI(TAG, "Erasing www partition...");
+        err = esp_partition_erase_range(www_partition, 0, www_partition->size);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to erase partition: %s", esp_err_to_name(err));
+            esp_http_client_close(client);
+            esp_http_client_cleanup(client);
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Erase failed");
+        }
+
+        // Download and write to partition
+        char *buf = (char*)malloc(4096);
+        if (buf == NULL) {
+            esp_http_client_close(client);
+            esp_http_client_cleanup(client);
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
+        }
+
+        int downloaded = 0;
+        int last_progress = 0;
+        ESP_LOGI(TAG, "OTA_PROGRESS: 0%%");
+
+        while (downloaded < content_length) {
+            int read_len = esp_http_client_read(client, buf, 4096);
+            if (read_len < 0) {
+                ESP_LOGE(TAG, "HTTP read error");
+                free(buf);
+                esp_http_client_close(client);
+                esp_http_client_cleanup(client);
+                cJSON_Delete(json);
+                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Download failed");
+            }
+            if (read_len == 0) {
+                break;
+            }
+
+            err = esp_partition_write(www_partition, downloaded, (const void *)buf, read_len);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Partition write error: %s", esp_err_to_name(err));
+                free(buf);
+                esp_http_client_close(client);
+                esp_http_client_cleanup(client);
+                cJSON_Delete(json);
+                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Write failed");
+            }
+
+            downloaded += read_len;
+            int progress = (downloaded * 100) / content_length;
+
+            if (progress >= last_progress + 5 || progress == 100) {
+                ESP_LOGI(TAG, "OTA_PROGRESS: %d%%", progress);
+                last_progress = progress;
+            }
+
+            taskYIELD();
+        }
+
+        free(buf);
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+
+        ESP_LOGI(TAG, "OTA_PROGRESS: 100%%");
+        ESP_LOGI(TAG, "WWW update from GitHub successful!");
+        httpd_resp_sendstr(req, "OK");
+
         cJSON_Delete(json);
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA download failed");
+
+        // Restart after response
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        ESP_LOGI(TAG, "Rebooting...");
+        POWER_MANAGEMENT_MODULE.restart();
+
+    } else {
+        // Firmware update - use esp_https_ota
+        esp_http_client_config_t config = {};
+        config.url = url;
+        config.timeout_ms = 60000;  // 60 second timeout
+        config.crt_bundle_attach = esp_crt_bundle_attach;
+        config.keep_alive_enable = true;
+        config.buffer_size = 8192;  // Increase buffer for large files
+        config.buffer_size_tx = 4096;
+
+        esp_https_ota_config_t ota_config = {};
+        ota_config.http_config = &config;
+
+        ESP_LOGI(TAG, "OTA_PROGRESS: 0%%");
+        ESP_LOGI(TAG, "Starting esp_https_ota...");
+
+        esp_https_ota_handle_t https_ota_handle = NULL;
+        err = esp_https_ota_begin(&ota_config, &https_ota_handle);
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_https_ota_begin failed: %s", esp_err_to_name(err));
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA begin failed");
+        }
+
+        esp_app_desc_t app_desc;
+        err = esp_https_ota_get_img_desc(https_ota_handle, &app_desc);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_https_ota_get_img_desc failed");
+            esp_https_ota_abort(https_ota_handle);
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get image descriptor");
+        }
+
+        int total_size = esp_https_ota_get_image_size(https_ota_handle);
+        int downloaded = 0;
+        int last_progress = 0;
+
+        while (1) {
+            err = esp_https_ota_perform(https_ota_handle);
+            if (err != ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
+                break;
+            }
+
+            downloaded = esp_https_ota_get_image_len_read(https_ota_handle);
+            int progress = (downloaded * 100) / total_size;
+
+            // Log progress every 5% to avoid flooding
+            if (progress >= last_progress + 5 || progress == 100) {
+                ESP_LOGI(TAG, "OTA_PROGRESS: %d%%", progress);
+                last_progress = progress;
+            }
+
+            taskYIELD();
+        }
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_https_ota_perform failed: %s", esp_err_to_name(err));
+            esp_https_ota_abort(https_ota_handle);
+            cJSON_Delete(json);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA download failed");
+        }
+
+        err = esp_https_ota_finish(https_ota_handle);
+
+        cJSON_Delete(json);
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_https_ota_finish failed: %s", esp_err_to_name(err));
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA finish failed");
+        }
+
+        ESP_LOGI(TAG, "OTA_PROGRESS: 100%%");
+        ESP_LOGI(TAG, "OTA update from GitHub successful!");
+        httpd_resp_sendstr(req, "OK");
+
+        // Restart after response
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        ESP_LOGI(TAG, "Rebooting...");
+        POWER_MANAGEMENT_MODULE.restart();
     }
-
-    err = esp_https_ota_finish(https_ota_handle);
-
-    cJSON_Delete(json);
-
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_https_ota_finish failed: %s", esp_err_to_name(err));
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA finish failed");
-    }
-
-    ESP_LOGI(TAG, "OTA_PROGRESS: 100%%");
-    ESP_LOGI(TAG, "OTA update from GitHub successful!");
-    httpd_resp_sendstr(req, "OK");
-
-    // Restart after response
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    ESP_LOGI(TAG, "Rebooting...");
-    POWER_MANAGEMENT_MODULE.restart();
 
     return ESP_OK;
 }
