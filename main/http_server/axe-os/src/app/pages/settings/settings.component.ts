@@ -148,12 +148,26 @@ export class SettingsComponent implements OnInit, OnDestroy {
         // Parse OTA progress messages
         const progressMatch = message.match(/OTA_PROGRESS:\s*(\d+)%/);
         if (progressMatch) {
-          this.otaProgress = parseInt(progressMatch[1], 10);
+          const progress = parseInt(progressMatch[1], 10);
 
-          // When OTA reaches 100%, device will reboot - start checking for it to come back online
-          if (this.otaProgress === 100 && this.isFirmwareUploading) {
-            this.updateStatusMessage = 'Redémarrage en cours...';
-            this.startRebootCheck();
+          // Update the appropriate progress variable based on what's being uploaded
+          if (this.isFirmwareUploading) {
+            this.otaProgress = progress;
+            this.firmwareUpdateProgress = progress;
+
+            // When firmware OTA reaches 100%, device will reboot
+            if (progress === 100) {
+              this.updateStatusMessage = 'Redémarrage en cours...';
+              this.startRebootCheck();
+            }
+          } else if (this.isWebsiteUploading) {
+            this.websiteUpdateProgress = progress;
+
+            // When www.bin OTA reaches 100%, device will reboot
+            if (progress === 100) {
+              this.updateStatusMessage = 'Redémarrage en cours...';
+              this.startRebootCheck();
+            }
           }
         }
       },
@@ -463,13 +477,16 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this.websiteUpdateProgress = 0;
     }
 
-    // Call backend to download from GitHub and flash
     const otaType = updateType === 'firmware' ? 'firmware' : 'www';
-    this.systemService.performGithubOTAUpdate(asset.browser_download_url, otaType)
+    const assetUrl = asset.browser_download_url;
+
+    // Both firmware and www.bin now use backend streaming (no CORS issues, no PSRAM buffer)
+    console.log(`${otaType} OTA from: ${assetUrl}`);
+
+    this.systemService.performGithubOTAUpdate(assetUrl, otaType)
       .subscribe({
         next: () => {
-          // Success will be reflected via WebSocket progress updates
-          if (updateType === 'firmware') {
+          if (otaType === 'firmware') {
             this.toastrService.success(this.translate.instant('TOAST.FIRMWARE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
           } else {
             this.toastrService.success(this.translate.instant('TOAST.WEBSITE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
@@ -477,7 +494,15 @@ export class SettingsComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          this.toastrService.danger(`${this.translate.instant('TOAST.UPDATE_FAILED')}: ${err.message}`, this.translate.instant('TOAST.ERROR'));
+          // Check if error is due to GitHub CDN URL length limitation
+          if (err.error && err.error.includes('GitHub CDN URL too long')) {
+            const errorMsg = otaType === 'www'
+              ? 'Les URLs GitHub CDN sont trop longues pour ESP32. Veuillez télécharger www.bin manuellement depuis GitHub et uploader via l\'interface web.'
+              : 'URL GitHub trop longue pour ESP32';
+            this.toastrService.danger(errorMsg, this.translate.instant('TOAST.ERROR'), { duration: 10000 });
+          } else {
+            this.toastrService.danger(`${this.translate.instant('TOAST.UPDATE_FAILED')}: ${err.message || err.error}`, this.translate.instant('TOAST.ERROR'));
+          }
           this.resetUpdateState(updateType);
         }
       });
