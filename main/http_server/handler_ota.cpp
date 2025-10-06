@@ -222,10 +222,6 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
     const char *url = url_item->valuestring;
     ESP_LOGI(TAG, "Starting %s update from GitHub URL: %s", is_www_update ? "WWW" : "firmware", url);
 
-    // Lock power management and shutdown hardware BEFORE OTA
-    LockGuard g(POWER_MANAGEMENT_MODULE);
-    POWER_MANAGEMENT_MODULE.shutdown();
-
     esp_err_t err = ESP_OK;
 
     if (is_www_update) {
@@ -547,7 +543,11 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
         ESP_LOGI(TAG, "OTADEBUG === STEP 3: Erasing partition ===");
         ESP_LOGI(TAG, "OTA_PROGRESS: 5%% (erasing)");
 
-        err = esp_partition_erase_range(www_partition, 0, www_partition->size);
+        {
+            // Short lock during erase to prevent PID stall
+            LockGuard g(POWER_MANAGEMENT_MODULE);
+            err = esp_partition_erase_range(www_partition, 0, www_partition->size);
+        }
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "OTADEBUG Partition erase failed: %s", esp_err_to_name(err));
             esp_http_client_close(client);
@@ -585,7 +585,11 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
             }
 
             // Write chunk directly to partition
-            err = esp_partition_write(www_partition, total_read, chunk_buffer, read_len);
+            {
+                // Short lock during write to prevent PID stall
+                LockGuard g(POWER_MANAGEMENT_MODULE);
+                err = esp_partition_write(www_partition, total_read, chunk_buffer, read_len);
+            }
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "OTADEBUG Partition write failed at offset %d: %s", total_read, esp_err_to_name(err));
                 esp_http_client_close(client);
@@ -642,6 +646,10 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
 
     } else {
         // Firmware update - use esp_https_ota
+        // Lock power management and shutdown hardware for firmware OTA
+        LockGuard g(POWER_MANAGEMENT_MODULE);
+        POWER_MANAGEMENT_MODULE.shutdown();
+
         // browser_download_url redirects to CDN
         esp_http_client_config_t config = {};
         config.url = url;
