@@ -243,30 +243,33 @@ static void event_handler(void * arg, esp_event_base_t event_base, int32_t event
     }
 }
 
+// --- Wi-Fi soft-AP init (sets AP config only; does NOT start Wi-Fi) ---
 esp_netif_t * wifi_init_softap()
 {
+    // Create default AP netif
     esp_netif_t * esp_netif_ap = esp_netif_create_default_wifi_ap();
 
-    char ap_ssid[32]={0};
+    char ap_ssid[32] = {0};
 
+    // Derive AP SSID from AP MAC tail for uniqueness
     uint8_t mac[6];
     esp_wifi_get_mac(WIFI_IF_AP, mac);
-    // Format the last 4 bytes of the MAC address as a hexadecimal string
-    snprintf(ap_ssid, 32, "NerdQaxe_%02X%02X", mac[4], mac[5]);
+    snprintf(ap_ssid, sizeof(ap_ssid), "NerdQaxe_%02X%02X", mac[4], mac[5]);
 
-    // save the AP ssid into the system module
+    // Persist AP SSID in system module
     SYSTEM_MODULE.setApSsid(ap_ssid);
 
-    wifi_config_t wifi_ap_config;
-    memset(&wifi_ap_config, 0, sizeof(wifi_ap_config));
+    // Fill AP config
+    wifi_config_t wifi_ap_config = {};
     strncpy((char *) wifi_ap_config.ap.ssid, ap_ssid, sizeof(wifi_ap_config.ap.ssid) - 1);
     wifi_ap_config.ap.ssid[sizeof(wifi_ap_config.ap.ssid) - 1] = '\0';
     wifi_ap_config.ap.ssid_len = strlen(ap_ssid);
     wifi_ap_config.ap.channel = 1;
     wifi_ap_config.ap.max_connection = 10;
-    wifi_ap_config.ap.authmode = WIFI_AUTH_OPEN;
-    wifi_ap_config.ap.pmf_cfg.required = false;
+    wifi_ap_config.ap.authmode = WIFI_AUTH_OPEN;     // Open config AP
+    wifi_ap_config.ap.pmf_cfg.required = false;      // PMF not required for open AP
 
+    // Apply AP config (must be after esp_wifi_set_mode(WIFI_MODE_AP or APSTA))
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
 
     return esp_netif_ap;
@@ -295,110 +298,87 @@ static void wifi_softap_on(void)
 }
 
 /* Initialize wifi station */
+// --- Wi-Fi station init (sets STA config only; does NOT start Wi-Fi) ---
 esp_netif_t * wifi_init_sta(const char * wifi_ssid, const char * wifi_pass)
 {
+    // Create default STA netif
     esp_netif_t * esp_netif_sta = esp_netif_create_default_wifi_sta();
 
-    /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
-    * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-    * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-    * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-    */
+    // Decide auth mode based on password presence
     wifi_auth_mode_t authmode;
-
     if (strlen(wifi_pass) == 0) {
         ESP_LOGI(TAG, "No Wi-Fi password provided, using open network");
         authmode = WIFI_AUTH_OPEN;
     } else {
-        ESP_LOGI(TAG, "Wi-Fi Password provided, using WPA2");
+        ESP_LOGI(TAG, "Wi-Fi password provided, using WPA2");
         authmode = WIFI_AUTH_WPA2_PSK;
     }
 
     wifi_config_t wifi_sta_config = {};
+    // Configure roaming/PMF conservatively for open networks to reduce supplicant side-effects
+    bool is_open = (authmode == WIFI_AUTH_OPEN);
     wifi_sta_config.sta.threshold.authmode = authmode;
-    wifi_sta_config.sta.btm_enabled = 1;
-    wifi_sta_config.sta.rm_enabled = 1;
+    wifi_sta_config.sta.btm_enabled = is_open ? 0 : 1;       // Enable BTM only when secured
+    wifi_sta_config.sta.rm_enabled  = is_open ? 0 : 1;       // Enable RM only when secured
     wifi_sta_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
     wifi_sta_config.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
-    wifi_sta_config.sta.pmf_cfg.capable = true;
+    wifi_sta_config.sta.pmf_cfg.capable  = is_open ? false : true;  // PMF not needed for open
     wifi_sta_config.sta.pmf_cfg.required = false;
 
+    // Copy SSID (always NUL-terminate)
     strncpy((char *) wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));
     wifi_sta_config.sta.ssid[sizeof(wifi_sta_config.sta.ssid) - 1] = '\0';
 
-    if (authmode != WIFI_AUTH_OPEN) {
+    // Copy password for non-open networks (always NUL-terminate)
+    if (!is_open) {
         strncpy((char *) wifi_sta_config.sta.password, wifi_pass, sizeof(wifi_sta_config.sta.password));
         wifi_sta_config.sta.password[sizeof(wifi_sta_config.sta.password) - 1] = '\0';
     }
-    // strncpy((char *) wifi_sta_config.sta.password, wifi_pass, 63);
-    // wifi_sta_config.sta.password[63] = '\0';
 
+    // Apply STA config (must be after esp_wifi_set_mode(WIFI_MODE_STA))
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_sta_config));
 
+    // Cache MAC for later use (optional)
     uint8_t mac[6];
     ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_STA, mac));
-    snprintf(s_mac_addr, sizeof(s_mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    snprintf(s_mac_addr, sizeof(s_mac_addr),
+             "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     ESP_LOGI(TAG, "wifi_init_sta finished.");
-
     return esp_netif_sta;
 }
 
+// --- Top-level Wi-Fi init (AP up immediately, STA connects in parallel, AP turned off on success) ---
 void wifi_init()
 {
+    char * hostname  = Config::getHostname();
     char * wifi_ssid = Config::getWifiSSID();
-    // copy the wifi ssid to the global state
+    char * wifi_pass = Config::getWifiPass();
+
     SYSTEM_MODULE.setSsid(wifi_ssid);
 
-    free(wifi_ssid);
-
+    // Core netif/event init
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-    esp_event_handler_instance_t instance_any_id;
-    esp_event_handler_instance_t instance_got_ip;
+    esp_event_handler_instance_t instance_any_id, instance_got_ip;
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, nullptr, &instance_any_id));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, nullptr, &instance_got_ip));
 
-    /* Initialize Wi-Fi */
+    // Wi-Fi driver init
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    wifi_softap_on();
+    // 1) Set initial mode to STA so that STA set_config has a valid supplicant context
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 
-    /* Initialize AP */
-    wifi_init_softap();
+    // 2) If SSID is empty, we won't attempt STA connection, but we still want AP up
+    if (SYSTEM_MODULE.getSsid() != "") {
+        // Prepare STA config BEFORE start (avoids pmksa_cache_flush crash)
 
-    /* Skip connection if SSID is null */
-    if (SYSTEM_MODULE.getSsid() == "") {
-        ESP_LOGI(TAG, "No WiFi SSID provided, skipping connection");
-
-        /* Start WiFi */
-        ESP_ERROR_CHECK(esp_wifi_start());
-
-        /* Disable power savings for best performance */
-        ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
-
-        return;
-    } else {
-
-        char * wifi_pass = Config::getWifiPass();
-
-        /* Initialize STA */
         ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
         esp_netif_t * esp_netif_sta = wifi_init_sta(SYSTEM_MODULE.getSsid().c_str(), wifi_pass);
 
-        free(wifi_pass);
-
-        /* Start Wi-Fi */
-        ESP_ERROR_CHECK(esp_wifi_start());
-
-        /* Disable power savings for best performance */
-        ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
-
-        char * hostname  = Config::getHostname();
-
-        /* Set Hostname */
         esp_err_t err = esp_netif_set_hostname(esp_netif_sta, hostname);
         if (err != ERR_OK) {
             ESP_LOGW(TAG, "esp_netif_set_hostname failed: %s", esp_err_to_name(err));
@@ -406,13 +386,25 @@ void wifi_init()
             ESP_LOGI(TAG, "ESP_WIFI setting hostname to: %s", hostname);
         }
 
-        free(hostname);
-
-        ESP_LOGI(TAG, "wifi_init_sta finished.");
-
-        return;
+    } else {
+        ESP_LOGI(TAG, "No WiFi SSID provided, skipping STA connection");
     }
+
+    // 3) Switch to APSTA and configure AP so that AP is available immediately at boot
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    wifi_init_softap();   // applies AP config in APSTA mode
+
+    // 4) Start Wi-Fi (both interfaces come up)
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    // 5) Disable power save for best performance
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+
+    free(wifi_ssid);
+    free(wifi_pass);
+    free(hostname);
 }
+
 
 typedef struct {
     int reason;
