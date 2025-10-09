@@ -28,6 +28,7 @@ typedef struct
     float pwr_iout;
     float pwr_pout;
     float last_ping_rtt;
+    float recent_ping_loss;
 } Stats;
 
 class Influx {

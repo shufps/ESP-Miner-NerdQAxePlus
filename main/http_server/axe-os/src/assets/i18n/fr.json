@@ -89,6 +89,7 @@
     "PORT": "Port",
     "USER": "Utilisateur",
     "PING": "Ping",
+    "LOSS": "Perte",
     "DIFF": "Difficulté",
     "PRIMARY": "Primaire",
     "FALLBACK": "Secours"

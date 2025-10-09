@@ -7,12 +7,15 @@
 #include "nvs_config.h"
 #include "global_state.h"
 #include "stratum_task.h"
+#include "macros.h"
 
 // Configuration for ping intervals and history
 #define PING_COUNT 7           // number of pings per round
 #define PING_INTERVAL_MS 1000  // delay between individual pings in ms
 #define PING_TIMEOUT_MS 1000   // timeout per ping request in ms
 #define PING_DELAY 60          // delay between ping rounds in seconds
+#define HISTORY_WINDOW_SEC 900 // total window to calculate recent packet loss (900s = 15min)
+#define HISTORY_SIZE (HISTORY_WINDOW_SEC / PING_DELAY)  // number of historical entries based on ping interval
 
 static const char *TAG = "ping task";
 static double last_ping_rtt_ms = 0.0;
@@ -25,6 +28,49 @@ struct PingResult {
     double min_rtt_ms;
     double max_rtt_ms;
 };
+
+struct PingHistory {
+    uint16_t sent;
+    uint16_t received;
+};
+
+static PingHistory *ping_history = NULL;  // buffer storing ping results in PSRAM
+static int history_index;
+static int history_count;
+
+static void record_ping_result(uint16_t sent, uint16_t received) {
+    ping_history[history_index].sent = sent;
+    ping_history[history_index].received = received;
+
+    history_index = (history_index + 1) % HISTORY_SIZE;
+    if (history_count < HISTORY_SIZE) {
+        history_count++;
+    }
+}
+
+static int init_ping_history(size_t size) {
+    ping_history = (struct PingHistory *)MALLOC(size * sizeof(struct PingHistory));
+    if (!ping_history) {
+        ESP_LOGE(TAG, "Failed to allocate ping_history in PSRAM");
+        return -1; // allocation failed
+    }
+    history_index = 0;
+    history_count = 0;
+    return 0;
+}
+
+static double get_recent_packet_loss() {
+    uint32_t total_sent = 0;
+    uint32_t total_recv = 0;
+
+    for (int i = 0; i < history_count; i++) {
+        total_sent += ping_history[i].sent;
+        total_recv += ping_history[i].received;
+    }
+
+    if (total_sent == 0) return 0.0;
+    return (total_sent - total_recv) / (double)total_sent;
+}
 
 // Run a ping session using resolved IP from STRATUM_MANAGER
 PingResult perform_ping(const char* ip_str, const char* hostname_str) {
@@ -147,6 +193,11 @@ PingResult perform_ping(const char* ip_str, const char* hostname_str) {
 
 // Periodic task that pings stratum target every PING_DELAY using resolved IP
 void ping_task(void *pvParameters) {
+    if (!ping_history && init_ping_history(HISTORY_SIZE) < 0) {
+    ESP_LOGE(TAG, "Failed to init ping history. Task exiting.");
+    vTaskDelete(NULL);
+        return;
+    }
     const StratumConfig* last_config = nullptr;
 
     while (true) {
@@ -175,15 +226,15 @@ void ping_task(void *pvParameters) {
         PingResult result = perform_ping(ip_str, hostname);
 
         ESP_LOGI(TAG, "--- %s ping statistics ---", hostname);
+        double loss_current = 100.0 * (PING_COUNT - result.replies) / (double)PING_COUNT;
         ESP_LOGI(TAG, "%u packets transmitted, %u packets received, %.1f%% packet loss",
-                 PING_COUNT, result.replies,
-                 100.0 * (PING_COUNT - result.replies) / (double)PING_COUNT);
-
+                PING_COUNT, result.replies, loss_current);
         if (result.success) {
             ESP_LOGI(TAG, "round-trip min/avg/max = %.2f/%.2f/%.2f ms",
                      result.min_rtt_ms, result.avg_rtt_ms, result.max_rtt_ms);
         }
-
+        record_ping_result(PING_COUNT, result.replies);
+        ESP_LOGI(TAG, "Recent %d-min packet loss: %.1f%%", HISTORY_WINDOW_SEC / 60, 100.0 * get_recent_packet_loss());
         last_config = current_config;
         vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
     }
@@ -192,4 +243,9 @@ void ping_task(void *pvParameters) {
 // Provide latest average RTT to other modules
 double get_last_ping_rtt() {
     return last_ping_rtt_ms;
+}
+
+// Provide recent few minutes packet loss to other modules
+double get_recent_ping_loss() {
+    return get_recent_packet_loss();
 }

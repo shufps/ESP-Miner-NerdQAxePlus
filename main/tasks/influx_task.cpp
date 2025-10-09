@@ -84,6 +84,9 @@ static void influx_task_fetch_from_system_module(System *module)
     // Ping RTT
     influxdb->m_stats.last_ping_rtt = get_last_ping_rtt();
 
+    // Recent ping packet loss ratio
+    influxdb->m_stats.recent_ping_loss = get_recent_ping_loss();
+
     // found blocks
     int found = module->getFoundBlocks();
     if (found && !last_block_found) {
