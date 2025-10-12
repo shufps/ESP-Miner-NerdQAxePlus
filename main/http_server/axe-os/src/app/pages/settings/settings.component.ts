@@ -9,7 +9,6 @@ import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService } from '@nebular/theme';
-import { WebsocketService } from '../../services/web-socket.service';
 import { TranslateService } from '@ngx-translate/core';
 
 @Component({
@@ -65,7 +64,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private toastrService: NbToastrService,
     private loadingService: LoadingService,
     private githubUpdateService: GithubUpdateService,
-    private websocketService: WebsocketService,
     private translate: TranslateService
   ) {
     window.addEventListener('resize', this.checkDevTools);
@@ -141,45 +139,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
         // Update version status after we have both current version and latest release
         this.updateVersionStatus();
       });
-
-    // Subscribe to WebSocket for OTA progress updates
-    this.wsSubscription = this.websocketService.ws$.subscribe({
-      next: (message: string) => {
-        // Parse OTA progress messages
-        const progressMatch = message.match(/OTA_PROGRESS:\s*(\d+)%/);
-        if (progressMatch) {
-          const progress = parseInt(progressMatch[1], 10);
-
-          // Update the appropriate progress variable based on what's being uploaded
-          if (this.isFirmwareUploading) {
-            this.otaProgress = progress;
-            this.firmwareUpdateProgress = progress;
-
-            // When firmware OTA reaches 100%, device will reboot
-            if (progress === 100) {
-              this.updateStatusMessage = 'Redémarrage en cours...';
-              this.startRebootCheck();
-            }
-          } else if (this.isWebsiteUploading) {
-            this.websiteUpdateProgress = progress;
-
-            // When www.bin OTA reaches 100%, device will reboot
-            if (progress === 100) {
-              this.updateStatusMessage = 'Redémarrage en cours...';
-              this.startRebootCheck();
-            }
-          }
-        }
-      },
-      error: (err) => console.error('WebSocket error:', err)
-    });
   }
 
   ngOnDestroy() {
-    // Unsubscribe from WebSocket
-    if (this.wsSubscription) {
-      this.wsSubscription.unsubscribe();
-    }
     // Clear reboot check interval
     if (this.rebootCheckInterval) {
       clearInterval(this.rebootCheckInterval);
