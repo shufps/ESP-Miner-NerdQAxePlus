@@ -28,6 +28,7 @@ class Board {
     uint32_t m_vrFrequency;
     uint32_t m_defaultVrFrequency;
     bool m_hasHashCounter;
+    const char *m_defaultTheme = "cosmic";
 
     PidSettings m_pidSettings;
 
@@ -45,6 +46,10 @@ class Board {
     // default settings
     int m_defaultAsicFrequency;
     int m_defaultAsicVoltageMillis;
+
+    // default settings
+    int m_ecoAsicFrequency;
+    int m_ecoAsicVoltageMillis;
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
@@ -114,9 +119,11 @@ class Board {
     virtual float getPout() = 0;
 
     virtual void requestBuckTelemtry() = 0;
+    virtual void requestChipTemps();
 
     void setChipTemp(int nr, float temp);
     float getMaxChipTemp();
+    float getChipTemp(int nr);
 
     virtual void shutdown() = 0;
 
@@ -178,6 +185,16 @@ class Board {
     int getDefaultAsicFrequency()
     {
         return m_defaultAsicFrequency;
+    }
+
+    int getEcoAsicVoltageMillis()
+    {
+        return m_ecoAsicVoltageMillis;
+    }
+
+    int getEcoAsicFrequency()
+    {
+        return m_ecoAsicFrequency;
     }
 
     uint32_t getDefaultVrFrequency() {
@@ -251,6 +268,10 @@ class Board {
 
     virtual bool hasHashrateCounter() {
         return m_hasHashCounter;
+    }
+
+    const char* getDefaultTheme() {
+        return m_defaultTheme;
     }
 
 };

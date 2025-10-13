@@ -7,6 +7,8 @@ export interface AsicInfo {
   defaultVoltage: number;
   absMaxFrequency: number;
   absMaxVoltage: number;
+  ecoFrequency?: number;
+  ecoVoltage?: number;
   frequencyOptions: number[];
   voltageOptions: number[];
 }

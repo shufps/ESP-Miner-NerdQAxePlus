@@ -44,6 +44,7 @@ class NerdQaxePlus : public Board {
     virtual float getIout();
     virtual float getPout();
     virtual void requestBuckTelemtry();
+    virtual void requestChipTemps();
 
     virtual bool getPSUFault();
     virtual bool selfTest();

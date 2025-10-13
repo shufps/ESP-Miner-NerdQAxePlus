@@ -182,7 +182,9 @@
     "RESET_DEEPSLEEP": "Exiting deep sleep",
     "RESET_BROWNOUT": "Brownout reset",
     "RESET_SDIO": "SDIO reset",
-    "RESET_NOT_SPECIFIED": "Not specified"
+    "RESET_NOT_SPECIFIED": "Not specified",
+    "ABOUT_NERDQX": " project was developed by an international team of enthusiasts and released as open hardware. NerdQX belongs to the <strong>“ORIGINAL”</strong> initiative, which allows users to find out whether their NerdQX is an original, more about this",
+    "ABOUT_NERDQX_ORIGINAL": " <u>here</u>"
   },
   "SWARM": {
     "TITLE": "Swarm Management",

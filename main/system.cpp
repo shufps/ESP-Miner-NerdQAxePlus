@@ -89,6 +89,7 @@ void System::initSystem() {
 
     // Initialize the display
     m_display = new DisplayDriver();
+    m_display->loadSettings();
     m_display->init(m_board);
 
     m_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
@@ -98,6 +99,12 @@ void System::initSystem() {
     m_history = new History();
     if (!m_history->init(m_board->getAsicCount())) {
         ESP_LOGE(TAG, "history couldn't be initialized!");
+    }
+}
+
+void System::loadSettings() {
+    if (m_display) {
+        m_display->loadSettings();
     }
 }
 
@@ -300,6 +307,8 @@ void System::task() {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
+    // wait until splash1 and splash2 timed out
+    m_display->waitForSplashs();
     m_display->miningScreen();
 
     uint8_t countCycle = 10;

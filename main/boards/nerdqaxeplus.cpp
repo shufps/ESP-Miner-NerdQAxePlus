@@ -7,6 +7,7 @@
 #define BM1368_RST_PIN GPIO_NUM_1
 #define LDO_EN_PIN GPIO_NUM_13
 
+#include "periodic.hpp"
 #include "serial.h"
 #include "board.h"
 #include "nerdqaxeplus.h"
@@ -176,6 +177,20 @@ bool NerdQaxePlus::initAsics()
 void NerdQaxePlus::requestBuckTelemtry() {
     m_tps->status();
 }
+
+void NerdQaxePlus::requestChipTemps() {
+    if (!m_asics) {
+        return;
+    }
+
+    // we need this large interval unfortunately because
+    // measuring takes so long
+    static Periodic every_15s(sec_to_us(15), /*start_immediately=*/false);
+    if (every_15s.due()) {
+        m_asics->requestChipTemp();
+    }
+}
+
 
 void NerdQaxePlus::LDO_enable()
 {

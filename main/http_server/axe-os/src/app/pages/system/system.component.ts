@@ -3,7 +3,7 @@ import { interval, map, catchError, of, Observable, shareReplay, startWith, Subs
 import { SystemService } from '../../services/system.service';
 import { WebsocketService } from '../../services/web-socket.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
-import { NbToastrService } from '@nebular/theme';
+import { NbToastrService, NbThemeService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 
 @Component({
@@ -25,12 +25,16 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
 
   public stopScroll: boolean = false;
 
+  public logoPrefix : string = "";
+
   constructor(
     private websocketService: WebsocketService,
     private toastrService: NbToastrService,
+    private themeService: NbThemeService,
     private systemService: SystemService,
-    private translateService: TranslateService
-  ) {
+    private translateService: TranslateService){
+
+    this.logoPrefix = themeService.currentTheme === 'default' ? '' : '_dark';
 
 
     this.info$ = interval(5000).pipe(
@@ -49,8 +53,15 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
       shareReplay({ refCount: true, bufferSize: 1 })
     );
 
-
+    this.themeService.onThemeChange()
+      .subscribe(themeName => {
+        console.log(themeName);
+        this.logoPrefix = themeName.name === 'default' ? '' : '_dark';
+      }
+    );
   }
+
+
   ngOnDestroy(): void {
     this.websocketSubscription?.unsubscribe();
   }
@@ -102,5 +113,12 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
     if (rssi <= -65) return this.translateService.instant('SYSTEM.SIGNAL_MODERATE');
     if (rssi <= -55) return this.translateService.instant('SYSTEM.SIGNAL_STRONG');
     return this.translateService.instant('SYSTEM.SIGNAL_EXCELLENT');
+  }
+
+
+
+  openLink(url: string): void {
+    // Open external link in a new tab
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 }

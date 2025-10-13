@@ -18,6 +18,7 @@
 #include "ui_helpers.h"
 #include "global_state.h"
 #include "system.h"
+#include "macros.h"
 
 #include "nvs_config.h"
 #include "displayDriver.h"
@@ -25,6 +26,20 @@
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
 static const char *TAG = "TDisplayS3";
+
+#ifdef NERDQX
+#define SPLASH1_TIMEOUT_MS 3000
+#define SPLASH2_TIMEOUT_MS 5000
+#else
+#define SPLASH1_TIMEOUT_MS 3000
+#define SPLASH2_TIMEOUT_MS 3000
+#endif
+
+// small helpers
+static inline int64_t now_us() { return esp_timer_get_time(); }
+static inline int32_t elapsed_ms(int64_t start_us, int64_t now) {
+    return static_cast<int32_t>((now - start_us) / 1000);
+}
 
 DisplayDriver::DisplayDriver() {
     m_animationsEnabled = false;
@@ -39,6 +54,17 @@ DisplayDriver::DisplayDriver() {
     m_btcPrice = 0;
     m_blockHeight = 0;
     m_isActiveOverlay = false;
+    m_lvglMutex = PTHREAD_MUTEX_INITIALIZER;
+    m_isAutoScreenOffEnabled = false;
+    m_tempControlMode = 0;
+    m_fanSpeed = 0;
+}
+
+void DisplayDriver::loadSettings() {
+    PThreadGuard lock(m_lvglMutex);
+    m_isAutoScreenOffEnabled = Config::isAutoScreenOffEnabled();
+    m_tempControlMode = Config::getTempControlMode();
+    m_fanSpeed = Config::getFanSpeed();
 }
 
 bool DisplayDriver::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
@@ -139,11 +165,11 @@ void DisplayDriver::increaseLvglTick() {
 
 // Refresh screen values
 void DisplayDriver::refreshScreen(void) {
-    lv_timer_handler();
-    increaseLvglTick();
+    // NOP
 }
 
 void DisplayDriver::showError(const char *error_message, uint32_t error_code) {
+    PThreadGuard lock(m_lvglMutex);
     // hide the overlay and free the memory in case it was open
     m_ui->hideErrorOverlay();
 
@@ -154,12 +180,14 @@ void DisplayDriver::showError(const char *error_message, uint32_t error_code) {
 }
 
 void DisplayDriver::hideError() {
+    PThreadGuard lock(m_lvglMutex);
     // hide the overlay and free the memory
     m_ui->hideErrorOverlay();
     m_isActiveOverlay = false;
 }
 
 void DisplayDriver::showFoundBlockOverlay() {
+    PThreadGuard lock(m_lvglMutex);
     // hide the overlay and free the memory in case it was open
     m_ui->hideImageOverlay();
 
@@ -206,135 +234,166 @@ void DisplayDriver::lvglTimerTaskWrapper(void *param) {
     display->lvglTimerTask(NULL);
 }
 
+void DisplayDriver::enterState(UiState s, int64_t now)
+{
+    m_state = s;
+    m_stateStart_us = now;
+
+    switch (m_state) {
+    case UiState::Splash1:
+        m_screenStatus = STATE_ONINIT;
+        if (m_ui->ui_Splash1 == NULL) m_ui->splash1ScreenInit();
+        enableLvglAnimations(true);
+        break;
+
+    case UiState::Splash2:
+        m_screenStatus = STATE_SPLASH1;
+        if (m_ui->ui_Splash2 == NULL) m_ui->splash2ScreenInit();
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        if (m_ui->ui_Splash1) { lv_obj_clean(m_ui->ui_Splash1); m_ui->ui_Splash1 = NULL; }
+        break;
+
+    case UiState::Wait:
+        m_screenStatus = STATE_INIT_OK;
+        if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
+        break;
+
+    case UiState::Portal:
+        m_screenStatus = SCREEN_PORTAL;
+        if (m_ui->ui_PortalScreen == NULL) m_ui->portalScreenInit();
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        break;
+
+    case UiState::Mining:
+        m_screenStatus = SCREEN_MINING;
+        if (m_ui->ui_MiningScreen   == NULL) m_ui->miningScreenInit();
+        if (m_ui->ui_SettingsScreen == NULL) m_ui->settingsScreenInit();
+        if (m_ui->ui_BTCScreen      == NULL) m_ui->bTCScreenInit();
+        if (m_ui->ui_GlobalStats    == NULL) m_ui->globalStatsScreenInit();
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        break;
+    }
+}
+
+void DisplayDriver::updateState(int64_t now)
+{
+    const int ms = elapsed_ms(m_stateStart_us, now);
+
+    switch (m_state) {
+    case UiState::Splash1:
+        if (ms >= SPLASH1_TIMEOUT_MS) {
+            ESP_LOGI(TAG, "Changing Screen to SPLASH2");
+            enterState(UiState::Splash2, now);
+        }
+        break;
+
+    case UiState::Splash2:
+        if (ms >= SPLASH2_TIMEOUT_MS) {
+            ESP_LOGI(TAG, "Changing Screen to WAIT");
+            enterState(UiState::Wait, now);
+        }
+        break;
+
+    case UiState::Wait:
+        if (m_nextScreen == SCREEN_PORTAL) {
+            ESP_LOGI(TAG, "Changing Screen to Portal");
+            enterState(UiState::Portal, now);
+        } else if (m_nextScreen == SCREEN_MINING) {
+            ESP_LOGI(TAG, "Changing Screen to Mining");
+            enterState(UiState::Mining, now);
+        }
+        break;
+
+    case UiState::Portal:
+        break;
+
+    case UiState::Mining:
+        break;
+    }
+}
+
+void DisplayDriver::waitForSplashs() {
+    // wait until state is not Splash1 or Splash2
+    while ((int) m_state < (int) UiState::Wait) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
 void DisplayDriver::lvglTimerTask(void *param)
 {
-    int64_t myLastTime = esp_timer_get_time();
-    bool autoOffEnabled = Config::isAutoScreenOffEnabled();
-    // int64_t current_time = esp_timer_get_time();
-
+    // Initial
     displayTurnOn();
+    m_lastKeypressTime = now_us();
+    enterState(UiState::Splash1, now_us());
 
-    // Check if screen is changing to avoid problems during change
-    // if ((current_time - last_screen_change_time) < 1500000) return; // 1500000 microsegundos = 1500 ms = 1.5s - No cambies
-    // pantalla last_screen_change_time = current_time;
-
+    // button animation control
     int32_t elapsed_Ani_cycles = 0;
-    while (1) {
 
-        // Enabled when change screen animation is activated
+    while (true) {
+        uint32_t wait_ms = 0;
+        const int64_t tnow = now_us();
+        {
+            PThreadGuard lock(m_lvglMutex);
+
+            increaseLvglTick();                  // typically lv_tick_inc(...)
+            wait_ms = lv_timer_handler();        // time until next scheduled LVGL job
+        }
+
+        // 2) Decide sleep time outside the lock
         if (m_animationsEnabled) {
-            increaseLvglTick();
-            lv_timer_handler();                 // Process pending LVGL tasks
-            vTaskDelay(pdMS_TO_TICKS(5)); // Delay during animations
-            if (elapsed_Ani_cycles++ > 80) {
-                // After 1s aprox stop animations
+            // While animations are active, cap latency aggressively
+            const uint32_t fast_cap = 5;         // ~200 FPS budget for responsiveness
+            if (++elapsed_Ani_cycles > 80) {     // ~400 ms @ 5 ms cadence
                 m_animationsEnabled = false;
                 elapsed_Ani_cycles = 0;
             }
-        } else {
-            if (m_button1PressedFlag) {
-                m_button1PressedFlag = false;
-                m_lastKeypressTime = esp_timer_get_time();
-
-                if (m_isActiveOverlay) {
-                    hideFoundBlockOverlay();
-                } else {
-                    if (!m_displayIsOn) {
-                        displayTurnOn();
-                    }
-                    changeScreen();
-                }
-            }
-            vTaskDelay(pdMS_TO_TICKS(200)); // Delay waiting animation trigger
+            // Sleep the smaller of LVGL's request and our fast cap
+            uint32_t sleep_ms = (wait_ms > 0 && wait_ms < fast_cap) ? wait_ms : fast_cap;
+            vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+            continue;
         }
 
+        // Idle path: allow longer sleeps but keep a reasonable upper bound
+        const uint32_t idle_cap = 50;            // latency cap while idle
+        uint32_t sleep_ms = (wait_ms > 0 && wait_ms < idle_cap) ? wait_ms : idle_cap;
+        vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+
+        // 2) Buttons
+        if (m_button1PressedFlag) {
+            m_button1PressedFlag = false;
+            m_lastKeypressTime = tnow;
+
+            if (m_isActiveOverlay) {
+                hideFoundBlockOverlay();
+            } else {
+                if (!m_displayIsOn) displayTurnOn();
+                changeScreen();
+            }
+        }
         if (m_button2PressedFlag) {
             m_button2PressedFlag = false;
-            m_lastKeypressTime = esp_timer_get_time();
+            m_lastKeypressTime = tnow;
 
             if (m_displayIsOn) {
-                if (m_isActiveOverlay) {
-                    hideFoundBlockOverlay();
-                } else {
-                    displayTurnOff();
-                }
+                if (m_isActiveOverlay) hideFoundBlockOverlay();
+                else displayTurnOff();
             } else {
                 displayTurnOn();
             }
         }
 
-
-        // Check if we have a screen turned-on override
+        // 3) Auto-Off / Overlay
         if (m_isActiveOverlay) {
             displayTurnOn();
-        } else if (autoOffEnabled) {
-            // Check if screen need to be turned off
+        } else if (m_isAutoScreenOffEnabled) {
             checkAutoTurnOffScreen();
         }
 
-        if ((m_screenStatus > STATE_INIT_OK))
-            continue; // Doesn't need to do the initial animation screens
-
-        // Screen initial process
-        int32_t elapsed = (esp_timer_get_time() - myLastTime) / 1000;
-        switch (m_screenStatus) {
-        case STATE_ONINIT: // First splash Screen
-            if (elapsed > 3000) {
-                ESP_LOGI(TAG, "Changing Screen to SPLASH2");
-                if (m_ui->ui_Splash2 == NULL)
-                    m_ui->splash2ScreenInit();
-                enableLvglAnimations(true);
-                _ui_screen_change(m_ui->ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
-                m_screenStatus = STATE_SPLASH1;
-                myLastTime = esp_timer_get_time();
-            }
-            break;
-        case STATE_SPLASH1: // Second splash screen
-            if (elapsed > 3000) {
-                // Init done, wait until on portal or mining is shown
-                m_screenStatus = STATE_INIT_OK;
-                ESP_LOGI(TAG, "Changing Screen to WAIT SELECTION");
-                if (m_ui->ui_Splash1) {
-                    lv_obj_clean(m_ui->ui_Splash1);
-                }
-                m_ui->ui_Splash1 = NULL;
-            }
-            break;
-        case STATE_INIT_OK: // Show portal
-            if (m_nextScreen == SCREEN_PORTAL) {
-                ESP_LOGI(TAG, "Changing Screen to Show Portal");
-                m_screenStatus = SCREEN_PORTAL;
-                if (m_ui->ui_PortalScreen == NULL) {
-                    m_ui->portalScreenInit();
-                }
-                lv_label_set_text(m_ui->ui_lbSSID, m_portalWifiName); // Actualiza el label
-                enableLvglAnimations(true);
-                _ui_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
-                if (m_ui->ui_Splash2) {
-                    lv_obj_clean(m_ui->ui_Splash2);
-                }
-                m_ui->ui_Splash2 = NULL;
-            } else if (m_nextScreen == SCREEN_MINING) {
-                // Show Mining screen
-                ESP_LOGI(TAG, "Changing Screen to Mining screen");
-                m_screenStatus = SCREEN_MINING;
-                if (m_ui->ui_MiningScreen == NULL)
-                    m_ui->miningScreenInit();
-                if (m_ui->ui_SettingsScreen == NULL)
-                    m_ui->settingsScreenInit();
-                if (m_ui->ui_BTCScreen == NULL)
-                    m_ui->bTCScreenInit();
-                if (m_ui->ui_GlobalStats == NULL)
-                    m_ui->globalStatsScreenInit();
-                enableLvglAnimations(true);
-                _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
-                if (m_ui->ui_Splash2) {
-                    lv_obj_clean(m_ui->ui_Splash2);
-                }
-                m_ui->ui_Splash2 = NULL;
-            }
-            break;
-        }
+        // 4) FSM update (timeouts and screen changes)
+        updateState(tnow);
     }
 }
 
@@ -487,7 +546,7 @@ void DisplayDriver::updateHashrate(System *module, float power)
 {
     char strData[20];
 
-    float efficiency = power / (module->getCurrentHashrate10m() / 1000.0);
+    float efficiency = power / (module->getCurrentHashrate() / 1000.0);
     float hashrate = module->getCurrentHashrate();
 
     // >= 10T doesn't fit on the screen with a decimal place
@@ -539,6 +598,7 @@ void DisplayDriver::updateTime(System *module)
 
 void DisplayDriver::updateCurrentSettings()
 {
+    PThreadGuard lock(m_lvglMutex);
     char strData[20];
     if (m_ui->ui_SettingsScreen == NULL)
         return;
@@ -556,7 +616,7 @@ void DisplayDriver::updateCurrentSettings()
     snprintf(strData, sizeof(strData), "%d", board->getAsicVoltageMillis());
     lv_label_set_text(m_ui->ui_lbVcoreSet, strData); // Update label
 
-    switch (Config::getTempControlMode()) {
+    switch (m_tempControlMode) {
         case 1:
             lv_label_set_text(m_ui->ui_lbFanSet, "AUTO"); // Update label
             break;
@@ -564,7 +624,7 @@ void DisplayDriver::updateCurrentSettings()
             lv_label_set_text(m_ui->ui_lbFanSet, "PID"); // Update label
             break;
         default:
-            snprintf(strData, sizeof(strData), "%d", Config::getFanSpeed());
+            snprintf(strData, sizeof(strData), "%d", m_fanSpeed);
             lv_label_set_text(m_ui->ui_lbFanSet, strData); // Update label
             break;
     }
@@ -619,6 +679,7 @@ void DisplayDriver::updateGlobalMiningStats(void)
 
 void DisplayDriver::updateGlobalState()
 {
+    PThreadGuard lock(m_lvglMutex);
     char strData[20];
 
     if (m_ui->ui_MiningScreen == NULL)
@@ -657,6 +718,7 @@ void DisplayDriver::updateGlobalState()
 
 void DisplayDriver::updateIpAddress(const char *ip_address_str)
 {
+    PThreadGuard lock(m_lvglMutex);
     if (m_ui->ui_MiningScreen == NULL)
         return;
     if (m_ui->ui_SettingsScreen == NULL)
@@ -668,6 +730,7 @@ void DisplayDriver::updateIpAddress(const char *ip_address_str)
 
 void DisplayDriver::logMessage(const char *message)
 {
+    PThreadGuard lock(m_lvglMutex);
     m_screenStatus = SCREEN_LOG;
     if (m_ui->ui_LogScreen == NULL)
         m_ui->logScreenInit();
@@ -678,30 +741,21 @@ void DisplayDriver::logMessage(const char *message)
 
 void DisplayDriver::miningScreen(void)
 {
-    // Only called once at the beggining from system lib
-    if (m_ui->ui_MiningScreen == NULL)
-        m_ui->miningScreenInit();
-    if (m_ui->ui_SettingsScreen == NULL)
-        m_ui->settingsScreenInit();
-    if (m_ui->ui_BTCScreen == NULL)
-        m_ui->bTCScreenInit();
-    if (m_ui->ui_GlobalStats == NULL)
-        m_ui->globalStatsScreenInit();
+    PThreadGuard lock(m_lvglMutex);
     m_nextScreen = SCREEN_MINING;
-
-    // nasty hack
-    // needed to be able to switch to the mining screen when the
-    // portal screen was shown and wifi STA recovers
-    m_screenStatus = STATE_INIT_OK;
 }
+
 
 void DisplayDriver::portalScreen(const char *message)
 {
+    PThreadGuard lock(m_lvglMutex);
     m_nextScreen = SCREEN_PORTAL;
     strcpy(m_portalWifiName, message);
 }
+
 void DisplayDriver::updateWifiStatus(const char *message)
 {
+    PThreadGuard lock(m_lvglMutex);
     if (m_ui->ui_lbConnect != NULL)
         lv_label_set_text(m_ui->ui_lbConnect, message); // Actualiza el label
     refreshScreen();

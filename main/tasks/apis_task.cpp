@@ -105,9 +105,12 @@ esp_err_t APIsFetcher::http_event_handler(esp_http_client_event_t *evt) {
     switch (evt->event_id) {
         case HTTP_EVENT_ERROR:
         case HTTP_EVENT_DISCONNECTED: {
-            ESP_LOGE("APIsFetcher", "HTTP connection error/disconnected, errno=%d, transport=%s",
-                     esp_http_client_get_errno(evt->client),
-                     esp_http_client_get_transport_type(evt->client)==HTTP_TRANSPORT_OVER_SSL?"SSL":"TCP");
+            int errnum = esp_http_client_get_errno(evt->client);
+            if (errnum) {
+                ESP_LOGE("APIsFetcher", "HTTP connection error/disconnected, errno=%d, transport=%s",
+                    errnum,
+                    esp_http_client_get_transport_type(evt->client)==HTTP_TRANSPORT_OVER_SSL?"SSL":"TCP");
+            }
             break;
         }
 

@@ -42,8 +42,12 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public dataData1d: number[] = [];
   public chartData?: any;
 
+  public hasChipTemps: boolean = false;
+  public viewMode: 'gauge' | 'bars' = 'bars'; // default to bars
+
   private localStorageKey = 'chartData';
   private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
+  private tempViewKey = 'tempViewMode';
 
   ngAfterViewChecked(): void {
     // Ensure chart is initialized only once when the canvas becomes available
@@ -75,6 +79,12 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     const bodyStyle = getComputedStyle(document.body);
     const textColor = bodyStyle.getPropertyValue('--card-text-color');
     const textColorSecondary = bodyStyle.getPropertyValue('--card-text-color');
+
+    // Load persisted view mode early (falls vorhanden)
+    const persisted = this.localStorage.getItem(this.tempViewKey);
+    if (persisted === 'gauge' || persisted === 'bars') {
+      this.viewMode = persisted as 'gauge' | 'bars';
+    }
 
     this.chartData = {
       labels: [],
@@ -212,6 +222,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         info.coreVoltage = parseFloat((info.coreVoltage / 1000).toFixed(2));
         info.temp = parseFloat(info.temp.toFixed(1));
         info.vrTemp = parseFloat(info.vrTemp.toFixed(1));
+        info.overheat_temp = parseFloat(info.overheat_temp.toFixed(1));
+
+        const chipTemps = info?.asicTemps ?? [];
+        this.hasChipTemps =
+          Array.isArray(chipTemps) &&
+          chipTemps.length > 0 &&
+          chipTemps.some(v => v != null && !Number.isNaN(Number(v)) && Number(v) !== 0);
 
         return info;
       }),
@@ -437,6 +454,18 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.chart.options = this.chartOptions;
       this.chart.update();
     }
+  }
+
+  // Toggle only if feature exists, then persist
+  public onTempViewClick(event: Event): void {
+    // Prevent toggling when chip temps aren't available
+    if (!this.hasChipTemps) return;
+
+    // Toggle mode
+    this.viewMode = this.viewMode === 'bars' ? 'gauge' : 'bars';
+
+    // Persist to local storage
+    this.localStorage.setItem(this.tempViewKey, this.viewMode);
   }
 }
 

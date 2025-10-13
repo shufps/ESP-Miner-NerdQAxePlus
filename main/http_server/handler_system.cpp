@@ -107,6 +107,14 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
     doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
 
+    // asic temps
+    {
+        JsonArray arr = doc["asicTemps"].to<JsonArray>();
+        for (int i=0;i<board->getAsicCount();i++) {
+            arr.add(board->getChipTemp(i));
+        }
+    }
+
     // If history was requested, add the history data as a nested object
     if (history_requested) {
         uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour later
@@ -160,6 +168,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["freeHeapInt"]        = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     doc["version"]            = esp_app_get_description()->version;
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
+
+    doc["defaultTheme"]       = board->getDefaultTheme();
 
     //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 
@@ -342,6 +352,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     Board* board = SYSTEM_MODULE.getBoard();
     board->loadSettings();
 
+    // reload settings of system module (and display)
+    SYSTEM_MODULE.loadSettings();
+
     return ESP_OK;
 }
 
@@ -372,8 +385,10 @@ esp_err_t GET_system_asic(httpd_req_t *req)
     doc["defaultVoltage"]   = board->getDefaultAsicVoltageMillis();
     doc["absMaxFrequency"]  = board->getAbsMaxAsicFrequency();
     doc["absMaxVoltage"]    = board->getAbsMaxAsicVoltageMillis();
+    doc["ecoFrequency"]     = board->getEcoAsicFrequency();
+    doc["ecoVoltage"]       = board->getEcoAsicVoltageMillis();
 
-    doc["swarmColor"] = board->getSwarmColorName();
+    doc["swarmColor"]       = board->getSwarmColorName();
 
     // frequencyOptions
     {

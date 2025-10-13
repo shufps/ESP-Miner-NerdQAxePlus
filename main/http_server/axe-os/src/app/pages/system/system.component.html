@@ -17,21 +17,21 @@
                     <td>{{ info.lastResetReason | translate }}</td>
                 </tr>
                 <tr>
-                  <td><b>{{ 'SYSTEM.WIFI_STATUS' | translate }}:</b></td>
-                  <td>
-                    <span class="wifi-status-combined">
-                      {{ info.wifiStatus | translate }}
-                      <span class="rssi-inline">
-                        ({{ info.wifiRSSI }} dBm)
-                        <div class="wifi-bars" [attr.title]="getRssiTooltip(info.wifiRSSI)">
-                          <div class="bar" [class.active]="info.wifiRSSI > -85"></div>
-                          <div class="bar" [class.active]="info.wifiRSSI > -75"></div>
-                          <div class="bar" [class.active]="info.wifiRSSI > -65"></div>
-                          <div class="bar" [class.active]="info.wifiRSSI > -55"></div>
-                        </div>
-                      </span>
-                    </span>
-                  </td>
+                    <td><b>{{ 'SYSTEM.WIFI_STATUS' | translate }}:</b></td>
+                    <td>
+                        <span class="wifi-status-combined">
+                            {{ info.wifiStatus | translate }}
+                            <span class="rssi-inline">
+                                ({{ info.wifiRSSI }} dBm)
+                                <div class="wifi-bars" [attr.title]="getRssiTooltip(info.wifiRSSI)">
+                                    <div class="bar" [class.active]="info.wifiRSSI > -85"></div>
+                                    <div class="bar" [class.active]="info.wifiRSSI > -75"></div>
+                                    <div class="bar" [class.active]="info.wifiRSSI > -65"></div>
+                                    <div class="bar" [class.active]="info.wifiRSSI > -55"></div>
+                                </div>
+                            </span>
+                        </span>
+                    </td>
                 </tr>
                 <tr>
                     <td><b>{{ 'SYSTEM.MAC_ADDRESS' | translate }}:</b></td>
@@ -45,6 +45,112 @@
                     <td><b>{{ 'SYSTEM.VERSION' | translate }}:</b></td>
                     <td>{{ info.version }}</td>
                 </tr>
+                <!-- Collaboration trigger: only for NerdQX -->
+                <tr *ngIf="info.deviceModel === 'NerdQX'">
+                  <td></td>
+                  <td class="collab-card no-border">
+                    <nb-card class="collab-card">
+                      <nb-card-header class="collab-header">
+                        <span class="text-hint" (click)="openLink('https://github.com/IxTechCrypto/NerdQX')"
+                              role="button"
+                              tabindex="0"
+                              title="NerdQX repository on Github"><u>NerdQX</u>
+                        </span>
+                        <span class="text-hint" [innerHTML]="'SYSTEM.ABOUT_NERDQX' | translate"></span>
+                        <span class="text-hint" (click)="openLink('https://plebbase.com/nerdqx-original')"
+                             role="button"
+                             tabindex="0"
+                             title="NerdQX ORIGINAL initiative">
+                          <span [innerHTML]="'SYSTEM.ABOUT_NERDQX_ORIGINAL' | translate"></span>
+                        </span>.
+                      </nb-card-header>
+
+                      <nb-card-body>
+                        <div class="collab-grid">
+                          <!-- Column headers -->
+                          <div class="colhead"></div>
+                          <div class="colhead"></div>
+                          <div class="colhead text-hint">phil31</div>
+                          <div class="colhead text-hint">shufps</div>
+
+                          <!-- Logos row (clickable tiles) -->
+                          <div class="logo-cell clickable"
+                               (click)="openLink('https://ixtech.xyz')"
+                               role="button"
+                               tabindex="0"
+                               title="Ix Tech – Website"
+                               aria-label="Ix Tech – Website">
+                            <img class="logo" src="/assets/IxTech{{ logoPrefix }}.png" alt="Ix Tech logo" />
+                          </div>
+
+                          <div class="logo-cell clickable"
+                               (click)="openLink('https://plebbase.com')"
+                               role="button"
+                               tabindex="0"
+                               title="PlebBase – Website"
+                               aria-label="PlebBase – Website">
+                            <img class="logo" src="/assets/PlebBase{{ logoPrefix }}.png" alt="PlebBase logo" />
+                          </div>
+
+                          <div class="logo-cell clickable"
+                               (click)="openLink('https://github.com/phil31')"
+                               role="button"
+                               tabindex="0"
+                               title="phil31 – GitHub"
+                               aria-label="phil31 – GitHub">
+                            <nb-icon icon="github-outline" class="gh-l" aria-label="GitHub"></nb-icon>
+                          </div>
+
+                          <div class="logo-cell clickable"
+                               (click)="openLink('https://github.com/shufps')"
+                               role="button"
+                               tabindex="0"
+                               title="shufps – GitHub"
+                               aria-label="shufps – GitHub">
+                            <nb-icon icon="github-outline" class="gh-l" aria-label="GitHub"></nb-icon>
+                          </div>
+
+                          <!-- X/Twitter row -->
+                          <div class="logo-cell x-cell"
+                               (click)="openLink('https://x.com/IxTechCrypto')"
+                               role="button"
+                               tabindex="0"
+                               title="Ix Tech – X (Twitter)"
+                               aria-label="Ix Tech – X (Twitter)">
+                            <div class="x-tile">
+                              <img class="x-logo" src="/assets/x-logo.png" alt="X (Twitter) logo" />
+                            </div>
+                          </div>
+
+                          <div class="logo-cell x-cell"
+                               (click)="openLink('https://x.com/trendkraft')"
+                               role="button"
+                               tabindex="0"
+                               title="PlebBase – X (Twitter)"
+                               aria-label="PlebBase – X (Twitter)">
+                            <div class="x-tile">
+                              <img class="x-logo" src="/assets/x-logo.png" alt="X (Twitter) logo" />
+                            </div>
+                          </div>
+
+                          <div class="logo-cell x-cell"><!-- no X link --></div>
+
+                          <div class="logo-cell x-cell"
+                               (click)="openLink('https://x.com/Pmaxsd')"
+                               role="button"
+                               tabindex="0"
+                               title="shufps – X (Twitter)"
+                               aria-label="shufps – X (Twitter)">
+                            <div class="x-tile">
+                              <img class="x-logo" src="/assets/x-logo.png" alt="X (Twitter) logo" />
+                            </div>
+                          </div>
+                        </div>
+
+                      </nb-card-body>
+                    </nb-card>
+                  </td>
+                </tr>
             </table>
         </nb-card-body>
     </nb-card>
@@ -53,20 +159,23 @@
         <nb-card-header style="display: flex; align-items: center; flex-wrap: nowrap;">
             {{ 'SYSTEM.REALTIME_LOGS' | translate }}
             <button nbButton size="small" status="primary" (click)="toggleLogs()" style="margin-left: 15px;">
-                {{ showLogs ? ('SYSTEM.HIDE' | translate) : ('SYSTEM.SHOW' | translate) }} {{ 'SYSTEM.LOGS' | translate }}
+                {{ showLogs ? ('SYSTEM.HIDE' | translate) : ('SYSTEM.SHOW' | translate) }} {{ 'SYSTEM.LOGS' | translate
+                }}
             </button>
             <button nbButton size="small" status="warning" (click)="stopScroll = !stopScroll" *ngIf="showLogs"
                 style="margin-left: 15px;">
-                {{ stopScroll ? ('SYSTEM.START' | translate) : ('SYSTEM.STOP' | translate) }} {{ 'SYSTEM.SCROLLING' | translate }}
+                {{ stopScroll ? ('SYSTEM.START' | translate) : ('SYSTEM.STOP' | translate) }} {{ 'SYSTEM.SCROLLING' |
+                translate }}
             </button>
             <div *ngIf="showLogs" style="display: flex; align-items: center; margin-left: 15px; margin-top: 0;">
-            <!-- Clear Filter Button -->
-              <button nbButton size="small" status="info" (click)="logFilterText = ''" style="margin-right: 10px;">
-                {{ 'SYSTEM.CLEAR_FILTER' | translate }}
-              </button>
-              <label for="logFilterText" style="margin-right: 5px;">{{ 'SYSTEM.FILTER' | translate }}</label>
-                <input id="logFilterText" type="text" [(ngModel)]="logFilterText" [placeholder]="'SYSTEM.FILTER_LOGS_PLACEHOLDER' | translate"
-                  style="margin-left: 5px; flex-grow: 1; width: calc(100% - 210px);" />
+                <!-- Clear Filter Button -->
+                <button nbButton size="small" status="info" (click)="logFilterText = ''" style="margin-right: 10px;">
+                    {{ 'SYSTEM.CLEAR_FILTER' | translate }}
+                </button>
+                <label for="logFilterText" style="margin-right: 5px;">{{ 'SYSTEM.FILTER' | translate }}</label>
+                <input id="logFilterText" type="text" [(ngModel)]="logFilterText"
+                    [placeholder]="'SYSTEM.FILTER_LOGS_PLACEHOLDER' | translate"
+                    style="margin-left: 5px; flex-grow: 1; width: calc(100% - 210px);" />
             </div>
         </nb-card-header>
         <nb-card-body *ngIf="showLogs">
@@ -75,4 +184,5 @@
             </div>
         </nb-card-body>
     </nb-card>
+
 </ng-container>
