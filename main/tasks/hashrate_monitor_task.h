@@ -16,6 +16,7 @@ class HashrateMonitor {
   private:
     // confirmed by long-term averages
     const double ERRATA_FACTOR = 1.046;
+    char m_logBuffer[256] = {0};
 
     // Task + config
     uint32_t m_period_ms = 1000;
@@ -41,6 +42,7 @@ class HashrateMonitor {
     Asic *m_asic = nullptr;
 
     void setChipHashrate(int nr, float temp);
+    float getChipHashrate(int nr);
     float getTotalChipHashrate();
 
   public:

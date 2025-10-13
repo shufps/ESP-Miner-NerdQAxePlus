@@ -7,6 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "periodic.hpp"
 #include "mining.h"
 
 #include "serial.h"
@@ -48,22 +49,6 @@ void PowerManagementTask::shutdown() {
     Board* board = SYSTEM_MODULE.getBoard();
     if (board) {
         board->shutdown();
-    }
-}
-
-void PowerManagementTask::requestChipTemps() {
-    static uint64_t last_temp_request = esp_timer_get_time();
-
-    Board* board = SYSTEM_MODULE.getBoard();
-    Asic* asics = board->getAsics();
-
-    // request chip temps and buck telemetry all 15s
-    if (esp_timer_get_time() - last_temp_request > 15000000llu) {
-        if (asics) {
-            asics->requestChipTemp();
-        }
-        board->requestBuckTelemtry();
-        last_temp_request = esp_timer_get_time();
     }
 }
 
@@ -129,6 +114,55 @@ void PowerManagementTask::checkPidSettingsChanged() {
     }
 }
 
+void PowerManagementTask::logChipTemps() {
+    size_t offset = 0;
+
+    Board* board = SYSTEM_MODULE.getBoard();
+
+    // Iterate through each ASIC and append its count to the log message
+    for (int i = 0; i < board->getAsicCount(); i++) {
+        offset += snprintf(m_logBuffer + offset, sizeof(m_logBuffer) - offset, "%.2f°C / ", board->getChipTemp(i));
+    }
+    if (offset >= 2) {
+        m_logBuffer[offset - 2] = 0; // remove trailing slash
+    }
+
+    ESP_LOGI(TAG, "chip temperatures: %s", m_logBuffer);
+}
+
+void PowerManagementTask::create_job_timer(TimerHandle_t xTimer)
+{
+    // Retrieve 'this' pointer from timer ID
+    PowerManagementTask *task = (PowerManagementTask*) pvTimerGetTimerID(xTimer);
+    if (!task) {
+        return;
+    }
+    task->trigger();
+}
+
+void PowerManagementTask::trigger() {
+    pthread_mutex_lock(&m_loop_mutex);
+    pthread_cond_signal(&m_loop_cond);
+    pthread_mutex_unlock(&m_loop_mutex);
+}
+
+bool PowerManagementTask::startTimer() {
+    // Create the timer
+    m_timer = xTimerCreate(TAG, pdMS_TO_TICKS(POLL_RATE), pdTRUE, (void*) this, create_job_timer);
+
+    if (m_timer == NULL) {
+        ESP_LOGE(TAG, "Failed to create timer");
+        return false;
+    }
+
+    // Start the timer
+    if (xTimerStart(m_timer, 0) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to start timer");
+        return false;
+    }
+    return true;
+}
+
 void PowerManagementTask::task()
 {
     Board* board = SYSTEM_MODULE.getBoard();
@@ -173,9 +207,18 @@ void PowerManagementTask::task()
     m_pid->SetControllerDirection(REVERSE);
     m_pid->Initialize();
 
-    vTaskDelay(pdMS_TO_TICKS(3000));
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    startTimer();
 
+    Periodic every_15s(sec_to_us(15), /*start_immediately=*/true);
+
+    //uint64_t last_time = esp_timer_get_time();
     while (1) {
+        pthread_mutex_lock(&m_loop_mutex);
+        pthread_cond_wait(&m_loop_cond, &m_loop_mutex); // Wait for the timer
+        pthread_mutex_unlock(&m_loop_mutex);
+
+        //uint64_t start = esp_timer_get_time();
         lock();
 
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
@@ -200,7 +243,14 @@ void PowerManagementTask::task()
         checkPidSettingsChanged();
 
         // request chip temps
-        requestChipTemps();
+        board->requestChipTemps();
+
+        logChipTemps();
+
+        // request buck telemetry
+        if (every_15s.due()) {
+            board->requestBuckTelemtry();
+        }
 
         float vin = board->getVin();
         float iin = board->getIin();
@@ -243,13 +293,16 @@ void PowerManagementTask::task()
             tmp1075Max = std::max(tmp1075Max, tmp);
         }
 
-        //Get the readed MaxChipTemp of all chained chips after
-        //calling requestChipTemp()
-        //IMPORTANT: this value only makes sense with BM1368 ASIC, with other Asics will remain at 0
+        // get max temp of all chips
+        // returns 0 if not available on the hardware
         float intChipTempMax = board->getMaxChipTemp();
 
-        // Uses the worst case between board temp sensor or Asic temp read command
-        m_chipTempMax = std::max(tmp1075Max, intChipTempMax);
+        // use chip temps if available
+        // works only on NQ+ and QX
+        // note: use single assignment because we don't have synchronization
+        // on m_chipTempMax what could lead to weird race conditions on
+        // the display (jumping temps)
+        m_chipTempMax = intChipTempMax ? intChipTempMax : tmp1075Max;
 
         influx_task_set_temperature(m_chipTempMax, m_vrTemp);
 
@@ -291,7 +344,13 @@ void PowerManagementTask::task()
                 board->setFanSpeed((float) m_fanPerc / 100.0f);
         }
         unlock();
-
-        vTaskDelay(pdMS_TO_TICKS(POLL_RATE));
+        // uint64_t end = esp_timer_get_time();
+        // uint64_t duration = (end - start) / 1000llu;
+        // uint64_t interval = (start - last_time) / 1000llu;
+        // // normally doesn't happen
+        // if (duration > POLL_RATE) {
+        //     ESP_LOGE(TAG, "loop taking more then %dms (%llums, interval: %llu)", POLL_RATE, duration, interval);
+        // }
+        // last_time = start;
     }
 }

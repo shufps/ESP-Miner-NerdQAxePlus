@@ -37,6 +37,9 @@ export class EditComponent implements OnInit {
   public defaultCoreVoltage: number = 0;
   public defaultVrFrequency: number = 0;
 
+  public ecoFrequency: number = 0;
+  public ecoCoreVoltage: number = 0;
+
   private originalSettings!: any;
 
   // NEW: the “raw” options from the /asic endpoint
@@ -87,8 +90,12 @@ export class EditComponent implements OnInit {
       this.ASICModel = info.ASICModel;
 
       // Prefer defaults from /asic, otherwise fallback to /info
-      this.defaultFrequency    = (asic?.defaultFrequency ?? info.defaultFrequency ?? 0);
-      this.defaultCoreVoltage  = (asic?.defaultVoltage   ?? info.defaultCoreVoltage ?? 0);
+      this.defaultFrequency   = (asic?.defaultFrequency ?? info.defaultFrequency ?? 0);
+      this.defaultCoreVoltage = (asic?.defaultVoltage   ?? info.defaultCoreVoltage ?? 0);
+
+      // eco only from /asic (optional)
+      this.ecoFrequency   = asic?.ecoFrequency ?? undefined;
+      this.ecoCoreVoltage = asic?.ecoVoltage ?? undefined;
 
       // Store raw options (can be empty if the endpoint returns nothing)
       this.asicFrequencyValues = asic?.frequencyOptions ?? [];
@@ -96,15 +103,19 @@ export class EditComponent implements OnInit {
 
       this.defaultVrFrequency = info.defaultVrFrequency ?? undefined;
 
-      // Dropdown base lists incl. (default) label
-      const freqBase = this.asicFrequencyValues.map(v => ({
-        name: v === this.defaultFrequency ? `${v} (default)` : `${v}`,
-        value: v
-      }));
-      const voltBase = this.asicVoltageValues.map(v => ({
-        name: v === this.defaultCoreVoltage ? `${v} (default)` : `${v}`,
-        value: v
-      }));
+      const freqBase = this.asicFrequencyValues.map(v => {
+        let suffix = '';
+        if (v === this.defaultFrequency) suffix = ' (default)';
+        if (this.ecoFrequency != null && v === this.ecoFrequency) suffix = ' (eco)';
+        return { name: `${v}${suffix}`, value: v };
+      });
+
+      const voltBase = this.asicVoltageValues.map(v => {
+        let suffix = '';
+        if (v === this.defaultCoreVoltage) suffix = ' (default)';
+        if (this.ecoCoreVoltage != null && v === this.ecoCoreVoltage) suffix = ' (eco)';
+        return { name: `${v}${suffix}`, value: v };
+      });
 
       // Build dropdowns and, if needed, append the current custom value
       this.frequencyOptions = this.assembleDropdownOptions(freqBase, info.frequency);
@@ -325,14 +336,19 @@ export class EditComponent implements OnInit {
     this.supportLevel = supportLevel;
     console.log('Advanced Mode:', supportLevel);
 
-    const freqBase = this.asicFrequencyValues.map(v => ({
-      name: v === this.defaultFrequency ? `${v} (default)` : `${v}`,
-      value: v
-    }));
-    const voltBase = this.asicVoltageValues.map(v => ({
-      name: v === this.defaultCoreVoltage ? `${v} (default)` : `${v}`,
-      value: v
-    }));
+    const freqBase = this.asicFrequencyValues.map(v => {
+      let suffix = '';
+      if (v === this.defaultFrequency) suffix = ' (default)';
+      if (this.ecoFrequency != null && v === this.ecoFrequency) suffix = ' (eco)';
+      return { name: `${v}${suffix}`, value: v };
+    });
+
+    const voltBase = this.asicVoltageValues.map(v => {
+      let suffix = '';
+      if (v === this.defaultCoreVoltage) suffix = ' (default)';
+      if (this.ecoCoreVoltage != null && v === this.ecoCoreVoltage) suffix = ' (eco)';
+      return { name: `${v}${suffix}`, value: v };
+    });
 
     this.frequencyOptions = this.assembleDropdownOptions(freqBase, this.form.controls['frequency'].value);
     this.voltageOptions   = this.assembleDropdownOptions(voltBase,  this.form.controls['coreVoltage'].value);

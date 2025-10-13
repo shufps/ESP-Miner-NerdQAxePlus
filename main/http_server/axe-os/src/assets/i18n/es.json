@@ -182,7 +182,9 @@
     "RESET_DEEPSLEEP": "Saliendo de sueño profundo",
     "RESET_BROWNOUT": "Reinicio por caída de tensión",
     "RESET_SDIO": "Reinicio SDIO",
-    "RESET_NOT_SPECIFIED": "No especificado"
+    "RESET_NOT_SPECIFIED": "No especificado",
+    "ABOUT_NERDQX": " proyecto fue desarrollado por un equipo internacional de entusiastas y lanzado como hardware abierto. NerdQX pertenece a la iniciativa <strong>«ORIGINAL»</strong>, que permite a los usuarios averiguar si su NerdQX es original. Más información al respecto",
+    "ABOUT_NERDQX_ORIGINAL": " <u>aquí</u>"
   },
   "SWARM": {
     "TITLE": "Gestión de Enjambre",

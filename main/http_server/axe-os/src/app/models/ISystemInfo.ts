@@ -69,6 +69,8 @@ export interface ISystemInfo {
     defaultVrFrequency?: number,
     vrFrequency: number,
 
+    defaultTheme: string,
+
     boardtemp1?: number,
     boardtemp2?: number,
     overheat_temp: number,
@@ -77,6 +79,8 @@ export interface ISystemInfo {
     pidP: number,
     pidI: number,
     pidD: number,
+
+    asicTemps?: number[],
 
     history: IHistory
 }

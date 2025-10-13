@@ -26,7 +26,8 @@ jobs:
             label: NerdHaxe-Gamma
           - board: NERDEKO
             label: NerdEKO
-
+          - board: NERDQX
+            label: NerdQX
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3

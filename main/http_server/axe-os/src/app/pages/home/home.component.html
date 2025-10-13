@@ -185,9 +185,43 @@
             @let heatSectionColModifier = info.vrTemp > 0 ? 6 : 4;
 
             <div class="row text-center">
-              <div class="col-{{ heatSectionColModifier }}">
-                <app-gauge [value]="info.temp" [min]="20" [max]="75" [format]="'1.1-1'" [unit]="'°C'"
-                  [label]="'PERFORMANCE.ASIC_TEMP' | translate"></app-gauge>
+              <div
+                class="col-{{ heatSectionColModifier }}"
+                [class.cursor-pointer]="hasChipTemps"
+                [attr.role]="hasChipTemps ? 'button' : null"
+                [attr.tabindex]="hasChipTemps ? '0' : null"
+                [attr.aria-pressed]="hasChipTemps ? (viewMode === 'bars') : null"
+                [attr.title]="hasChipTemps ? (viewMode === 'bars' ? 'Switch to gauge' : 'Switch to chip bars') : null"
+                (click)="onTempViewClick($event)"
+                (keydown.enter)="onTempViewClick($event)"
+                (keydown.space)="onTempViewClick($event)"
+              >
+                <!-- Show gauge if feature not available OR user selected gauge -->
+                <ng-container *ngIf="!hasChipTemps || viewMode === 'gauge'; else qxBars">
+                  <app-gauge
+                    [value]="info.temp"
+                    [min]="20"
+                    [max]="info?.overheat_temp"
+                    [format]="'1.1-1'"
+                    [unit]="'°C'"
+                    [label]="'PERFORMANCE.ASIC_TEMP' | translate">
+                  </app-gauge>
+                </ng-container>
+
+                <!-- qx multi-bars -->
+                <ng-template #qxBars>
+                  <app-asic-temp-bars
+                    [temps]="info?.asicTemps ?? [0,0,0,0]"
+                    [min]="20"
+                    [max]="info?.overheat_temp ?? 70"
+                    unit="°C"
+                    [warn]="(info?.overheat_temp ?? 70) - 5"
+                    [crit]="(info?.overheat_temp ?? 70) - 3"
+                    [width]="140"
+                    [height]="120">
+                  </app-asic-temp-bars>
+                </ng-template>
+
               </div>
               <div class="col-6" *ngIf="info.vrTemp > 0">
                 <app-gauge [value]="info.vrTemp" [min]="20" [max]="145" [format]="'1.1-1'" [unit]="'°C'"
@@ -215,7 +249,7 @@
           <nb-card-body class="no-scroll">
             <div class="row text-center">
               <div class="col-6">
-                <app-gauge [value]="info.frequency" [format]="'1.0-0'" [min]="100" [max]="800" [unit]="'MHz'"
+                <app-gauge [value]="info.frequency" [format]="'1.0-0'" [min]="200" [max]="1000" [unit]="'MHz'"
                   [label]="'PERFORMANCE.ASIC_FREQUENCY' | translate"></app-gauge>
               </div>
               <div class="col-6">

@@ -36,6 +36,7 @@ yarn-error.log
 /libpeerconnection.log
 testem.log
 /typings
+proxy.conf.json
 
 # System files
 .DS_Store

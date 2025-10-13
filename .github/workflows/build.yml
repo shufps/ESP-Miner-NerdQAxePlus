@@ -33,6 +33,9 @@ jobs:
           - board: NERDEKO
             upload_www: false
             label: NerdEKO
+          - board: NERDQX
+            label: NerdQX
+            upload_www: false
 
     steps:
     - name: Checkout repository

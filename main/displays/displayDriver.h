@@ -67,7 +67,21 @@
 class System;
 
 class DisplayDriver {
+  public:
+    // display state machine
+    enum class UiState : uint8_t {
+        Splash1,
+        Splash2,
+        Wait,
+        Portal,
+        Mining
+    };
+
   protected:
+    UiState m_state = UiState::Splash1;
+    int64_t m_stateStart_us = 0;
+
+    pthread_mutex_t m_lvglMutex;
     bool m_animationsEnabled;   // Flag for enabling animations
     bool m_button1PressedFlag;  // Flag indicating button 1 is pressed
     bool m_button2PressedFlag;  // Flag indicating button 2 is pressed
@@ -119,30 +133,38 @@ class DisplayDriver {
     static void lvglTimerTaskWrapper(void *param); // Wrapper for LVGL timer task
     void lvglTimerTask(void *param);               // LVGL timer task implementation
 
+    // display state machine
+    void enterState(UiState s, int64_t now);
+    void updateState(int64_t now);
+
     // Display initialization
     lv_obj_t *initTDisplayS3(); // Initialize the TDisplay S3
+
+    void updateHashrate(System *module, float power);               // Update the hashrate display
+    void updateShares(System *module);                              // Update the shares information on the display
+    void updateTime(System *module);                                // Update the time display
+    void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
+
+    void hideFoundBlockOverlay();
 
   public:
     // Constructor
     DisplayDriver();
-
     // Public methods
     void init(Board *board);                                        // Initialize the display system
-    void updateHashrate(System *module, float power);               // Update the hashrate display
-    void updateShares(System *module);                              // Update the shares information on the display
-    void updateTime(System *module);                                // Update the time display
-    void updateGlobalState();                                       // Update the global state on the display
-    void updateCurrentSettings();                                   // Update the current settings screen
-    void updateIpAddress(const char *ipAddressStr);                 // Update the displayed IP address
-    void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
-    void refreshScreen();                                           // Refresh the display
-    void logMessage(const char *message);                           // Log a message to the display
-    void miningScreen();                                            // Switch to the mining screen
-    void portalScreen(const char *message);                         // Switch to the portal screen
     void updateWifiStatus(const char *message);                     // Update the WiFi status on the display
+    void portalScreen(const char *message);                         // Switch to the portal screen
     void showError(const char *error_message, uint32_t error_code); // Show generic error
     void hideError();                                               // Hide error overlay
-
+    void miningScreen();                                            // Switch to the mining screen
+    void updateIpAddress(const char *ipAddressStr);                 // Update the displayed IP address
     void showFoundBlockOverlay();
-    void hideFoundBlockOverlay();
+    void updateGlobalState();                                       // Update the global state on the display
+    void updateCurrentSettings();                                   // Update the current settings screen
+    void refreshScreen();                                           // Refresh the display
+    void logMessage(const char *message);                           // Log a message to the display
+
+    UiState getState() {
+      return m_state;
+    }
 };

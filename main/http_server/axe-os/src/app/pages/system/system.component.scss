@@ -81,3 +81,138 @@
     flex-wrap: nowrap;
   }
 }
+
+/* Card layout */
+/* Keep comments in English per your preference */
+.collab-card {
+  min-width: 520px;
+  max-width: 666px;
+  font-size: 0.80rem;
+}
+
+.collab-header {
+  font-weight: 400;
+  font-size: 0.85rem;
+  //margin-bottom: 0.75rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* 4-column grid */
+.collab-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+
+/* Column headers */
+.colhead {
+  font-weight: 600;
+  text-align: center;
+  padding-bottom: 3px;
+}
+
+.overview-table {
+  border: none !important;
+  border-collapse: collapse !important;
+}
+.overview-table td,
+.overview-table th {
+  border: none !important;
+}
+
+.collab-card.no-border {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Cells with logos/icons */
+.logo-cell {
+  position: relative;
+  height: 100px;
+  border: 1px dashed rgba(0,0,0,.15);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Make tiles look clickable without showing buttons */
+.clickable {
+  cursor: pointer;
+  transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.clickable:hover,
+.clickable:focus {
+  border-color: rgba(0,0,0,.25);
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.clickable:active {
+  transform: translateY(1px);
+}
+
+/* Real image size */
+.logo {
+  max-width: 90%;
+  max-height: 77px;
+  display: block;
+}
+
+/* Big GitHub icon look (as requested: keep GitHub) */
+.gh-l {
+  width: 42px;
+  height: 42px;
+  opacity: 0.75;
+}
+
+/* Dialog responsiveness */
+@media (max-width: 780px) {
+  .collab-card { min-width: 0; }
+  .collab-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* X/Twitter row – compact, left-aligned, square tile */
+/* Keep comments in English per your preference */
+.x-cell {
+  height: 42px;                /* compact row height */
+  //padding: 8px 10px;
+  //justify-content: flex-start; /* left aligned */
+  align-items: center;
+  border: none;                /* remove outer dashed frame */
+  box-shadow: none;
+  transform: none;
+  position:relative;
+  top: -5px;
+}
+
+/* Small square tile with its own dashed border */
+.x-tile {
+  width: 24px;                 /* square frame */
+  height: 24px;
+  border: 1px dashed rgba(0,0,0,.15);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .12s ease, box-shadow .12s ease, transform .06s ease;
+}
+
+/* Hover/focus on the whole cell should affect the tile */
+.x-cell:hover .x-tile,
+.x-cell:focus .x-tile {
+  border-color: rgba(0,0,0,.25);
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+}
+.x-cell:active .x-tile {
+  transform: translateY(1px);
+}
+
+/* The X logo itself (24×24 as gewünscht) */
+.x-logo {
+  width: 16px;
+  height: 16px;
+  display: block;
+  pointer-events: none; /* click handled by the cell */
+}
