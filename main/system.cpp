@@ -300,10 +300,8 @@ void System::task() {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    // wait until splash2 times out
-    while (m_display->getState() != DisplayDriver::UiState::Wait) {
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
+    // wait until splash1 and splash2 timed out
+    m_display->waitForSplashs();
     m_display->miningScreen();
 
     uint8_t countCycle = 10;

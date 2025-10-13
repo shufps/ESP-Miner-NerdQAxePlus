@@ -146,6 +146,7 @@ class DisplayDriver {
     void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
 
     void hideFoundBlockOverlay();
+    void waitForSplashs();
 
   public:
     // Constructor

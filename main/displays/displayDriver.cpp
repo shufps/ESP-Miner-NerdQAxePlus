@@ -305,6 +305,13 @@ void DisplayDriver::updateState(int64_t now)
     }
 }
 
+void DisplayDriver::waitForSplashs() {
+    // wait until state is not Splash1 or Splash2
+    while ((int) m_state < (int) UiState::Wait) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
 void DisplayDriver::lvglTimerTask(void *param)
 {
     // Initial
