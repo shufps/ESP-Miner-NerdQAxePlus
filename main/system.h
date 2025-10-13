@@ -292,4 +292,6 @@ class System {
     void setIPAddress(const std::string& ip) {
         m_ipAddress = ip;
     }
+
+    void loadSettings();
 };

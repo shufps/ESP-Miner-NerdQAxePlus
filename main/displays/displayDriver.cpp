@@ -55,6 +55,16 @@ DisplayDriver::DisplayDriver() {
     m_blockHeight = 0;
     m_isActiveOverlay = false;
     m_lvglMutex = PTHREAD_MUTEX_INITIALIZER;
+    m_isAutoScreenOffEnabled = false;
+    m_tempControlMode = 0;
+    m_fanSpeed = 0;
+}
+
+void DisplayDriver::loadSettings() {
+    PThreadGuard lock(m_lvglMutex);
+    m_isAutoScreenOffEnabled = Config::isAutoScreenOffEnabled();
+    m_tempControlMode = Config::getTempControlMode();
+    m_fanSpeed = Config::getFanSpeed();
 }
 
 bool DisplayDriver::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
@@ -378,7 +388,7 @@ void DisplayDriver::lvglTimerTask(void *param)
         // 3) Auto-Off / Overlay
         if (m_isActiveOverlay) {
             displayTurnOn();
-        } else if (Config::isAutoScreenOffEnabled()) {
+        } else if (m_isAutoScreenOffEnabled) {
             checkAutoTurnOffScreen();
         }
 
@@ -606,7 +616,7 @@ void DisplayDriver::updateCurrentSettings()
     snprintf(strData, sizeof(strData), "%d", board->getAsicVoltageMillis());
     lv_label_set_text(m_ui->ui_lbVcoreSet, strData); // Update label
 
-    switch (Config::getTempControlMode()) {
+    switch (m_tempControlMode) {
         case 1:
             lv_label_set_text(m_ui->ui_lbFanSet, "AUTO"); // Update label
             break;
@@ -614,7 +624,7 @@ void DisplayDriver::updateCurrentSettings()
             lv_label_set_text(m_ui->ui_lbFanSet, "PID"); // Update label
             break;
         default:
-            snprintf(strData, sizeof(strData), "%d", Config::getFanSpeed());
+            snprintf(strData, sizeof(strData), "%d", m_fanSpeed);
             lv_label_set_text(m_ui->ui_lbFanSet, strData); // Update label
             break;
     }

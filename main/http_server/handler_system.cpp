@@ -352,6 +352,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     Board* board = SYSTEM_MODULE.getBoard();
     board->loadSettings();
 
+    // reload settings of system module (and display)
+    SYSTEM_MODULE.loadSettings();
+
     return ESP_OK;
 }
 

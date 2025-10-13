@@ -92,6 +92,11 @@ class DisplayDriver {
     bool m_isActiveOverlay;     // flag if we have an overlay. LED light is forced to be on
     char m_portalWifiName[30];  // WiFi name displayed on the portal screen
 
+    // cache settings to not hammer the NVS
+    bool m_isAutoScreenOffEnabled;
+    uint16_t m_tempControlMode;
+    uint16_t m_fanSpeed;
+
     lv_obj_t *m_countdownLabel = nullptr; // Label object for the countdown timer
     bool m_countdownActive = false;       // Flag for countdown timer activity
     int64_t m_countdownStartTime = 0;     // Start time for the countdown
@@ -164,6 +169,7 @@ class DisplayDriver {
     void refreshScreen();                                           // Refresh the display
     void logMessage(const char *message);                           // Log a message to the display
     void waitForSplashs();
+    void loadSettings();                                            // (re)load settings
 
     UiState getState() {
       return m_state;
