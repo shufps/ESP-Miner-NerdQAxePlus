@@ -297,6 +297,9 @@ void System::task() {
 
     ESP_LOGI(TAG, "SYSTEM_task started");
 
+    // wait until splash1 and splash2 timed out
+    m_display->waitForSplashs();
+
     while (!connect_is_sta_connected()) {
         if (connect_is_ap_running()) {
             showApInformation(nullptr);
@@ -307,8 +310,6 @@ void System::task() {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    // wait until splash1 and splash2 timed out
-    m_display->waitForSplashs();
     m_display->miningScreen();
 
     uint8_t countCycle = 10;

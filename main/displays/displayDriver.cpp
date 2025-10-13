@@ -48,7 +48,6 @@ DisplayDriver::DisplayDriver() {
     m_lastKeypressTime = 0;
     m_displayIsOn = false;
     m_screenStatus = STATE_ONINIT;
-    m_nextScreen = 0;
     m_countdownActive = false;
     m_countdownStartTime = 0;
     m_btcPrice = 0;
@@ -236,17 +235,26 @@ void DisplayDriver::lvglTimerTaskWrapper(void *param) {
 
 void DisplayDriver::enterState(UiState s, int64_t now)
 {
+    // we already are in this state
+    if (m_state == s) {
+        return;
+    }
     m_state = s;
     m_stateStart_us = now;
 
     switch (m_state) {
+    case UiState::NOP:
+        // NOP
+        break;
     case UiState::Splash1:
+        ESP_LOGI(TAG, "enter state splash1");
         m_screenStatus = STATE_ONINIT;
         if (m_ui->ui_Splash1 == NULL) m_ui->splash1ScreenInit();
         enableLvglAnimations(true);
         break;
 
     case UiState::Splash2:
+        ESP_LOGI(TAG, "enter state splash2");
         m_screenStatus = STATE_SPLASH1;
         if (m_ui->ui_Splash2 == NULL) m_ui->splash2ScreenInit();
         enableLvglAnimations(true);
@@ -255,11 +263,13 @@ void DisplayDriver::enterState(UiState s, int64_t now)
         break;
 
     case UiState::Wait:
+        ESP_LOGI(TAG, "enter state wait");
         m_screenStatus = STATE_INIT_OK;
         if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
         break;
 
     case UiState::Portal:
+        ESP_LOGI(TAG, "enter state portal");
         m_screenStatus = SCREEN_PORTAL;
         if (m_ui->ui_PortalScreen == NULL) m_ui->portalScreenInit();
         enableLvglAnimations(true);
@@ -267,6 +277,7 @@ void DisplayDriver::enterState(UiState s, int64_t now)
         break;
 
     case UiState::Mining:
+        ESP_LOGI(TAG, "enter state mining");
         m_screenStatus = SCREEN_MINING;
         if (m_ui->ui_MiningScreen   == NULL) m_ui->miningScreenInit();
         if (m_ui->ui_SettingsScreen == NULL) m_ui->settingsScreenInit();
@@ -283,34 +294,31 @@ void DisplayDriver::updateState(int64_t now)
     const int ms = elapsed_ms(m_stateStart_us, now);
 
     switch (m_state) {
+    case UiState::NOP:
+        // NOP
+        break;
     case UiState::Splash1:
         if (ms >= SPLASH1_TIMEOUT_MS) {
-            ESP_LOGI(TAG, "Changing Screen to SPLASH2");
             enterState(UiState::Splash2, now);
         }
         break;
 
     case UiState::Splash2:
         if (ms >= SPLASH2_TIMEOUT_MS) {
-            ESP_LOGI(TAG, "Changing Screen to WAIT");
             enterState(UiState::Wait, now);
         }
         break;
 
     case UiState::Wait:
-        if (m_nextScreen == SCREEN_PORTAL) {
-            ESP_LOGI(TAG, "Changing Screen to Portal");
-            enterState(UiState::Portal, now);
-        } else if (m_nextScreen == SCREEN_MINING) {
-            ESP_LOGI(TAG, "Changing Screen to Mining");
-            enterState(UiState::Mining, now);
-        }
+        // NOP
         break;
 
     case UiState::Portal:
+        enterState(UiState::Portal, now);
         break;
 
     case UiState::Mining:
+        enterState(UiState::Mining, now);
         break;
     }
 }
@@ -742,15 +750,15 @@ void DisplayDriver::logMessage(const char *message)
 void DisplayDriver::miningScreen(void)
 {
     PThreadGuard lock(m_lvglMutex);
-    m_nextScreen = SCREEN_MINING;
+    enterState(UiState::Mining, now_us());
 }
 
 
 void DisplayDriver::portalScreen(const char *message)
 {
     PThreadGuard lock(m_lvglMutex);
-    m_nextScreen = SCREEN_PORTAL;
-    strcpy(m_portalWifiName, message);
+    strlcpy(m_portalWifiName, message, sizeof(m_portalWifiName));
+    enterState(UiState::Portal, now_us());
 }
 
 void DisplayDriver::updateWifiStatus(const char *message)

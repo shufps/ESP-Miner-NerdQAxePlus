@@ -74,11 +74,12 @@ class DisplayDriver {
         Splash2,
         Wait,
         Portal,
-        Mining
+        Mining,
+        NOP
     };
 
   protected:
-    UiState m_state = UiState::Splash1;
+    UiState m_state = UiState::NOP;
     int64_t m_stateStart_us = 0;
 
     pthread_mutex_t m_lvglMutex;
