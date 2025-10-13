@@ -297,12 +297,18 @@ void PowerManagementTask::task()
         // returns 0 if not available on the hardware
         float intChipTempMax = board->getMaxChipTemp();
 
-        // use chip temps if available
-        // works only on NQ+ and QX
-        // note: use single assignment because we don't have synchronization
-        // on m_chipTempMax what could lead to weird race conditions on
-        // the display (jumping temps)
+#ifdef NERDQAXEPLUS
+        // NQ+ needs special care - the reading of chip internal temp sensors is way
+        // too slow for the PID, so we need to stay compatible.
+        // we use the max temp of board temp sensors and ASICs
+        // note: m_chipTempMax is not mutexed, single assignment required
+        m_chipTempMax = std::max(tmp1075Max, intChipTempMax);
+#else
+        // on other devices that have the TMUX like the QX we only use
+        // the chip temps for the PID
+        // note: m_chipTempMax is not mutexed, single assignment required
         m_chipTempMax = intChipTempMax ? intChipTempMax : tmp1075Max;
+#endif
 
         influx_task_set_temperature(m_chipTempMax, m_vrTemp);
 
