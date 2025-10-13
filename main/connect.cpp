@@ -261,8 +261,7 @@ esp_netif_t * wifi_init_softap()
 
     // Fill AP config
     wifi_config_t wifi_ap_config = {};
-    strncpy((char *) wifi_ap_config.ap.ssid, ap_ssid, sizeof(wifi_ap_config.ap.ssid) - 1);
-    wifi_ap_config.ap.ssid[sizeof(wifi_ap_config.ap.ssid) - 1] = '\0';
+    strlcpy((char *) wifi_ap_config.ap.ssid, ap_ssid, sizeof(wifi_ap_config.ap.ssid) - 1);
     wifi_ap_config.ap.ssid_len = strlen(ap_ssid);
     wifi_ap_config.ap.channel = 1;
     wifi_ap_config.ap.max_connection = 10;
@@ -326,13 +325,11 @@ esp_netif_t * wifi_init_sta(const char * wifi_ssid, const char * wifi_pass)
     wifi_sta_config.sta.pmf_cfg.required = false;
 
     // Copy SSID (always NUL-terminate)
-    strncpy((char *) wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));
-    wifi_sta_config.sta.ssid[sizeof(wifi_sta_config.sta.ssid) - 1] = '\0';
+    strlcpy((char *) wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));
 
     // Copy password for non-open networks (always NUL-terminate)
     if (!is_open) {
-        strncpy((char *) wifi_sta_config.sta.password, wifi_pass, sizeof(wifi_sta_config.sta.password));
-        wifi_sta_config.sta.password[sizeof(wifi_sta_config.sta.password) - 1] = '\0';
+        strlcpy((char *) wifi_sta_config.sta.password, wifi_pass, sizeof(wifi_sta_config.sta.password));
     }
 
     // Apply STA config (must be after esp_wifi_set_mode(WIFI_MODE_STA))
@@ -377,7 +374,7 @@ void wifi_init()
         // Prepare STA config BEFORE start (avoids pmksa_cache_flush crash)
 
         ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
-        esp_netif_t * esp_netif_sta = wifi_init_sta(SYSTEM_MODULE.getSsid().c_str(), wifi_pass);
+        esp_netif_t * esp_netif_sta = wifi_init_sta(wifi_ssid, wifi_pass);
 
         esp_err_t err = esp_netif_set_hostname(esp_netif_sta, hostname);
         if (err != ERR_OK) {

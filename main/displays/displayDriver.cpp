@@ -750,7 +750,7 @@ void DisplayDriver::portalScreen(const char *message)
 {
     PThreadGuard lock(m_lvglMutex);
     m_nextScreen = SCREEN_PORTAL;
-    strcpy(m_portalWifiName, message);
+    strlcpy(m_portalWifiName, message, sizeof(m_portalWifiName));
 }
 
 void DisplayDriver::updateWifiStatus(const char *message)

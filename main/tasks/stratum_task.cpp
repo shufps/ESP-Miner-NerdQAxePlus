@@ -90,8 +90,7 @@ bool StratumTask::resolveHostname(const char *hostname, char *ip_str, size_t ip_
     inet_ntop(AF_INET, &(addr->sin_addr), ip_str, ip_str_len);
 
     // save IP adrdress
-    strncpy(m_lastResolvedIp, ip_str, sizeof(m_lastResolvedIp));
-    m_lastResolvedIp[sizeof(m_lastResolvedIp) - 1] = '\0';
+    strlcpy(m_lastResolvedIp, ip_str, sizeof(m_lastResolvedIp));
 
     ESP_LOGI("DNS", "Resolved IP: %s", ip_str);
 

@@ -113,8 +113,7 @@ bool Influx::get_org_id(char *out_org_id, size_t max_len) {
         return false;
     }
 
-    strncpy(out_org_id, id, max_len - 1);
-    out_org_id[max_len - 1] = '\0';
+    strlcpy(out_org_id, id, max_len - 1);
     ESP_LOGI(TAG, "Resolved orgID: %s", out_org_id);
 
     esp_http_client_close(client);
