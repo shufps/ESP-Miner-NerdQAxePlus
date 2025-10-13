@@ -52,24 +52,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.loadThemeFromLocalStorage();
     this.loadSidebarStateFromLocalStorage();
 
-    // Step 2: Fetch device info. Only use backend defaultTheme if no saved theme exists.
-    this.infoService.getInfo(0).subscribe(info => {
-      if (info?.deviceModel) {
-        // Replace special char and update logo to reflect correct device model.
-        this.deviceModel = info.deviceModel.replace('γ', 'Gamma');
-        this.updateLogo();
-      }
-
-      // Only apply backend defaultTheme if there is no saved theme.
-      if (!localStorage.getItem('selectedTheme')) {
-        this.resolveInitialTheme(info);
-      }
-    });
-
-    // Responsive behavior: show only user picture on < xl screens
+    // Responsive behavior
     const { xl } = this.breakpointService.getBreakpointsMap();
     this.themeService.onMediaQueryChange()
       .pipe(
