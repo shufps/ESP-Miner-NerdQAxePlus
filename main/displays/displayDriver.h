@@ -146,7 +146,6 @@ class DisplayDriver {
     void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
 
     void hideFoundBlockOverlay();
-    void waitForSplashs();
 
   public:
     // Constructor
@@ -164,6 +163,7 @@ class DisplayDriver {
     void updateCurrentSettings();                                   // Update the current settings screen
     void refreshScreen();                                           // Refresh the display
     void logMessage(const char *message);                           // Log a message to the display
+    void waitForSplashs();
 
     UiState getState() {
       return m_state;
