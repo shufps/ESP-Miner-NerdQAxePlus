@@ -304,38 +304,48 @@ esp_netif_t * wifi_init_sta(const char * wifi_ssid, const char * wifi_pass)
     esp_netif_t * esp_netif_sta = esp_netif_create_default_wifi_sta();
 
     // Decide auth mode based on password presence
-    wifi_auth_mode_t authmode;
-    if (strlen(wifi_pass) == 0) {
-        ESP_LOGI(TAG, "No Wi-Fi password provided, using open network");
-        authmode = WIFI_AUTH_OPEN;
-    } else {
-        ESP_LOGI(TAG, "Wi-Fi password provided, using WPA2");
-        authmode = WIFI_AUTH_WPA2_PSK;
+    wifi_auth_mode_t mode = WIFI_AUTH_OPEN;
+    if (wifi_pass && wifi_pass[0]) {
+        mode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
     }
 
+    // Use Kconfig-driven threshold so WPA2/WPA3 transition is allowed
     wifi_config_t wifi_sta_config = {};
-    // Configure roaming/PMF conservatively for open networks to reduce supplicant side-effects
-    bool is_open = (authmode == WIFI_AUTH_OPEN);
-    wifi_sta_config.sta.threshold.authmode = authmode;
-    wifi_sta_config.sta.btm_enabled = is_open ? 0 : 1;       // Enable BTM only when secured
-    wifi_sta_config.sta.rm_enabled  = is_open ? 0 : 1;       // Enable RM only when secured
+
+    wifi_sta_config.sta.threshold.authmode = mode;
+
+    wifi_sta_config.sta.btm_enabled = 1;   // Keep roaming features enabled
+    wifi_sta_config.sta.rm_enabled  = 1;
     wifi_sta_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
     wifi_sta_config.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
-    wifi_sta_config.sta.pmf_cfg.capable  = is_open ? false : true;  // PMF not needed for open
+    // PMF: capable=true, required=false works for WPA2 and WPA3 transition
+    wifi_sta_config.sta.pmf_cfg.capable  = true;
     wifi_sta_config.sta.pmf_cfg.required = false;
 
-    // Copy SSID (always NUL-terminate)
-    strlcpy((char *) wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));
+    // SAE only if configured
+#if CONFIG_ESP_WPA3_SAE_PWE_HUNT_AND_PECK
+        wifi_sta_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_HUNT_AND_PECK;
+        strlcpy((char*)wifi_sta_config.sta.sae_h2e_identifier, EXAMPLE_H2E_IDENTIFIER,
+                sizeof(wifi_sta_config.sta.sae_h2e_identifier));
+#elif CONFIG_ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT
+        wifi_sta_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_HASH_TO_ELEMENT;
+        strlcpy((char*)wifi_sta_config.sta.sae_h2e_identifier, EXAMPLE_H2E_IDENTIFIER,
+                sizeof(wifi_sta_config.sta.sae_h2e_identifier));
+#elif CONFIG_ESP_WPA3_SAE_PWE_BOTH
+        wifi_sta_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+        strlcpy((char*)wifi_sta_config.sta.sae_h2e_identifier, EXAMPLE_H2E_IDENTIFIER,
+                sizeof(wifi_sta_config.sta.sae_h2e_identifier));
+#endif
 
-    // Copy password for non-open networks (always NUL-terminate)
-    if (!is_open) {
-        strlcpy((char *) wifi_sta_config.sta.password, wifi_pass, sizeof(wifi_sta_config.sta.password));
+    // Always copy SSID; copy password only if non-empty
+    strlcpy((char*)wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));
+    if (wifi_pass && wifi_pass[0] != '\0') {
+        strlcpy((char*)wifi_sta_config.sta.password, wifi_pass, sizeof(wifi_sta_config.sta.password));
     }
 
-    // Apply STA config (must be after esp_wifi_set_mode(WIFI_MODE_STA))
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_sta_config));
 
-    // Cache MAC for later use (optional)
+    // Cache MAC for later use
     uint8_t mac[6];
     ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_STA, mac));
     snprintf(s_mac_addr, sizeof(s_mac_addr),
