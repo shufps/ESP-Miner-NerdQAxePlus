@@ -383,9 +383,13 @@ esp_err_t FactoryOTAUpdate::ota_update_from_factory(const char *start_url)
     }
 
     ESP_LOGI(TAG, "Restarting System because of Firmware update complete");
-    vTaskDelay(pdMS_TO_TICKS(1000));
 
-    setStep(OtaStep::DONE, "OTA: done, restarting");
+    // we set the status to rebooting
+    setStep(OtaStep::REBOOTING, "OTA: done, rebooting");
+
+    // wait for 3 seconds, this makes sure the web UI saw this state
+    vTaskDelay(pdMS_TO_TICKS(3000));
+
 
     POWER_MANAGEMENT_MODULE.restart();
 
@@ -501,8 +505,8 @@ static const char *stepToStr(FactoryOTAUpdate::OtaStep s)
         return "downloading_www";
     case FactoryOTAUpdate::OtaStep::UPDATING_WWW:
         return "updating_www";
-    case FactoryOTAUpdate::OtaStep::DONE:
-        return "done";
+    case FactoryOTAUpdate::OtaStep::REBOOTING:
+        return "rebooting";
     case FactoryOTAUpdate::OtaStep::ERROR:
         return "error";
     default:

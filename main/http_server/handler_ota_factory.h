@@ -19,7 +19,7 @@ public:
         UPDATING_FW,
         DOWNLOADING_WWW,
         UPDATING_WWW,
-        DONE,
+        REBOOTING,
         ERROR
     };
 

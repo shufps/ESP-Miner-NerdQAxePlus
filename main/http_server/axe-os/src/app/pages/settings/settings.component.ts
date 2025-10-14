@@ -3,13 +3,15 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 //import { ToastrService } from 'ngx-toastr';
 //import { FileUploadHandlerEvent } from 'primeng/fileupload';
-import { map, Observable, catchError, of, shareReplay, startWith, tap, switchMap, Subscription } from 'rxjs';
+import { map, Observable, catchError, of, shareReplay, startWith, Subscription, interval, EMPTY } from 'rxjs';
+import { switchMap, takeWhile, tap, take } from 'rxjs/operators';
 import { GithubUpdateService, UpdateStatus, VersionComparison } from '../../services/github-update.service';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
+import { IUpdateStatus } from 'src/app/models/IUpdateStatus';
 
 @Component({
   selector: 'app-settings',
@@ -31,6 +33,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public checkLatestRelease: boolean = true; // Auto-check enabled by default
   public latestRelease$: Observable<any>;
   public expectedFileName: string = "";
+  public expectedFactoryFilename: string = "";
 
   public selectedFirmwareFile: File | null = null;
   public selectedWebsiteFile: File | null = null;
@@ -39,6 +42,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   public isWebsiteUploading = false;
   public isFirmwareUploading = false;
+  public isOneClickUpdate = false;
+
+  private updateStatusSub?: Subscription;
+  private sawRebooting = false;
+
+  public currentStep: string = "";
 
   // New properties for enhanced update system
   public updateStatus: UpdateStatus = UpdateStatus.UNKNOWN;
@@ -57,6 +66,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public otaProgress: number = 0;
   private wsSubscription?: Subscription;
   private rebootCheckInterval?: any;
+
+  private normalizedModel : string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -127,11 +138,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
         // Replace 'γ' with 'Gamma' if present and remove spaces
         // Keep special characters like + as GitHub releases use them
-        const normalizedModel = this.deviceModel
-          .replace(/γ/g, 'Gamma')
-          .replace(/\s+/g, '');     // Remove spaces only
-
-        this.expectedFileName = `esp-miner-${normalizedModel}.bin`;
+        this.normalizedModel = this.normalizeModel(this.deviceModel)
+        this.expectedFileName = `esp-miner-${this.normalizedModel}.bin`;
 
         console.log('Device model from API:', this.deviceModel);
         console.log('Expected filename:', this.expectedFileName);
@@ -139,6 +147,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
         // Update version status after we have both current version and latest release
         this.updateVersionStatus();
       });
+
+    // check if the backend is currently updating and resume progress output
+    this.checkUpdateStatus();
+  }
+
+  private normalizeModel(model) {
+    return model.replace(/γ/g, 'Gamma').replace(/\s+/g, '');
   }
 
   ngOnDestroy() {
@@ -165,7 +180,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
           next: (info) => {
             // Device is back online!
             clearInterval(this.rebootCheckInterval);
-            this.updateStatusMessage = 'Redémarrage terminé, rechargement de la page...';
+            this.updateStatusMessage = 'Reboot complete, reloading page...';
 
             // Reload page after a short delay
             setTimeout(() => {
@@ -174,18 +189,19 @@ export class SettingsComponent implements OnInit, OnDestroy {
           },
           error: (err) => {
             // Device not ready yet, keep trying
-            this.updateStatusMessage = `Redémarrage en cours... (${attemptCount}/${maxAttempts})`;
+            this.updateStatusMessage = `Reboot in progress... (${attemptCount}/${maxAttempts})`;
 
             if (attemptCount >= maxAttempts) {
               clearInterval(this.rebootCheckInterval);
-              this.updateStatusMessage = 'Le redémarrage prend plus de temps que prévu. Veuillez rafraîchir manuellement.';
-              this.isFirmwareUploading = false;
+              this.updateStatusMessage = 'The reboot is taking longer than expected. Please refresh manually.';
+              this.isOneClickUpdate = false;
             }
           }
         });
       }, 1000); // Check every second
     }, 5000); // Wait 5 seconds before starting
   }
+
   private checkDevTools = () => {
     if (
       window.outerWidth - window.innerWidth > 160 ||
@@ -346,6 +362,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     if (this.currentVersion && this.latestRelease) {
       this.updateStatus = this.githubUpdateService.getUpdateStatus(this.currentVersion, this.latestRelease);
       this.versionComparison = this.githubUpdateService.getVersionComparison(this.currentVersion, this.latestRelease);
+      this.expectedFactoryFilename = `esp-miner-factory-${this.normalizedModel}-${this.latestRelease.tag_name}.bin`;
     }
   }
 
@@ -387,41 +404,22 @@ export class SettingsComponent implements OnInit, OnDestroy {
   /**
    * Direct update from GitHub via backend proxy
    */
-  public directUpdateFromGithub(updateType: 'firmware' | 'website') {
+  public directUpdateFromGithub() {
     if (!this.latestRelease) {
       this.toastrService.warning(this.translate.instant('TOAST.NO_RELEASE_INFO'), this.translate.instant('TOAST.WARNING'));
       return;
     }
 
-    const filename = updateType === 'firmware' ? this.expectedFileName : 'www.bin';
+    const filename = this.expectedFactoryFilename;
     console.log('Looking for file:', filename);
     console.log('Device model:', this.deviceModel);
     console.log('Available assets:', this.latestRelease.assets?.map(a => a.name));
 
     let asset = this.githubUpdateService.findAsset(this.latestRelease, filename);
 
-    // Fallback: try to find by partial match if exact match fails
-    if (!asset && updateType === 'firmware') {
-      // Normalize for comparison: keep alphanumeric and + character
-      const normalizedModel = this.deviceModel.toLowerCase().replace(/[^a-z0-9+]/g, '');
-      asset = this.latestRelease.assets?.find(a => {
-        const normalizedAsset = a.name.toLowerCase().replace(/[^a-z0-9+]/g, '');
-        // Exclude factory versions and www.bin
-        return normalizedAsset.includes(normalizedModel)
-          && a.name.endsWith('.bin')
-          && !a.name.includes('www')
-          && !a.name.includes('factory');
-      });
-
-      if (asset) {
-        console.log('Found asset by partial match:', asset.name);
-      }
-    }
-
     if (!asset) {
-      const availableFiles = this.latestRelease.assets?.map(a => a.name).join(', ') || 'none';
       this.toastrService.danger(
-        `File "${filename}" not found. Available files: ${availableFiles}`,
+        `File "${filename}" not found.`,
         'Error',
         { duration: 10000 }
       );
@@ -430,130 +428,90 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
     // Reset OTA progress
     this.otaProgress = 0;
+    this.isOneClickUpdate = true;
+    this.firmwareUpdateProgress = 0;
 
-    if (updateType === 'firmware') {
-      this.isFirmwareUploading = true;
-      this.firmwareUpdateProgress = 0;
-    } else {
-      this.isWebsiteUploading = true;
-      this.websiteUpdateProgress = 0;
-    }
-
-    const otaType = updateType === 'firmware' ? 'firmware' : 'www';
     const assetUrl = asset.browser_download_url;
 
     // Both firmware and www.bin now use backend streaming (no CORS issues, no PSRAM buffer)
-    console.log(`${otaType} OTA from: ${assetUrl}`);
+    console.log(`factory OTA from: ${assetUrl}`);
 
-    this.systemService.performGithubOTAUpdate(assetUrl, otaType)
+    this.systemService.performGithubOTAUpdate(assetUrl)
       .subscribe({
         next: () => {
-          if (otaType === 'firmware') {
-            this.toastrService.success(this.translate.instant('TOAST.FIRMWARE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
-          } else {
-            this.toastrService.success(this.translate.instant('TOAST.WEBSITE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
-            setTimeout(() => window.location.reload(), 2000);
-          }
+          // we don't display any message here because the OTA update is now non-blocking
+          //this.toastrService.success(this.translate.instant('TOAST.FIRMWARE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
         },
         error: (err) => {
-          // Check if error is due to GitHub CDN URL length limitation
-          if (err.error && err.error.includes('GitHub CDN URL too long')) {
-            const errorMsg = otaType === 'www'
-              ? 'Les URLs GitHub CDN sont trop longues pour ESP32. Veuillez télécharger www.bin manuellement depuis GitHub et uploader via l\'interface web.'
-              : 'URL GitHub trop longue pour ESP32';
-            this.toastrService.danger(errorMsg, this.translate.instant('TOAST.ERROR'), { duration: 10000 });
-          } else {
-            this.toastrService.danger(`${this.translate.instant('TOAST.UPDATE_FAILED')}: ${err.message || err.error}`, this.translate.instant('TOAST.ERROR'));
+          this.toastrService.danger(`${this.translate.instant('TOAST.UPDATE_FAILED')}: ${err.message || err.error}`, this.translate.instant('TOAST.ERROR'));
+        }
+      });
+
+    // start receiving the update progress status
+    this.startUpdatePolling();
+  }
+
+  private startUpdatePolling() {
+    this.stopUpdatePolling();
+    this.sawRebooting = false;
+
+    this.updateStatusSub = interval(1000)
+      .pipe(
+        // Poll OTA status every second
+        switchMap(() => this.systemService.getGithubOTAStatus()),
+        tap((status: IUpdateStatus) => {
+          // Update UI state
+          this.otaProgress = status.progress;
+          this.currentStep = `UPDATE.STEP_${status.step.toUpperCase()}`;
+          console.log('Update status:', status);
+
+          // check if device finished updating and only fire the success toast a single time
+          if (status.step === 'rebooting' && !this.sawRebooting) {
+            this.sawRebooting = true;
+            this.toastrService.success(this.translate.instant('TOAST.FIRMWARE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
+            this.startRebootCheck();
           }
-          this.resetUpdateState(updateType);
+        })
+      )
+      .subscribe({
+        error: (err) => {
+          // ignore errors
         }
       });
   }
 
-  /**
-   * Get download URL for direct link
-   */
-  public getDownloadUrl(updateType: 'firmware' | 'website'): string | null {
-    if (!this.latestRelease) {
-      return null;
-    }
-
-    const filename = updateType === 'firmware' ? this.expectedFileName : 'www.bin';
-    let asset = this.githubUpdateService.findAsset(this.latestRelease, filename);
-
-    // Fallback: try to find by partial match if exact match fails
-    if (!asset && updateType === 'firmware') {
-      // Normalize for comparison: keep alphanumeric and + character
-      const normalizedModel = this.deviceModel.toLowerCase().replace(/[^a-z0-9+]/g, '');
-      asset = this.latestRelease.assets?.find(a => {
-        const normalizedAsset = a.name.toLowerCase().replace(/[^a-z0-9+]/g, '');
-        // Exclude factory versions and www.bin
-        return normalizedAsset.includes(normalizedModel)
-          && a.name.endsWith('.bin')
-          && !a.name.includes('www')
-          && !a.name.includes('factory');
-      });
-    }
-
-    return asset ? asset.browser_download_url : null;
+  // we can resume the update progress status on a page reload because
+  // the OTA update is not done in HTTP server context anymore! 😍
+  private checkUpdateStatus() {
+  // Single-shot status fetch
+  this.systemService.getGithubOTAStatus()
+    .pipe(take(1))
+    .subscribe({
+      next: (status: IUpdateStatus) => {
+        // If update is ongoing, (re)start polling
+        if (status.pending || status.running) {
+          this.isOneClickUpdate = true;
+          this.otaProgress = status.progress;
+          this.currentStep = `UPDATE.STEP_${status.step.toUpperCase()}`;
+          this.startUpdatePolling();
+        }
+      },
+    });
   }
 
-  /**
-   * Reset update state after completion or error
-   */
-  private resetUpdateState(updateType: 'firmware' | 'website') {
-    this.isDirectUpdateInProgress = false;
-    this.updateStep = 'idle';
-    this.downloadProgress = 0;
-
-    if (updateType === 'firmware') {
-      this.isFirmwareUploading = false;
-      this.firmwareUpdateProgress = 0;
-    } else {
-      this.isWebsiteUploading = false;
-      this.websiteUpdateProgress = 0;
+  private stopUpdatePolling() {
+    if (this.updateStatusSub) {
+      this.updateStatusSub.unsubscribe();
+      this.updateStatusSub = undefined;
     }
   }
 
   /**
-   * Get current update step label
-   */
-  public getUpdateStepLabel(): string {
-    switch (this.updateStep) {
-      case 'downloading':
-        return 'Downloading from GitHub...';
-      case 'uploading':
-        return 'Uploading to device...';
-      case 'flashing':
-        return 'Flashing...';
-      case 'complete':
-        return 'Complete!';
-      default:
-        return '';
-    }
-  }
-
-  /**
-   * Get filtered assets (only matching firmware and www.bin)
+   * Get filtered assets (only matching factory firmware)
    */
   public getFilteredAssets(): any[] {
-    if (!this.latestRelease?.assets) {
-      return [];
-    }
-
-    const normalizedModel = this.deviceModel.toLowerCase().replace(/[^a-z0-9+]/g, '');
-
     return this.latestRelease.assets.filter(asset => {
-      // Always include www.bin
-      if (asset.name === 'www.bin') {
-        return true;
-      }
-
-      // Include matching firmware (excluding factory versions)
-      const normalizedAsset = asset.name.toLowerCase().replace(/[^a-z0-9+]/g, '');
-      return normalizedAsset.includes(normalizedModel)
-        && asset.name.endsWith('.bin')
-        && !asset.name.includes('factory');
+      return asset.name === this.expectedFactoryFilename;
     });
   }
 

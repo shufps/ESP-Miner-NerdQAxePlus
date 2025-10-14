@@ -9,6 +9,7 @@ import { AsicInfo } from '../models/IAsicInfo';
 
 import { environment } from '../../environments/environment';
 import { IInfluxDB } from '../models/IInfluxDB';
+import { IUpdateStatus } from '../models/IUpdateStatus';
 
 const defaultInfo: ISystemInfo = {
   power: 11.670000076293945,
@@ -214,10 +215,14 @@ export class SystemService {
     return this.otaUpdate(file, `/api/system/OTAWWW`);
   }
 
-  public performGithubOTAUpdate(url: string, type: 'firmware' | 'www' = 'firmware') {
-    return this.httpClient.post('/api/system/OTA/github', { url, type }, {
+  public performGithubOTAUpdate(url: string) {
+    return this.httpClient.post('/api/system/OTA/github', { url }, {
       responseType: 'text'
     });
+  }
+
+  public getGithubOTAStatus() {
+    return this.httpClient.get('/api/system/OTA/github') as Observable<IUpdateStatus>;
   }
 
 

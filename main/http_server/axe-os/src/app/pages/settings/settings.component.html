@@ -44,17 +44,6 @@
               <span>{{ latestRelease.published_at | date }}</span>
             </div>
 
-            <!-- Available Files (Debug info) -->
-            <div class="version-row" *ngIf="getFilteredAssets().length > 0">
-              <strong>{{ 'UPDATE.AVAILABLE_FILES' | translate }}:</strong>
-              <div class="assets-list">
-                <small *ngFor="let asset of getFilteredAssets()">
-                  {{ asset.name }}
-                  <span *ngIf="asset.name === expectedFileName" class="badge-match">✓ Match</span>
-                </small>
-              </div>
-            </div>
-
             <!-- Changelog Toggle -->
             <div class="changelog-section">
               <button nbButton ghost size="small" (click)="toggleChangelog()">
@@ -70,7 +59,7 @@
 
     <nb-card class="card-item" style="position: relative;">
       <nb-card-header>
-        {{ 'UPDATE.UPDATE_FIRMWARE' | translate }}
+        {{ 'UPDATE.UPDATE_ONE_CLICK' | translate }}
       </nb-card-header>
       <nb-card-body>
         <!-- Direct Update from GitHub -->
@@ -79,30 +68,49 @@
           <button nbButton
                   [status]="updateStatus === UpdateStatus.UPDATE_AVAILABLE ? 'warning' : 'primary'"
                   size="small"
-                  [nbSpinner]="isFirmwareUploading"
-                  [disabled]="isFirmwareUploading || !latestRelease"
-                  (click)="directUpdateFromGithub('firmware')">
+                  [nbSpinner]="isOneClickUpdate"
+                  [disabled]="isOneClickUpdate || !latestRelease"
+                  (click)="directUpdateFromGithub()">
             <nb-icon icon="cloud-download-outline" pack="eva"></nb-icon>&nbsp;
             {{ 'UPDATE.INSTALL_FROM_GITHUB' | translate }}
           </button>
-          <div *ngIf="isFirmwareUploading" class="update-status-message">
-            <small *ngIf="otaProgress > 0 && otaProgress < 100">
-              {{ 'UPDATE.DOWNLOADING_AND_INSTALLING' | translate }}: {{ otaProgress }}%
-            </small>
-            <small *ngIf="otaProgress >= 100">
-              {{ 'UPDATE.INSTALLATION_COMPLETE' | translate }}
-            </small>
-            <small *ngIf="otaProgress === 0">
-              {{ 'UPDATE.INITIALIZING' | translate }}
-            </small>
+
+          <div class="progress-wrapper" *ngIf="isOneClickUpdate">
+            <nb-progress-bar
+              [value]="otaProgress"
+              [status]="otaProgress >= 100 ? 'success' : 'info'"
+              [displayValue]="false"
+              size="large">
+            </nb-progress-bar>
+
+            <!-- centered label on top of the bar -->
+            <div class="progress-label">
+              <ng-container *ngIf="otaProgress === 0">
+                {{ 'UPDATE.INITIALIZING' | translate }}
+              </ng-container>
+              <ng-container *ngIf="otaProgress > 0 && otaProgress < 100">
+                {{ (currentStep || 'STEP_UNKNOWN') | translate }}: {{ otaProgress }}%
+              </ng-container>
+              <ng-container *ngIf="otaProgress >= 100">
+                {{ 'UPDATE.INSTALLATION_COMPLETE' | translate }}
+              </ng-container>
+            </div>
           </div>
         </div>
 
         <hr>
 
+      </nb-card-body>
+    </nb-card>
+
+    <nb-card class="card-item" style="position: relative;">
+      <nb-card-header>
+        {{ 'UPDATE.LEGACY' | translate }}
+      </nb-card-header>
+      <nb-card-body>
         <!-- Manual File Upload -->
         <div class="update-section">
-          <h6>{{ 'UPDATE.MANUAL_FILE' | translate }}</h6>
+          <h6>{{ 'UPDATE.MANUAL_FIRMWARE_UPDATE' | translate }}</h6>
           <input type="file"
                  #firmwareInput
                  hidden
@@ -120,44 +128,12 @@
           </div>
           <small>({{ expectedFileName }})</small>
         </div>
-      </nb-card-body>
-    </nb-card>
-
-    <nb-card class="card-item" style="position: relative;">
-      <nb-card-header>
-        {{ 'UPDATE.UPDATE_WEBSITE' | translate }}
-      </nb-card-header>
-      <nb-card-body>
-        <!-- Direct Update from GitHub -->
-        <div class="update-section">
-          <h6>{{ 'UPDATE.DIRECT_FROM_GITHUB' | translate }}</h6>
-          <button nbButton
-                  [status]="updateStatus === UpdateStatus.UPDATE_AVAILABLE ? 'warning' : 'primary'"
-                  size="small"
-                  [nbSpinner]="isWebsiteUploading"
-                  [disabled]="isWebsiteUploading || !latestRelease"
-                  (click)="directUpdateFromGithub('website')">
-            <nb-icon icon="cloud-download-outline" pack="eva"></nb-icon>&nbsp;
-            {{ 'UPDATE.INSTALL_FROM_GITHUB' | translate }}
-          </button>
-          <div *ngIf="isWebsiteUploading" class="update-status-message">
-            <small *ngIf="otaProgress > 0 && otaProgress < 100">
-              {{ 'UPDATE.DOWNLOADING_AND_INSTALLING' | translate }}: {{ otaProgress }}%
-            </small>
-            <small *ngIf="otaProgress >= 100">
-              {{ 'UPDATE.INSTALLATION_COMPLETE' | translate }}
-            </small>
-            <small *ngIf="otaProgress === 0">
-              {{ 'UPDATE.INITIALIZING' | translate }}
-            </small>
-          </div>
-        </div>
 
         <hr>
 
         <!-- Manual File Upload -->
         <div class="update-section">
-          <h6>{{ 'UPDATE.MANUAL_FILE' | translate }}</h6>
+          <h6>{{ 'UPDATE.MANUAL_WWW_UPDATE' | translate }}</h6>
           <input type="file"
                  #websiteInput
                  hidden

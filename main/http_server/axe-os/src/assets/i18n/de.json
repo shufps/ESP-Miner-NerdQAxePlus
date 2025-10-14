@@ -303,7 +303,11 @@
     "HIDE_CHANGELOG": "Änderungsprotokoll ausblenden",
     "DIRECT_FROM_GITHUB": "Direkt von GitHub",
     "INSTALL_FROM_GITHUB": "Von GitHub installieren",
+    "UPDATE_ONE_CLICK": "Ein-Klick-Update",
+    "MANUAL_FIRMWARE_UPDATE": "Manuelles Firmware-Update",
+    "MANUAL_WWW_UPDATE": "Manuelles WWW-Update",
     "MANUAL_FILE": "Manuelle Datei",
+    "LEGACY": "Legacy-Update",
     "STEP_DOWNLOADING": "Herunterladen",
     "STEP_UPLOADING": "Hochladen",
     "STEP_FLASHING": "Flashen",
@@ -313,7 +317,15 @@
     "INSTALLATION_COMPLETE": "Installation abgeschlossen, Neustart...",
     "REBOOTING": "Neustart läuft...",
     "REBOOT_COMPLETE": "Neustart abgeschlossen, Seite wird neu geladen...",
-    "REBOOT_TAKING_LONG": "Der Neustart dauert länger als erwartet. Bitte manuell aktualisieren."
+    "REBOOT_TAKING_LONG": "Der Neustart dauert länger als erwartet. Bitte manuell aktualisieren.",
+    "STEP_IDLE": "Leerlauf",
+    "STEP_RESOLVING_URL": "URL wird aufgelöst",
+    "STEP_UPDATING_FW": "Firmware wird aktualisiert",
+    "STEP_DOWNLOADING_WWW": "WWW wird heruntergeladen",
+    "STEP_UPDATING_WWW": "WWW wird aktualisiert",
+    "STEP_REBOOTING": "Neustart...",
+    "STEP_ERROR": "Fehler",
+    "STEP_UNKNOWN": "Unbekannt"
   },
   "TOAST": {
     "SUCCESS": "Erfolg",

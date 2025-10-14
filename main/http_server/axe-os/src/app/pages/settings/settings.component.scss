@@ -251,3 +251,33 @@ a {
     transform: scale(1.1);
   }
 }
+
+/* Make the wrapper positioning context for the label */
+.progress-wrapper {
+  height: 50px;
+  position: relative;
+}
+
+/* Center the label over the bar */
+.progress-label {
+  inset: 0;
+  position: relative;
+  top: -33px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;     /* clicks go through to underlying controls */
+  font-size: 0.85rem;
+  font-weight: 600;
+
+}
+
+:host ::ng-deep nb-progress-bar .progress-container {
+  margin-top: 10px;
+  height: 30px;
+  border-radius: 4px;
+}
+
+:host ::ng-deep nb-progress-bar .progress-value {
+  border-radius: 4px;
+}

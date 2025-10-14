@@ -303,7 +303,11 @@
     "HIDE_CHANGELOG": "Masquer le Changelog",
     "DIRECT_FROM_GITHUB": "Directement depuis GitHub",
     "INSTALL_FROM_GITHUB": "Installer depuis GitHub",
+    "UPDATE_ONE_CLICK": "Mise à jour en un clic",
+    "MANUAL_FIRMWARE_UPDATE": "Mise à jour manuelle du firmware",
+    "MANUAL_WWW_UPDATE": "Mise à jour manuelle du site Web",
     "MANUAL_FILE": "Fichier Manuel",
+    "LEGACY": "Mise à jour héritée",
     "STEP_DOWNLOADING": "Téléchargement",
     "STEP_UPLOADING": "Envoi",
     "STEP_FLASHING": "Flash",
@@ -313,7 +317,15 @@
     "INSTALLATION_COMPLETE": "Installation terminée, redémarrage...",
     "REBOOTING": "Redémarrage en cours...",
     "REBOOT_COMPLETE": "Redémarrage terminé, rechargement de la page...",
-    "REBOOT_TAKING_LONG": "Le redémarrage prend plus de temps que prévu. Veuillez rafraîchir manuellement."
+    "REBOOT_TAKING_LONG": "Le redémarrage prend plus de temps que prévu. Veuillez rafraîchir manuellement.",
+    "STEP_IDLE": "Au repos",
+    "STEP_RESOLVING_URL": "Résolution de l’URL",
+    "STEP_UPDATING_FW": "Mise à jour du firmware",
+    "STEP_DOWNLOADING_WWW": "Téléchargement du site web",
+    "STEP_UPDATING_WWW": "Mise à jour du site web",
+    "STEP_REBOOTING": "Redémarrage...",
+    "STEP_ERROR": "Erreur",
+    "STEP_UNKNOWN": "Inconnu"
   },
   "TOAST": {
     "SUCCESS": "Succès",
