@@ -47,7 +47,6 @@ DisplayDriver::DisplayDriver() {
     m_button2PressedFlag = false;
     m_lastKeypressTime = 0;
     m_displayIsOn = false;
-    m_screenStatus = STATE_ONINIT;
     m_countdownActive = false;
     m_countdownStartTime = 0;
     m_btcPrice = 0;
@@ -202,32 +201,6 @@ void DisplayDriver::hideFoundBlockOverlay() {
     m_isActiveOverlay = false;
 }
 
-void DisplayDriver::changeScreen(void) {
-    APIs_FETCHER.disableFetching();
-    if (m_screenStatus == SCREEN_MINING) {
-        enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
-        m_screenStatus = SCREEN_SETTINGS;
-        ESP_LOGI("UI", "New Screen Settings displayed");
-    } else if (m_screenStatus == SCREEN_SETTINGS) {
-        enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
-        m_screenStatus = SCREEN_BTCPRICE;
-        APIs_FETCHER.enableFetching();
-        ESP_LOGI("UI", "New Screen BTCprice displayed");
-    } else if (m_screenStatus == SCREEN_BTCPRICE) {
-        enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
-        m_screenStatus = SCREEN_GLBSTATS;
-        ESP_LOGI("UI", "New Screen Global Stats displayed");
-    } else if (m_screenStatus == SCREEN_GLBSTATS) {
-        enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 350, 0);
-        m_screenStatus = SCREEN_MINING;
-        ESP_LOGI("UI", "New Screen Mining displayed");
-    }
-}
-
 void DisplayDriver::lvglTimerTaskWrapper(void *param) {
     DisplayDriver *display = (DisplayDriver*) param;
     display->lvglTimerTask(NULL);
@@ -239,6 +212,8 @@ void DisplayDriver::enterState(UiState s, int64_t now)
     if (m_state == s) {
         return;
     }
+    UiState previousState = m_state;
+
     m_state = s;
     m_stateStart_us = now;
 
@@ -248,15 +223,11 @@ void DisplayDriver::enterState(UiState s, int64_t now)
         break;
     case UiState::Splash1:
         ESP_LOGI(TAG, "enter state splash1");
-        m_screenStatus = STATE_ONINIT;
-        if (m_ui->ui_Splash1 == NULL) m_ui->splash1ScreenInit();
         enableLvglAnimations(true);
         break;
 
     case UiState::Splash2:
         ESP_LOGI(TAG, "enter state splash2");
-        m_screenStatus = STATE_SPLASH1;
-        if (m_ui->ui_Splash2 == NULL) m_ui->splash2ScreenInit();
         enableLvglAnimations(true);
         _ui_screen_change(m_ui->ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         if (m_ui->ui_Splash1) { lv_obj_clean(m_ui->ui_Splash1); m_ui->ui_Splash1 = NULL; }
@@ -264,32 +235,46 @@ void DisplayDriver::enterState(UiState s, int64_t now)
 
     case UiState::Wait:
         ESP_LOGI(TAG, "enter state wait");
-        m_screenStatus = STATE_INIT_OK;
         if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
         break;
 
     case UiState::Portal:
         ESP_LOGI(TAG, "enter state portal");
-        m_screenStatus = SCREEN_PORTAL;
-        if (m_ui->ui_PortalScreen == NULL) m_ui->portalScreenInit();
         enableLvglAnimations(true);
         _ui_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         break;
 
     case UiState::Mining:
         ESP_LOGI(TAG, "enter state mining");
-        m_screenStatus = SCREEN_MINING;
-        if (m_ui->ui_MiningScreen   == NULL) m_ui->miningScreenInit();
-        if (m_ui->ui_SettingsScreen == NULL) m_ui->settingsScreenInit();
-        if (m_ui->ui_BTCScreen      == NULL) m_ui->bTCScreenInit();
-        if (m_ui->ui_GlobalStats    == NULL) m_ui->globalStatsScreenInit();
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        if (previousState == UiState::GlobalStats) {
+            _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        } else {
+            _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        }
+        break;
+
+    case UiState::SettingsScreen:
+        ESP_LOGI(TAG, "enter state settings screen");
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        break;
+
+    case UiState::BTCScreen:
+        ESP_LOGI(TAG, "enter state btc screen");
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        break;
+
+    case UiState::GlobalStats:
+        ESP_LOGI(TAG, "enter state global stats");
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         break;
     }
 }
 
-void DisplayDriver::updateState(int64_t now)
+void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press)
 {
     const int ms = elapsed_ms(m_stateStart_us, now);
 
@@ -318,10 +303,45 @@ void DisplayDriver::updateState(int64_t now)
         break;
 
     case UiState::Mining:
-        enterState(UiState::Mining, now);
+        if (btn1Press) {
+            APIs_FETCHER.enableFetching();
+            enterState(UiState::SettingsScreen, now);
+        } else {
+            enterState(UiState::Mining, now);
+        }
+        if (btn2Press) {
+            displayTurnOn();
+        }
+        break;
+    case UiState::SettingsScreen:
+        if (btn1Press) {
+            enterState(UiState::BTCScreen, now);
+            APIs_FETCHER.enableFetching();
+        }
+        if (btn2Press) {
+            displayTurnOn();
+        }
+        break;
+    case UiState::BTCScreen:
+        if (btn1Press) {
+            enterState(UiState::GlobalStats, now);
+        }
+        if (btn2Press) {
+            displayTurnOn();
+        }
+        break;
+    case UiState::GlobalStats:
+        if (btn1Press) {
+            enterState(UiState::Mining, now);
+        }
+        if (btn2Press) {
+            displayTurnOn();
+        }
         break;
     }
 }
+
+
 
 void DisplayDriver::waitForSplashs() {
     // wait until state is not Splash1 or Splash2
@@ -343,6 +363,8 @@ void DisplayDriver::lvglTimerTask(void *param)
     while (true) {
         uint32_t wait_ms = 0;
         const int64_t tnow = now_us();
+        bool btn1Press = false;
+        bool btn2Press = false;
         {
             PThreadGuard lock(m_lvglMutex);
 
@@ -378,7 +400,7 @@ void DisplayDriver::lvglTimerTask(void *param)
                 hideFoundBlockOverlay();
             } else {
                 if (!m_displayIsOn) displayTurnOn();
-                changeScreen();
+                btn1Press = true;
             }
         }
         if (m_button2PressedFlag) {
@@ -389,7 +411,7 @@ void DisplayDriver::lvglTimerTask(void *param)
                 if (m_isActiveOverlay) hideFoundBlockOverlay();
                 else displayTurnOff();
             } else {
-                displayTurnOn();
+                btn2Press = true;
             }
         }
 
@@ -401,7 +423,7 @@ void DisplayDriver::lvglTimerTask(void *param)
         }
 
         // 4) FSM update (timeouts and screen changes)
-        updateState(tnow);
+        updateState(tnow, btn1Press, btn2Press);
     }
 }
 
@@ -643,7 +665,7 @@ void DisplayDriver::updateBTCprice(void)
 {
     char price_str[32];
 
-    if ((m_screenStatus != SCREEN_BTCPRICE) && (m_btcPrice != 0))
+    if ((m_state != UiState::BTCScreen) && (m_btcPrice != 0))
         return;
 
     m_btcPrice = APIs_FETCHER.getPrice();
@@ -655,7 +677,7 @@ void DisplayDriver::updateGlobalMiningStats(void)
 {
     char strData[32];
 
-    if ((m_screenStatus != SCREEN_GLBSTATS) && (m_blockHeight != 0))
+    if ((m_state != UiState::GlobalStats) && (m_blockHeight != 0))
         return;
 
 
@@ -739,7 +761,6 @@ void DisplayDriver::updateIpAddress(const char *ip_address_str)
 void DisplayDriver::logMessage(const char *message)
 {
     PThreadGuard lock(m_lvglMutex);
-    m_screenStatus = SCREEN_LOG;
     if (m_ui->ui_LogScreen == NULL)
         m_ui->logScreenInit();
     lv_label_set_text(m_ui->ui_LogLabel, message);

@@ -75,6 +75,9 @@ class DisplayDriver {
         Wait,
         Portal,
         Mining,
+        SettingsScreen,
+        BTCScreen,
+        GlobalStats,
         NOP
     };
 
@@ -88,7 +91,6 @@ class DisplayDriver {
     bool m_button2PressedFlag;  // Flag indicating button 2 is pressed
     int64_t m_lastKeypressTime; // Time of the last keypress event
     bool m_displayIsOn;         // Flag indicating if the display is currently on
-    int m_screenStatus;         // Current screen status
     int m_nextScreen;           // The next screen to display
     bool m_isActiveOverlay;     // flag if we have an overlay. LED light is forced to be on
     char m_portalWifiName[30];  // WiFi name displayed on the portal screen
@@ -130,9 +132,9 @@ class DisplayDriver {
     static void button2IsrHandler(void *); // ISR handler for button 2
 
     // Screen switching logic
-    void changeScreen();   // Change between screens
-    void updateBtcPrice(); // Update Bitcoin price on the screen
-    void updateGlobalMiningStats(); // Update Global mining stats
+    void changeScreen(uint64_t now);   // Change between screens
+    void updateBtcPrice();             // Update Bitcoin price on the screen
+    void updateGlobalMiningStats();    // Update Global mining stats
 
     // LVGL task handling
     void mainCreatSysteTasks();                    // Creates system tasks for LVGL
@@ -141,7 +143,7 @@ class DisplayDriver {
 
     // display state machine
     void enterState(UiState s, int64_t now);
-    void updateState(int64_t now);
+    void updateState(int64_t now, bool btn1Press, bool btn2Press);
 
     // Display initialization
     lv_obj_t *initTDisplayS3(); // Initialize the TDisplay S3

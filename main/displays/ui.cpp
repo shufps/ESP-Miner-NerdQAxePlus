@@ -674,12 +674,15 @@ void UI::init(Board* board)
     lv_theme_t *m_theme =
         lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, m_theme);
-    if (ui_Splash1 == NULL)
-        splash1ScreenInit();
-    // ui_Splash2_screen_init();
-    // ui_Portal_screen_init();
-    // ui_MiningScreen_screen_init();
-    // ui_SettingsScreen_screen_init();
+
+    splash1ScreenInit();
+    splash2ScreenInit();
+    portalScreenInit();
+    miningScreenInit();
+    settingsScreenInit();
+    bTCScreenInit();
+    globalStatsScreenInit();
     // ui_LogScreen_init();
+
     lv_disp_load_scr(ui_Splash1);
 }
