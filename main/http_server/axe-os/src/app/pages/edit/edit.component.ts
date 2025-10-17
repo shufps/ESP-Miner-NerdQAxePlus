@@ -44,7 +44,7 @@ export class EditComponent implements OnInit {
 
   private originalSettings!: any;
 
-  private otpEnabled = false;
+  public otpEnabled = false;
   private pendingTotp: string|undefined;
 
   // NEW: the “raw” options from the /asic endpoint
@@ -213,6 +213,7 @@ export class EditComponent implements OnInit {
           Validators.pattern(/^\d+$/),   // only ints
           Validators.required,
         ]],
+        otpEnabled: [info.otp],
       });
 
       this.form.controls['autofanspeed'].valueChanges
@@ -423,7 +424,7 @@ export class EditComponent implements OnInit {
       this.dialogRef = this.dialogService.open(dialog, { closeOnBackdropClick: false });
     } else {
       // was: this.updateSystem();
-      this.runSaveWithOptionalOtp(); 
+      this.runSaveWithOptionalOtp();
     }
   }
 
@@ -434,7 +435,7 @@ export class EditComponent implements OnInit {
     }
     this.dialogRef.close();
     // was: this.updateSystem();
-    this.runSaveWithOptionalOtp(); 
+    this.runSaveWithOptionalOtp();
   }
 
   get wrapAroundTime(): number {

@@ -470,6 +470,8 @@
     "ENABLE_FAIL": "Invalid or expired code",
     "DISABLE_FAIL": "Code invalid",
     "LOCAL_ONLY": "Designed for local LAN use (no HTTPS). Do not expose to the internet.",
-    "OTP_HINT": "Start enrollment to display a QR code on the device. Scan it with your authenticator (e.g., Authy/Google Authenticator), then enter the 6-digit code to enable OTP. Disabling also requires a valid code. Designed for local LAN only (no HTTPS)."
+    "OTP_HINT": "Start enrollment to display a QR code on the device. Scan it with your authenticator (e.g., Authy/Google Authenticator), then enter the 6-digit code to enable OTP. Disabling also requires a valid code. Designed for local LAN only (no HTTPS).",
+    "OTP_NUDGE_TITLE": "Please consider enabling OTP",
+    "OTP_NUDGE_TEXT": "It helps mitigate opportunistic and automated attacks and adds a basic layer of real cryptographic protection to this web interface."
   }
 }
