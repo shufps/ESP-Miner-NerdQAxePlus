@@ -45,10 +45,6 @@ static inline int32_t elapsed_ms(int64_t start_us, int64_t now) {
 
 DisplayDriver::DisplayDriver() {
     m_animationsEnabled = false;
-    m_button1PressedFlag = false;
-    m_button2PressedFlag = false;
-    m_button1LongPressedFlag = false;
-    m_button2LongPressedFlag = false;
     m_lastKeypressTime = 0;
     m_displayIsOn = false;
     m_countdownActive = false;
@@ -288,7 +284,7 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
 }
 
 
-void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress, bool btn1LongPress, bool btn2LongPress)
+void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress)
 {
     const int ms = elapsed_ms(m_stateStart_us, now);
 
@@ -360,8 +356,9 @@ void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, boo
         }
         break;
     }
-
 }
+
+
 
 void DisplayDriver::waitForSplashs() {
     // wait until state is not Splash1 or Splash2
@@ -378,9 +375,6 @@ bool DisplayDriver::ledControl(bool btn1, bool btn2) {
     }
     return false;
 }
-
-
-
 
 void DisplayDriver::lvglTimerTask(void *param)
 {
@@ -400,7 +394,6 @@ void DisplayDriver::lvglTimerTask(void *param)
     while (true) {
         uint32_t wait_ms = 0;
         const int64_t tnow = now_us();
-
         {
             PThreadGuard lock(m_lvglMutex);
 
@@ -427,22 +420,22 @@ void DisplayDriver::lvglTimerTask(void *param)
         uint32_t sleep_ms = (wait_ms > 0 && wait_ms < idle_cap) ? wait_ms : idle_cap;
         vTaskDelay(pdMS_TO_TICKS(sleep_ms));
 
-        // if we show the block found overlay, we hide it with any of the two buttons
-        if ((m_button1PressedFlag || m_button2PressedFlag) && m_isActiveOverlay) {
-            hideFoundBlockOverlay();
-        }
-
         bool btn1Press = false;
         bool btn2Press = false;
         bool btnBothLongPress = false;
-        bool btn1LongPress = false;
-        bool btn2LongPress = false;
 
         btn1.update();
         btn2.update();
 
         uint32_t evt1 = btn1.getEvent();
         uint32_t evt2 = btn2.getEvent();
+
+        // if we show the block found overlay, we hide it with any of the two buttons
+        if ((evt1 & BTN_EVENT_SHORTPRESS || evt2 & BTN_EVENT_SHORTPRESS) && m_isActiveOverlay) {
+            hideFoundBlockOverlay();
+            btn1.clearEvent();
+            btn2.clearEvent();
+        }
 
         if ((evt1 & BTN_EVENT_LONGPRESS) && (evt2 & BTN_EVENT_LONGPRESS)) {
             btnBothLongPress = true;
@@ -495,7 +488,7 @@ void DisplayDriver::lvglTimerTask(void *param)
         }
 
         // 4) FSM update (timeouts and screen changes)
-        updateState(tnow, btn1Press, btn2Press, btnBothLongPress, btn1LongPress, btn2LongPress);
+        updateState(tnow, btn1Press, btn2Press, btnBothLongPress);
     }
 }
 

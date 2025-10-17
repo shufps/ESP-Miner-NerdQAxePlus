@@ -160,7 +160,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
 #endif
     doc["otp"]                = Config::isOTPEnabled(); // flag if otp is enabled
 
-
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
     doc["uptimeSeconds"]      = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
@@ -172,8 +171,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
 
     doc["defaultTheme"]       = board->getDefaultTheme();
-
-
 
     //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 

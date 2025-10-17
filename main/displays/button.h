@@ -6,12 +6,6 @@
 #define BTN_EVENT_LONGPRESS  (1<<2)
 #define BTN_EVENT_FASTPRESS  (1<<3)
 #define BTN_EVENT_TIMEOUT (1<<4)
-//#define BTN_EVENT_SINGLE	(1<<5)
-#define BTN_EVENT_USBPLUG	(1<<6)
-#define BTN_EVENT_UPDATE	(1<<7)
-#define BTN_EVENT_CHARGING	(1<<8)
-#define BTN_EVENT_1S		(1<<9)
-#define BTN_EVENT_USBUNPLUG	(1<<10)
 
 class Button {
   protected:

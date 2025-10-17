@@ -88,11 +88,6 @@ class DisplayDriver {
 
     pthread_mutex_t m_lvglMutex;
     bool m_animationsEnabled;   // Flag for enabling animations
-    bool m_button1PressedFlag;  // Flag indicating button 1 is pressed
-    bool m_button2PressedFlag;  // Flag indicating button 2 is pressed
-    bool m_button1LongPressedFlag;  // Flag indicating button 1 is pressed
-    bool m_button2LongPressedFlag;  // Flag indicating button 2 is pressed
-
     int64_t m_lastKeypressTime; // Time of the last keypress event
     bool m_displayIsOn;         // Flag indicating if the display is currently on
     int m_nextScreen;           // The next screen to display
@@ -146,7 +141,7 @@ class DisplayDriver {
 
     // display state machine
     bool enterState(UiState s, int64_t now);
-    void updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress, bool btn1LongPress, bool btn2LongPress);
+    void updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress);
 
     bool ledControl(bool btn1, bool btn2);        // returns true if LED was switched on/off
 
