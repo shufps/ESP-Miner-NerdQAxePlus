@@ -252,6 +252,11 @@ bool OTP::validate(const std::string &token)
 {
     PThreadGuard lock(m_mutex);
 
+    if (!isEnabled()) {
+        ESP_LOGI(TAG, "otp not enabled");
+        return true;
+    }
+
     // 1) Parse 6-digit code
     uint32_t user_code = 0;
     if (!parse_otp6(token, user_code)) {
