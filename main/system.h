@@ -9,6 +9,7 @@
 #include "freertos/queue.h"
 #include "boards/board.h"
 #include "history.h"
+#include "sntp.h"
 
 // Configuration and constants
 #define STRATUM_USER CONFIG_STRATUM_USER
@@ -18,6 +19,8 @@
 
 class System {
   protected:
+    SNTP m_sntp;
+
     // Hashrate and timing
     double m_currentHashrate10m; // Current hashrate averaged over 10 minutes
     double m_currentHashrate1m;  // Current hashrate averaged over 1 minute

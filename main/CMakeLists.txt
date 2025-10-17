@@ -4,6 +4,7 @@ SRCS
     "nvs_config.cpp"
     "system.cpp"
     "connect.cpp"
+    "sntp.cpp"
     "boards/board.cpp"
     "boards/nerdaxe.cpp"
     "boards/nerdaxegamma.cpp"
@@ -38,6 +39,7 @@ SRCS
     "./http_server/handler_swarm.cpp"
     "./http_server/handler_system.cpp"
     "./http_server/handler_ota.cpp"
+    "./http_server/handler_otp.cpp"
     "./http_server/handler_restart.cpp"
     "./http_server/handler_file.cpp"
     "./http_server/handler_ota_factory.cpp"
@@ -53,6 +55,8 @@ SRCS
     "./tasks/wifi_health.cpp"
     "./displays/displayDriver.cpp"
     "./displays/ui.cpp"
+    "./displays/ui_ipc.cpp"
+    "./displays/button.cpp"
     "./displays/ui_helpers.cpp"
     "./displays/images/ui_font_DigitalNumbers16.c"
     "./displays/images/ui_font_DigitalNumbers28.c"
@@ -65,6 +69,9 @@ SRCS
     "./displays/images/ui_font_vt323_35.c"
     "./displays/images/ui_img_found_block_png.c"
     "./displays/images/themes/themes.c"
+    "./otp/otp.cpp"
+    "./otp/qrcodegen.cpp"
+
 
 
 INCLUDE_DIRS

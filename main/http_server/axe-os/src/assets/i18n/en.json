@@ -29,7 +29,8 @@
     "SYSTEM": "System",
     "SWARM": "Swarm",
     "INFLUXDB": "InfluxDB",
-    "ALERTS": "Alerts"
+    "ALERTS": "Alerts",
+    "SECURITY": "Security"
   },
   "HOME": {
     "HASH_RATE": "Hash Rate",
@@ -452,5 +453,23 @@
     "MINUTE_PLURAL": "minutes",
     "SECOND_SINGULAR": "second",
     "SECOND_PLURAL": "seconds"
+  },
+  "SECURITY": {
+    "TITLE": "Security",
+    "OTP_STATUS": "OTP status",
+    "ENABLE_OTP": "Enable OTP",
+    "DISABLE_OTP": "Disable OTP",
+    "START_ENROLLMENT": "Start enrollment",
+    "ENROLLMENT_ACTIVE": "Enrollment is active — QR is shown on the device",
+    "ENTER_CODE": "Enter 6-digit code",
+    "DISABLE_LABEL": "Disable OTP (requires current code)",
+    "QR_SHOWN": "QR shown on the device. Scan it, then enter the code.",
+    "ENABLED": "OTP enabled",
+    "DISABLED": "OTP disabled",
+    "ENROLL_FAIL": "Enrollment failed",
+    "ENABLE_FAIL": "Invalid or expired code",
+    "DISABLE_FAIL": "Code invalid",
+    "LOCAL_ONLY": "Designed for local LAN use (no HTTPS). Do not expose to the internet.",
+    "OTP_HINT": "Start enrollment to display a QR code on the device. Scan it with your authenticator (e.g., Authy/Google Authenticator), then enter the 6-digit code to enable OTP. Disabling also requires a valid code. Designed for local LAN only (no HTTPS)."
   }
 }

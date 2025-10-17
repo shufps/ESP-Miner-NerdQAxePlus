@@ -78,6 +78,7 @@ class DisplayDriver {
         SettingsScreen,
         BTCScreen,
         GlobalStats,
+        ShowQR,
         NOP
     };
 
@@ -89,6 +90,9 @@ class DisplayDriver {
     bool m_animationsEnabled;   // Flag for enabling animations
     bool m_button1PressedFlag;  // Flag indicating button 1 is pressed
     bool m_button2PressedFlag;  // Flag indicating button 2 is pressed
+    bool m_button1LongPressedFlag;  // Flag indicating button 1 is pressed
+    bool m_button2LongPressedFlag;  // Flag indicating button 2 is pressed
+
     int64_t m_lastKeypressTime; // Time of the last keypress event
     bool m_displayIsOn;         // Flag indicating if the display is currently on
     int m_nextScreen;           // The next screen to display
@@ -119,8 +123,8 @@ class DisplayDriver {
     void updateBTCprice(void);
 
     // Display-related functions
-    void displayTurnOff();         // Turn off the display
-    void displayTurnOn();          // Turn on the display
+    bool displayTurnOff();         // Turn off the display
+    bool displayTurnOn();          // Turn on the display
     void startCountdown();         // Start the screen countdown timer
     void displayHideCountdown();   // Hide the countdown overlay
     void checkAutoTurnOffScreen(); // Check if the screen should auto-turn off
@@ -128,8 +132,7 @@ class DisplayDriver {
 
     // Button initialization and handling
     void buttonsInit();                    // Initialize GPIO buttons
-    static void button1IsrHandler(void *); // ISR handler for button 1
-    static void button2IsrHandler(void *); // ISR handler for button 2
+
 
     // Screen switching logic
     void changeScreen(uint64_t now);   // Change between screens
@@ -142,8 +145,10 @@ class DisplayDriver {
     void lvglTimerTask(void *param);               // LVGL timer task implementation
 
     // display state machine
-    void enterState(UiState s, int64_t now);
-    void updateState(int64_t now, bool btn1Press, bool btn2Press);
+    bool enterState(UiState s, int64_t now);
+    void updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress, bool btn1LongPress, bool btn2LongPress);
+
+    bool ledControl(bool btn1, bool btn2);        // returns true if LED was switched on/off
 
     // Display initialization
     lv_obj_t *initTDisplayS3(); // Initialize the TDisplay S3

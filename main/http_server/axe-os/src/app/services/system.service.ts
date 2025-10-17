@@ -78,6 +78,8 @@ const defaultInfo: ISystemInfo = {
   vrFrequency: 25000,
   defaultTheme: "cosmic",
 
+  otp: false,
+
   pidTargetTemp: 55,
   pidP: 2.0,
   pidI: 0.1,
@@ -262,6 +264,16 @@ export class SystemService {
       console.log('Mock sendAlertTest');
       return of(true).pipe(delay(500));
     }
+  }
+
+  /** POST /api/otp -> starts enrollment (shows QR on device) */
+  startOtpEnrollment(): Observable<void> {
+    return this.httpClient.post<void>('/api/otp', {}); // empty body
+  }
+
+  /** PATCH /api/otp -> {enabled:boolean, totp:string} */
+  updateOtp(enabled: boolean, totp: string): Observable<void> {
+    return this.httpClient.patch<void>('/api/otp', { enabled, totp });
   }
 }
 

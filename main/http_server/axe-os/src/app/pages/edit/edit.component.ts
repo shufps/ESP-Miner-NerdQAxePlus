@@ -7,6 +7,8 @@ import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
+import { OtpDialogComponent } from '../../components/otp-dialog/otp-dialog.component';
+
 
 enum SupportLevel { Safe = 0, Advanced = 1, Pro = 2 }
 
@@ -41,6 +43,9 @@ export class EditComponent implements OnInit {
   public ecoCoreVoltage: number = 0;
 
   private originalSettings!: any;
+
+  private otpEnabled = false;
+  private pendingTotp: string|undefined;
 
   // NEW: the “raw” options from the /asic endpoint
   private asicFrequencyValues: number[] = [];
@@ -85,6 +90,8 @@ export class EditComponent implements OnInit {
     .pipe(this.loadingService.lockUIUntilComplete())
     .subscribe(({ info, asic }) => {
       this.originalSettings = structuredClone(info);
+
+      this.otpEnabled = !!info.otp;
 
       // Model still from /info (enum-typed)
       this.ASICModel = info.ASICModel;
@@ -249,38 +256,38 @@ export class EditComponent implements OnInit {
   }
 
   public updateSystem() {
-    const form = this.form.getRawValue();
+  const form = this.form.getRawValue();
 
-    // Save client-side preferences to localStorage
-    if (form.timeFormat) {
-      this.localStorageService.setItem('timeFormat', form.timeFormat);
-      // Emit custom event to notify other components
-      window.dispatchEvent(new CustomEvent('timeFormatChanged', { detail: form.timeFormat }));
-      delete form.timeFormat; // Don't send to server
-    }
+  // Client-only preference
+  if (form.timeFormat) {
+    this.localStorageService.setItem('timeFormat', form.timeFormat);
+    window.dispatchEvent(new CustomEvent('timeFormatChanged', { detail: form.timeFormat }));
+    delete form.timeFormat;
+  }
 
-    // Allow an empty wifi password
-    form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
+  // Allow empty WiFi password; strip masked fields
+  form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
+  if (form.wifiPass === '*****') delete form.wifiPass;
+  if (form.stratumPassword === '*****') delete form.stratumPassword;
 
-    if (form.wifiPass === '*****') {
-      delete form.wifiPass;
-    }
-    if (form.stratumPassword === '*****') {
-      delete form.stratumPassword;
-    }
+  form.stratum_keep = form.stratum_keep ? 1 : 0;
 
-    form.stratum_keep = form.stratum_keep ? 1 : 0;
+  if (this.pendingTotp) {
+    form.totp = this.pendingTotp;
+  }
 
-    this.systemService.updateSystem(this.uri, form)
-      .pipe(this.loadingService.lockUIUntilComplete())
-      .subscribe({
-        next: () => {
-          this.toastrService.success('Success!', 'Saved.');
-        },
-        error: (err: HttpErrorResponse) => {
-          this.toastrService.danger('Error.', `Could not save. ${err.message}`);
-        }
-      });
+  this.systemService.updateSystem(this.uri, form)
+    .pipe(this.loadingService.lockUIUntilComplete())
+    .subscribe({
+      next: () => {
+        this.toastrService.success('Success!', 'Saved.');
+        this.pendingTotp = undefined; // clear on success
+      },
+      error: (err: HttpErrorResponse) => {
+        this.pendingTotp = undefined; // clear on error as well
+        this.toastrService.danger('Error.', `Could not save. ${err.message}`);
+      }
+    });
   }
 
   get requiresReboot(): boolean {
@@ -415,7 +422,8 @@ export class EditComponent implements OnInit {
     if (!this.localStorageService.getBool('hideUnsafeSettingsWarning') && this.hasUnsafeSettings()) {
       this.dialogRef = this.dialogService.open(dialog, { closeOnBackdropClick: false });
     } else {
-      this.updateSystem(); // Directly save if warning is disabled
+      // was: this.updateSystem();
+      this.runSaveWithOptionalOtp(); 
     }
   }
 
@@ -425,7 +433,8 @@ export class EditComponent implements OnInit {
       this.localStorageService.setBool('hideUnsafeSettingsWarning', true);
     }
     this.dialogRef.close();
-    this.updateSystem();
+    // was: this.updateSystem();
+    this.runSaveWithOptionalOtp(); 
   }
 
   get wrapAroundTime(): number {
@@ -436,5 +445,29 @@ export class EditComponent implements OnInit {
     const wrap = 65536 / freq; // seconds
     return wrap;
   }
+
+  /** Run save; if OTP is enabled, prompt for a code first. */
+  private runSaveWithOptionalOtp(): void {
+  if (!this.otpEnabled) {
+    this.updateSystem();
+    return;
+  }
+
+  // OTP enabled → open modal
+  const ref = this.dialogService.open(OtpDialogComponent, {
+    closeOnBackdropClick: false,
+    context: {
+      title: 'Confirm changes',
+      hint: 'Enter your current 6-digit OTP to save settings.',
+      periodSec: 30,
+    },
+  });
+
+  ref.onClose.subscribe(code => {
+    if (!code) return; // user canceled
+    this.pendingTotp = String(code).trim();
+    this.updateSystem();
+  });
+}
 
 }

@@ -5,6 +5,7 @@
 #include "displayDriver.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "../macros.h"
 
 
 #pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
@@ -12,6 +13,8 @@
 UI::UI() {
     m_last_screen_change_time = 0;
 }
+
+static const char *TAG="ui";
 
 ///////////////////// FUNCTIONS ////////////////////
 
@@ -572,6 +575,63 @@ void UI::globalStatsScreenInit(void)
     lv_obj_set_style_text_font(ui_lblhighFee, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 
 }
+
+void UI::createQRScreen(uint8_t *buf, int size) {
+    if (!buf || size <= 0) {
+        ESP_LOGE(TAG, "No QR to draw");
+        return;
+    }
+    const int quiet = 4;
+    const int max_px = 160;
+    const int n     = size;                          // modules per side
+    const int scale = std::max(2, max_px / (n + 2*quiet));
+    const int img   = (n + 2*quiet) * scale;         // final pixels per side
+    const size_t bytes = (size_t)img * img * sizeof(lv_color_t);
+
+    // initialize once
+    if (!ui_qrScreen) {
+        ui_qrScreen = lv_obj_create(NULL);
+        lv_obj_clear_flag(ui_qrScreen, LV_OBJ_FLAG_SCROLLABLE);
+
+        // Create a black background
+        lv_obj_set_style_bg_color(ui_qrScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_bg_opa(ui_qrScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+        m_qr_canvas_buf = (lv_color_t*) MALLOC(bytes);
+        if (!m_qr_canvas_buf) {
+            ESP_LOGE(TAG, "QR canvas alloc failed: %dx%d = %u bytes", img, img, (unsigned)bytes);
+            return;
+        }
+        m_qr_canvas_w = img;
+
+        m_qr_canvas = lv_canvas_create(ui_qrScreen);
+        lv_canvas_set_buffer(m_qr_canvas, m_qr_canvas_buf, img, img, LV_IMG_CF_TRUE_COLOR);
+        lv_obj_center(m_qr_canvas);
+    }
+
+    // white background
+    lv_draw_rect_dsc_t bg; lv_draw_rect_dsc_init(&bg);
+    bg.bg_color = lv_color_white();
+    lv_canvas_draw_rect(m_qr_canvas, 0, 0, img, img, &bg);
+
+    // draw black modules
+    lv_draw_rect_dsc_t blk; lv_draw_rect_dsc_init(&blk);
+    blk.bg_color = lv_color_black();
+    blk.border_opa = LV_OPA_TRANSP;
+
+    for (int y = 0; y < n; ++y) {
+        for (int x = 0; x < n; ++x) {
+            if (!qrcodegen_getModule(buf, x, y)) continue;
+            const int px = (quiet + x) * scale;
+            const int py = (quiet + y) * scale;
+            lv_canvas_draw_rect(m_qr_canvas, px, py, scale, scale, &blk);
+        }
+    }
+}
+
+void UI::destroyQRScreen() {
+}
+
 
 // Function to show the overlay with an error message and custom colors
 void UI::showErrorOverlay(const char *error_message, uint32_t error_code)

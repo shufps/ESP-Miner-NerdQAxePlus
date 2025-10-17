@@ -35,7 +35,7 @@
 #include "discord.h"
 #include "macros.h"
 #include "hashrate_monitor_task.h"
-
+#include "otp/otp.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -51,6 +51,8 @@ FactoryOTAUpdate FACTORY_OTA_UPDATER;
 DiscordAlerter discordAlerter;
 
 AsicJobs asicJobs;
+
+OTP otp;
 
 static const char *TAG = "nerd*axe";
 
@@ -188,6 +190,8 @@ extern "C" void app_main(void)
 
     discordAlerter.init();
     discordAlerter.loadConfig();
+
+    (void)otp.init();
 
     // we only use alerting if we are in a normal operating mode
     if (reason == ESP_RST_TASK_WDT) {

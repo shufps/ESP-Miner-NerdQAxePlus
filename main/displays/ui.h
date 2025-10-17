@@ -2,6 +2,7 @@
 
 #include "lvgl.h"
 #include "../boards/board.h"
+#include "../otp/qrcodegen.h"
 
 
 LV_IMG_DECLARE(ui_img_overheat_png);      // overheating screen
@@ -76,9 +77,14 @@ protected:
     lv_obj_t *ui_lbllowFee = nullptr;
     lv_obj_t *ui_lblmedFee = nullptr;
     lv_obj_t *ui_lblhighFee = nullptr;
+    lv_obj_t *ui_qrScreen = nullptr;
 
     Board* m_board;
     Theme* m_theme;
+
+    lv_color_t* m_qr_canvas_buf = nullptr;
+    int         m_qr_canvas_w   = 0;   // == height
+    lv_obj_t*   m_qr_canvas     = nullptr;
 
     int64_t m_last_screen_change_time;
 
@@ -88,6 +94,9 @@ protected:
     void showImageOverlay(const lv_img_dsc_t *img);
     void hideImageOverlay();
 
+    // QR
+    void createQRScreen(uint8_t *buf, int size);
+    void destroyQRScreen();
 public:
     UI();
 

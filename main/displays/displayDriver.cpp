@@ -15,10 +15,12 @@
 #include "freertos/task.h"
 
 #include "ui.h"
+#include "ui_ipc.h"
 #include "ui_helpers.h"
 #include "global_state.h"
 #include "system.h"
 #include "macros.h"
+#include "button.h"
 
 #include "nvs_config.h"
 #include "displayDriver.h"
@@ -45,6 +47,8 @@ DisplayDriver::DisplayDriver() {
     m_animationsEnabled = false;
     m_button1PressedFlag = false;
     m_button2PressedFlag = false;
+    m_button1LongPressedFlag = false;
+    m_button2LongPressedFlag = false;
     m_lastKeypressTime = 0;
     m_displayIsOn = false;
     m_countdownActive = false;
@@ -83,24 +87,26 @@ void DisplayDriver::lvglFlushCallback(lv_disp_drv_t* drv, const lv_area_t* area,
 }
 
 /************ DISPLAY TURN ON/OFF FUNCTIONS *************/
-void DisplayDriver::displayTurnOff(void) {
+bool DisplayDriver::displayTurnOff(void) {
     if (!m_displayIsOn) {
-        return;
+        return false;
     }
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_OFF_LEVEL);
     gpio_set_level(TDISPLAYS3_PIN_PWR, false);
     ESP_LOGI(TAG, "Screen off");
     m_displayIsOn = false;
+    return true;
 }
 
-void DisplayDriver::displayTurnOn(void) {
+bool DisplayDriver::displayTurnOn(void) {
     if (m_displayIsOn) {
-        return;
+        return false;
     }
     gpio_set_level(TDISPLAYS3_PIN_PWR, true);
     gpio_set_level(TDISPLAYS3_PIN_NUM_BK_LIGHT, TDISPLAYS3_LCD_BK_LIGHT_ON_LEVEL);
     ESP_LOGI(TAG, "Screen on");
     m_displayIsOn = true;
+    return true;
 }
 
 /************ AUTO TURN OFF DISPLAY FUNCTIONS *************/
@@ -206,11 +212,12 @@ void DisplayDriver::lvglTimerTaskWrapper(void *param) {
     display->lvglTimerTask(NULL);
 }
 
-void DisplayDriver::enterState(UiState s, int64_t now)
+
+bool DisplayDriver::enterState(UiState s, int64_t now)
 {
     // we already are in this state
     if (m_state == s) {
-        return;
+        return true;
     }
     UiState previousState = m_state;
 
@@ -271,10 +278,17 @@ void DisplayDriver::enterState(UiState s, int64_t now)
         enableLvglAnimations(true);
         _ui_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         break;
+    case UiState::ShowQR:
+        ESP_LOGI(TAG, "enter qr state");
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_qrScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        break;
     }
+    return true;
 }
 
-void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press)
+
+void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress, bool btn1LongPress, bool btn2LongPress)
 {
     const int ms = elapsed_ms(m_stateStart_us, now);
 
@@ -303,45 +317,51 @@ void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press)
         break;
 
     case UiState::Mining:
+        if (ledControl(btn1Press, btn2Press)) {
+            break;
+        }
         if (btn1Press) {
             APIs_FETCHER.enableFetching();
             enterState(UiState::SettingsScreen, now);
         } else {
             enterState(UiState::Mining, now);
         }
-        if (btn2Press) {
-            displayTurnOn();
-        }
         break;
     case UiState::SettingsScreen:
+        if (ledControl(btn1Press, btn2Press)) {
+            break;
+        }
         if (btn1Press) {
             enterState(UiState::BTCScreen, now);
             APIs_FETCHER.enableFetching();
         }
-        if (btn2Press) {
-            displayTurnOn();
-        }
         break;
     case UiState::BTCScreen:
+        if (ledControl(btn1Press, btn2Press)) {
+            break;
+        }
         if (btn1Press) {
             enterState(UiState::GlobalStats, now);
         }
-        if (btn2Press) {
-            displayTurnOn();
-        }
         break;
     case UiState::GlobalStats:
+        if (ledControl(btn1Press, btn2Press)) {
+            break;
+        }
         if (btn1Press) {
             enterState(UiState::Mining, now);
         }
-        if (btn2Press) {
-            displayTurnOn();
+        break;
+    case UiState::ShowQR:
+        if (btn1Press || btn2Press) {
+            // abort enrollment
+            otp.disableEnrollment();
+            enterState(UiState::Mining, now);
         }
         break;
     }
+
 }
-
-
 
 void DisplayDriver::waitForSplashs() {
     // wait until state is not Splash1 or Splash2
@@ -349,6 +369,18 @@ void DisplayDriver::waitForSplashs() {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
+
+bool DisplayDriver::ledControl(bool btn1, bool btn2) {
+    if (btn1) {
+        return displayTurnOn();
+    } else if (btn2) {
+        return displayTurnOff();
+    }
+    return false;
+}
+
+
+
 
 void DisplayDriver::lvglTimerTask(void *param)
 {
@@ -360,11 +392,15 @@ void DisplayDriver::lvglTimerTask(void *param)
     // button animation control
     int32_t elapsed_Ani_cycles = 0;
 
+    Button btn1(PIN_BUTTON_1, 5000);
+    Button btn2(PIN_BUTTON_2, 5000);
+
+    ui_msg_t msg;
+
     while (true) {
         uint32_t wait_ms = 0;
         const int64_t tnow = now_us();
-        bool btn1Press = false;
-        bool btn2Press = false;
+
         {
             PThreadGuard lock(m_lvglMutex);
 
@@ -391,27 +427,36 @@ void DisplayDriver::lvglTimerTask(void *param)
         uint32_t sleep_ms = (wait_ms > 0 && wait_ms < idle_cap) ? wait_ms : idle_cap;
         vTaskDelay(pdMS_TO_TICKS(sleep_ms));
 
-        // 2) Buttons
-        if (m_button1PressedFlag) {
-            m_button1PressedFlag = false;
-            m_lastKeypressTime = tnow;
-
-            if (m_isActiveOverlay) {
-                hideFoundBlockOverlay();
-            } else {
-                if (!m_displayIsOn) displayTurnOn();
-                btn1Press = true;
-            }
+        // if we show the block found overlay, we hide it with any of the two buttons
+        if ((m_button1PressedFlag || m_button2PressedFlag) && m_isActiveOverlay) {
+            hideFoundBlockOverlay();
         }
-        if (m_button2PressedFlag) {
-            m_button2PressedFlag = false;
-            m_lastKeypressTime = tnow;
 
-            if (m_displayIsOn) {
-                if (m_isActiveOverlay) hideFoundBlockOverlay();
-                else displayTurnOff();
-            } else {
+        bool btn1Press = false;
+        bool btn2Press = false;
+        bool btnBothLongPress = false;
+        bool btn1LongPress = false;
+        bool btn2LongPress = false;
+
+        btn1.update();
+        btn2.update();
+
+        uint32_t evt1 = btn1.getEvent();
+        uint32_t evt2 = btn2.getEvent();
+
+        if ((evt1 & BTN_EVENT_LONGPRESS) && (evt2 & BTN_EVENT_LONGPRESS)) {
+            btnBothLongPress = true;
+            btn1.clearEvent();
+            btn2.clearEvent();
+        } else {
+            if (evt1 & BTN_EVENT_SHORTPRESS) {
+                btn1Press = true;
+                btn1.clearEvent();
+            }
+
+            if (evt2 & BTN_EVENT_SHORTPRESS) {
                 btn2Press = true;
+                btn2.clearEvent();
             }
         }
 
@@ -422,8 +467,35 @@ void DisplayDriver::lvglTimerTask(void *param)
             checkAutoTurnOffScreen();
         }
 
+        // queue to receive commands from http server context
+        if (xQueueReceive(g_ui_queue, &msg, 0) == pdTRUE) {
+            switch (msg.type) {
+                case UI_CMD_SHOW_QR: {
+                    if (!otp.isEnrollmentActive()) {
+                        ESP_LOGE(TAG, "no otp enrollment active");
+                        break;
+                    }
+                    int size = 0;
+                    uint8_t* qrBuf = otp.getQrCode(&size);
+                    m_ui->createQRScreen(qrBuf, size);
+                    if (m_ui->ui_qrScreen) {
+                        enterState(UiState::ShowQR, tnow);
+                    }
+                    break;
+                }
+                case UI_CMD_HIDE_QR: {
+                    enterState(UiState::Mining, tnow);
+                    break;
+                }
+            }
+            if (msg.payload) {
+                free(msg.payload);
+                msg.payload = NULL;
+            }
+        }
+
         // 4) FSM update (timeouts and screen changes)
-        updateState(tnow, btn1Press, btn2Press);
+        updateState(tnow, btn1Press, btn2Press, btnBothLongPress, btn1LongPress, btn2LongPress);
     }
 }
 
@@ -790,37 +862,15 @@ void DisplayDriver::updateWifiStatus(const char *message)
     refreshScreen();
 }
 
-// ISR Handler para el DownButton (Change Screen)
-void DisplayDriver::button1IsrHandler(void *arg)
-{
-    DisplayDriver *display = (DisplayDriver*) arg;
-    // ESP_LOGI("UI", "Button pressed changing screen");
-    display->m_button1PressedFlag = true;
-}
-
-// ISR Handler para el UpButton (Change Screen)
-void DisplayDriver::button2IsrHandler(void *arg)
-{
-    DisplayDriver *display = (DisplayDriver*) arg;
-    display->m_button2PressedFlag = true;
-}
-
 void DisplayDriver::buttonsInit(void)
 {
     gpio_pad_select_gpio(PIN_BUTTON_1);
     gpio_set_direction(PIN_BUTTON_1, GPIO_MODE_INPUT);
     gpio_set_pull_mode(PIN_BUTTON_1, GPIO_PULLUP_ONLY);
-    gpio_set_intr_type(PIN_BUTTON_1, GPIO_INTR_POSEDGE); // Interrupción en flanco de bajada
 
     gpio_pad_select_gpio(PIN_BUTTON_2);
     gpio_set_direction(PIN_BUTTON_2, GPIO_MODE_INPUT);
     gpio_set_pull_mode(PIN_BUTTON_2, GPIO_PULLUP_ONLY);
-    gpio_set_intr_type(PIN_BUTTON_2, GPIO_INTR_POSEDGE); // Interrupción en flanco de bajada
-
-    // Habilita las interrupciones de GPIO
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(PIN_BUTTON_1, button1IsrHandler, (void*) this);
-    gpio_isr_handler_add(PIN_BUTTON_2, button2IsrHandler, (void*) this);
 }
 
 /**
@@ -833,6 +883,9 @@ void DisplayDriver::init(Board* board)
 
     // Inicializa el GPIO para el botón
     buttonsInit();
+
+    // init the ipc
+    ui_ipc_init();
 
     lv_obj_t *scr = initTDisplayS3();
 

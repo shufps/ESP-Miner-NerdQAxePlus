@@ -27,3 +27,47 @@ esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc) {
     return ret;
 }
 
+esp_err_t getPostData(httpd_req_t *req) {
+    int total_len = req->content_len;
+    int cur_len = 0;
+    char *buf = ((rest_server_context_t *)(req->user_ctx))->scratch;
+    int received = 0;
+
+    if (total_len >= SCRATCH_BUFSIZE) {
+        /* Respond with 500 Internal Server Error */
+        ESP_LOGE(TAG, "content too long");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
+        return ESP_FAIL;
+    }
+
+    while (cur_len < total_len) {
+        received = httpd_req_recv(req, buf + cur_len, total_len);
+        if (received <= 0) {
+            /* Respond with 500 Internal Server Error */
+            ESP_LOGE(TAG, "error receiving data");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "error receiving data");
+            return ESP_FAIL;
+        }
+        cur_len += received;
+    }
+    buf[total_len] = '\0';
+    return ESP_OK;
+}
+
+esp_err_t getJsonData(httpd_req_t *req, JsonDocument &doc) {
+    esp_err_t err = getPostData(req);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    char *buf = ((rest_server_context_t *)(req->user_ctx))->scratch;
+
+    // Parse the JSON payload
+    DeserializationError error = deserializeJson(doc, buf);
+    if (error) {
+        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}

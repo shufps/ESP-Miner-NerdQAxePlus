@@ -1,0 +1,37 @@
+.row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.label {
+    min-width: 140px;
+    font-weight: 600;
+}
+
+.value {
+    display: flex;
+    align-items: center;
+}
+
+.block {
+    margin-top: 16px;
+}
+
+.ml-8 {
+    margin-left: 8px;
+}
+
+.mt-2 {
+    margin-top: 8px;
+}
+
+.hint {
+    margin-bottom: 8px;
+    color: var(--text-hint-color);
+}
+
+.otp-badge {
+    margin-right: 10px;
+    margin-top: 5px;
+}

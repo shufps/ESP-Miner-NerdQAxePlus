@@ -1,0 +1,48 @@
+<ng-container *ngIf="info$ | async as info">
+    <nb-card>
+        <nb-card-header>
+            {{ 'SECURITY.TITLE' | translate }}
+        </nb-card-header>
+
+        <nb-card-body>
+
+            <!-- Status -->
+            <div class="row">
+                <div class="label">{{ 'SECURITY.OTP_STATUS' | translate }}:</div>
+                <div class="value">
+                    <nb-badge class="otp-badge"
+                        [text]="info.otp ? ('SECURITY.ENABLED' | translate) : ('SECURITY.DISABLED' | translate)"
+                        [status]="info.otp ? 'success' : 'basic'">
+                    </nb-badge>
+                </div>
+            </div>
+
+            <!-- Hint -->
+            <p class="hint">
+                {{ 'SECURITY.OTP_HINT' | translate }}
+            </p>
+
+            <!-- Actions -->
+            <div class="row" style="gap:12px; flex-wrap: wrap;">
+
+                <!-- Start enrollment -> shows QR on device, then modal pops -->
+                <button nbButton status="primary" size="small" [disabled]="pending || info.otp || enrollmentActive"
+                    (click)="startEnrollment()">
+                    {{ 'SECURITY.START_ENROLLMENT' | translate }}
+                </button>
+
+                <!-- Disable (opens modal for code) -->
+                <button nbButton status="danger" size="small" [disabled]="pending || !info.otp"
+                    (click)="askForOtpAndDisable()">
+                    {{ 'SECURITY.DISABLE_OTP' | translate }}
+                </button>
+            </div>
+
+            <!-- Footnote -->
+            <p class="footnote text-hint mt-2">
+                {{ 'SECURITY.LOCAL_ONLY' | translate }}
+            </p>
+
+        </nb-card-body>
+    </nb-card>
+</ng-container>

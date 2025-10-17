@@ -312,6 +312,8 @@ void System::task() {
 
     m_display->miningScreen();
 
+    m_sntp.start();
+
     uint8_t countCycle = 10;
 
     // show initial 0.0.0.0

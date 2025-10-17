@@ -158,6 +158,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["vrFrequency"]        = board->getVrFrequency();
     doc["defaultVrFrequency"] = board->getDefaultVrFrequency();
 #endif
+    doc["otp"]                = Config::isOTPEnabled(); // flag if otp is enabled
+
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -170,6 +172,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
 
     doc["defaultTheme"]       = board->getDefaultTheme();
+
+
 
     //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 
@@ -205,34 +209,22 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    int total_len = req->content_len;
-    int cur_len = 0;
-    char *buf = ((rest_server_context_t *) (req->user_ctx))->scratch;
-    int received = 0;
-    if (total_len >= SCRATCH_BUFSIZE) {
-        /* Respond with 500 Internal Server Error */
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
-        return ESP_FAIL;
-    }
-    while (cur_len < total_len) {
-        received = httpd_req_recv(req, buf + cur_len, total_len);
-        if (received <= 0) {
-            /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to post control value");
-            return ESP_FAIL;
-        }
-        cur_len += received;
-    }
-    buf[total_len] = '\0';
-
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
-    // Parse the JSON payload
-    DeserializationError error = deserializeJson(doc, buf);
-    if (error) {
-        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+    esp_err_t err = getJsonData(req, doc);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    std::string totp;
+    if (doc["totp"].is<const char *>()) {
+        totp = doc["totp"].as<const char *>();
+    }
+
+    if (!otp.validate(totp)) {
+        ESP_LOGE(TAG, "totp validation failed");
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp validation failed");
         return ESP_FAIL;
     }
 
@@ -343,6 +335,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         Config::setVrFrequency(doc["vrFrequency"].as<uint32_t>());
     }
 #endif
+
+
+
     doc.clear();
 
     // Signal the end of the response
