@@ -374,25 +374,3 @@ esp_err_t OTP::startEnrollment()
 
     return ESP_OK;
 }
-
-/*** Public entry to show a scanable Authy-compatible QR ***/
-/*void show_authy_dummy_qr()
-{
-    OTP otp;
-
-    if (!otp.init()) {
-        ESP_LOGE(TAG, "error initializing");
-        return;
-    }
-
-    QrCode *qr = otp.createNewQrCode();
-    if (!qr) {
-        ESP_LOGE(TAG, "error creating qr code");
-        return;
-    }
-
-    // 5) Draw into LVGL canvas, max 160px to fit 170px display height comfortably
-    otp.draw_qr_canvas(lv_scr_act(), *qr, 4, 160);
-}
-
-*/
