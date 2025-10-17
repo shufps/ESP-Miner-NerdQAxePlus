@@ -1,17 +1,21 @@
 <ng-container *ngIf="!hidden">
-  <nb-alert [status]="status" outline="danger" class="otp-nudge">
-    <div class="banner-row">
-      <div class="banner-text">
-        <div class="banner-title" *ngIf="title">{{ title }}</div>
-        <div class="banner-msg">{{ message }}</div>
-        <label class="dont-show">
-          <nb-checkbox [(ngModel)]="dontShowAgain"></nb-checkbox>
-          <span style="margin-left: .5rem;">Don't show this again</span>
-        </label>
-      </div>
-      <button nbButton size="small" status="danger" (click)="dismiss()">
-        Close
-      </button>
-    </div>
-  </nb-alert>
+    <nb-alert [status]="status" outline="danger" class="otp-nudge">
+        <div class="banner-row">
+            <div class="banner-text">
+                <div class="banner-title" *ngIf="title">{{ title }}</div>
+                <div class="banner-msg">{{ message }}</div>
+            </div>
+        </div>
+        <div class="banner-row">
+            <label class="dont-show">
+                <nb-checkbox [(ngModel)]="dontShowAgain"></nb-checkbox>
+                <span style="margin-left: .5rem; margin-top: -8px;">Don't show this again</span>
+            </label>
+        </div>
+        <div class="banner-row">
+            <button nbButton size="small" status="danger" (click)="dismiss()">
+                Close
+            </button>
+        </div>
+    </nb-alert>
 </ng-container>
