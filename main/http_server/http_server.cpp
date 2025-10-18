@@ -19,6 +19,7 @@
 #include "handler_restart.h"
 #include "handler_file.h"
 #include "handler_alert.h"
+#include "handler_ota_factory.h"
 #include "macros.h"
 
 #pragma GCC diagnostic error "-Wall"
@@ -113,7 +114,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.max_uri_handlers = 20;
+    config.max_uri_handlers = 25;
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
     config.stack_size = 12288;
@@ -213,6 +214,22 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_uri_t ws = {.uri = "/api/ws", .method = HTTP_GET, .handler = echo_handler, .user_ctx = NULL, .is_websocket = true};
     httpd_register_uri_handler(http_server, &ws);
+
+    httpd_uri_t update_post_ota_from_url = {
+        .uri = "/api/system/OTA/github", .method = HTTP_POST, .handler = POST_OTA_update_from_url, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &update_post_ota_from_url);
+
+    httpd_uri_t update_get_ota_status = {
+        .uri = "/api/system/OTA/github", .method = HTTP_GET, .handler = GET_OTA_status, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &update_get_ota_status);
+
+    httpd_uri_t update_ota_github_options_uri = {
+        .uri = "/api/system/OTA/github",
+        .method = HTTP_OPTIONS,
+        .handler = handle_options_request,
+        .user_ctx = NULL
+    };
+    httpd_register_uri_handler(http_server, &update_ota_github_options_uri);
 
     if (enter_recovery) {
         /* Make default route serve Recovery */
