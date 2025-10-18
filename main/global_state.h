@@ -18,6 +18,7 @@
 #include "discord.h"
 #include "hashrate_monitor_task.h"
 #include "otp/otp.h"
+#include "http_server/handler_ota_factory.h"
 
 extern System SYSTEM_MODULE;
 extern PowerManagementTask POWER_MANAGEMENT_MODULE;

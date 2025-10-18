@@ -1,12 +1,14 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { NbToastrService } from '@nebular/theme';
+import { NbToastrService, NbDialogService } from '@nebular/theme';
 import { HttpErrorResponse } from '@angular/common/http';
+import { EMPTY, of } from 'rxjs';
+import { catchError, switchMap, take } from 'rxjs/operators';
 
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
-import { IAlertSettings } from '../../models/IAlertSettings';
 import { TranslateService } from '@ngx-translate/core';
+import { OtpDialogComponent } from '../../components/otp-dialog/otp-dialog.component';
 
 @Component({
   selector: 'app-alert',
@@ -23,7 +25,8 @@ export class AlertComponent implements OnInit {
     private systemService: SystemService,
     private toastrService: NbToastrService,
     private loadingService: LoadingService,
-    private translateService: TranslateService
+    private translate: TranslateService,
+    private dialog: NbDialogService,
   ) {}
 
   ngOnInit(): void {
@@ -44,6 +47,23 @@ export class AlertComponent implements OnInit {
       });
   }
 
+  private requireTotpIfEnabled(title: string, hint: string) {
+    return this.systemService.getInfo(0, this.uri).pipe(
+      take(1),
+      switchMap(info => {
+        if (!info?.otp) return of(undefined); // no otp necessary
+        const ref = this.dialog.open(OtpDialogComponent, {
+          closeOnBackdropClick: false,
+          context: { title, hint, periodSec: 30 },
+        });
+        return ref.onClose.pipe(
+          take(1),
+          switchMap(code => code ? of(code as string) : EMPTY)
+        );
+      })
+    );
+  }
+
   public save() {
     const form = this.form.getRawValue();
 
@@ -57,28 +77,52 @@ export class AlertComponent implements OnInit {
       payload.alertDiscordWebhook = form.alertDiscordWebhook;
     }
 
-    this.systemService.updateAlertInfo(this.uri, payload)
-      .pipe(this.loadingService.lockUIUntilComplete())
-      .subscribe({
-        next: () => {
-          this.toastrService.success(this.translateService.instant('ALERTS.SETTINGS_SAVED'), this.translateService.instant('COMMON.SUCCESS'));
-        },
-        error: (err: HttpErrorResponse) => {
-          this.toastrService.danger(this.translateService.instant('ALERTS.SETTINGS_SAVE_FAILED'), err.message);
-        }
-      });
+    this.requireTotpIfEnabled(
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_FW_HINT')
+    )
+    .pipe(
+      switchMap(code =>
+        this.systemService.updateAlertInfo(this.uri, payload, code)
+          .pipe(this.loadingService.lockUIUntilComplete())
+      ),
+      catchError((err: HttpErrorResponse) => {
+        this.toastrService.danger(
+          this.translate.instant('ALERTS.SETTINGS_SAVE_FAILED'),
+          `${this.translate.instant('COMMON.ERROR')}. ${err.message}`
+        );
+        return of(null);
+      })
+    )
+    .subscribe(res => {
+      if (res !== null) {
+        this.toastrService.success(
+          this.translate.instant('ALERTS.SETTINGS_SAVED'),
+          this.translate.instant('COMMON.SUCCESS')
+        );
+      }
+    });
   }
 
   public sendTest() {
-    this.systemService.sendAlertTest(this.uri)
-      .pipe(this.loadingService.lockUIUntilComplete())
-      .subscribe({
-        next: () => {
-          this.toastrService.success(this.translateService.instant('ALERTS.TEST_ALERT_SENT'), this.translateService.instant('COMMON.SUCCESS'));
-        },
-        error: () => {
-          this.toastrService.danger(this.translateService.instant('ALERTS.TEST_ALERT_FAILED'), this.translateService.instant('COMMON.ERROR'));
-        }
-      });
+    this.requireTotpIfEnabled(
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_FW_HINT')
+    )
+    .pipe(
+      switchMap(code =>
+        this.systemService.sendAlertTest(this.uri, code)
+          .pipe(this.loadingService.lockUIUntilComplete())
+      ),
+      catchError(() => {
+        this.toastrService.danger(this.translate.instant('ALERTS.TEST_ALERT_FAILED'), this.translate.instant('COMMON.ERROR'));
+        return of(null);
+      })
+    )
+    .subscribe(res => {
+      if (res !== null) {
+        this.toastrService.success(this.translate.instant('ALERTS.TEST_ALERT_SENT'), this.translate.instant('COMMON.SUCCESS'));
+      }
+    });
   }
 }

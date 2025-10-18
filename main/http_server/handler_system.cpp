@@ -206,23 +206,18 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    if (validateOTP(req) != ESP_OK) {
+        ESP_LOGE(TAG, "totp validation failed");
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");
+        return ESP_FAIL;;
+    }
+
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
     esp_err_t err = getJsonData(req, doc);
     if (err != ESP_OK) {
         return err;
-    }
-
-    std::string totp;
-    if (doc["totp"].is<const char *>()) {
-        totp = doc["totp"].as<const char *>();
-    }
-
-    if (!otp.validate(totp)) {
-        ESP_LOGE(TAG, "totp validation failed");
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp validation failed");
-        return ESP_FAIL;
     }
 
     // Update settings if each key exists in the JSON object.

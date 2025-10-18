@@ -66,6 +66,12 @@ esp_err_t PATCH_update_otp(httpd_req_t *req)
     // hide in any case
     ui_send_hide_qr();
 
+    if (validateOTP(req, true) != ESP_OK) {
+        ESP_LOGE(TAG, "totp validation failed");
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");
+        return ESP_FAIL;
+    }
+
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
@@ -74,28 +80,19 @@ esp_err_t PATCH_update_otp(httpd_req_t *req)
         return err;
     }
 
-    bool enabled = false;
-    std::string totp;
-
-    if (doc["totp"].is<const char *>()) {
-        totp = doc["totp"].as<const char *>();
-    }
-
-    if (doc["enabled"].is<bool>()) {
-        enabled = doc["enabled"].as<bool>();
-    }
-
-    if (!otp.validate(totp)) {
-        ESP_LOGE(TAG, "totp validation failed");
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp validation failed");
+    if (!doc["enabled"].is<bool>()) {
+        ESP_LOGE(TAG, "invalid enabled state");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "invalid enabled state");
         return ESP_FAIL;
     }
+
+    bool enabled = doc["enabled"].as<bool>();
 
     // set the enable to the desired state
     otp.setEnable(enabled);
 
     // after validation we persist the enable flag
-    // and the secret what finished the registration
+    // and the secret what finishes the registration
     otp.saveSettings();
 
     doc.clear();

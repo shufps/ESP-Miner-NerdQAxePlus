@@ -178,14 +178,14 @@ a {
 
   h6 {
     margin-bottom: 0.75rem;
-    color: #666;
+    color: var(--text-hint-color);
     font-weight: 600;
   }
 
   .update-step-label {
     margin-top: 0.5rem;
     font-size: 0.85em;
-    color: #666;
+    color: var(--text-hint-color);
     font-style: italic;
   }
 

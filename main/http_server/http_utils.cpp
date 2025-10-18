@@ -8,6 +8,8 @@
 
 static const char *TAG = "http_utils";
 
+extern OTP otp;
+
 esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc) {
     // Measure the size needed for the JSON text
     size_t jsonLength = measureJson(doc);
@@ -68,6 +70,25 @@ esp_err_t getJsonData(httpd_req_t *req, JsonDocument &doc) {
         ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
         return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
+static bool read_totp_header(httpd_req_t *req, char *out, size_t outlen) {
+    size_t len = httpd_req_get_hdr_value_len(req, "X-TOTP");
+    if (len == 0 || len + 1 > outlen) return false;
+    if (httpd_req_get_hdr_value_str(req, "X-TOTP", out, outlen) != ESP_OK) return false;
+    return true;
+}
+
+
+esp_err_t validateOTP(httpd_req_t *req, bool force) {
+    if (otp.isEnabled() || force) {
+        char totp[16] = {0};
+        if (!read_totp_header(req, totp, sizeof(totp)))
+            return ESP_FAIL;
+        if (!otp.validate(totp))
+            return ESP_FAIL;
     }
     return ESP_OK;
 }

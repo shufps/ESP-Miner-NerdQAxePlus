@@ -17,18 +17,6 @@ export class OtpDialogComponent implements OnDestroy {
   private sub?: Subscription;
 
   constructor(private ref: NbDialogRef<OtpDialogComponent>) {
-/*
-    // countdown init happens in ngOnInit-like pattern below
-    const period = this.periodSec ?? 30;
-    this.sub = interval(1000).pipe(
-      startWith(0),
-      map(() => {
-        const p = this.periodSec ?? 30;
-        const now = Math.floor(Date.now() / 1000);
-        return p - (now % p);
-      }),
-    ).subscribe(v => this.remaining = v);
-*/
   }
 
   onInput() {
