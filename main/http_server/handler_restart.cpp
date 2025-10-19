@@ -13,6 +13,10 @@ esp_err_t POST_restart(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
 
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
     ESP_LOGI(TAG, "Restarting System because of API Request");
 
     // Send HTTP response before restarting

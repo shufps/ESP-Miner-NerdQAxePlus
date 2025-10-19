@@ -6,6 +6,7 @@ import {
   NbButtonModule,
   NbInputModule,
   NbDialogModule,
+  NbCheckboxModule,
 } from '@nebular/theme';
 
 import { OtpDialogComponent } from './otp-dialog.component';
@@ -17,8 +18,9 @@ import { OtpDialogComponent } from './otp-dialog.component';
     FormsModule,
     NbDialogModule.forChild(),
     NbCardModule,
-    NbButtonModule,   // <-- wichtig
+    NbButtonModule,
     NbInputModule,
+    NbCheckboxModule,
   ],
   exports: [OtpDialogComponent],
 })

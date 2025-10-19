@@ -196,13 +196,13 @@ esp_err_t start_rest_server(void * pvParameters)
         .uri = "/api/otp", .method = HTTP_POST, .handler = POST_create_otp, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &post_otp_uri);
 
-    httpd_uri_t otp_options_uri = {
-        .uri = "/api/otp",
-        .method = HTTP_OPTIONS,
-        .handler = handle_options_request,
-        .user_ctx = NULL,
-    };
-    httpd_register_uri_handler(http_server, &otp_options_uri);
+    httpd_uri_t post_otp_session_uri = {
+        .uri = "/api/otp/session", .method = HTTP_POST, .handler = POST_create_otp_session, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &post_otp_session_uri);
+
+    httpd_uri_t get_otp_status = {
+        .uri = "/api/otp/status", .method = HTTP_GET, .handler = GET_otp_status, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &get_otp_status);
 
     /* URI handler for fetching Discord alert settings */
     httpd_uri_t alert_info_get_uri = {

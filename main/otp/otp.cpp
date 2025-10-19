@@ -21,11 +21,32 @@ static const char B32_ALPH[33] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 static const char *TAG = "OTP";
 
-static bool is_time_synced(void)
+// Pack a minimal payload to avoid JSON parsing.
+#pragma pack(push, 1)
+struct SessionPayload
 {
-    time_t now = 0;
-    time(&now);
-    return (now >= 1609459200); // crude check that RTC is sane
+    uint32_t iat; // issue-at (unix)
+    uint32_t exp; // expiry (unix)
+    uint32_t bid; // boot-id (random per boot)
+};
+#pragma pack(pop)
+
+uint64_t OTP::now_ms()
+{
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    // Combine seconds + microseconds → milliseconds
+    return (uint64_t) tv.tv_sec * 1000ULL + tv.tv_usec / 1000ULL;
+}
+
+uint32_t OTP::now()
+{
+    return (uint32_t) (now_ms() / 1000ull);
+}
+
+bool OTP::is_time_synced(void)
+{
+    return (now() >= 1609459200); // crude check that RTC is sane
 }
 
 bool OTP::parse_otp6(const std::string &s, uint32_t &out)
@@ -75,6 +96,34 @@ size_t OTP::base32_decode(const char *in, size_t inlen, uint8_t *out, size_t out
         }
     }
     return o;
+}
+
+std::string OTP::base32_encode(const uint8_t *in, size_t len)
+{
+    std::string out;
+    out.reserve((len * 8 + 4) / 5);
+    uint32_t buf = 0;
+    int bits = 0;
+    for (size_t i = 0; i < len; ++i) {
+        buf = (buf << 8) | in[i];
+        bits += 8;
+        while (bits >= 5) {
+            out.push_back(B32_ALPH[(buf >> (bits - 5)) & 0x1F]);
+            bits -= 5;
+        }
+    }
+    if (bits > 0) {
+        out.push_back(B32_ALPH[(buf << (5 - bits)) & 0x1F]);
+    }
+    return out;
+}
+
+bool OTP::hmac_sha256(const uint8_t *key, size_t keylen, const uint8_t *msg, size_t mlen, uint8_t mac32[32])
+{
+    const mbedtls_md_info_t *info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    if (!info)
+        return false;
+    return mbedtls_md_hmac(info, key, keylen, msg, mlen, mac32) == 0;
 }
 
 /*** HOTP (RFC4226) using HMAC-SHA1 ***/
@@ -136,6 +185,97 @@ bool OTP::totp_verify_window(const uint8_t *key, size_t keylen, time_t now, int 
     return false;
 }
 
+// --- Session token mint/verify ---------------------------------------------
+
+// Token format: base32(payload) + "." + base32(hmac)
+// payload is SessionPayload (binary packed as above)
+
+std::string OTP::mintSessionToken(uint32_t ttl_sec /*= 24h*/)
+{
+    PThreadGuard lock(m_mutex);
+    if (!m_hasSessKey) {
+        return {};
+    }
+
+    if (!ttl_sec) {
+        return {};
+    }
+
+    time_t ts = now();
+    SessionPayload pl{};
+    pl.iat = (uint32_t) ts;
+    pl.exp = (uint32_t) (ts + ttl_sec);
+    pl.bid = m_bootId;
+
+    // Encode payload as Base32 (reuse your encoder)
+    const uint8_t *pbytes = reinterpret_cast<const uint8_t *>(&pl);
+    std::string payload_b32 = base32_encode(pbytes, sizeof(pl));
+
+    // HMAC-SHA256 over the Base32 payload (exact string)
+    uint8_t mac[32];
+    if (!hmac_sha256(m_sessKey, sizeof(m_sessKey), (const uint8_t *) payload_b32.data(), payload_b32.size(), mac)) {
+        return {};
+    }
+    // sig_b32 has length of `ceil(32 / 5 * 8) = 52`
+    std::string sig_b32 = base32_encode(mac, sizeof(mac));
+
+    std::string token;
+    token.reserve(payload_b32.size() + 1 + sig_b32.size());
+    token.append(payload_b32);
+    token.push_back('.');
+    token.append(sig_b32);
+    return token;
+}
+
+bool OTP::verifySessionToken(const std::string &token)
+{
+    PThreadGuard lock(m_mutex);
+    if (!m_hasSessKey || token.empty())
+        return false;
+
+    // 1) Split "payload.sig"
+    const char *dot = (const char *) memchr(token.data(), '.', token.size());
+    if (!dot)
+        return false;
+    size_t p_len = (size_t) (dot - token.data());
+    size_t s_len = token.size() - p_len - 1;
+    if (p_len == 0 || s_len == 0)
+        return false;
+
+    // 2) Base32-decode payload and signature
+    uint8_t pbuf[32]; // SessionPayload is 4+4+4 = 12 bytes
+    size_t plen = base32_decode(token.data(), p_len, pbuf, sizeof(pbuf));
+    if (plen != sizeof(SessionPayload))
+        return false;
+
+    uint8_t sref[32];
+    size_t sref_len = base32_decode(dot + 1, s_len, sref, sizeof(sref));
+    if (sref_len != 32)
+        return false;
+
+    // 3) Recompute HMAC over base32(payload)
+    uint8_t mac[32];
+    if (!hmac_sha256(m_sessKey, sizeof(m_sessKey), (const uint8_t *) token.data(), p_len, mac)) {
+        return false;
+    }
+    if (memcmp(mac, sref, 32) != 0)
+        return false;
+
+    // 4) Check exp/iat/time and boot-id
+    const SessionPayload *pl = reinterpret_cast<const SessionPayload *>(pbuf);
+
+    time_t ts = now();
+    if ((time_t) pl->exp <= ts)
+        return false;
+    if ((time_t) pl->iat > ts + 300)
+        return false; // future issue time? reject with 5 min skew
+
+    if (pl->bid != m_bootId)
+        return false; // token minted on prior boot -> reject
+
+    return true;
+}
+
 OTP::OTP() : m_mutex(PTHREAD_MUTEX_INITIALIZER), m_enrollmentActive(false), m_isEnabled(false)
 {}
 
@@ -151,6 +291,14 @@ bool OTP::init()
     m_hostname = SYSTEM_MODULE.getHostname();
     m_mac = SYSTEM_MODULE.getMacAddress();
     m_deviceModel = board->getDeviceModel();
+
+    // Generate non-persistent boot-id and session HMAC key (rotate each boot).
+    if (m_bootId == 0) {
+        esp_fill_random(&m_bootId, sizeof(m_bootId));
+        esp_fill_random(m_sessKey, sizeof(m_sessKey));
+        m_hasSessKey = true;
+        ESP_LOGI(TAG, "session boot-id=0x%08x", (unsigned) m_bootId);
+    }
 
     // load saved values
     loadSettings();
@@ -169,26 +317,6 @@ void OTP::saveSettings()
     Config::setOTPSecret(m_secretBase32.c_str());
     Config::setOTPEnabled(m_isEnabled);
     Config::setOTPReplayState(0, 0);
-}
-
-std::string OTP::base32_encode(const uint8_t *in, size_t len)
-{
-    std::string out;
-    out.reserve((len * 8 + 4) / 5);
-    uint32_t buf = 0;
-    int bits = 0;
-    for (size_t i = 0; i < len; ++i) {
-        buf = (buf << 8) | in[i];
-        bits += 8;
-        while (bits >= 5) {
-            out.push_back(B32_ALPH[(buf >> (bits - 5)) & 0x1F]);
-            bits -= 5;
-        }
-    }
-    if (bits > 0) {
-        out.push_back(B32_ALPH[(buf << (5 - bits)) & 0x1F]);
-    }
-    return out;
 }
 
 /*** Minimal URL-encode for label/issuer (space -> %20 etc.) ***/
@@ -246,8 +374,6 @@ std::string OTP::createSecret()
     return base32_encode(secret.data(), secret.size());
 }
 
-
-
 bool OTP::validate(const std::string &token)
 {
     PThreadGuard lock(m_mutex);
@@ -284,11 +410,10 @@ bool OTP::validate(const std::string &token)
         return false;
     }
 
-    time_t now = 0;
-    time(&now);
+    time_t ts = now();
 
     // 6) Verify with +/-1 window and replay protection
-    bool ok = totp_verify_window(key, klen, now, /*period=*/30, /*digits=*/6, user_code, base_step, used_mask);
+    bool ok = totp_verify_window(key, klen, ts, /*period=*/30, /*digits=*/6, user_code, base_step, used_mask);
     if (!ok) {
         ESP_LOGE(TAG, "invalid otp");
         return false;
