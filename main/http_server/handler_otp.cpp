@@ -66,6 +66,8 @@ esp_err_t PATCH_update_otp(httpd_req_t *req)
     // hide in any case
     ui_send_hide_qr();
 
+    // force flag is for ignoring the enabled flag but
+    // it also insists on OTP validation and switches off session token check
     if (validateOTP(req, true) != ESP_OK) {
         ESP_LOGE(TAG, "totp validation failed");
         httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");

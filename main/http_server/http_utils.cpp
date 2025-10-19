@@ -114,12 +114,14 @@ static bool check_otp_or_session(httpd_req_t *req, bool force)
     // example token
     // LGQ7I2GZ6L2WRCJXHJHA.7NGNYMKM5MK6WVI3NJHTOGL2NWPFI6SSHHFQTN6SJPEQ5WQVQZGA
     // 20 (payload) + 1 + 52 (bas32 sha256) = 73
-    char sess[128] = {0};
-    if (read_session_token(req, sess, sizeof(sess))) {
-        if (otp.verifySessionToken(std::string(sess))) {
-            return true;
+    if (!force) {
+        char sess[128] = {0};
+        if (read_session_token(req, sess, sizeof(sess))) {
+            if (otp.verifySessionToken(std::string(sess))) {
+                return true;
+            }
+            // fallback to totp
         }
-        // fallback to totp
     }
 
     // totp
