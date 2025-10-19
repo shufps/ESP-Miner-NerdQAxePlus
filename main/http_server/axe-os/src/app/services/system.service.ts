@@ -144,9 +144,17 @@ export class SystemService {
   }
 
 
-  public restart(uri: string = '') {
-    return this.httpClient.post(`${uri}/api/system/restart`, {}, { responseType: 'text' });
+  // SystemService
+  public restart(uri: string = '', totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) headers = headers.set('X-TOTP', totp);
+
+    return this.httpClient.post(`${uri}/api/system/restart`, null, {
+      headers,
+      responseType: 'text', // plain text body
+    });
   }
+
 
   public updateSystem(uri: string = '', update: any, totp?: string) {
     let headers = new HttpHeaders();
@@ -169,7 +177,7 @@ export class SystemService {
   }
 
 
- // Gemeinsamer Helper für OTA-Uploads (raw bytes), optionaler TOTP-Header
+  // Gemeinsamer Helper für OTA-Uploads (raw bytes), optionaler TOTP-Header
   private otaUpdate(file: File | Blob, url: string, totp?: string) {
     return new Observable<HttpEvent<string>>((subscriber) => {
       const reader = new FileReader();
@@ -210,7 +218,7 @@ export class SystemService {
 
   // GitHub One-Click OTA
   public performGithubOTAUpdate(url: string, totp?: string) {
-    const headers: Record<string,string> = {};
+    const headers: Record<string, string> = {};
     if (totp) headers['X-TOTP'] = totp;
 
     return this.httpClient.post('/api/system/OTA/github', { url }, {
@@ -253,14 +261,30 @@ export class SystemService {
   }
 
   /** POST /api/otp -> starts enrollment (shows QR on device) */
-  startOtpEnrollment(): Observable<void> {
+  public startOtpEnrollment(): Observable<void> {
     return this.httpClient.post<void>('/api/otp', {}); // empty body
   }
 
   /** PATCH /api/otp -> {enabled:boolean, totp:string} */
-  updateOtp(enabled: boolean, totp: string): Observable<void> {
+  public updateOtp(enabled: boolean, totp: string): Observable<void> {
     const headers = new HttpHeaders().set('X-TOTP', totp);
     return this.httpClient.patch<void>('/api/otp', { enabled }, { headers });
+  }
+
+  /** POST /api/otp/session - creates session token with expiration */
+  public createOtpSession(totp: string, ttlMs?: number): Observable<{ token: string; ttlMs?: number; expiresAt?: number }> {
+    let headers = new HttpHeaders({ 'X-TOTP': totp });
+    if (ttlMs && ttlMs > 0) {
+      headers = headers.set('X-OTP-Session-TTL', String(ttlMs));
+    }
+    return this.httpClient.post<{ token: string; ttlMs?: number; expiresAt?: number }>(
+      '/api/otp/session', {}, { headers }
+    );
+  }
+
+  // only returns enabled flag
+  public getOTPStatus(): Observable<{ enabled: boolean }> {
+    return this.httpClient.get('/api/otp/status') as Observable<{ enabled: boolean }>;
   }
 }
 

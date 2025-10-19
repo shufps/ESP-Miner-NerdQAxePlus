@@ -1,10 +1,13 @@
 import { AfterViewChecked, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
-import { interval, map, catchError, of, Observable, shareReplay, startWith, Subscription, switchMap } from 'rxjs';
+import { interval, map, tap, catchError, of, Observable, shareReplay, startWith, Subscription, switchMap } from 'rxjs';
 import { SystemService } from '../../services/system.service';
 import { WebsocketService } from '../../services/web-socket.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
 import { NbToastrService, NbThemeService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
+import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
+import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { LoadingService } from '../../services/loading.service';
 
 @Component({
   selector: 'app-logs',
@@ -32,7 +35,10 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
     private toastrService: NbToastrService,
     private themeService: NbThemeService,
     private systemService: SystemService,
-    private translateService: TranslateService){
+    private loadingService: LoadingService,
+    private translateService: TranslateService,
+    private otpAuth: OtpAuthService,
+  ){
 
     this.logoPrefix = themeService.currentTheme === 'default' ? '' : '_dark';
 
@@ -95,16 +101,29 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
   }
 
   public restart() {
-    this.systemService.restart().pipe(
-      catchError(error => {
-        this.toastrService.danger(this.translateService.instant('SYSTEM.RESTART_FAILED'), this.translateService.instant('COMMON.ERROR'));
-        return of(null);
-      })
-    ).subscribe(res => {
-      if (res !== null) {
-        this.toastrService.success(this.translateService.instant('SYSTEM.RESTART_SUCCESS'), this.translateService.instant('COMMON.SUCCESS'));
-      }
-    });
+    this.otpAuth.ensureOtp$(
+      "",
+      this.translateService.instant('SECURITY.OTP_TITLE'),
+      this.translateService.instant('SECURITY.OTP_INFLUX_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.systemService.restart("", totp).pipe(
+            // drop session on reboot
+            tap(() => this.otpAuth.clearSession()),
+            this.loadingService.lockUIUntilComplete()
+          )
+        ),
+        catchError((err: HttpErrorResponse) => {
+          this.toastrService.danger(this.translateService.instant('SYSTEM.RESTART_FAILED'), this.translateService.instant('COMMON.ERROR'));
+          return of(null);
+        })
+      )
+      .subscribe(res => {
+        if (res !== null) {
+          this.toastrService.success(this.translateService.instant('SYSTEM.RESTART_SUCCESS'), this.translateService.instant('COMMON.SUCCESS'));
+        }
+      });
   }
 
   public getRssiTooltip(rssi: number): string {

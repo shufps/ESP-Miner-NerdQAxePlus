@@ -1,14 +1,19 @@
 <nb-card (keydown)="onKeydown($event)" tabindex="0" autofocus>
-  <nb-card-header>{{ title || 'Confirm with OTP' }}</nb-card-header>
+  <nb-card-header>{{ getTitleText() }}</nb-card-header>
   <nb-card-body>
-    <p class="hint" *ngIf="hint">{{ hint }}</p>
+    <p class="hint" *ngIf="getHintText()">{{ getHintText() }}</p>
+
     <label class="lbl" for="otp">Enter 6-digit code</label>
     <input nbInput fullWidth id="otp" [(ngModel)]="code" (input)="onInput()"
            maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="123456" autofocus />
-    <!--<div class="countdown">valid ~{{ remaining }}s</div>-->
+
+    <label class="dont-show" style="display:flex;align-items:center;margin-top:.5rem;">
+      <nb-checkbox [(ngModel)]="remember24h"></nb-checkbox>
+      <span style="margin-left:.5rem;">Don’t ask again for 24h</span>
+    </label>
   </nb-card-body>
   <nb-card-footer>
     <button nbButton status="basic" (click)="cancel()">Cancel</button>
-    <button nbButton status="primary" class="ml" [disabled]="code.length !== 6" (click)="submit()">Confirm</button>
+    <button nbButton status="primary" class="ml" [disabled]="code.length !== 6 || pending" (click)="submit()">Confirm</button>
   </nb-card-footer>
 </nb-card>

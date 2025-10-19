@@ -620,9 +620,7 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
     ESP_LOGI(TAG, "Network allowed, content_len=%d", req->content_len);
 
     if (validateOTP(req) != ESP_OK) {
-        ESP_LOGE(TAG, "totp validation failed");
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");
-        return ESP_FAIL;;
+        return ESP_FAIL;
     }
 
     // Read body into PSRAM or heap buffer

@@ -23,6 +23,7 @@ import { NbCustomTokenStorage } from './@core/utils.ts/customtokenstorage';
 import { CoreModule } from './@core/core.module';
 import { I18nModule } from './@i18n/i18n.module';
 import { WithCredentialsInterceptor } from './with-credentials.interceptor';
+import { OtpSessionInterceptor } from './services/otp-session.interceptor';
 
 
 export function createTranslateLoader(http: HttpClient) {
@@ -75,6 +76,7 @@ function filterInterceptorRequest(req: HttpRequest<any>): boolean {
         { provide: HTTP_INTERCEPTORS, useClass: JWTInterceptor, multi: true },
         { provide: HTTP_INTERCEPTORS, useClass: ResponseInterceptor, multi: true },
         { provide: HTTP_INTERCEPTORS, useClass: WithCredentialsInterceptor, multi: true },
+        { provide: HTTP_INTERCEPTORS, useClass: OtpSessionInterceptor, multi: true },
         { provide: NB_AUTH_TOKEN_INTERCEPTOR_FILTER, useValue: filterInterceptorRequest },
         { provide: APP_BASE_HREF, useValue: "/" },
         { provide: NbTokenStorage, useClass: NbCustomTokenStorage },

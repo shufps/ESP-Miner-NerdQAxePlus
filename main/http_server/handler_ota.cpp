@@ -16,9 +16,7 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
     }
 
     if (validateOTP(req) != ESP_OK) {
-        ESP_LOGE(TAG, "totp validation failed");
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");
-        return ESP_FAIL;;
+        return ESP_FAIL;
     }
 
     int remaining = req->content_len;
@@ -97,9 +95,7 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
     }
 
     if (validateOTP(req) != ESP_OK) {
-        ESP_LOGE(TAG, "totp validation failed");
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");
-        return ESP_FAIL;;
+        return ESP_FAIL;
     }
 
     esp_ota_handle_t ota_handle;

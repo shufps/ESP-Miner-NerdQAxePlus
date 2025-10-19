@@ -55,9 +55,7 @@ esp_err_t POST_update_alert(httpd_req_t *req)
     }
 
     if (validateOTP(req) != ESP_OK) {
-        ESP_LOGE(TAG, "totp validation failed");
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");
-        return ESP_FAIL;;
+        return ESP_FAIL;
     }
 
     PSRAMAllocator allocator;
@@ -97,9 +95,7 @@ esp_err_t POST_test_alert(httpd_req_t *req)
     }
 
     if (validateOTP(req) != ESP_OK) {
-        ESP_LOGE(TAG, "totp validation failed");
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");
-        return ESP_FAIL;;
+        return ESP_FAIL;
     }
 
     bool success = discordAlerter.sendTestMessage();
