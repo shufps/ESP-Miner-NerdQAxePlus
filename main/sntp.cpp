@@ -1,17 +1,25 @@
 #include "esp_log.h"
 #include "esp_sntp.h"
+#include "global_state.h"
 #include "sntp.h"
 
 
 // ---- SNTP helpers ----
 static const char *TAG_TIME = "time";
 
+static bool synchronized = false;
+
+static void time_sync_notification_cb(struct timeval *tv) {
+    ESP_LOGI(TAG_TIME, "Time synchronized");
+    synchronized = true;
+}
+
 SNTP::SNTP() {
     // NOP
 }
 
-static void time_sync_notification_cb(struct timeval *tv) {
-    ESP_LOGI(TAG_TIME, "Time synchronized");
+bool SNTP::isTimeSynced() {
+    return (synchronized && now() >= 1722927653);
 }
 
 void SNTP::start() {

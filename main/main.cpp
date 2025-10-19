@@ -53,12 +53,32 @@ DiscordAlerter discordAlerter;
 AsicJobs asicJobs;
 
 OTP otp;
+SNTP sntp;
 
 static const char *TAG = "nerd*axe";
 
 #ifndef CONFIG_SPIRAM
 #error "firmware will not work without psram"
 #endif
+
+
+uint64_t now_ms()
+{
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    // Combine seconds + microseconds → milliseconds
+    return (uint64_t) tv.tv_sec * 1000ULL + tv.tv_usec / 1000ULL;
+}
+
+uint32_t now()
+{
+    return (uint32_t) (now_ms() / 1000ull);
+}
+
+bool is_time_synced(void)
+{
+    return (sntp.isTimeSynced() && now() >= 1609459200);
+}
 
 // Function to configure the Task Watchdog Timer (TWDT)
 void initWatchdog()
@@ -191,7 +211,13 @@ extern "C" void app_main(void)
     discordAlerter.init();
     discordAlerter.loadConfig();
 
-    (void)otp.init();
+    // initialize OTP
+    if (!otp.init()) {
+        ESP_LOGE(TAG, "error init otp");
+    }
+
+    // start SNTP
+    sntp.start();
 
     // we only use alerting if we are in a normal operating mode
     if (reason == ESP_RST_TASK_WDT) {

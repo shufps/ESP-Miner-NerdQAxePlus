@@ -35,7 +35,6 @@ class OTP {
     bool hmac_sha256(const uint8_t *key, size_t keylen, const uint8_t *msg, size_t mlen, uint8_t mac32[32]);
 
     bool is_unreserved(char c);
-    bool is_time_synced(void);
 
     // otp functions
     bool parse_otp6(const std::string &s, uint32_t &out);
@@ -52,9 +51,6 @@ class OTP {
   public:
     OTP();
     bool init();
-
-    uint32_t now();
-    uint64_t now_ms();
 
     bool isInitialized()
     {

@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <ctime>
 
 #include "displays/displayDriver.h"
 #include "esp_system.h"
@@ -19,8 +20,6 @@
 
 class System {
   protected:
-    SNTP m_sntp;
-
     // Hashrate and timing
     double m_currentHashrate10m; // Current hashrate averaged over 10 minutes
     double m_currentHashrate1m;  // Current hashrate averaged over 1 minute

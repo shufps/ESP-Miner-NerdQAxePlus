@@ -31,23 +31,6 @@ struct SessionPayload
 };
 #pragma pack(pop)
 
-uint64_t OTP::now_ms()
-{
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    // Combine seconds + microseconds → milliseconds
-    return (uint64_t) tv.tv_sec * 1000ULL + tv.tv_usec / 1000ULL;
-}
-
-uint32_t OTP::now()
-{
-    return (uint32_t) (now_ms() / 1000ull);
-}
-
-bool OTP::is_time_synced(void)
-{
-    return (now() >= 1609459200); // crude check that RTC is sane
-}
 
 bool OTP::parse_otp6(const std::string &s, uint32_t &out)
 {

@@ -178,7 +178,7 @@ esp_err_t POST_create_otp_session(httpd_req_t *req)
         ESP_LOGE("http_otp", "createSessionToken failed");
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Session error");
     }
-    uint64_t expires_ms = otp.now_ms() + (uint64_t) ttlSeconds * 1000ull;
+    uint64_t expires_ms = now_ms() + (uint64_t) ttlSeconds * 1000ull;
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);

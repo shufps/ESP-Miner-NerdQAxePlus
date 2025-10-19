@@ -8,4 +8,5 @@ class SNTP {
 
     void start();
     void logLocalTime();
+    bool isTimeSynced();
 };
