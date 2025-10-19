@@ -1,5 +1,6 @@
 #pragma once
 
+#include "global_state.h"
 #include "esp_vfs.h"
 #include "esp_http_server.h"
 #include "ArduinoJson.h"

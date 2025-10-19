@@ -32,3 +32,8 @@ extern AsicJobs asicJobs;
 extern DiscordAlerter discordAlerter;
 
 extern OTP otp;
+
+
+uint64_t now_ms();
+uint32_t now();
+bool is_time_synced(void);

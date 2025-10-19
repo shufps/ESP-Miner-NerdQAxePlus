@@ -11,6 +11,63 @@ static const char *TAG = "http_utils";
 
 extern OTP otp;
 
+
+#define RL_FAIL_LIMIT      5            // allowed wrong tries in window
+#define RL_WINDOW_SEC      60           // 1 min window
+#define RL_BLOCK_SEC       300          // 5 min blocking time
+
+static uint64_t timestamps[RL_FAIL_LIMIT] = {};
+static uint64_t block_exp_time = 0;
+
+// return true if currently blocked, false otherwise
+static bool isBlocked() {
+    uint64_t ts = now(); // current time in ms
+
+    // if block_exp_time is set and lies in the future -> we are blocked
+    if (block_exp_time && block_exp_time > ts) {
+        // Do NOT extend the block on further failures.
+        // OTP changes after each 30s, so resetting the expiry
+        // on subsequent failures is unnecessary.
+        return true;
+    }
+    return false;
+}
+
+// most pragmatic approach of /some/ bruteforce protection
+static bool rateLimit() {
+    uint64_t ts = now(); // current time in ms
+
+    // If a block existed but has expired, clear it and reset failure history.
+    if (block_exp_time && block_exp_time <= ts) {
+        block_exp_time = 0;
+        memset(timestamps, 0, sizeof(timestamps));
+    }
+
+    // Rotate the timestamps array one position towards the end (keep newest at index 0).
+    // Walk backwards to avoid overwriting values before they are copied.
+    for (int i = RL_FAIL_LIMIT - 1; i > 0; i--) {
+        timestamps[i] = timestamps[i - 1];
+    }
+    timestamps[0] = ts; // store newest failure timestamp at index 0
+
+    // If we have a full buffer of failure timestamps, check the time span
+    // between the newest and the oldest entry. If it's within the window,
+    // set the block expiry and deny further attempts.
+    if (timestamps[RL_FAIL_LIMIT - 1] != 0) {
+        uint64_t delta = timestamps[0] - timestamps[RL_FAIL_LIMIT - 1]; // newest - oldest
+        if (delta < RL_WINDOW_SEC * 1000ull) {
+            // block for RL_BLOCK_SEC (store expiry as ms)
+            block_exp_time = ts + (RL_BLOCK_SEC * 1000ull);
+            // optional: clear history immediately to avoid repeated re-blocking logic
+            memset(timestamps, 0, sizeof(timestamps));
+            return false; // blocked
+        }
+    }
+
+    return true; // allowed
+}
+
+
 esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc)
 {
     // Measure the size needed for the JSON text
@@ -137,6 +194,11 @@ static bool check_otp_or_session(httpd_req_t *req, bool force)
 // Bequeme Variante: sendet 401 + WWW-Authenticate bei Failure
 esp_err_t validateOTP(httpd_req_t *req, bool force)
 {
+    if (isBlocked()) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "blocked for 5 minutes");
+        return ESP_FAIL;
+    }
+
     if (check_otp_or_session(req, force))
         return ESP_OK;
 
@@ -145,5 +207,11 @@ esp_err_t validateOTP(httpd_req_t *req, bool force)
     // sinnvolle Fehlerantwort zentral
     //httpd_resp_set_hdr(req, "WWW-Authenticate", "Bearer realm=\"NerdQX\", error=\"invalid_token\"");
     httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "OTP/Session required");
+
+    // record the failed attempt
+    if (!rateLimit()) {
+        ESP_LOGE(TAG, "too many OTP failures. Blocking ...");
+    }
+
     return ESP_FAIL;
 }
