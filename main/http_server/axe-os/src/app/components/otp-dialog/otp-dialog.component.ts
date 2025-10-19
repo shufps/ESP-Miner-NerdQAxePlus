@@ -56,9 +56,20 @@ export class OtpDialogComponent implements OnInit, OnDestroy {
 
   onInput() { this.code = this.code.replace(/\D+/g, '').slice(0, 6); }
   onKeydown(ev: KeyboardEvent) {
-    if (ev.key === 'Enter' && this.code.length === 6) this.submit();
-    if (ev.key === 'Escape') this.cancel();
+    if (ev.key === 'Enter') {
+      ev.preventDefault();   // stop form submission / bubbling
+      ev.stopPropagation();  // stop Nebular from re-handling Enter
+      if (this.code.length === 6) this.submit();
+      return;
+    }
+
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.cancel();
+    }
   }
+
 
   cancel() { this.ref.close(null); }
 
