@@ -7,7 +7,7 @@
     <input nbInput fullWidth id="otp" [(ngModel)]="code" (input)="onInput()"
            maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="123456" autofocus />
 
-    <label class="dont-show" style="display:flex;align-items:center;margin-top:.5rem;">
+    <label *ngIf="rememberCheckBox" class="dont-show" style="display:flex;align-items:center;margin-top:.5rem;">
       <nb-checkbox [(ngModel)]="remember24h"></nb-checkbox>
       <span style="margin-left:.5rem;">Don’t ask again for 24h</span>
     </label>

@@ -13,7 +13,7 @@ import { HttpErrorResponse } from '@angular/common/http';
     styleUrls: ['./security.component.scss'],
 })
 export class SecurityComponent {
-    info$: Observable<ISystemInfo>;
+    otpStatus$: Observable<{enabled: boolean}>;
 
     enrollmentActive = false;
     pending = false;
@@ -28,7 +28,7 @@ export class SecurityComponent {
         private i18n: TranslateService,
         private otpAuth: OtpAuthService,
     ) {
-        this.info$ = this.system.getInfo(0);
+        this.otpStatus$ = this.system.getOTPStatus();
     }
 
     /** Start OTP enrollment: POST /api/otp -> device shows QR, then prompt for code */
@@ -80,6 +80,7 @@ export class SecurityComponent {
         if (code.length !== 6) return;
 
         this.pending = true;
+
         this.system.updateOtp(false, code).pipe(
             tap(() => {
                 this.toast.success(this.t('SECURITY.DISABLED', 'OTP disabled'), this.t('COMMON.SUCCESS', 'Success'));
@@ -95,7 +96,6 @@ export class SecurityComponent {
         ).subscribe();
     }
 
-    /** Modal → Enable (erzwingt Codeeingabe, weil OTP noch aus ist) */
     askForOtpAndEnable() {
         this.otpAuth
             .promptForCode$(
@@ -125,16 +125,15 @@ export class SecurityComponent {
     /** Modal → Disable (nutzt ensureOtp$: Session oder Code, je nach Zustand) */
     askForOtpAndDisable() {
         this.otpAuth
-            .ensureOtp$(
-                "",
+            .promptForCode$(
                 this.t('SECURITY.OTP_TITLE', 'Confirm with OTP'),
                 this.t('SECURITY.OTP_DISABLE_HINT', 'Enter current 6-digit code to disable OTP.')
             )
             .pipe(
-                tap(() => (this.pending = true)),
-                switchMap(({ totp }) =>
+                tap(() => (this.pending = true, this.otpAuth.clearSession())),
+                switchMap(code =>
                     // totp ist evtl. undefined, wenn eine gültige Session existiert (Header kommt via Interceptor)
-                    this.system.updateOtp(false, totp ?? '').pipe(
+                    this.system.updateOtp(false, code ?? '').pipe(
                         tap(() => {
                             this.toast.success(this.t('SECURITY.DISABLED', 'OTP disabled'), this.t('COMMON.SUCCESS', 'Success'));
                             this.enrollmentActive = false;
@@ -151,9 +150,9 @@ export class SecurityComponent {
             .subscribe();
     }
 
-    private refreshInfo(): Observable<ISystemInfo> {
-        this.info$ = this.system.getInfo(0);
-        return this.info$;
+    private refreshInfo(): Observable<{enabled: boolean}> {
+        this.otpStatus$ = this.system.getOTPStatus();
+        return this.otpStatus$;
     }
 
     private t(key: string, fallback: string) {

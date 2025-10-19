@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, OnInit, TemplateRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { switchMap, forkJoin, startWith, catchError, of } from 'rxjs';
+import { switchMap, forkJoin, startWith, tap, catchError, of } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
@@ -392,16 +392,30 @@ export class EditComponent implements OnInit {
   }
 
   public restart() {
-    this.systemService.restart().pipe(
-      catchError(error => {
-        this.toastrService.danger(`Failed to restart Device`, 'Error');
-        return of(null);
-      })
-    ).subscribe(res => {
-      if (res !== null) {
-        this.toastrService.success(`Device restarted`, 'Success');
-      }
-    });
+    this.otpAuth.ensureOtp$(
+      this.uri,
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_FW_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.systemService.restart("", totp).pipe(
+            // drop session on reboot
+            tap(() => this.otpAuth.clearSession()),
+            this.loadingService.lockUIUntilComplete()
+          )
+        ),
+        catchError((err: HttpErrorResponse) => {
+          console.log(err);
+          this.toastrService.danger(this.translate.instant('SYSTEM.RESTART_FAILED'), this.translate.instant('COMMON.ERROR'));
+          return of(null);
+        })
+      )
+      .subscribe(res => {
+        if (res !== null) {
+          this.toastrService.success(this.translate.instant('SYSTEM.RESTART_SUCCESS'), this.translate.instant('COMMON.SUCCESS'));
+        }
+      });
   }
 
   // Function to check if settings are unsafe

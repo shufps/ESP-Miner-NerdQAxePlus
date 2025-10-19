@@ -28,6 +28,7 @@ export class OtpDialogComponent implements OnInit, OnDestroy {
   @Input() dialogHint?: string;
   @Input() ttlMs?: number;
   @Input() otpEnabled?: boolean;
+  @Input() rememberCheckBox?: boolean = true;
 
   code = '';
   remember24h = false;

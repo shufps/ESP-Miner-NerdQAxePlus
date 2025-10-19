@@ -43,7 +43,7 @@ export class OtpAuthService {
     promptForCode$(title: string, hint: string): Observable<string> {
         const ref = this.dialog.open(OtpDialogComponent, {
             closeOnBackdropClick: false,
-            context: { dialogTitle: title, dialogHint: hint, otpEnabled: true },
+            context: { dialogTitle: title, dialogHint: hint, otpEnabled: true, rememberCheckBox: false },
         });
         return ref.onClose.pipe(
             take(1),

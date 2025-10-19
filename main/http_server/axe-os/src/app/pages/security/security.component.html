@@ -1,4 +1,4 @@
-<ng-container *ngIf="info$ | async as info">
+<ng-container *ngIf="otpStatus$ | async as info">
     <nb-card>
         <nb-card-header>
             {{ 'SECURITY.TITLE' | translate }}
@@ -11,8 +11,8 @@
                 <div class="label">{{ 'SECURITY.OTP_STATUS' | translate }}:</div>
                 <div class="value">
                     <nb-badge class="otp-badge"
-                        [text]="info.otp ? ('SECURITY.ENABLED' | translate) : ('SECURITY.DISABLED' | translate)"
-                        [status]="info.otp ? 'success' : 'basic'">
+                        [text]="info.enabled ? ('SECURITY.ENABLED' | translate) : ('SECURITY.DISABLED' | translate)"
+                        [status]="info.enabled ? 'success' : 'basic'">
                     </nb-badge>
                 </div>
             </div>
@@ -26,13 +26,13 @@
             <div class="row" style="gap:12px; flex-wrap: wrap;">
 
                 <!-- Start enrollment -> shows QR on device, then modal pops -->
-                <button nbButton status="primary" size="small" [disabled]="pending || info.otp || enrollmentActive"
+                <button nbButton status="primary" size="small" [disabled]="pending || info.enabled || enrollmentActive"
                     (click)="startEnrollment()">
                     {{ 'SECURITY.START_ENROLLMENT' | translate }}
                 </button>
 
                 <!-- Disable (opens modal for code) -->
-                <button nbButton status="danger" size="small" [disabled]="pending || !info.otp"
+                <button nbButton status="danger" size="small" [disabled]="pending || !info.enabled"
                     (click)="askForOtpAndDisable()">
                     {{ 'SECURITY.DISABLE_OTP' | translate }}
                 </button>
