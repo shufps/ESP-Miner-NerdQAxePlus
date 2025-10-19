@@ -29,7 +29,8 @@
     "SYSTEM": "Système",
     "SWARM": "Essaim",
     "INFLUXDB": "InfluxDB",
-    "ALERTS": "Alertes"
+    "ALERTS": "Alertes",
+    "SECURITY": "Sécurité"
   },
   "HOME": {
     "HASH_RATE": "Taux de Hachage",
@@ -452,5 +453,27 @@
     "MINUTE_PLURAL": "minutes",
     "SECOND_SINGULAR": "seconde",
     "SECOND_PLURAL": "secondes"
+  },
+  "SECURITY": {
+    "TITLE": "Sécurité",
+    "OTP_STATUS": "Statut OTP",
+    "ENABLE_OTP": "Activer l’OTP",
+    "DISABLE_OTP": "Désactiver l’OTP",
+    "START_ENROLLMENT": "Démarrer l’enrôlement",
+    "ENROLLMENT_ACTIVE": "Enrôlement en cours — le QR code est affiché sur l’appareil",
+    "ENTER_CODE": "Saisir le code à 6 chiffres",
+    "DISABLE_LABEL": "Désactiver l’OTP (code actuel requis)",
+    "QR_SHOWN": "QR code affiché sur l’appareil. Scannez-le puis saisissez le code.",
+    "ENABLED": "OTP activé",
+    "DISABLED": "OTP désactivé",
+    "ENROLL_FAIL": "Échec de l’enrôlement",
+    "ENABLE_FAIL": "Code invalide ou expiré",
+    "DISABLE_FAIL": "Code invalide",
+    "LOCAL_ONLY": "Conçu pour une utilisation sur LAN local (sans HTTPS). Ne pas exposer à Internet.",
+    "OTP_HINT": "Lancez l’enrôlement pour afficher un QR code sur l’appareil. Scannez-le avec votre application d’authentification (p. ex. Authy/Google Authenticator), puis saisissez le code à 6 chiffres pour activer l’OTP. La désactivation nécessite également un code valide. Conçu pour un usage LAN local uniquement (sans HTTPS).",
+    "OTP_NUDGE_TITLE": "Pensez à activer l’OTP",
+    "OTP_NUDGE_TEXT": "Cela aide à réduire les attaques opportunistes et automatisées et ajoute à cette interface web une couche de protection cryptographique réelle.",
+    "OTP_TITLE": "OTP requis",
+    "OTP_FW_HINT": "Saisissez le code à 6 chiffres pour démarrer la mise à jour du firmware."
   }
 }
