@@ -575,12 +575,12 @@ void UI::globalStatsScreenInit(void)
     lv_obj_set_style_text_font(ui_lblhighFee, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 
 }
-
 void UI::createQRScreen(uint8_t *buf, int size) {
     if (!buf || size <= 0) {
         ESP_LOGE(TAG, "No QR to draw");
         return;
     }
+
     const int quiet = 4;
     const int max_px = 160;
     const int n     = size;                          // modules per side
@@ -593,10 +593,11 @@ void UI::createQRScreen(uint8_t *buf, int size) {
         ui_qrScreen = lv_obj_create(NULL);
         lv_obj_clear_flag(ui_qrScreen, LV_OBJ_FLAG_SCROLLABLE);
 
-        // Create a black background
-        lv_obj_set_style_bg_color(ui_qrScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_bg_opa(ui_qrScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+        // black background
+        lv_obj_set_style_bg_color(ui_qrScreen, lv_color_hex(0x000000), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(ui_qrScreen, 255, LV_PART_MAIN);
 
+        // create canvas for QR code
         m_qr_canvas_buf = (lv_color_t*) MALLOC(bytes);
         if (!m_qr_canvas_buf) {
             ESP_LOGE(TAG, "QR canvas alloc failed: %dx%d = %u bytes", img, img, (unsigned)bytes);
@@ -606,7 +607,26 @@ void UI::createQRScreen(uint8_t *buf, int size) {
 
         m_qr_canvas = lv_canvas_create(ui_qrScreen);
         lv_canvas_set_buffer(m_qr_canvas, m_qr_canvas_buf, img, img, LV_IMG_CF_TRUE_COLOR);
-        lv_obj_center(m_qr_canvas);
+
+        // Position QR canvas on the right side of the screen
+        lv_obj_align(m_qr_canvas, LV_ALIGN_RIGHT_MID, -10, 0); // 10 px margin from right, slightly up
+
+        // Create label with instructions (left side of the screen)
+        lv_obj_t *label = lv_label_create(ui_qrScreen);
+        lv_label_set_text(label,"Scan this QR code with your Authenticator App.\n\nPress any button to cancel.");
+        lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
+        lv_obj_set_style_text_font(label, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
+
+        const int screen_w = 320;
+        const int label_area_w = screen_w / 2;
+
+        lv_obj_set_width(label, label_area_w - 20); // small margin inside left half
+        lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+
+        // Align label relative to the parent (screen)
+        lv_obj_align(label, LV_ALIGN_LEFT_MID, 10, 0); // start in left half, 10 px margin
     }
 
     // white background
