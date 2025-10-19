@@ -502,7 +502,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         switchMap(({ totp }: EnsureOtpResult) =>
           this.systemService.restart("", totp).pipe(
             // drop session on reboot
-            tap(() => this.otpAuth.clearSession()),
+            tap(() => {}),
             this.loadingService.lockUIUntilComplete()
           )
         ),

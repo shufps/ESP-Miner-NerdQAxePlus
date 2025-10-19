@@ -22,9 +22,9 @@ class OTP {
     int m_qrSize = 0;
 
     // otp session
-    uint32_t m_bootId;
+    uint32_t m_bootId = 0;
     uint8_t m_sessKey[32];
-    bool m_hasSessKey;
+    bool m_hasSessKey = false;
 
     bool m_isEnabled;
 
@@ -35,6 +35,9 @@ class OTP {
     bool hmac_sha256(const uint8_t *key, size_t keylen, const uint8_t *msg, size_t mlen, uint8_t mac32[32]);
 
     bool is_unreserved(char c);
+
+    void createSessionKey();
+
 
     // otp functions
     bool parse_otp6(const std::string &s, uint32_t &out);

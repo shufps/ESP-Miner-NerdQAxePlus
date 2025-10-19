@@ -110,7 +110,7 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
         switchMap(({ totp }: EnsureOtpResult) =>
           this.systemService.restart("", totp).pipe(
             // drop session on reboot
-            tap(() => this.otpAuth.clearSession()),
+            tap(() => {}),
             this.loadingService.lockUIUntilComplete()
           )
         ),

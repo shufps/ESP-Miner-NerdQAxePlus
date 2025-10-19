@@ -97,7 +97,7 @@ export class InfluxdbComponent implements OnInit {
         switchMap(({ totp }: EnsureOtpResult) =>
           this.systemService.restart("", totp).pipe(
             // drop session on reboot
-            tap(() => this.otpAuth.clearSession()),
+            tap(() => {}),
             this.loadingService.lockUIUntilComplete()
           )
         ),

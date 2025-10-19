@@ -275,28 +275,52 @@ bool OTP::init()
     m_mac = SYSTEM_MODULE.getMacAddress();
     m_deviceModel = board->getDeviceModel();
 
-    // Generate non-persistent boot-id and session HMAC key (rotate each boot).
-    if (m_bootId == 0) {
-        esp_fill_random(&m_bootId, sizeof(m_bootId));
-        esp_fill_random(m_sessKey, sizeof(m_sessKey));
-        m_hasSessKey = true;
-        ESP_LOGI(TAG, "session boot-id=0x%08x", (unsigned) m_bootId);
-    }
-
     // load saved values
     loadSettings();
 
     return true;
 }
 
+void OTP::createSessionKey() {
+    // guarantee bootId to not be 0
+    do { esp_fill_random(&m_bootId, sizeof(m_bootId)); } while (!m_bootId);
+
+    // generate session key
+    esp_fill_random(m_sessKey, sizeof(m_sessKey));
+
+    m_hasSessKey = true;
+}
+
+// Calculates the Base32 output length for a given byte length
+static inline size_t base32_length(size_t n_bytes) {
+    // (n_bytes * 8 + 4) / 5  == ceil((n_bytes * 8) / 5)
+    return (n_bytes * 8 + 4) / 5;
+}
+
 void OTP::loadSettings()
 {
     m_isEnabled = Config::isOTPEnabled();
     m_secretBase32 = Config::getOTPSecret();
+    m_bootId = Config::gettOTTBootId();
+
+    char *tmp = Config::getOTPSessionKey();
+    // if not null-pointer and length > 0
+    if (tmp && tmp[0]) {
+        // 52 characters -> 32 bytes
+        base32_decode(tmp, base32_length(sizeof(m_sessKey)), m_sessKey, sizeof(m_sessKey));
+        m_hasSessKey = true;
+    }
+    free(tmp);
 }
 
 void OTP::saveSettings()
 {
+    Config::setOTTBootId(m_bootId);
+
+    // save session key as base32 string
+    std::string key = base32_encode(m_sessKey, sizeof(m_sessKey));
+    Config::setOTPSessionKey(key.c_str());
+
     Config::setOTPSecret(m_secretBase32.c_str());
     Config::setOTPEnabled(m_isEnabled);
     Config::setOTPReplayState(0, 0);
@@ -334,7 +358,7 @@ std::string OTP::build_otpauth_uri(const std::string &label_raw, const std::stri
 
     // Keep it short: omit algorithm/digits/period (they are defaults)
     std::string uri = "otpauth://totp/" + issuer + ":" + label + "?secret=" + secret_b32 + "&issuer=" + issuer;
-    ESP_LOGE(TAG, "%s", uri.c_str());
+    //ESP_LOGE(TAG, "%s", uri.c_str());
     return uri;
 }
 
@@ -427,6 +451,9 @@ bool OTP::createNewQrCode()
         ESP_LOGE(TAG, "OTP enabled, can't create new QR");
         return false;
     }
+
+    // 0) make fresh session key
+    createSessionKey();
 
     // 1) Make a fresh secret and URI
     m_secretBase32 = createSecret();
