@@ -215,7 +215,7 @@ namespace Config {
     inline char* getOTPSecret() { return nvs_config_get_string(NVS_CONFIG_OTP_SECRET, ""); }
 
     inline void setOTTBootId(uint32_t boot_id) { nvs_config_set_u64(NVS_CONFIG_OTP_BOOT_ID, boot_id); }
-    inline uint32_t gettOTTBootId() { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_OTP_BOOT_ID, 0); }
+    inline uint32_t getOTPBootId() { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_OTP_BOOT_ID, 0); }
 
     inline void setOTPSessionKey(const char* value) { nvs_config_set_string(NVS_CONFIG_OTP_SESSION_KEY, value); }
     inline char* getOTPSessionKey() { return nvs_config_get_string(NVS_CONFIG_OTP_SESSION_KEY, ""); }

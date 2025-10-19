@@ -37,6 +37,7 @@ esp_err_t POST_create_otp(httpd_req_t *req)
     esp_err_t err = otp.startEnrollment();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "error starting otp enrollment");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "otp enrollment failed");
     }
 
     // send command to the UI task to show the QR on the screen
@@ -59,13 +60,6 @@ esp_err_t PATCH_update_otp(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    // disable enrollment
-    // no effect if it wasn't started
-    otp.disableEnrollment();
-
-    // hide in any case
-    ui_send_hide_qr();
-
     // force flag is for ignoring the enabled flag but
     // it also insists on OTP validation and switches off session token check
     if (validateOTP(req, true) != ESP_OK) {
@@ -73,6 +67,13 @@ esp_err_t PATCH_update_otp(httpd_req_t *req)
         httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "totp missing or invalid");
         return ESP_FAIL;
     }
+
+    // disable enrollment
+    // no effect if it wasn't started
+    otp.disableEnrollment();
+
+    // hide in any case
+    ui_send_hide_qr();
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);

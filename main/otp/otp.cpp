@@ -241,6 +241,7 @@ bool OTP::verifySessionToken(const std::string &token)
     if (!hmac_sha256(m_sessKey, sizeof(m_sessKey), (const uint8_t *) token.data(), p_len, mac)) {
         return false;
     }
+
     if (memcmp(mac, sref, 32) != 0)
         return false;
 
@@ -301,14 +302,22 @@ void OTP::loadSettings()
 {
     m_isEnabled = Config::isOTPEnabled();
     m_secretBase32 = Config::getOTPSecret();
-    m_bootId = Config::gettOTTBootId();
+    m_bootId = Config::getOTPBootId();
+
+    m_hasSessKey = false;
 
     char *tmp = Config::getOTPSessionKey();
     // if not null-pointer and length > 0
     if (tmp && tmp[0]) {
-        // 52 characters -> 32 bytes
-        base32_decode(tmp, base32_length(sizeof(m_sessKey)), m_sessKey, sizeof(m_sessKey));
-        m_hasSessKey = true;
+        size_t inlen = strlen(tmp); // use actual length
+        size_t n = base32_decode(tmp, inlen, m_sessKey, sizeof(m_sessKey));
+        if (n == sizeof(m_sessKey)) {
+            m_hasSessKey = true;
+        } else {
+            m_hasSessKey = false; // decode failed 
+            memset(m_sessKey, 0, sizeof(m_sessKey)); 
+            ESP_LOGE(TAG, "Invalid session key in NVS");
+        }
     }
     free(tmp);
 }

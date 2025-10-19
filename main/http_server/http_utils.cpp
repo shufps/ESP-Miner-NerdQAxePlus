@@ -21,7 +21,7 @@ static uint64_t block_exp_time = 0;
 
 // return true if currently blocked, false otherwise
 static bool isBlocked() {
-    uint64_t ts = now(); // current time in ms
+    uint64_t ts = now_ms(); // current time in ms
 
     // if block_exp_time is set and lies in the future -> we are blocked
     if (block_exp_time && block_exp_time > ts) {
@@ -35,7 +35,7 @@ static bool isBlocked() {
 
 // most pragmatic approach of /some/ bruteforce protection
 static bool rateLimit() {
-    uint64_t ts = now(); // current time in ms
+    uint64_t ts = now_ms(); // current time in ms
 
     // If a block existed but has expired, clear it and reset failure history.
     if (block_exp_time && block_exp_time <= ts) {
