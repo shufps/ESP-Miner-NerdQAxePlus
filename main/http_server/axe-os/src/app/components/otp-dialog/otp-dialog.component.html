@@ -4,8 +4,8 @@
     <!--<p class="hint" *ngIf="getHintText()">{{ getHintText() }}</p>-->
 
     <label class="lbl" for="otp">{{ getHintText() }}</label>
-    <input nbInput fullWidth id="otp" [(ngModel)]="code" (input)="onInput()"
-           maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="123456" autofocus />
+    <input nbInput fullWidth id="otp" [(ngModel)]="code" (input)="onInput()" maxlength="6" inputmode="numeric"
+      pattern="[0-9]*" placeholder="123456" autofocus />
 
     <label *ngIf="rememberCheckBox" class="dont-show" style="display:flex;align-items:center;margin-top:.5rem;">
       <nb-checkbox [(ngModel)]="remember24h"></nb-checkbox>
@@ -13,7 +13,10 @@
     </label>
   </nb-card-body>
   <nb-card-footer>
-    <button nbButton status="basic" (click)="cancel()">Cancel</button>
-    <button nbButton status="primary" class="ml" [disabled]="code.length !== 6 || pending" (click)="submit()">Confirm</button>
+    <div class="d-flex align-items-center justify-content-between mt-2">
+      <button nbButton status="basic" (click)="cancel()">Cancel</button>
+      <button nbButton status="primary" class="ml" [disabled]="code.length !== 6 || pending"
+        (click)="submit()">Confirm</button>
+    </div>
   </nb-card-footer>
 </nb-card>
