@@ -35,6 +35,15 @@ esp_err_t POST_create_otp(httpd_req_t *req)
 
     // trigger QR creation
     esp_err_t err = otp.startEnrollment();
+
+    // enrollment already started? Don't return an error but
+    // don't create a new QR either
+    if (err == ESP_ERR_NOT_FINISHED) {
+        httpd_resp_send_chunk(req, NULL, 0);
+        return ESP_OK;
+    }
+
+    // not ok? return error
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "error starting otp enrollment");
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "otp enrollment failed");

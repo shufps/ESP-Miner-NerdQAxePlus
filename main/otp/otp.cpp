@@ -510,8 +510,8 @@ esp_err_t OTP::startEnrollment()
     PThreadGuard lock(m_mutex);
 
     if (m_enrollmentActive) {
-        ESP_LOGE(TAG, "enrollment already active");
-        return ESP_FAIL;
+        ESP_LOGW(TAG, "enrollment already active");
+        return ESP_ERR_NOT_FINISHED;
     }
     m_enrollmentActive = true;
 
