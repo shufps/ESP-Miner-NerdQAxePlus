@@ -478,6 +478,12 @@
     "OTP_HINT": "Enter the 6-digit code to continue.",
     "OTP_DISABLE_HINT": "Enter the 6-digit code to disable OTP.",
     "OTP_ENABLE_HINT": "Enter the 6-digit code to enable OTP.",
-    "OTP_REMEMBER": "Remember this device for 24h"
+    "OTP_REMEMBER": "Remember this device for 24h",
+    "SESSION": "Session",
+    "SESSION_STATUS": "Session Status",
+    "THIS_DEVICE_TRUSTED": "This device is trusted (24h)",
+    "FORGET_THIS_DEVICE": "Forget this device",
+    "FORGET_THIS_DEVICE_HELP": "Ends the 24-hour trust for this device. The local session token is removed—next protected action will require a 6-digit code again.",
+    "THIS_DEVICE_FORGOTTEN": "This device has been forgotten."
   }
 }

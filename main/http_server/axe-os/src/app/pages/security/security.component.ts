@@ -13,7 +13,7 @@ import { HttpErrorResponse } from '@angular/common/http';
     styleUrls: ['./security.component.scss'],
 })
 export class SecurityComponent {
-    otpStatus$: Observable<{enabled: boolean}>;
+    otpStatus$: Observable<{ enabled: boolean }>;
 
     enrollmentActive = false;
     pending = false;
@@ -22,6 +22,8 @@ export class SecurityComponent {
     totpEnable = '';
     totpDisable = '';
 
+    hasSession$: Observable<boolean>;
+
     constructor(
         private system: SystemService,
         private toast: NbToastrService,
@@ -29,6 +31,7 @@ export class SecurityComponent {
         private otpAuth: OtpAuthService,
     ) {
         this.otpStatus$ = this.system.getOTPStatus();
+        this.hasSession$ = this.otpAuth.hasSession$();
     }
 
     /** Start OTP enrollment: POST /api/otp -> device shows QR, then prompt for code */
@@ -150,8 +153,22 @@ export class SecurityComponent {
             .subscribe();
     }
 
-    private refreshInfo(): Observable<{enabled: boolean}> {
+    private refreshInfo(): Observable<{ enabled: boolean }> {
         this.otpStatus$ = this.system.getOTPStatus();
         return this.otpStatus$;
     }
+
+    /** Revoke local session only (this device) */
+    revokeLocalSession() {
+        // Guard: prevent double-click
+        if (this.pending) return;
+
+        // Clear token locally; interceptor stops sending X-OTP-Session
+        this.otpAuth.clearSession();
+        this.toast.success(
+            this.translate.instant('SECURITY.THIS_DEVICE_FORGOTTEN'),
+            this.translate.instant('COMMON.SUCCESS'),
+        );
+    }
+
 }

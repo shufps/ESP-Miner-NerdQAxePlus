@@ -19,7 +19,7 @@
 
             <!-- Hint -->
             <p class="hint">
-                {{ 'SECURITY.OTP_HINT' | translate }}
+                {{ 'SECURITY.OTP_HINT_ENROLLMENT' | translate }}
             </p>
 
             <!-- Actions -->
@@ -38,10 +38,32 @@
                 </button>
             </div>
 
-            <!-- Footnote -->
-            <p class="footnote text-hint mt-2">
-                {{ 'SECURITY.LOCAL_ONLY' | translate }}
+        </nb-card-body>
+    </nb-card>
+    <nb-card>
+        <nb-card-header>
+            {{ 'SECURITY.SESSION' | translate }}
+        </nb-card-header>
+        <nb-card-body>
+            <div class="row" *ngIf="hasSession$ | async">
+                <div class="label">{{ 'SECURITY.SESSION_STATUS' | translate }}:</div>
+                <div class="value">
+                    <nb-badge class="otp-badge" [text]="('SECURITY.THIS_DEVICE_TRUSTED' | translate)"
+                        status="info"></nb-badge>
+                </div>
+            </div>
+
+            <p class="hint">
+                {{ 'SECURITY.FORGET_THIS_DEVICE_HELP' | translate }}
             </p>
+
+            <div class="row" style="gap:12px; flex-wrap: wrap;">
+                <button nbButton status="warning" size="small" [disabled]="pending || !(hasSession$ | async)"
+                    (click)="revokeLocalSession()">
+                    {{ 'SECURITY.FORGET_THIS_DEVICE' | translate }}
+                </button>
+            </div>
+
 
         </nb-card-body>
     </nb-card>

@@ -478,6 +478,12 @@
     "OTP_HINT": "Saisissez le code à 6 chiffres pour continuer.",
     "OTP_DISABLE_HINT": "Saisissez le code à 6 chiffres pour désactiver l’OTP.",
     "OTP_ENABLE_HINT": "Saisissez le code à 6 chiffres pour activer l’OTP.",
-    "OTP_REMEMBER": "Se souvenir de cet appareil pendant 24h"
+    "OTP_REMEMBER": "Se souvenir de cet appareil pendant 24h",
+    "SESSION": "Session",
+    "SESSION_STATUS": "Statut de la session",
+    "THIS_DEVICE_TRUSTED": "Cet appareil est de confiance (24 h)",
+    "FORGET_THIS_DEVICE": "Oublier cet appareil",
+    "FORGET_THIS_DEVICE_HELP": "Met fin à la confiance de 24 h pour cet appareil. Le jeton de session local est supprimé : la prochaine action protégée exigera à nouveau un code à 6 chiffres.",
+    "THIS_DEVICE_FORGOTTEN": "Cet appareil a été oublié."
   }
 }

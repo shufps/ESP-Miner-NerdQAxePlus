@@ -478,6 +478,12 @@
     "OTP_HINT": "Gib den 6-stelligen Code ein, um fortzufahren.",
     "OTP_DISABLE_HINT": "Gib den 6-stelligen Code ein, um OTP zu deaktivieren.",
     "OTP_ENABLE_HINT": "Gib den 6-stelligen Code ein, um OTP zu aktivieren.",
-    "OTP_REMEMBER": "Dieses Gerät für 24 Stunden merken"
+    "OTP_REMEMBER": "Dieses Gerät für 24 Stunden merken",
+    "SESSION": "Sitzung",
+    "SESSION_STATUS": "Sitzungsstatus",
+    "THIS_DEVICE_TRUSTED": "Dieses Gerät ist vertrauenswürdig (24 h)",
+    "FORGET_THIS_DEVICE": "Dieses Gerät vergessen",
+    "FORGET_THIS_DEVICE_HELP": "Beendet die 24-h-Vertrauensstellung für dieses Gerät. Das lokale Sitzungstoken wird gelöscht – beim nächsten geschützten Vorgang ist wieder ein 6-stelliger Code nötig.",
+    "THIS_DEVICE_FORGOTTEN": "Dieses Gerät wurde vergessen."
   }
 }

@@ -1,7 +1,7 @@
 // src/app/services/otp-auth.service.ts
 import { Injectable } from '@angular/core';
 import { NbDialogService } from '@nebular/theme';
-import { Observable, of, EMPTY } from 'rxjs';
+import { BehaviorSubject, Observable, of, EMPTY } from 'rxjs';
 import { switchMap, take, map } from 'rxjs/operators';
 import { SystemService } from './system.service';
 import { OtpDialogComponent, OtpDialogResult } from '../components/otp-dialog/otp-dialog.component';
@@ -12,11 +12,20 @@ export type EnsureOtpResult = { totp?: string };
 export class OtpAuthService {
     private readonly LS_TOKEN = 'otpSessionToken';
     private readonly LS_EXP = 'otpSessionExpiry';
+    private readonly hasSessionSubject = new BehaviorSubject<boolean>(false);
 
     constructor(
         private system: SystemService,
         private dialog: NbDialogService,
-    ) { }
+    ) {
+        // Initialize session state and keep it in sync across tabs
+        this.hasSessionSubject.next(!!this.getStoredSession());
+        window.addEventListener('storage', (e) => {
+            if (e.key === this.LS_TOKEN || e.key === this.LS_EXP) {
+                this.hasSessionSubject.next(!!this.getStoredSession());
+            }
+        });
+    }
 
     private getStoredSession() {
         try {
@@ -32,11 +41,25 @@ export class OtpAuthService {
         localStorage.setItem(this.LS_EXP, String(Date.now() + ttlMs));
     }
 
+    public getToken() {
+        return localStorage.getItem('otpSessionToken');
+    }
+
+    public getExp() {
+        return localStorage.getItem('otpSessionExpiry') || '0';
+    }
+
     public clearSession(): void {
         try {
             localStorage.removeItem(this.LS_TOKEN);
             localStorage.removeItem(this.LS_EXP);
+            this.hasSessionSubject.next(false);
         } catch { /* ignore */ }
+    }
+
+    /** Observable indicating whether a valid local session token exists. */
+    public hasSession$(): Observable<boolean> {
+        return this.hasSessionSubject.asObservable();
     }
 
     /** Force an OTP prompt even if OTP isn’t enabled (used for enabling OTP etc.). */
@@ -80,18 +103,27 @@ export class OtpAuthService {
                         if (res.remember24h) {
                             // A1: dialog already created a session -> just store it
                             if (res.session?.token) {
-                                const exp = res.session.expiresAt ?? (Date.now() + (res.session.ttlMs ?? ttlMs));
-                                localStorage.setItem('otpSessionToken', res.session.token);
-                                localStorage.setItem('otpSessionExpiry', String(exp));
-                                return of<EnsureOtpResult>({});
+                                const effectiveTtl = (res.session.ttlMs ?? ttlMs);
+                                // If the dialog provides absolute expiry, prefer it
+                                if (res.session.expiresAt) {
+                                    localStorage.setItem(this.LS_TOKEN, res.session.token);
+                                    localStorage.setItem(this.LS_EXP, String(res.session.expiresAt));
+                                    this.hasSessionSubject.next(true);
+                                } else {
+                                    this.saveSession(res.session.token, effectiveTtl);
+                                } return of<EnsureOtpResult>({});
                             }
                             // A2: dialog only returned a code -> create the session here
                             if (res.code?.length === 6) {
                                 return this.system.createOtpSession(res.code, ttlMs).pipe(
                                     map(({ token, ttlMs: serverTtl, expiresAt }) => {
-                                        const exp = expiresAt ?? (Date.now() + (serverTtl ?? ttlMs));
-                                        localStorage.setItem('otpSessionToken', token);
-                                        localStorage.setItem('otpSessionExpiry', String(exp));
+                                        if (expiresAt) {
+                                            localStorage.setItem(this.LS_TOKEN, token);
+                                            localStorage.setItem(this.LS_EXP, String(expiresAt));
+                                            this.hasSessionSubject.next(true);
+                                        } else {
+                                            this.saveSession(token, serverTtl ?? ttlMs);
+                                        }
                                         return {} as EnsureOtpResult;
                                     })
                                 );
