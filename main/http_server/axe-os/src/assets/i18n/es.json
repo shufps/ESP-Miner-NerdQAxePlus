@@ -481,9 +481,9 @@
     "OTP_REMEMBER": "Recordar este dispositivo durante 24h",
     "SESSION": "Sesión",
     "SESSION_STATUS": "Estado de la sesión",
-    "THIS_DEVICE_TRUSTED": "Este dispositivo es de confianza (24 h)",
+    "THIS_DEVICE_TRUSTED": "Este dispositivo es de confianza (24h)",
     "FORGET_THIS_DEVICE": "Olvidar este dispositivo",
-    "FORGET_THIS_DEVICE_HELP": "Finaliza la confianza de 24 h para este dispositivo. Se elimina el token de sesión local; la próxima acción protegida volverá a requerir un código de 6 dígitos.",
+    "FORGET_THIS_DEVICE_HELP": "Finaliza la confianza de 24h para este dispositivo. Se elimina el token de sesión local; la próxima acción protegida volverá a requerir un código de 6 dígitos.",
     "THIS_DEVICE_FORGOTTEN": "Este dispositivo ha sido olvidado.",
     "NO_TRUSTED_DEVICE_HELP": "No hay una sesión de confianza en este dispositivo. Las acciones protegidas pedirán un código de 6 dígitos hasta que elijas «Recordar este dispositivo».",
     "NOT_TRUSTED": "No de confianza"

@@ -481,9 +481,9 @@
     "OTP_REMEMBER": "Se souvenir de cet appareil pendant 24h",
     "SESSION": "Session",
     "SESSION_STATUS": "Statut de la session",
-    "THIS_DEVICE_TRUSTED": "Cet appareil est de confiance (24 h)",
+    "THIS_DEVICE_TRUSTED": "Cet appareil est de confiance (24h)",
     "FORGET_THIS_DEVICE": "Oublier cet appareil",
-    "FORGET_THIS_DEVICE_HELP": "Met fin à la confiance de 24 h pour cet appareil. Le jeton de session local est supprimé : la prochaine action protégée exigera à nouveau un code à 6 chiffres.",
+    "FORGET_THIS_DEVICE_HELP": "Met fin à la confiance de 24h pour cet appareil. Le jeton de session local est supprimé : la prochaine action protégée exigera à nouveau un code à 6 chiffres.",
     "THIS_DEVICE_FORGOTTEN": "Cet appareil a été oublié.",
     "NO_TRUSTED_DEVICE_HELP": "Aucune session de confiance sur cet appareil. Les actions protégées demanderont un code à 6 chiffres jusqu’à ce que vous choisissiez « Se souvenir de cet appareil ».",
     "NOT_TRUSTED": "Non approuvé"
