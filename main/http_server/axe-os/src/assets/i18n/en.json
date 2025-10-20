@@ -484,6 +484,8 @@
     "THIS_DEVICE_TRUSTED": "This device is trusted (24h)",
     "FORGET_THIS_DEVICE": "Forget this device",
     "FORGET_THIS_DEVICE_HELP": "Ends the 24-hour trust for this device. The local session token is removed—next protected action will require a 6-digit code again.",
-    "THIS_DEVICE_FORGOTTEN": "This device has been forgotten."
+    "THIS_DEVICE_FORGOTTEN": "This device has been forgotten.",
+    "NO_TRUSTED_DEVICE_HELP": "No trusted session on this device. Protected actions will ask for a 6-digit code until you choose “Remember this device”.",
+    "NOT_TRUSTED": "Not trusted"
   }
 }

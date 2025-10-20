@@ -484,6 +484,8 @@
     "THIS_DEVICE_TRUSTED": "Dieses Gerät ist vertrauenswürdig (24 h)",
     "FORGET_THIS_DEVICE": "Dieses Gerät vergessen",
     "FORGET_THIS_DEVICE_HELP": "Beendet die 24-h-Vertrauensstellung für dieses Gerät. Das lokale Sitzungstoken wird gelöscht – beim nächsten geschützten Vorgang ist wieder ein 6-stelliger Code nötig.",
-    "THIS_DEVICE_FORGOTTEN": "Dieses Gerät wurde vergessen."
+    "THIS_DEVICE_FORGOTTEN": "Dieses Gerät wurde vergessen.",
+    "NO_TRUSTED_DEVICE_HELP": "Keine vertrauenswürdige Sitzung auf diesem Gerät. Geschützte Aktionen verlangen einen 6-stelligen Code, bis du „Dieses Gerät merken“ wählst.",
+    "NOT_TRUSTED": "Nicht vertrauenswürdig"
   }
 }

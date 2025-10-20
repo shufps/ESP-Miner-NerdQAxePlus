@@ -48,7 +48,7 @@
                 </nb-card-header>
 
                 <nb-card-body class="card-body-pad">
-                    <ng-container *ngIf="hasSession$ | async as hasSession">
+                    <ng-container *ngIf="hasSession$ | async as hasSession; else noSessionTpl">
                         <div class="kv" *ngIf="hasSession">
                             <div class="label">{{ 'SECURITY.SESSION_STATUS' | translate }}:</div>
                             <div class="value">
@@ -67,6 +67,27 @@
                             </button>
                         </div>
                     </ng-container>
+
+                    <!-- else-part -->
+                    <ng-template #noSessionTpl>
+                        <div class="kv">
+                            <div class="label">{{ 'SECURITY.SESSION_STATUS' | translate }}:</div>
+                            <div class="value">
+                                <nb-badge class="otp-badge" [text]="('SECURITY.NOT_TRUSTED' | translate)"
+                                    status="basic"></nb-badge>
+                            </div>
+                        </div>
+
+                        <p class="hint">
+                            {{ 'SECURITY.NO_TRUSTED_DEVICE_HELP' | translate }}
+                        </p>
+
+                        <div class="actions">
+                            <button nbButton status="basic" size="small" disabled>
+                                {{ 'SECURITY.FORGET_THIS_DEVICE' | translate }}
+                            </button>
+                        </div>
+                    </ng-template>
                 </nb-card-body>
             </nb-card>
         </div>
