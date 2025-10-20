@@ -1,7 +1,7 @@
 .row {
     display: flex;
     align-items: center;
-    gap: 12px;
+//    gap: 12px;
 }
 
 .label {
@@ -34,4 +34,8 @@
 .otp-badge {
     margin-right: 10px;
     margin-top: 5px;
+}
+
+.card-body-pad {
+  padding: 10px;
 }

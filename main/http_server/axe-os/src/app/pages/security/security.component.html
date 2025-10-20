@@ -1,70 +1,82 @@
 <ng-container *ngIf="otpStatus$ | async as info">
-    <nb-card>
+  <!-- Grid wrapper: two cards side by side on xl, stacked on mobile -->
+  <div class="row justify-content-left gy-3">
+    <!-- OTP card -->
+    <div class="col-12 col-lg-8 col-xl-6">
+      <nb-card class="security-card">
         <nb-card-header>
-            {{ 'SECURITY.TITLE' | translate }}
+          {{ 'SECURITY.TITLE' | translate }}
         </nb-card-header>
 
-        <nb-card-body>
-
-            <!-- Status -->
-            <div class="row">
-                <div class="label">{{ 'SECURITY.OTP_STATUS' | translate }}:</div>
-                <div class="value">
-                    <nb-badge class="otp-badge"
+        <nb-card-body class="card-body-pad">
+          <!-- Status -->
+          <div class="kv">
+            <div class="label">{{ 'SECURITY.OTP_STATUS' | translate }}:</div>
+            <div class="value">
+              <nb-badge class="otp-badge"
                         [text]="info.enabled ? ('SECURITY.ENABLED' | translate) : ('SECURITY.DISABLED' | translate)"
                         [status]="info.enabled ? 'success' : 'basic'">
-                    </nb-badge>
-                </div>
+              </nb-badge>
             </div>
+          </div>
 
-            <!-- Hint -->
-            <p class="hint">
-                {{ 'SECURITY.OTP_HINT_ENROLLMENT' | translate }}
-            </p>
+          <!-- Hint -->
+          <p class="hint">
+            {{ 'SECURITY.OTP_HINT_ENROLLMENT' | translate }}
+          </p>
 
-            <!-- Actions -->
-            <div class="row" style="gap:12px; flex-wrap: wrap;">
+          <!-- Actions -->
 
-                <!-- Start enrollment -> shows QR on device, then modal pops -->
-                <button nbButton status="primary" size="small" [disabled]="pending || info.enabled || enrollmentActive"
+          <div class="d-flex align-items-center justify-content-between mt-2">
+            <!-- Start enrollment -> shows QR on device, then modal pops -->
+            <button nbButton status="primary" size="small"
+                    [disabled]="pending || info.enabled || enrollmentActive"
                     (click)="startEnrollment()">
-                    {{ 'SECURITY.START_ENROLLMENT' | translate }}
-                </button>
+              {{ 'SECURITY.START_ENROLLMENT' | translate }}
+            </button>
 
-                <!-- Disable (opens modal for code) -->
-                <button nbButton status="danger" size="small" [disabled]="pending || !info.enabled"
+            <!-- Disable (opens modal for code) -->
+            <button nbButton status="danger" size="small"
+                    [disabled]="pending || !info.enabled"
                     (click)="askForOtpAndDisable()">
-                    {{ 'SECURITY.DISABLE_OTP' | translate }}
-                </button>
-            </div>
-
+              {{ 'SECURITY.DISABLE_OTP' | translate }}
+            </button>
+          </div>
         </nb-card-body>
-    </nb-card>
-    <nb-card>
+      </nb-card>
+    </div>
+</div><div class="row justify-content-left gy-3">
+    <!-- Session card -->
+    <div class="col-12 col-lg-8 col-xl-6">
+      <nb-card class="security-card">
         <nb-card-header>
-            {{ 'SECURITY.SESSION' | translate }}
+          {{ 'SECURITY.SESSION' | translate }}
         </nb-card-header>
-        <nb-card-body>
-            <div class="row" *ngIf="hasSession$ | async">
-                <div class="label">{{ 'SECURITY.SESSION_STATUS' | translate }}:</div>
-                <div class="value">
-                    <nb-badge class="otp-badge" [text]="('SECURITY.THIS_DEVICE_TRUSTED' | translate)"
-                        status="info"></nb-badge>
-                </div>
-            </div>
 
+        <nb-card-body class="card-body-pad">
+          <ng-container *ngIf="hasSession$ | async as hasSession">
+            <div class="kv" *ngIf="hasSession">
+              <div class="label">{{ 'SECURITY.SESSION_STATUS' | translate }}:</div>
+              <div class="value">
+                <nb-badge class="otp-badge"
+                          [text]="('SECURITY.THIS_DEVICE_TRUSTED' | translate)"
+                          status="info"></nb-badge>
+              </div>
+            </div>
             <p class="hint">
-                {{ 'SECURITY.FORGET_THIS_DEVICE_HELP' | translate }}
+              {{ 'SECURITY.FORGET_THIS_DEVICE_HELP' | translate }}
             </p>
 
-            <div class="row" style="gap:12px; flex-wrap: wrap;">
-                <button nbButton status="warning" size="small" [disabled]="pending || !(hasSession$ | async)"
-                    (click)="revokeLocalSession()">
-                    {{ 'SECURITY.FORGET_THIS_DEVICE' | translate }}
-                </button>
+            <div class="actions">
+              <button nbButton status="warning" size="small"
+                      [disabled]="pending || !hasSession"
+                      (click)="revokeLocalSession()">
+                {{ 'SECURITY.FORGET_THIS_DEVICE' | translate }}
+              </button>
             </div>
-
-
+          </ng-container>
         </nb-card-body>
-    </nb-card>
+      </nb-card>
+    </div>
+  </div>
 </ng-container>

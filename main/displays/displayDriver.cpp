@@ -63,6 +63,11 @@ void DisplayDriver::loadSettings() {
     m_isAutoScreenOffEnabled = Config::isAutoScreenOffEnabled();
     m_tempControlMode = Config::getTempControlMode();
     m_fanSpeed = Config::getFanSpeed();
+
+    // when setting was changed, turn on the display LED
+    if (!m_isAutoScreenOffEnabled) {
+        displayTurnOn();
+    }
 }
 
 bool DisplayDriver::notifyLvglFlushReady(esp_lcd_panel_io_handle_t panelIo, esp_lcd_panel_io_event_data_t* edata,
