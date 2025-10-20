@@ -496,7 +496,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.otpAuth.ensureOtp$(
       "",
       this.translate.instant('SECURITY.OTP_TITLE'),
-      this.translate.instant('SECURITY.OTP_FW_HINT')
+      this.translate.instant('SECURITY.OTP_HINT')
     )
       .pipe(
         switchMap(({ totp }: EnsureOtpResult) =>

@@ -1,15 +1,15 @@
 <nb-card (keydown)="onKeydown($event)" tabindex="0" autofocus>
   <nb-card-header>{{ getTitleText() }}</nb-card-header>
   <nb-card-body>
-    <p class="hint" *ngIf="getHintText()">{{ getHintText() }}</p>
+    <!--<p class="hint" *ngIf="getHintText()">{{ getHintText() }}</p>-->
 
-    <label class="lbl" for="otp">Enter 6-digit code</label>
+    <label class="lbl" for="otp">{{ getHintText() }}</label>
     <input nbInput fullWidth id="otp" [(ngModel)]="code" (input)="onInput()"
            maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="123456" autofocus />
 
     <label *ngIf="rememberCheckBox" class="dont-show" style="display:flex;align-items:center;margin-top:.5rem;">
       <nb-checkbox [(ngModel)]="remember24h"></nb-checkbox>
-      <span style="margin-left:.5rem;">Don’t ask again for 24h</span>
+      <span style="margin-left:.5rem;margin-top: -5px;">{{ 'SECURITY.OTP_REMEMBER' | translate }}</span>
     </label>
   </nb-card-body>
   <nb-card-footer>

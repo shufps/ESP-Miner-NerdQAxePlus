@@ -470,10 +470,14 @@
     "ENABLE_FAIL": "Code invalide ou expiré",
     "DISABLE_FAIL": "Code invalide",
     "LOCAL_ONLY": "Conçu pour une utilisation sur LAN local (sans HTTPS). Ne pas exposer à Internet.",
-    "OTP_HINT": "Lancez l’enrôlement pour afficher un QR code sur l’appareil. Scannez-le avec votre application d’authentification (p. ex. Authy/Google Authenticator), puis saisissez le code à 6 chiffres pour activer l’OTP. La désactivation nécessite également un code valide. Conçu pour un usage LAN local uniquement (sans HTTPS).",
+    "OTP_HINT_ENROLLMENT": "Lancez l’enrôlement pour afficher un QR code sur l’appareil. Scannez-le avec votre application d’authentification (p. ex. Authy/Google Authenticator), puis saisissez le code à 6 chiffres pour activer l’OTP. La désactivation nécessite également un code valide. Conçu pour un usage LAN local uniquement (sans HTTPS).",
     "OTP_NUDGE_TITLE": "Pensez à activer l’OTP",
     "OTP_NUDGE_TEXT": "Cela aide à réduire les attaques opportunistes et automatisées et ajoute à cette interface web une couche de protection cryptographique réelle.",
     "OTP_TITLE": "OTP requis",
-    "OTP_FW_HINT": "Saisissez le code à 6 chiffres pour démarrer la mise à jour du firmware."
+    "OTP_FW_HINT": "Saisissez le code à 6 chiffres pour démarrer la mise à jour du firmware.",
+    "OTP_HINT": "Saisissez le code à 6 chiffres pour continuer.",
+    "OTP_DISABLE_HINT": "Saisissez le code à 6 chiffres pour désactiver l’OTP.",
+    "OTP_ENABLE_HINT": "Saisissez le code à 6 chiffres pour activer l’OTP.",
+    "OTP_REMEMBER": "Se souvenir de cet appareil pendant 24h"
   }
 }

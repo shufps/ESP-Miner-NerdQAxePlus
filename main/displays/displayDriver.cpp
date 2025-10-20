@@ -443,11 +443,13 @@ void DisplayDriver::lvglTimerTask(void *param)
             btn2.clearEvent();
         } else {
             if (evt1 & BTN_EVENT_SHORTPRESS) {
+                m_lastKeypressTime = tnow;
                 btn1Press = true;
                 btn1.clearEvent();
             }
 
             if (evt2 & BTN_EVENT_SHORTPRESS) {
+                m_lastKeypressTime = tnow;
                 btn2Press = true;
                 btn2.clearEvent();
             }

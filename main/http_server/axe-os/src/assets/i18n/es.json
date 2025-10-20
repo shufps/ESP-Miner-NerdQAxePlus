@@ -470,10 +470,14 @@
     "ENABLE_FAIL": "Código no válido o caducado",
     "DISABLE_FAIL": "Código no válido",
     "LOCAL_ONLY": "Diseñado para uso en LAN local (sin HTTPS). No lo expongas a Internet.",
-    "OTP_HINT": "Inicia el registro para mostrar un código QR en el dispositivo. Escanéalo con tu autenticador (p. ej., Authy/Google Authenticator) y luego introduce el código de 6 dígitos para activar OTP. Para desactivar también se requiere un código válido. Diseñado solo para LAN local (sin HTTPS).",
+    "OTP_HINT_ENROLLMENT": "Inicia el registro para mostrar un código QR en el dispositivo. Escanéalo con tu autenticador (p. ej., Authy/Google Authenticator) y luego introduce el código de 6 dígitos para activar OTP. Para desactivar también se requiere un código válido. Diseñado solo para LAN local (sin HTTPS).",
     "OTP_NUDGE_TITLE": "Considera activar OTP",
     "OTP_NUDGE_TEXT": "Ayuda a mitigar ataques oportunistas y automatizados y añade a esta interfaz web una capa básica de protección criptográfica real.",
     "OTP_TITLE": "Se requiere OTP",
-    "OTP_FW_HINT": "Introduce el código de 6 dígitos para iniciar la actualización del firmware."
+    "OTP_FW_HINT": "Introduce el código de 6 dígitos para iniciar la actualización del firmware.",
+    "OTP_HINT": "Introduce el código de 6 dígitos para continuar.",
+    "OTP_DISABLE_HINT": "Introduce el código de 6 dígitos para desactivar el OTP.",
+    "OTP_ENABLE_HINT": "Introduce el código de 6 dígitos para activar el OTP.",
+    "OTP_REMEMBER": "Recordar este dispositivo durante 24h"
   }
 }

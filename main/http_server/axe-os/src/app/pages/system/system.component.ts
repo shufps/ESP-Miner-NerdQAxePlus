@@ -104,7 +104,7 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
     this.otpAuth.ensureOtp$(
       "",
       this.translateService.instant('SECURITY.OTP_TITLE'),
-      this.translateService.instant('SECURITY.OTP_FW_HINT')
+      this.translateService.instant('SECURITY.OTP_HINT')
     )
       .pipe(
         switchMap(({ totp }: EnsureOtpResult) =>

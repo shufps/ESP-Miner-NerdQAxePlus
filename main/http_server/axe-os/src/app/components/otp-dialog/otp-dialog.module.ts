@@ -8,7 +8,7 @@ import {
   NbDialogModule,
   NbCheckboxModule,
 } from '@nebular/theme';
-
+import { TranslateModule } from '@ngx-translate/core';
 import { OtpDialogComponent } from './otp-dialog.component';
 
 @NgModule({
@@ -21,6 +21,7 @@ import { OtpDialogComponent } from './otp-dialog.component';
     NbButtonModule,
     NbInputModule,
     NbCheckboxModule,
+    TranslateModule,
   ],
   exports: [OtpDialogComponent],
 })

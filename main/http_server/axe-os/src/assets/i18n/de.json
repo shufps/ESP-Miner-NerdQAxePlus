@@ -470,10 +470,14 @@
     "ENABLE_FAIL": "Ungültiger oder abgelaufener Code",
     "DISABLE_FAIL": "Code ungültig",
     "LOCAL_ONLY": "Für die lokale LAN-Nutzung konzipiert (ohne HTTPS). Nicht ins Internet exponieren.",
-    "OTP_HINT": "Starte die Registrierung, um einen QR-Code auf dem Gerät anzuzeigen. Scanne ihn mit deinem Authenticator (z. B. Authy/Google Authenticator) und gib danach den 6-stelligen Code ein, um OTP zu aktivieren. Zum Deaktivieren ist ebenfalls ein gültiger Code erforderlich. Nur für lokales LAN gedacht (ohne HTTPS).",
+    "OTP_HINT_ENROLLMENT": "Starte die Registrierung, um einen QR-Code auf dem Gerät anzuzeigen. Scanne ihn mit deinem Authenticator (z. B. Authy/Google Authenticator) und gib danach den 6-stelligen Code ein, um OTP zu aktivieren. Zum Deaktivieren ist ebenfalls ein gültiger Code erforderlich. Nur für lokales LAN gedacht (ohne HTTPS).",
     "OTP_NUDGE_TITLE": "Bitte erwäge, OTP zu aktivieren",
     "OTP_NUDGE_TEXT": "Es reduziert opportunistische und automatisierte Angriffe und ergänzt diese Weboberfläche um eine grundlegende, echte kryptografische Schutzschicht.",
     "OTP_TITLE": "OTP erforderlich",
-    "OTP_FW_HINT": "Gib den 6-stelligen Code ein, um das Firmware-Update zu starten."
+    "OTP_FW_HINT": "Gib den 6-stelligen Code ein, um das Firmware-Update zu starten.",
+    "OTP_HINT": "Gib den 6-stelligen Code ein, um fortzufahren.",
+    "OTP_DISABLE_HINT": "Gib den 6-stelligen Code ein, um OTP zu deaktivieren.",
+    "OTP_ENABLE_HINT": "Gib den 6-stelligen Code ein, um OTP zu aktivieren.",
+    "OTP_REMEMBER": "Dieses Gerät für 24 Stunden merken"
   }
 }

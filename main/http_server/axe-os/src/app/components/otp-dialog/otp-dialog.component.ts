@@ -2,6 +2,7 @@ import { Component, Inject, OnDestroy, OnInit, Input } from '@angular/core';
 import { NB_DIALOG_CONFIG, NbDialogRef } from '@nebular/theme';
 import { Subscription, take } from 'rxjs';
 import { SystemService } from '../../services/system.service';
+import { TranslateService } from '@ngx-translate/core';
 
 export interface OtpDialogResult {
   code?: string;
@@ -40,7 +41,8 @@ export class OtpDialogComponent implements OnInit, OnDestroy {
     private ref: NbDialogRef<OtpDialogComponent>,
     @Inject(NB_DIALOG_CONFIG) public cfg: OtpDialogConfig,
     private system: SystemService,
-  ) {}
+    private translate: TranslateService,
+  ) { }
 
   ngOnInit(): void {
     // request from backend if otpEnabled not provided
@@ -93,7 +95,7 @@ export class OtpDialogComponent implements OnInit, OnDestroy {
             const exp = sess?.expiresAt ?? (Date.now() + (sess?.ttlMs ?? ttl));
             localStorage.setItem('otpSessionToken', sess.token);
             localStorage.setItem('otpSessionExpiry', String(exp));
-          } catch {}
+          } catch { }
           this.ref.close(<OtpDialogResult>{ remember24h: true, session: sess });
         },
         error: () => {

@@ -282,9 +282,12 @@ bool OTP::init()
     return true;
 }
 
-void OTP::createSessionKey() {
+void OTP::createSessionKey()
+{
     // guarantee bootId to not be 0
-    do { esp_fill_random(&m_bootId, sizeof(m_bootId)); } while (!m_bootId);
+    do {
+        esp_fill_random(&m_bootId, sizeof(m_bootId));
+    } while (!m_bootId);
 
     // generate session key
     esp_fill_random(m_sessKey, sizeof(m_sessKey));
@@ -293,7 +296,8 @@ void OTP::createSessionKey() {
 }
 
 // Calculates the Base32 output length for a given byte length
-static inline size_t base32_length(size_t n_bytes) {
+static inline size_t base32_length(size_t n_bytes)
+{
     // (n_bytes * 8 + 4) / 5  == ceil((n_bytes * 8) / 5)
     return (n_bytes * 8 + 4) / 5;
 }
@@ -314,8 +318,8 @@ void OTP::loadSettings()
         if (n == sizeof(m_sessKey)) {
             m_hasSessKey = true;
         } else {
-            m_hasSessKey = false; // decode failed 
-            memset(m_sessKey, 0, sizeof(m_sessKey)); 
+            m_hasSessKey = false; // decode failed
+            memset(m_sessKey, 0, sizeof(m_sessKey));
             ESP_LOGE(TAG, "Invalid session key in NVS");
         }
     }
@@ -367,7 +371,7 @@ std::string OTP::build_otpauth_uri(const std::string &label_raw, const std::stri
 
     // Keep it short: omit algorithm/digits/period (they are defaults)
     std::string uri = "otpauth://totp/" + issuer + ":" + label + "?secret=" + secret_b32 + "&issuer=" + issuer;
-    //ESP_LOGE(TAG, "%s", uri.c_str());
+    // ESP_LOGE(TAG, "%s", uri.c_str());
     return uri;
 }
 

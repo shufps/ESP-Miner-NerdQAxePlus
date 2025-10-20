@@ -25,7 +25,7 @@ export class SecurityComponent {
     constructor(
         private system: SystemService,
         private toast: NbToastrService,
-        private i18n: TranslateService,
+        private translate: TranslateService,
         private otpAuth: OtpAuthService,
     ) {
         this.otpStatus$ = this.system.getOTPStatus();
@@ -45,7 +45,7 @@ export class SecurityComponent {
             }),
             switchMap(() => this.refreshInfo()),
             catchError(err => {
-                this.toast.danger(this.t('SECURITY.ENROLL_FAIL', 'Enrollment failed'), this.t('COMMON.ERROR', 'Error'));
+                this.toast.danger(this.translate.instant('SECURITY.ENROLL_FAIL'), this.translate.instant('COMMON.ERROR'));
                 return of(null);
             }),
             tap(() => this.pending = false),
@@ -61,13 +61,13 @@ export class SecurityComponent {
         this.pending = true;
         this.system.updateOtp(true, code).pipe(
             tap(() => {
-                this.toast.success(this.t('SECURITY.ENABLED', 'OTP enabled'), this.t('COMMON.SUCCESS', 'Success'));
+                this.toast.success(this.translate.instant('SECURITY.ENABLED'), this.translate.instant('COMMON.SUCCESS'));
                 this.enrollmentActive = false;
                 this.totpEnable = '';
             }),
             switchMap(() => this.refreshInfo()),
             catchError(err => {
-                this.toast.danger(this.t('SECURITY.ENABLE_FAIL', 'Invalid or expired code'), this.t('COMMON.ERROR', 'Error'));
+                this.toast.danger(this.translate.instant('SECURITY.ENABLE_FAIL'), this.translate.instant('COMMON.ERROR'));
                 return of(null);
             }),
             tap(() => this.pending = false),
@@ -83,13 +83,13 @@ export class SecurityComponent {
 
         this.system.updateOtp(false, code).pipe(
             tap(() => {
-                this.toast.success(this.t('SECURITY.DISABLED', 'OTP disabled'), this.t('COMMON.SUCCESS', 'Success'));
+                this.toast.success(this.translate.instant('SECURITY.DISABLED'), this.translate.instant('COMMON.SUCCESS'));
                 this.enrollmentActive = false;
                 this.totpDisable = '';
             }),
             switchMap(() => this.refreshInfo()),
             catchError(err => {
-                this.toast.danger(this.t('SECURITY.DISABLE_FAIL', 'Code invalid'), this.t('COMMON.ERROR', 'Error'));
+                this.toast.danger(this.translate.instant('SECURITY.DISABLE_FAIL'), this.translate.instant('COMMON.ERROR'));
                 return of(null);
             }),
             tap(() => this.pending = false),
@@ -99,20 +99,20 @@ export class SecurityComponent {
     askForOtpAndEnable() {
         this.otpAuth
             .promptForCode$(
-                this.t('SECURITY.OTP_TITLE', 'Confirm with OTP'),
-                this.t('SECURITY.OTP_ENABLE_HINT', 'Scan the QR on the device, then enter the 6-digit code.')
+                this.translate.instant('SECURITY.OTP_TITLE'),
+                this.translate.instant('SECURITY.OTP_ENABLE_HINT')
             )
             .pipe(
                 tap(() => (this.pending = true)),
                 switchMap(code =>
                     this.system.updateOtp(true, code).pipe(
                         tap(() => {
-                            this.toast.success(this.t('SECURITY.ENABLED', 'OTP enabled'), this.t('COMMON.SUCCESS', 'Success'));
+                            this.toast.success(this.translate.instant('SECURITY.ENABLED'), this.translate.instant('COMMON.SUCCESS'));
                             this.enrollmentActive = false;
                         }),
                         switchMap(() => this.refreshInfo()),
                         catchError(() => {
-                            this.toast.danger(this.t('SECURITY.ENABLE_FAIL', 'Invalid or expired code'), this.t('COMMON.ERROR', 'Error'));
+                            this.toast.danger(this.translate.instant('SECURITY.ENABLE_FAIL'), this.translate.instant('COMMON.ERROR'));
                             return of(null);
                         })
                     )
@@ -126,8 +126,8 @@ export class SecurityComponent {
     askForOtpAndDisable() {
         this.otpAuth
             .promptForCode$(
-                this.t('SECURITY.OTP_TITLE', 'Confirm with OTP'),
-                this.t('SECURITY.OTP_DISABLE_HINT', 'Enter current 6-digit code to disable OTP.')
+                this.translate.instant('SECURITY.OTP_TITLE'),
+                this.translate.instant('SECURITY.OTP_DISABLE_HINT')
             )
             .pipe(
                 tap(() => (this.pending = true, this.otpAuth.clearSession())),
@@ -135,12 +135,12 @@ export class SecurityComponent {
                     // totp ist evtl. undefined, wenn eine gültige Session existiert (Header kommt via Interceptor)
                     this.system.updateOtp(false, code ?? '').pipe(
                         tap(() => {
-                            this.toast.success(this.t('SECURITY.DISABLED', 'OTP disabled'), this.t('COMMON.SUCCESS', 'Success'));
+                            this.toast.success(this.translate.instant('SECURITY.DISABLED'), this.translate.instant('COMMON.SUCCESS'));
                             this.enrollmentActive = false;
                         }),
                         switchMap(() => this.refreshInfo()),
                         catchError((err: HttpErrorResponse) => {
-                            this.toast.danger(this.t('SECURITY.DISABLE_FAIL', 'Code invalid'), this.t('COMMON.ERROR', 'Error'));
+                            this.toast.danger(this.translate.instant('SECURITY.DISABLE_FAIL'), this.translate.instant('COMMON.ERROR'));
                             return of(null);
                         })
                     )
@@ -153,10 +153,5 @@ export class SecurityComponent {
     private refreshInfo(): Observable<{enabled: boolean}> {
         this.otpStatus$ = this.system.getOTPStatus();
         return this.otpStatus$;
-    }
-
-    private t(key: string, fallback: string) {
-        const v = this.i18n.instant(key);
-        return (v && v !== key) ? v : fallback;
     }
 }

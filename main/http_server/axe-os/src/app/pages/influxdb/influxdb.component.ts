@@ -69,7 +69,7 @@ export class InfluxdbComponent implements OnInit {
     this.otpAuth.ensureOtp$(
       this.uri,
       this.translate.instant('SECURITY.OTP_TITLE'),
-      this.translate.instant('SECURITY.OTP_FW_HINT')
+      this.translate.instant('SECURITY.OTP_HINT')
     )
       .pipe(
         switchMap(({ totp }: EnsureOtpResult) =>
@@ -91,7 +91,7 @@ export class InfluxdbComponent implements OnInit {
     this.otpAuth.ensureOtp$(
       this.uri,
       this.translate.instant('SECURITY.OTP_TITLE'),
-      this.translate.instant('SECURITY.OTP_FW_HINT')
+      this.translate.instant('SECURITY.OTP_HINT')
     )
       .pipe(
         switchMap(({ totp }: EnsureOtpResult) =>
