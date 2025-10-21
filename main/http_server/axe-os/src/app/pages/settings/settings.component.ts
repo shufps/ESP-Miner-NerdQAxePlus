@@ -125,8 +125,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.info$.pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
         this.currentVersion = info.version;
-        //this.deviceModel = "NerdQAxe++";
-        this.deviceModel = info.deviceModel;
+        this.deviceModel = "NerdQAxe++";
+        //this.deviceModel = info.deviceModel;
         this.ASICModel = info.ASICModel;
         this.otpEnabled = !!info.otp;
 

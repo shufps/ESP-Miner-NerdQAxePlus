@@ -329,7 +329,8 @@
     "STEP_UNKNOWN": "Inconnu",
     "RELEASE_AND_UPDATE": "Version et mise à jour",
     "EXPECTED_FILE": "Fichier attendu",
-    "SELECT_RELEASE": "Sélectionner la version"
+    "SELECT_RELEASE": "Sélectionner la version",
+    "FILENAME": "Nom de fichier"
   },
   "TOAST": {
     "SUCCESS": "Succès",
