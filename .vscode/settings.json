@@ -99,5 +99,6 @@
         "ssid"
     ],
     "idf.port": "/dev/cu.usbmodem1434301",
-    "C_Cpp.intelliSenseEngine": "Tag Parser"
+    "C_Cpp.intelliSenseEngine": "Tag Parser",
+    "idf.pythonInstallPath": "/usr/bin/python"
 }
