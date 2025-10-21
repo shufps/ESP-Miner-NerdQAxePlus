@@ -68,6 +68,7 @@ export class GithubUpdateService {
             // mark the latest release
             return filtered.slice(0, 10).map(r => ({
               ...r,
+              body: r.body || '',
               isLatest: r.id === latest.id,
             }));
           })

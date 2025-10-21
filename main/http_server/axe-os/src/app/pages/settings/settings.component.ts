@@ -447,10 +447,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
    * Toggle changelog visibility
    */
   public toggleChangelog() {
-    if (!this.showChangelog && this.latestRelease) {
-      this.changelog = this.githubUpdateService.getChangelog(this.latestRelease);
-    }
     this.showChangelog = !this.showChangelog;
+
+    if (this.showChangelog && this.selectedRelease) {
+      this.changelog = this.githubUpdateService.getChangelog(this.selectedRelease);
+    }
   }
 
   /**
@@ -575,7 +576,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         switchMap(({ totp }: EnsureOtpResult) =>
           this.systemService.restart("", totp).pipe(
             // drop session on reboot
-            tap(() => {}),
+            tap(() => { }),
             this.loadingService.lockUIUntilComplete()
           )
         ),
