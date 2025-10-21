@@ -11,7 +11,7 @@ interface GithubAsset {
   size: number;
 }
 
-interface GithubRelease {
+export interface GithubRelease {
   id: number;
   tag_name: string;
   name: string;
@@ -46,17 +46,25 @@ export class GithubUpdateService {
   ) { }
 
 
-  public getReleases(): Observable<GithubRelease[]> {
-    return this.httpClient.get<GithubRelease[]>(
-      'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases'
-    ).pipe(
-      map((releases: GithubRelease[]) =>
-        releases.filter((release: GithubRelease) =>
-          // Exclude prereleases and releases with "-rc" in the tag name.
-          !release.prerelease && !release.tag_name.includes('-rc')
-        )
+/** Fetch releases with optional inclusion of pre-releases / -rc */
+  public getReleases(includePrereleases = false): Observable<GithubRelease[]> {
+    return this.httpClient
+      .get<GithubRelease[]>(
+        'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases'
       )
-    );
+      .pipe(
+        map((releases: GithubRelease[]) => {
+          // GitHub returns newest-first already.
+          const filtered = includePrereleases
+            ? releases // show everything (incl. prerelease and -rc)
+            : releases.filter(
+                (r) => !r.prerelease && !r.tag_name.includes('-rc')
+              );
+
+          // Limit to last 10 for the dropdown
+          return filtered.slice(0, 10);
+        })
+      );
   }
 
   /**
@@ -151,5 +159,6 @@ export class GithubUpdateService {
   public findAsset(release: GithubRelease, filename: string): GithubAsset | undefined {
     return release.assets.find(asset => asset.name === filename);
   }
+
 
 }

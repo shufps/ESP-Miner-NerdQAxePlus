@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { NbCardModule, NbIconModule, NbButtonModule, NbBadgeModule } from '@nebular/theme';
+import { NbCardModule, NbCheckboxModule, NbSelectModule, NbIconModule, NbButtonModule, NbBadgeModule } from '@nebular/theme';
 import { SettingsComponent } from './settings.component';
 import { NbThemeModule, NbLayoutModule } from '@nebular/theme';
 import { CommonModule } from '@angular/common';
@@ -7,6 +7,7 @@ import { EditModule } from '../edit/edit.module';
 import { NbSpinnerModule } from '@nebular/theme';
 import { NbProgressBarModule } from '@nebular/theme';
 import { I18nModule } from '../../@i18n/i18n.module';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [SettingsComponent],
@@ -22,6 +23,10 @@ import { I18nModule } from '../../@i18n/i18n.module';
     NbProgressBarModule,
     NbBadgeModule,
     I18nModule,
+    NbSelectModule,
+    NbCheckboxModule,
+    FormsModule,
+    ReactiveFormsModule,
   ]
 })
 export class SettingsModule { }

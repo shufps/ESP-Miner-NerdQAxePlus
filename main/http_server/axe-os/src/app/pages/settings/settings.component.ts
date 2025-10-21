@@ -1,9 +1,9 @@
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { map, Observable, catchError, of, shareReplay, startWith, Subscription, interval, throwError } from 'rxjs';
+import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
+import { BehaviorSubject, combineLatest, map, Observable, catchError, of, shareReplay, startWith, Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile, tap, take } from 'rxjs/operators';
-import { GithubUpdateService, UpdateStatus, VersionComparison } from '../../services/github-update.service';
+import { GithubUpdateService, UpdateStatus, VersionComparison, GithubRelease } from '../../services/github-update.service';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
@@ -71,6 +71,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   private normalizedModel: string = '';
 
+  public includePrereleasesCtrl = new FormControl<boolean>(false);
+  public releases$!: Observable<GithubRelease[]>;   // list shown in dropdown
+  public selectedRelease: GithubRelease | null = null;
+  private latestStableRelease: GithubRelease | null = null;
+
   constructor(
     private fb: FormBuilder,
     private systemService: SystemService,
@@ -84,16 +89,36 @@ export class SettingsComponent implements OnInit, OnDestroy {
     window.addEventListener('resize', this.checkDevTools);
     this.checkDevTools();
 
-    this.latestRelease$ = this.githubUpdateService.getReleases().pipe(
-      map(releases => releases[0]),
-      tap(release => {
-        this.latestRelease = release;
+    // Stream: always keep a "stable latest" for status badge etc.
+    const latestStable$ = this.githubUpdateService.getReleases(false).pipe(
+      map((rels) => rels?.[0] ?? null),
+      tap((rel) => {
+        this.latestRelease = rel; // BEHÄLT deine alte Variable für Status
+        this.latestStableRelease = rel;
         this.updateVersionStatus();
       }),
       shareReplay({ refCount: true, bufferSize: 1 })
     );
 
-    this.info$ = this.systemService.getInfo(0).pipe(shareReplay({ refCount: true, bufferSize: 1 }));
+    // Stream: releases for dropdown depending on the checkbox
+    this.releases$ = this.includePrereleasesCtrl.valueChanges.pipe(
+      startWith(this.includePrereleasesCtrl.value),
+      switchMap((include) => this.githubUpdateService.getReleases(include)),
+      tap((list) => {
+        // Auto-select first entry if nothing selected or selection no longer present
+        if (!this.selectedRelease || !list.find(r => r.id === this.selectedRelease!.id)) {
+          this.selectedRelease = list[0] ?? null;
+          this.updateSelectedReleaseDeps(); // update filenames/changelog
+        }
+      }),
+      shareReplay({ refCount: true, bufferSize: 1 })
+    );
+
+    this.latestRelease$ = latestStable$;
+
+    this.info$ = this.systemService.getInfo(0).pipe(
+      shareReplay({ refCount: true, bufferSize: 1 })
+    );
   }
 
   ngOnInit() {
@@ -154,7 +179,30 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.updateVersionStatus();
       });
 
-    // check if the backend is currently updating and resume progress output
+    // Build releases$ AFTER info$ is available, and filter by asset existence
+    this.releases$ = combineLatest([
+      this.includePrereleasesCtrl.valueChanges.pipe(startWith(this.includePrereleasesCtrl.value)),
+      this.info$ // ensures deviceModel is loaded first
+    ]).pipe(
+      switchMap(([include]) =>
+        this.githubUpdateService.getReleases(include).pipe(
+          map(list =>
+            (list ?? []).filter(r =>
+              r.assets?.some(a => a.name === this.buildFactoryNameFor(r))
+            )
+          )
+        )
+      ),
+      tap(list => {
+        // Auto-select first valid release if current selection missing
+        if (!this.selectedRelease || !list.find(r => r.id === this.selectedRelease!.id)) {
+          this.selectedRelease = list[0] ?? null;
+          this.updateSelectedReleaseDeps();
+        }
+      }),
+      shareReplay({ refCount: true, bufferSize: 1 })
+    );
+
     this.checkUpdateStatus();
   }
 
@@ -337,12 +385,33 @@ export class SettingsComponent implements OnInit, OnDestroy {
    * Update version status based on current and latest versions
    */
   private updateVersionStatus() {
-    if (this.currentVersion && this.latestRelease) {
-      this.updateStatus = this.githubUpdateService.getUpdateStatus(this.currentVersion, this.latestRelease);
-      this.versionComparison = this.githubUpdateService.getVersionComparison(this.currentVersion, this.latestRelease);
-      this.expectedFactoryFilename = `esp-miner-factory-${this.normalizedModel}-${this.latestRelease.tag_name}.bin`;
+    if (this.currentVersion && this.latestStableRelease) {
+      this.updateStatus = this.githubUpdateService.getUpdateStatus(
+        this.currentVersion,
+        this.latestStableRelease
+      );
+      this.versionComparison = this.githubUpdateService.getVersionComparison(
+        this.currentVersion,
+        this.latestStableRelease
+      );
+    }
+    this.updateSelectedReleaseDeps();
+  }
+
+  /** Refresh filename + changelog for the selected release */
+  private updateSelectedReleaseDeps() {
+    if (!this.selectedRelease) {
+      this.expectedFactoryFilename = '';
+      return;
+    }
+    this.expectedFactoryFilename = this.buildFactoryNameFor(this.selectedRelease);
+
+    // Refresh changelog if panel is open
+    if (this.showChangelog) {
+      this.changelog = this.githubUpdateService.getChangelog(this.selectedRelease);
     }
   }
+
 
   /**
    * Get status badge color based on update status
@@ -369,6 +438,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
     return `UPDATE.STATUS_${statusKey}`;
   }
 
+  /** Label for dropdown: "vX.Y.Z (latest)" for the newest item */
+  public getReleaseLabel(r: GithubRelease, idx: number): string {
+    const isFirst = idx === 0;
+    return isFirst ? `${r.tag_name} (latest)` : r.tag_name;
+  }
+
   /**
    * Toggle changelog visibility
    */
@@ -383,7 +458,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
    * Direct update from GitHub via backend proxy
    */
   public directUpdateFromGithub() {
-    if (!this.latestRelease) {
+    if (!this.selectedRelease) {
       this.toastrService.warning(this.translate.instant('TOAST.NO_RELEASE_INFO'), this.translate.instant('TOAST.WARNING'));
       return;
     }
@@ -391,9 +466,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
     const filename = this.expectedFactoryFilename;
     console.log('Looking for file:', filename);
     console.log('Device model:', this.deviceModel);
-    console.log('Available assets:', this.latestRelease.assets?.map(a => a.name));
-
-    const asset = this.githubUpdateService.findAsset(this.latestRelease, filename);
+    //console.log('Available assets:', this.selectedRelease?.assets?.map(a => a.name) ?? []);
+    const asset = this.githubUpdateService.findAsset(this.selectedRelease, filename);
     if (!asset) {
       this.toastrService.danger(`File "${filename}" not found.`, 'Error', { duration: 10000 });
       return;
@@ -440,7 +514,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
           // Update UI state
           this.otaProgress = status.progress;
           this.currentStep = `UPDATE.STEP_${status.step.toUpperCase()}`;
-          console.log('Update status:', status);
+          //console.log('Update status:', status);
 
           // check if device finished updating and only fire the success toast a single time
           if (status.step === 'rebooting' && !this.sawRebooting) {
@@ -518,6 +592,24 @@ export class SettingsComponent implements OnInit, OnDestroy {
       });
   }
 
+  // settings.component.ts
+  public onSelectReleaseId(id: number) {
+    this.releases$.pipe(take(1)).subscribe(list => {
+      const sel = list.find(r => r.id === id);
+      if (sel) {
+        this.selectedRelease = sel;
+        this.updateSelectedReleaseDeps();
+      }
+    });
+  }
+
+  // settings.component.ts
+  public trackRelease = (_: number, r: GithubRelease) => r.id;
+
+  // Helper to build expected factory filename for a given release
+  private buildFactoryNameFor(release: GithubRelease): string {
+    return `esp-miner-factory-${this.normalizedModel}-${release.tag_name}.bin`;
+  }
 
 
 }
