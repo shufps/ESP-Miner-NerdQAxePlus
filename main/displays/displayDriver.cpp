@@ -373,9 +373,16 @@ void DisplayDriver::waitForSplashs() {
 }
 
 bool DisplayDriver::ledControl(bool btn1, bool btn2) {
+    // btn1 turns it on
     if (btn1) {
         return displayTurnOn();
-    } else if (btn2) {
+    }
+
+    // btn2 toggles the LED
+    if (btn2) {
+        if (!m_displayIsOn) {
+            return displayTurnOn();
+        }
         return displayTurnOff();
     }
     return false;
@@ -460,13 +467,6 @@ void DisplayDriver::lvglTimerTask(void *param)
             }
         }
 
-        // 3) Auto-Off / Overlay
-        if (m_isActiveOverlay) {
-            displayTurnOn();
-        } else if (m_isAutoScreenOffEnabled) {
-            checkAutoTurnOffScreen();
-        }
-
         // queue to receive commands from http server context
         if (xQueueReceive(g_ui_queue, &msg, 0) == pdTRUE) {
             switch (msg.type) {
@@ -481,9 +481,11 @@ void DisplayDriver::lvglTimerTask(void *param)
                     if (m_ui->ui_qrScreen) {
                         enterState(UiState::ShowQR, tnow);
                     }
+                    m_isActiveOverlay = true;
                     break;
                 }
                 case UI_CMD_HIDE_QR: {
+                    m_isActiveOverlay = false;
                     enterState(UiState::Mining, tnow);
                     break;
                 }
@@ -492,6 +494,13 @@ void DisplayDriver::lvglTimerTask(void *param)
                 free(msg.payload);
                 msg.payload = NULL;
             }
+        }
+
+        // Auto-Off / Overlay
+        if (m_isActiveOverlay) {
+            displayTurnOn();
+        } else if (m_isAutoScreenOffEnabled) {
+            checkAutoTurnOffScreen();
         }
 
         // 4) FSM update (timeouts and screen changes)
