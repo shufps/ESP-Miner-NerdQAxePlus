@@ -59,6 +59,13 @@
 
 #define NVS_CONFIG_VR_FREQUENCY "vr_frequency"
 
+#define NVS_CONFIG_OTP_SECRET "otp_secret"
+#define NVS_CONFIG_OTP_ENABLED "otp_enabled"
+#define NVS_CONFIG_OTP_LAST_STEP "otp_last_step"
+#define NVS_CONFIG_OTP_USED_MASK "otp_used_mask"
+#define NVS_CONFIG_OTP_SESSION_KEY "otp_sess_key"
+#define NVS_CONFIG_OTP_BOOT_ID "otp_boot_id"
+
 #if defined(CONFIG_FAN_MODE_MANUAL)
 #define CONFIG_AUTO_FAN_SPEED_VALUE 0
 #elif defined(CONFIG_FAN_MODE_CLASSIC)
@@ -192,6 +199,29 @@ namespace Config {
     inline uint16_t getPidI(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_I, d); }
     inline uint16_t getPidD(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_PID_D, d); }
     inline uint32_t getVrFrequency(uint32_t d) { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_VR_FREQUENCY, d); }
+
+    // OTP Replay-Protection state (last_step + 3-bit mask)
+    inline void getOTPReplayState(int64_t& base_step, uint8_t& mask) {
+        base_step = (int64_t) nvs_config_get_u64(NVS_CONFIG_OTP_LAST_STEP, 0ULL);
+        mask      = (uint8_t) nvs_config_get_u16(NVS_CONFIG_OTP_USED_MASK, 0);
+    }
+
+    inline void setOTPReplayState(int64_t base_step, uint8_t mask) {
+        nvs_config_set_u64(NVS_CONFIG_OTP_LAST_STEP, (uint64_t) base_step);
+        nvs_config_set_u16(NVS_CONFIG_OTP_USED_MASK, (uint16_t)(mask & 0x07));
+    }
+
+    inline void setOTPSecret(const char* value) { nvs_config_set_string(NVS_CONFIG_OTP_SECRET, value); }
+    inline char* getOTPSecret() { return nvs_config_get_string(NVS_CONFIG_OTP_SECRET, ""); }
+
+    inline void setOTTBootId(uint32_t boot_id) { nvs_config_set_u64(NVS_CONFIG_OTP_BOOT_ID, boot_id); }
+    inline uint32_t getOTPBootId() { return (uint32_t) nvs_config_get_u64(NVS_CONFIG_OTP_BOOT_ID, 0); }
+
+    inline void setOTPSessionKey(const char* value) { nvs_config_set_string(NVS_CONFIG_OTP_SESSION_KEY, value); }
+    inline char* getOTPSessionKey() { return nvs_config_get_string(NVS_CONFIG_OTP_SESSION_KEY, ""); }
+
+    inline void setOTPEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_OTP_ENABLED, value ? 1 : 0); }
+    inline bool isOTPEnabled() { return nvs_config_get_u16(NVS_CONFIG_OTP_ENABLED, 0) != 0; }
 
     void migrate_config();
 }

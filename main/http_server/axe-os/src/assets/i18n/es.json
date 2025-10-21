@@ -29,7 +29,8 @@
     "SYSTEM": "Sistema",
     "SWARM": "Enjambre",
     "INFLUXDB": "InfluxDB",
-    "ALERTS": "Alertas"
+    "ALERTS": "Alertas",
+    "SECURITY": "Seguridad"
   },
   "HOME": {
     "HASH_RATE": "Tasa de Hash",
@@ -452,5 +453,39 @@
     "MINUTE_PLURAL": "minutos",
     "SECOND_SINGULAR": "segundo",
     "SECOND_PLURAL": "segundos"
+  },
+  "SECURITY": {
+    "TITLE": "Seguridad",
+    "OTP_STATUS": "Estado de OTP",
+    "ENABLE_OTP": "Activar OTP",
+    "DISABLE_OTP": "Desactivar OTP",
+    "START_ENROLLMENT": "Iniciar registro",
+    "ENROLLMENT_ACTIVE": "Registro activo — el código QR se muestra en el dispositivo",
+    "ENTER_CODE": "Introduce el código de 6 dígitos",
+    "DISABLE_LABEL": "Desactivar OTP (requiere el código actual)",
+    "QR_SHOWN": "QR mostrado en el dispositivo. Escanéalo y luego introduce el código.",
+    "ENABLED": "OTP activado",
+    "DISABLED": "OTP desactivado",
+    "ENROLL_FAIL": "Error en el registro",
+    "ENABLE_FAIL": "Código no válido o caducado",
+    "DISABLE_FAIL": "Código no válido",
+    "LOCAL_ONLY": "Diseñado para uso en LAN local (sin HTTPS). No lo expongas a Internet.",
+    "OTP_HINT_ENROLLMENT": "Inicia el registro para mostrar un código QR en el dispositivo. Escanéalo con tu autenticador (p. ej., Authy/Google Authenticator) y luego introduce el código de 6 dígitos para activar OTP. Para desactivar también se requiere un código válido. Diseñado solo para LAN local (sin HTTPS).",
+    "OTP_NUDGE_TITLE": "Considera activar OTP",
+    "OTP_NUDGE_TEXT": "Ayuda a mitigar ataques oportunistas y automatizados y añade a esta interfaz web una capa básica de protección criptográfica real.",
+    "OTP_TITLE": "Se requiere OTP",
+    "OTP_FW_HINT": "Introduce el código de 6 dígitos para iniciar la actualización del firmware.",
+    "OTP_HINT": "Introduce el código de 6 dígitos para continuar.",
+    "OTP_DISABLE_HINT": "Introduce el código de 6 dígitos para desactivar el OTP.",
+    "OTP_ENABLE_HINT": "Introduce el código de 6 dígitos para activar el OTP.",
+    "OTP_REMEMBER": "Recordar este dispositivo durante 24h",
+    "SESSION": "Sesión",
+    "SESSION_STATUS": "Estado de la sesión",
+    "THIS_DEVICE_TRUSTED": "Este dispositivo es de confianza (24h)",
+    "FORGET_THIS_DEVICE": "Olvidar este dispositivo",
+    "FORGET_THIS_DEVICE_HELP": "Finaliza la confianza de 24h para este dispositivo. Se elimina el token de sesión local; la próxima acción protegida volverá a requerir un código de 6 dígitos.",
+    "THIS_DEVICE_FORGOTTEN": "Este dispositivo ha sido olvidado.",
+    "NO_TRUSTED_DEVICE_HELP": "No hay una sesión de confianza en este dispositivo. Las acciones protegidas pedirán un código de 6 dígitos hasta que elijas «Recordar este dispositivo».",
+    "NOT_TRUSTED": "No de confianza"
   }
 }

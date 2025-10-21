@@ -13,6 +13,7 @@ import { SystemModule } from './system/system.module';
 import { SwarmModule } from './swarm/swarm.module';
 import { HomeModule } from './home/home.module';
 import { AlertModule } from './alert/alert.module';
+import { SecurityModule } from './security/security.module';
 
 //import { PipesModule} from '../pipes/pipes.module';
 
@@ -33,6 +34,7 @@ import { AlertModule } from './alert/alert.module';
     AlertModule,
     //PipesModule,
     HomeModule,
+    SecurityModule,
     ],
   declarations: [
     PagesComponent,

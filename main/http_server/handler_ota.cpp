@@ -15,6 +15,10 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
 
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
     int remaining = req->content_len;
 
     const esp_partition_t *www_partition =
@@ -88,6 +92,10 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
 {
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
     }
 
     esp_ota_handle_t ota_handle;

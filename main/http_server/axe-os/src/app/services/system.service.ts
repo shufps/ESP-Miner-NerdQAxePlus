@@ -6,10 +6,10 @@ import { ISystemInfo } from '../models/ISystemInfo';
 import { IHistory } from '../models/IHistory';
 import { IAlertSettings } from '../models/IAlertSettings';
 import { AsicInfo } from '../models/IAsicInfo';
-
 import { environment } from '../../environments/environment';
 import { IInfluxDB } from '../models/IInfluxDB';
 import { IUpdateStatus } from '../models/IUpdateStatus';
+import { HttpHeaders } from '@angular/common/http';
 
 const defaultInfo: ISystemInfo = {
   power: 11.670000076293945,
@@ -78,6 +78,8 @@ const defaultInfo: ISystemInfo = {
   vrFrequency: 25000,
   defaultTheme: "cosmic",
 
+  otp: false,
+
   pidTargetTemp: 55,
   pidP: 2.0,
   pidI: 0.1,
@@ -122,37 +124,15 @@ export class SystemService {
   }
 
   public getInfo(ts: number, uri: string = ''): Observable<ISystemInfo> {
-    if (environment.production) {
-      return this.httpClient.get(`${uri}/api/system/info?ts=${ts}&cur=${Math.floor(Date.now())}`) as Observable<ISystemInfo>;
-    } else {
-      return of(defaultInfo).pipe(delay(1000));
-    }
+    return this.httpClient.get(`${uri}/api/system/info?ts=${ts}&cur=${Math.floor(Date.now())}`) as Observable<ISystemInfo>;
   }
 
   public getAsicInfo(uri: string = ''): Observable<AsicInfo> {
-    if (environment.production) {
-      return this.httpClient.get<AsicInfo>(`${uri}/api/system/asic`);
-    } else {
-      return of(defaultAsicInfo).pipe(delay(500));
-    }
+    return this.httpClient.get<AsicInfo>(`${uri}/api/system/asic`);
   }
 
   public getInfluxInfo(uri: string = ''): Observable<IInfluxDB> {
-    if (environment.production) {
-      return this.httpClient.get(`${uri}/api/influx/info`) as Observable<IInfluxDB>;
-    } else {
-      return of(
-        {
-          influxEnable: 0,
-          influxURL: "http://192.168.0.1",
-          influxPort: 8086,
-          influxToken: "TOKEN",
-          influxBucket: "BUCKET",
-          influxOrg: "ORG",
-          influxPrefix: "mainnet_stats"
-        }
-      ).pipe(delay(1000));
-    }
+    return this.httpClient.get(`${uri}/api/influx/info`) as Observable<IInfluxDB>;
   }
 
   public getHistoryLen(): Observable<any> {
@@ -164,60 +144,86 @@ export class SystemService {
   }
 
 
-  public restart(uri: string = '') {
-    return this.httpClient.post(`${uri}/api/system/restart`, {}, { responseType: 'text' });
+  // SystemService
+  public restart(uri: string = '', totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) headers = headers.set('X-TOTP', totp);
+
+    return this.httpClient.post(`${uri}/api/system/restart`, null, {
+      headers,
+      responseType: 'text', // plain text body
+    });
   }
 
-  public updateSystem(uri: string = '', update: any) {
-    return this.httpClient.patch(`${uri}/api/system`, update);
+
+  public updateSystem(uri: string = '', update: any, totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) {
+      headers = headers.set('X-TOTP', totp);
+    }
+
+    // Ensure uri has no trailing slash duplication (optional)
+    const base = uri || '';
+    const url = `${base}/api/system`;
+
+    return this.httpClient.patch(url, update, { headers });
   }
 
-  public updateInflux(uri: string = '', update: any) {
-    return this.httpClient.patch(`${uri}/api/influx`, update);
+  // Influx: PATCH /api/influx
+  public updateInflux(uri: string = '', update: any, totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) headers = headers.set('X-TOTP', totp);
+    return this.httpClient.patch(`${uri}/api/influx`, update, { headers });
   }
 
 
-  private otaUpdate(file: File | Blob, url: string) {
+  // Gemeinsamer Helper für OTA-Uploads (raw bytes), optionaler TOTP-Header
+  private otaUpdate(file: File | Blob, url: string, totp?: string) {
     return new Observable<HttpEvent<string>>((subscriber) => {
       const reader = new FileReader();
+      console.log(file);
 
       reader.onload = (event: any) => {
-        const fileContent = event.target.result;
+        const fileContent = event.target.result as ArrayBuffer;
 
-        return this.httpClient.post(url, fileContent, {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/octet-stream',
+        };
+        if (totp) headers['X-TOTP'] = totp;
+
+        this.httpClient.post(url, fileContent, {
           reportProgress: true,
           observe: 'events',
-          responseType: 'text', // Specify the response type
-          headers: {
-            'Content-Type': 'application/octet-stream', // Set the content type
-          },
+          responseType: 'text',
+          headers,
         }).subscribe({
-          next: (event) => {
-            subscriber.next(event);
-          },
-          error: (err) => {
-            subscriber.error(err)
-          },
-          complete: () => {
-            subscriber.complete();
-          }
+          next: evt => subscriber.next(evt),
+          error: err => subscriber.error(err),
+          complete: () => subscriber.complete(),
         });
       };
       reader.readAsArrayBuffer(file);
     });
   }
 
-
-  public performOTAUpdate(file: File | Blob) {
-    return this.otaUpdate(file, `/api/system/OTA`);
-  }
-  public performWWWOTAUpdate(file: File | Blob) {
-    return this.otaUpdate(file, `/api/system/OTAWWW`);
+  // Legacy Firmware OTA
+  public performOTAUpdate(file: File | Blob, totp?: string) {
+    return this.otaUpdate(file, `/api/system/OTA`, totp);
   }
 
-  public performGithubOTAUpdate(url: string) {
+  // Legacy WWW OTA
+  public performWWWOTAUpdate(file: File | Blob, totp?: string) {
+    return this.otaUpdate(file, `/api/system/OTAWWW`, totp);
+  }
+
+  // GitHub One-Click OTA
+  public performGithubOTAUpdate(url: string, totp?: string) {
+    const headers: Record<string, string> = {};
+    if (totp) headers['X-TOTP'] = totp;
+
     return this.httpClient.post('/api/system/OTA/github', { url }, {
-      responseType: 'text'
+      responseType: 'text',
+      headers,
     });
   }
 
@@ -236,32 +242,49 @@ export class SystemService {
 
 
   public getAlertInfo(uri: string = ''): Observable<IAlertSettings> {
-    if (environment.production) {
-      return this.httpClient.get(`${uri}/api/alert/info`) as Observable<IAlertSettings>;
-    } else {
-      return of({
-        alertDiscordEnable: 0,
-        alertDiscordWebhook: 'https://discord.com/api/webhooks/xxx/yyy'
-      }).pipe(delay(1000));
-    }
+    return this.httpClient.get(`${uri}/api/alert/info`) as Observable<IAlertSettings>;
   }
 
-  public updateAlertInfo(uri: string = '', data: IAlertSettings): Observable<any> {
-    if (environment.production) {
-      return this.httpClient.post(`${uri}/api/alert/update`, data);
-    } else {
-      console.log('Mock updateAlertInfo called:', data);
-      return of(true).pipe(delay(500));
-    }
+  // Alerts: POST /api/alert/update
+  public updateAlertInfo(uri: string = '', data: IAlertSettings, totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) headers = headers.set('X-TOTP', totp);
+    return this.httpClient.post(`${uri}/api/alert/update`, data, { headers });
   }
 
-  public sendAlertTest(uri: string = ''): Observable<any> {
-    if (environment.production) {
-      return this.httpClient.post(`${uri}/api/alert/test`, {}, {responseType: 'text' });
-    } else {
-      console.log('Mock sendAlertTest');
-      return of(true).pipe(delay(500));
+  public sendAlertTest(uri: string = '', totp?: string): Observable<any> {
+    const headers = totp ? new HttpHeaders({ 'X-OTP-Code': totp }) : undefined;
+    return this.httpClient.post(`${uri}/api/alert/test`, {}, {
+      responseType: 'text',
+      headers,
+    });
+  }
+
+  /** POST /api/otp -> starts enrollment (shows QR on device) */
+  public startOtpEnrollment(): Observable<void> {
+    return this.httpClient.post<void>('/api/otp', {}); // empty body
+  }
+
+  /** PATCH /api/otp -> {enabled:boolean, totp:string} */
+  public updateOtp(enabled: boolean, totp: string): Observable<void> {
+    const headers = new HttpHeaders().set('X-TOTP', totp);
+    return this.httpClient.patch<void>('/api/otp', { enabled }, { headers });
+  }
+
+  /** POST /api/otp/session - creates session token with expiration */
+  public createOtpSession(totp: string, ttlMs?: number): Observable<{ token: string; ttlMs?: number; expiresAt?: number }> {
+    let headers = new HttpHeaders({ 'X-TOTP': totp });
+    if (ttlMs && ttlMs > 0) {
+      headers = headers.set('X-OTP-Session-TTL', String(ttlMs));
     }
+    return this.httpClient.post<{ token: string; ttlMs?: number; expiresAt?: number }>(
+      '/api/otp/session', {}, { headers }
+    );
+  }
+
+  // only returns enabled flag
+  public getOTPStatus(): Observable<{ enabled: boolean }> {
+    return this.httpClient.get('/api/otp/status') as Observable<{ enabled: boolean }>;
   }
 }
 

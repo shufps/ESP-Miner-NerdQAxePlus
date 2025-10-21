@@ -29,7 +29,8 @@
     "SYSTEM": "System",
     "SWARM": "Swarm",
     "INFLUXDB": "InfluxDB",
-    "ALERTS": "Alerts"
+    "ALERTS": "Alerts",
+    "SECURITY": "Security"
   },
   "HOME": {
     "HASH_RATE": "Hash Rate",
@@ -452,5 +453,39 @@
     "MINUTE_PLURAL": "minutes",
     "SECOND_SINGULAR": "second",
     "SECOND_PLURAL": "seconds"
+  },
+  "SECURITY": {
+    "TITLE": "Security",
+    "OTP_STATUS": "OTP status",
+    "ENABLE_OTP": "Enable OTP",
+    "DISABLE_OTP": "Disable OTP",
+    "START_ENROLLMENT": "Start enrollment",
+    "ENROLLMENT_ACTIVE": "Enrollment is active — QR is shown on the device",
+    "ENTER_CODE": "Enter 6-digit code",
+    "DISABLE_LABEL": "Disable OTP (requires current code)",
+    "QR_SHOWN": "QR shown on the device. Scan it, then enter the code.",
+    "ENABLED": "OTP enabled",
+    "DISABLED": "OTP disabled",
+    "ENROLL_FAIL": "Enrollment failed",
+    "ENABLE_FAIL": "Invalid or expired code",
+    "DISABLE_FAIL": "Code invalid",
+    "LOCAL_ONLY": "Designed for local LAN use (no HTTPS). Do not expose to the internet.",
+    "OTP_HINT_ENROLLMENT": "Start enrollment to display a QR code on the device. Scan it with your authenticator (e.g., Authy/Google Authenticator), then enter the 6-digit code to enable OTP. Disabling also requires a valid code. Designed for local LAN only (no HTTPS).",
+    "OTP_NUDGE_TITLE": "Please consider enabling OTP",
+    "OTP_NUDGE_TEXT": "It helps mitigate opportunistic and automated attacks and adds a basic layer of real cryptographic protection to this web interface.",
+    "OTP_TITLE": "OTP required",
+    "OTP_FW_HINT": "Enter the 6-digit code to start the firmware update.",
+    "OTP_HINT": "Enter the 6-digit code to continue.",
+    "OTP_DISABLE_HINT": "Enter the 6-digit code to disable OTP.",
+    "OTP_ENABLE_HINT": "Enter the 6-digit code to enable OTP.",
+    "OTP_REMEMBER": "Remember this device for 24h",
+    "SESSION": "Session",
+    "SESSION_STATUS": "Session Status",
+    "THIS_DEVICE_TRUSTED": "This device is trusted (24h)",
+    "FORGET_THIS_DEVICE": "Forget this device",
+    "FORGET_THIS_DEVICE_HELP": "Ends the 24-hour trust for this device. The local session token is removed—next protected action will require a 6-digit code again.",
+    "THIS_DEVICE_FORGOTTEN": "This device has been forgotten.",
+    "NO_TRUSTED_DEVICE_HELP": "No trusted session on this device. Protected actions will ask for a 6-digit code until you choose “Remember this device”.",
+    "NOT_TRUSTED": "Not trusted"
   }
 }

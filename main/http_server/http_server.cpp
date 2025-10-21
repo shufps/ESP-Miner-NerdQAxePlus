@@ -19,7 +19,7 @@
 #include "handler_restart.h"
 #include "handler_file.h"
 #include "handler_alert.h"
-#include "handler_ota_factory.h"
+#include "handler_otp.h"
 #include "macros.h"
 
 #pragma GCC diagnostic error "-Wall"
@@ -114,7 +114,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.max_uri_handlers = 25;
+    config.max_uri_handlers = 30;
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
     config.stack_size = 12288;
@@ -187,6 +187,22 @@ esp_err_t start_rest_server(void * pvParameters)
         .user_ctx = NULL,
     };
     httpd_register_uri_handler(http_server, &system_options_uri);
+
+    httpd_uri_t update_otp_uri = {
+        .uri = "/api/otp", .method = HTTP_PATCH, .handler = PATCH_update_otp, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &update_otp_uri);
+
+    httpd_uri_t post_otp_uri = {
+        .uri = "/api/otp", .method = HTTP_POST, .handler = POST_create_otp, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &post_otp_uri);
+
+    httpd_uri_t post_otp_session_uri = {
+        .uri = "/api/otp/session", .method = HTTP_POST, .handler = POST_create_otp_session, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &post_otp_session_uri);
+
+    httpd_uri_t get_otp_status = {
+        .uri = "/api/otp/status", .method = HTTP_GET, .handler = GET_otp_status, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &get_otp_status);
 
     /* URI handler for fetching Discord alert settings */
     httpd_uri_t alert_info_get_uri = {

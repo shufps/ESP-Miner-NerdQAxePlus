@@ -1,12 +1,14 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { NbToastrService } from '@nebular/theme';
+import { NbToastrService, NbDialogService } from '@nebular/theme';
 import { HttpErrorResponse } from '@angular/common/http';
+import { EMPTY, of } from 'rxjs';
+import { catchError, switchMap, take } from 'rxjs/operators';
 
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
-import { IAlertSettings } from '../../models/IAlertSettings';
 import { TranslateService } from '@ngx-translate/core';
+import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 
 @Component({
   selector: 'app-alert',
@@ -23,8 +25,9 @@ export class AlertComponent implements OnInit {
     private systemService: SystemService,
     private toastrService: NbToastrService,
     private loadingService: LoadingService,
-    private translateService: TranslateService
-  ) {}
+    private translate: TranslateService,
+    private otpAuth: OtpAuthService,
+  ) { }
 
   ngOnInit(): void {
     this.systemService.getAlertInfo(this.uri)
@@ -57,27 +60,45 @@ export class AlertComponent implements OnInit {
       payload.alertDiscordWebhook = form.alertDiscordWebhook;
     }
 
-    this.systemService.updateAlertInfo(this.uri, payload)
-      .pipe(this.loadingService.lockUIUntilComplete())
+    this.otpAuth.ensureOtp$(
+      this.uri,
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.systemService.updateInflux(this.uri, payload, totp)
+            .pipe(this.loadingService.lockUIUntilComplete())
+        ),
+      )
       .subscribe({
         next: () => {
-          this.toastrService.success(this.translateService.instant('ALERTS.SETTINGS_SAVED'), this.translateService.instant('COMMON.SUCCESS'));
+          this.toastrService.success(this.translate.instant('ALERTS.SETTINGS_SAVED'), this.translate.instant('COMMON.SUCCESS'));
         },
         error: (err: HttpErrorResponse) => {
-          this.toastrService.danger(this.translateService.instant('ALERTS.SETTINGS_SAVE_FAILED'), err.message);
+          this.toastrService.danger(this.translate.instant('ALERTS.SETTINGS_SAVE_FAILED'), err.message);
         }
       });
   }
 
   public sendTest() {
-    this.systemService.sendAlertTest(this.uri)
-      .pipe(this.loadingService.lockUIUntilComplete())
+    this.otpAuth.ensureOtp$(
+      this.uri,
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.systemService.sendAlertTest(this.uri, totp)
+            .pipe(this.loadingService.lockUIUntilComplete())
+        ),
+      )
       .subscribe({
         next: () => {
-          this.toastrService.success(this.translateService.instant('ALERTS.TEST_ALERT_SENT'), this.translateService.instant('COMMON.SUCCESS'));
+          this.toastrService.success(this.translate.instant('ALERTS.TEST_ALERT_SENT'), this.translate.instant('COMMON.SUCCESS'));
         },
         error: () => {
-          this.toastrService.danger(this.translateService.instant('ALERTS.TEST_ALERT_FAILED'), this.translateService.instant('COMMON.ERROR'));
+          this.toastrService.danger(this.translate.instant('ALERTS.TEST_ALERT_FAILED'), this.translate.instant('COMMON.ERROR'));
         }
       });
   }

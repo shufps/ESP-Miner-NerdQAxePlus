@@ -29,7 +29,8 @@
     "SYSTEM": "System",
     "SWARM": "Schwarm",
     "INFLUXDB": "InfluxDB",
-    "ALERTS": "Benachrichtigungen"
+    "ALERTS": "Benachrichtigungen",
+    "SECURITY": "Sicherheit"
   },
   "HOME": {
     "HASH_RATE": "Hash-Rate",
@@ -452,5 +453,39 @@
     "MINUTE_PLURAL": "Minuten",
     "SECOND_SINGULAR": "Sekunde",
     "SECOND_PLURAL": "Sekunden"
+  },
+  "SECURITY": {
+    "TITLE": "Sicherheit",
+    "OTP_STATUS": "OTP-Status",
+    "ENABLE_OTP": "OTP aktivieren",
+    "DISABLE_OTP": "OTP deaktivieren",
+    "START_ENROLLMENT": "Registrierung starten",
+    "ENROLLMENT_ACTIVE": "Registrierung aktiv — QR-Code wird auf dem Gerät angezeigt",
+    "ENTER_CODE": "6-stelligen Code eingeben",
+    "DISABLE_LABEL": "OTP deaktivieren (aktueller Code erforderlich)",
+    "QR_SHOWN": "QR-Code wird auf dem Gerät angezeigt. Scanne ihn und gib anschließend den Code ein.",
+    "ENABLED": "OTP aktiviert",
+    "DISABLED": "OTP deaktiviert",
+    "ENROLL_FAIL": "Registrierung fehlgeschlagen",
+    "ENABLE_FAIL": "Ungültiger oder abgelaufener Code",
+    "DISABLE_FAIL": "Code ungültig",
+    "LOCAL_ONLY": "Für die lokale LAN-Nutzung konzipiert (ohne HTTPS). Nicht ins Internet exponieren.",
+    "OTP_HINT_ENROLLMENT": "Starte die Registrierung, um einen QR-Code auf dem Gerät anzuzeigen. Scanne ihn mit deinem Authenticator (z. B. Authy/Google Authenticator) und gib danach den 6-stelligen Code ein, um OTP zu aktivieren. Zum Deaktivieren ist ebenfalls ein gültiger Code erforderlich. Nur für lokales LAN gedacht (ohne HTTPS).",
+    "OTP_NUDGE_TITLE": "Bitte erwäge, OTP zu aktivieren",
+    "OTP_NUDGE_TEXT": "Es reduziert opportunistische und automatisierte Angriffe und ergänzt diese Weboberfläche um eine grundlegende, echte kryptografische Schutzschicht.",
+    "OTP_TITLE": "OTP erforderlich",
+    "OTP_FW_HINT": "Gib den 6-stelligen Code ein, um das Firmware-Update zu starten.",
+    "OTP_HINT": "Gib den 6-stelligen Code ein, um fortzufahren.",
+    "OTP_DISABLE_HINT": "Gib den 6-stelligen Code ein, um OTP zu deaktivieren.",
+    "OTP_ENABLE_HINT": "Gib den 6-stelligen Code ein, um OTP zu aktivieren.",
+    "OTP_REMEMBER": "Dieses Gerät für 24 Stunden merken",
+    "SESSION": "Sitzung",
+    "SESSION_STATUS": "Sitzungsstatus",
+    "THIS_DEVICE_TRUSTED": "Dieses Gerät ist vertrauenswürdig (24h)",
+    "FORGET_THIS_DEVICE": "Dieses Gerät vergessen",
+    "FORGET_THIS_DEVICE_HELP": "Beendet die 24-h-Vertrauensstellung für dieses Gerät. Das lokale Sitzungstoken wird gelöscht – beim nächsten geschützten Vorgang ist wieder ein 6-stelliger Code nötig.",
+    "THIS_DEVICE_FORGOTTEN": "Dieses Gerät wurde vergessen.",
+    "NO_TRUSTED_DEVICE_HELP": "Keine vertrauenswürdige Sitzung auf diesem Gerät. Geschützte Aktionen verlangen einen 6-stelligen Code, bis du „Dieses Gerät merken“ wählst.",
+    "NOT_TRUSTED": "Nicht vertrauenswürdig"
   }
 }

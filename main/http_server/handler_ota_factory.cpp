@@ -619,6 +619,10 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
 
     ESP_LOGI(TAG, "Network allowed, content_len=%d", req->content_len);
 
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
     // Read body into PSRAM or heap buffer
     if (req->content_len <= 0 || req->content_len > 4096) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Body too large or empty");

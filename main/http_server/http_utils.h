@@ -1,8 +1,10 @@
 #pragma once
 
+#include "global_state.h"
 #include "esp_vfs.h"
 #include "esp_http_server.h"
 #include "ArduinoJson.h"
+#include "../otp/otp.h"
 
 #define FILE_PATH_MAX (ESP_VFS_PATH_MAX + 128)
 #define SCRATCH_BUFSIZE (16384)
@@ -29,3 +31,6 @@ typedef struct
 #define min(a,b) ((a)<(b))?(a):(b)
 
 esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc);
+esp_err_t getPostData(httpd_req_t *req);
+esp_err_t getJsonData(httpd_req_t *req, JsonDocument &doc);
+esp_err_t validateOTP(httpd_req_t *req, bool force = false);

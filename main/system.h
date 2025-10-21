@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <ctime>
 
 #include "displays/displayDriver.h"
 #include "esp_system.h"
@@ -9,6 +10,7 @@
 #include "freertos/queue.h"
 #include "boards/board.h"
 #include "history.h"
+#include "sntp.h"
 
 // Configuration and constants
 #define STRATUM_USER CONFIG_STRATUM_USER

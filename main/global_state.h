@@ -17,6 +17,7 @@
 #include "system.h"
 #include "discord.h"
 #include "hashrate_monitor_task.h"
+#include "otp/otp.h"
 #include "http_server/handler_ota_factory.h"
 
 extern System SYSTEM_MODULE;
@@ -29,3 +30,10 @@ extern FactoryOTAUpdate FACTORY_OTA_UPDATER;
 
 extern AsicJobs asicJobs;
 extern DiscordAlerter discordAlerter;
+
+extern OTP otp;
+
+
+uint64_t now_ms();
+uint32_t now();
+bool is_time_synced(void);

@@ -1,9 +1,7 @@
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-//import { ToastrService } from 'ngx-toastr';
-//import { FileUploadHandlerEvent } from 'primeng/fileupload';
-import { map, Observable, catchError, of, shareReplay, startWith, Subscription, interval, EMPTY } from 'rxjs';
+import { map, Observable, catchError, of, shareReplay, startWith, Subscription, interval, throwError } from 'rxjs';
 import { switchMap, takeWhile, tap, take } from 'rxjs/operators';
 import { GithubUpdateService, UpdateStatus, VersionComparison } from '../../services/github-update.service';
 import { LoadingService } from '../../services/loading.service';
@@ -12,6 +10,8 @@ import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { IUpdateStatus } from 'src/app/models/IUpdateStatus';
+import { NbDialogService } from '@nebular/theme';
+import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 
 @Component({
   selector: 'app-settings',
@@ -58,6 +58,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public currentVersion: string = '';
   public latestRelease: any = null;
 
+  public otpEnabled: boolean = false;
+
   // Enhanced progress tracking
   public updateStep: 'idle' | 'downloading' | 'uploading' | 'flashing' | 'complete' = 'idle';
   public downloadProgress: number = 0;
@@ -67,7 +69,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   private wsSubscription?: Subscription;
   private rebootCheckInterval?: any;
 
-  private normalizedModel : string = '';
+  private normalizedModel: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -75,7 +77,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private toastrService: NbToastrService,
     private loadingService: LoadingService,
     private githubUpdateService: GithubUpdateService,
-    private translate: TranslateService
+    private dialog: NbDialogService,
+    private translate: TranslateService,
+    private otpAuth: OtpAuthService,
   ) {
     window.addEventListener('resize', this.checkDevTools);
     this.checkDevTools();
@@ -96,8 +100,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.info$.pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
         this.currentVersion = info.version;
+        //this.deviceModel = "NerdQAxe++";
         this.deviceModel = info.deviceModel;
         this.ASICModel = info.ASICModel;
+        this.otpEnabled = !!info.otp;
 
         this.form = this.fb.group({
           flipscreen: [info.flipscreen == 1],
@@ -213,48 +219,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   };
 
-  public updateSystem() {
-
-    const form = this.form.getRawValue();
-
-    form.frequency = parseInt(form.frequency);
-    form.coreVoltage = parseInt(form.coreVoltage);
-    form.jobInterval = parseInt(form.jobInterval);
-
-    // bools to ints
-    form.flipscreen = form.flipscreen == true ? 1 : 0;
-    form.invertscreen = form.invertscreen == true ? 1 : 0;
-    form.invertfanpolarity = form.invertfanpolarity == true ? 1 : 0;
-    form.autofanspeed = form.autofanspeed == true ? 1 : 0;
-    form.autoscreenoff = form.autoscreenoff == true ? 1 : 0;
-
-    // Allow an empty wifi password
-    form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
-
-    if (form.wifiPass === '*****') {
-      delete form.wifiPass;
-    }
-    if (form.stratumPassword === '*****') {
-      delete form.stratumPassword;
-    }
-
-    if (form.fallbackStratumPassword === '*****') {
-      delete form.fallbackStratumPassword;
-    }
-
-    this.systemService.updateSystem(undefined, form)
-      .pipe(this.loadingService.lockUIUntilComplete())
-      .subscribe({
-        next: () => {
-          this.toastrService.success(this.translate.instant('TOAST.SAVED'), this.translate.instant('TOAST.SUCCESS'));
-        },
-        error: (err: HttpErrorResponse) => {
-          this.toastrService.danger(`${this.translate.instant('TOAST.COULD_NOT_SAVE')}. ${err.message}`, this.translate.instant('TOAST.ERROR'));
-        }
-      });
-  }
-
-
   public onFirmwareFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -273,17 +237,25 @@ export class SettingsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.isFirmwareUploading = true;
+    const file = this.selectedFirmwareFile;
 
-    this.systemService.performOTAUpdate(this.selectedFirmwareFile)
-      .pipe(this.loadingService.lockUIUntilComplete())
+    this.otpAuth.ensureOtp$(
+      "",
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_FW_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) => {
+          this.isFirmwareUploading = true;
+          return this.systemService.performOTAUpdate(file, totp)
+            .pipe(this.loadingService.lockUIUntilComplete());
+        })
+      )
       .subscribe({
         next: (event) => {
-          if (event.type === HttpEventType.UploadProgress && event.total) {
-            console.log(event.loaded);
-            console.log(event.total);
+          if (event?.type === HttpEventType.UploadProgress && event.total) {
             this.firmwareUpdateProgress = Math.round(100 * event.loaded / event.total);
-          } else if (event.type === HttpEventType.Response) {
+          } else if (event?.type === HttpEventType.Response) {
             this.firmwareUpdateProgress = 100;
             this.toastrService.success(this.translate.instant('TOAST.FIRMWARE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
           }
@@ -295,7 +267,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
         },
         complete: () => {
           this.isFirmwareUploading = false;
-          // Optionally reset the progress indicator after a short delay
           setTimeout(() => this.firmwareUpdateProgress = 0, 500);
         }
       });
@@ -321,34 +292,41 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this.toastrService.danger(`${this.translate.instant('TOAST.INCORRECT_FILE')}: www.bin`, this.translate.instant('TOAST.ERROR'));
       return;
     }
+    const file = this.selectedWebsiteFile;
 
-    this.isWebsiteUploading = true;
-
-    this.systemService.performWWWOTAUpdate(this.selectedWebsiteFile)
-    .pipe(this.loadingService.lockUIUntilComplete())
-    .subscribe({
-      next: (event) => {
-        if (!event) {
-          return; // Skip processing if the event is undefined.
+    this.otpAuth.ensureOtp$(
+      "",
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_FW_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) => {
+          this.isWebsiteUploading = true;
+          return this.systemService.performWWWOTAUpdate(file, totp)
+            .pipe(this.loadingService.lockUIUntilComplete());
+        })
+      )
+      .subscribe({
+        next: (event) => {
+          if (!event) return;
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            this.websiteUpdateProgress = Math.round(100 * event.loaded / event.total);
+          } else if (event.type === HttpEventType.Response) {
+            this.websiteUpdateProgress = 100;
+            this.toastrService.success(this.translate.instant('TOAST.WEBSITE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
+            setTimeout(() => window.location.reload(), 1000);
+          }
+        },
+        error: (err) => {
+          this.toastrService.danger(`${this.translate.instant('TOAST.UPLOAD_FAILED')}: ${err.message}`, this.translate.instant('TOAST.ERROR'));
+          this.isWebsiteUploading = false;
+          this.websiteUpdateProgress = 0;
+        },
+        complete: () => {
+          this.isWebsiteUploading = false;
+          setTimeout(() => this.websiteUpdateProgress = 0, 500);
         }
-        if (event.type === HttpEventType.UploadProgress && event.total) {
-          this.websiteUpdateProgress = Math.round(100 * event.loaded / event.total);
-        } else if (event.type === HttpEventType.Response) {
-          this.websiteUpdateProgress = 100;
-          this.toastrService.success(this.translate.instant('TOAST.WEBSITE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
-          setTimeout(() => window.location.reload(), 1000);
-        }
-      },
-      error: (err) => {
-        this.toastrService.danger(`${this.translate.instant('TOAST.UPLOAD_FAILED')}: ${err.message}`, this.translate.instant('TOAST.ERROR'));
-        this.isWebsiteUploading = false;
-        this.websiteUpdateProgress = 0;
-      },
-      complete: () => {
-        this.isWebsiteUploading = false;
-        setTimeout(() => this.websiteUpdateProgress = 0, 500);
-      }
-    });
+      });
 
 
     this.selectedWebsiteFile = null;
@@ -415,40 +393,39 @@ export class SettingsComponent implements OnInit, OnDestroy {
     console.log('Device model:', this.deviceModel);
     console.log('Available assets:', this.latestRelease.assets?.map(a => a.name));
 
-    let asset = this.githubUpdateService.findAsset(this.latestRelease, filename);
-
+    const asset = this.githubUpdateService.findAsset(this.latestRelease, filename);
     if (!asset) {
-      this.toastrService.danger(
-        `File "${filename}" not found.`,
-        'Error',
-        { duration: 10000 }
-      );
+      this.toastrService.danger(`File "${filename}" not found.`, 'Error', { duration: 10000 });
       return;
     }
 
-    // Reset OTA progress
-    this.otaProgress = 0;
-    this.isOneClickUpdate = true;
-    this.firmwareUpdateProgress = 0;
-
     const assetUrl = asset.browser_download_url;
 
-    // Both firmware and www.bin now use backend streaming (no CORS issues, no PSRAM buffer)
-    console.log(`factory OTA from: ${assetUrl}`);
+    this.otpAuth.ensureOtp$(
+      "",
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_FW_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) => {
+          // reset UI states
+          this.otaProgress = 0;
+          this.isOneClickUpdate = true;
+          this.firmwareUpdateProgress = 0;
 
-    this.systemService.performGithubOTAUpdate(assetUrl)
+          // kick the backend update
+          return this.systemService.performGithubOTAUpdate(assetUrl, totp);
+        })
+      )
       .subscribe({
         next: () => {
-          // we don't display any message here because the OTA update is now non-blocking
-          //this.toastrService.success(this.translate.instant('TOAST.FIRMWARE_UPDATED'), this.translate.instant('TOAST.SUCCESS'));
+          this.startUpdatePolling();
         },
         error: (err) => {
           this.toastrService.danger(`${this.translate.instant('TOAST.UPDATE_FAILED')}: ${err.message || err.error}`, this.translate.instant('TOAST.ERROR'));
+          this.isOneClickUpdate = false;
         }
       });
-
-    // start receiving the update progress status
-    this.startUpdatePolling();
   }
 
   private startUpdatePolling() {
@@ -483,20 +460,20 @@ export class SettingsComponent implements OnInit, OnDestroy {
   // we can resume the update progress status on a page reload because
   // the OTA update is not done in HTTP server context anymore! 😍
   private checkUpdateStatus() {
-  // Single-shot status fetch
-  this.systemService.getGithubOTAStatus()
-    .pipe(take(1))
-    .subscribe({
-      next: (status: IUpdateStatus) => {
-        // If update is ongoing, (re)start polling
-        if (status.pending || status.running) {
-          this.isOneClickUpdate = true;
-          this.otaProgress = status.progress;
-          this.currentStep = `UPDATE.STEP_${status.step.toUpperCase()}`;
-          this.startUpdatePolling();
-        }
-      },
-    });
+    // Single-shot status fetch
+    this.systemService.getGithubOTAStatus()
+      .pipe(take(1))
+      .subscribe({
+        next: (status: IUpdateStatus) => {
+          // If update is ongoing, (re)start polling
+          if (status.pending || status.running) {
+            this.isOneClickUpdate = true;
+            this.otaProgress = status.progress;
+            this.currentStep = `UPDATE.STEP_${status.step.toUpperCase()}`;
+            this.startUpdatePolling();
+          }
+        },
+      });
   }
 
   private stopUpdatePolling() {
@@ -516,19 +493,30 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   public restart() {
-    this.systemService.restart().pipe(
-      catchError(error => {
-        this.toastrService.danger(this.translate.instant('TOAST.RESTART_FAILED'), this.translate.instant('TOAST.ERROR'));
-        return of(null);
-      })
-    ).subscribe(res => {
-      if (res !== null) {
-        this.toastrService.success(this.translate.instant('TOAST.DEVICE_RESTARTED'), this.translate.instant('TOAST.SUCCESS'));
-      }
-    });
+    this.otpAuth.ensureOtp$(
+      "",
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.systemService.restart("", totp).pipe(
+            // drop session on reboot
+            tap(() => {}),
+            this.loadingService.lockUIUntilComplete()
+          )
+        ),
+        catchError((err: HttpErrorResponse) => {
+          this.toastrService.danger(this.translate.instant('SYSTEM.RESTART_FAILED'), this.translate.instant('COMMON.ERROR'));
+          return of(null);
+        })
+      )
+      .subscribe(res => {
+        if (res !== null) {
+          this.toastrService.success(this.translate.instant('SYSTEM.RESTART_SUCCESS'), this.translate.instant('COMMON.SUCCESS'));
+        }
+      });
   }
-
-
 
 
 

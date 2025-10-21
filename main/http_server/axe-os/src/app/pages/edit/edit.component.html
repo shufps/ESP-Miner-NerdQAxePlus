@@ -3,6 +3,13 @@
 </ng-template>
 
 <ng-container *ngIf="form != null; else loading">
+<app-alert-banner
+    *ngIf="!otpEnabled"
+    storageKey="hideOtpNudge"
+    status="danger"
+    [title]="'SECURITY.OTP_NUDGE_TITLE' | translate"
+    [message]="'SECURITY.OTP_NUDGE_TEXT' | translate">
+  </app-alert-banner>
     <form [formGroup]="form">
         <nb-card>
             <nb-card-header>{{ 'SETTINGS.WIFI_SETTINGS' | translate }}</nb-card-header>

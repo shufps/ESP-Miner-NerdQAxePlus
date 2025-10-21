@@ -54,34 +54,16 @@ esp_err_t POST_update_alert(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    int total_len = req->content_len;
-    int cur_len = 0;
-    char *buf = ((rest_server_context_t *)(req->user_ctx))->scratch;
-    int received = 0;
-
-    if (total_len >= SCRATCH_BUFSIZE) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Content too long");
+    if (validateOTP(req) != ESP_OK) {
         return ESP_FAIL;
     }
-
-    while (cur_len < total_len) {
-        received = httpd_req_recv(req, buf + cur_len, total_len);
-        if (received <= 0) {
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive body");
-            return ESP_FAIL;
-        }
-        cur_len += received;
-    }
-    buf[total_len] = '\0';
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
-    DeserializationError error = deserializeJson(doc, buf);
-    if (error) {
-        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+    esp_err_t err = getJsonData(req, doc);
+    if (err != ESP_OK) {
+        return err;
     }
 
     if (doc["alertDiscordWebhook"].is<const char*>()) {
@@ -109,6 +91,10 @@ esp_err_t POST_test_alert(httpd_req_t *req)
 {
     if (set_cors_headers(req) != ESP_OK) {
         httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    if (validateOTP(req) != ESP_OK) {
         return ESP_FAIL;
     }
 

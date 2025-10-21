@@ -83,4 +83,6 @@ export interface ISystemInfo {
     asicTemps?: number[],
 
     history: IHistory
+
+    otp: boolean,
 }
