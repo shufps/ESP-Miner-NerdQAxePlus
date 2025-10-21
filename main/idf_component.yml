@@ -15,4 +15,4 @@ dependencies:
   #   # All dependencies of `main` are public by default.
   #   public: true
   espressif/mdns: '*'
-  lvgl/lvgl: ^8
+  lvgl/lvgl: '==8.3.11'
