@@ -440,8 +440,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   /** Label for dropdown: "vX.Y.Z (latest)" for the newest item */
   public getReleaseLabel(r: GithubRelease, idx: number): string {
-    const isFirst = idx === 0;
-    return isFirst ? `${r.tag_name} (latest)` : r.tag_name;
+    return r.isLatest ? `${r.tag_name} (latest)` : r.tag_name;
   }
 
   /**

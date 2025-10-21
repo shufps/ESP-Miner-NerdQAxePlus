@@ -1,6 +1,6 @@
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Observable, of, switchMap } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 
@@ -19,6 +19,7 @@ export interface GithubRelease {
   body: string;
   published_at: string;
   assets: GithubAsset[];
+  isLatest?: boolean;
 }
 
 export interface VersionComparison {
@@ -46,25 +47,33 @@ export class GithubUpdateService {
   ) { }
 
 
-/** Fetch releases with optional inclusion of pre-releases / -rc */
+  /** Fetch releases with optional inclusion of pre-releases / -rc */
   public getReleases(includePrereleases = false): Observable<GithubRelease[]> {
-    return this.httpClient
-      .get<GithubRelease[]>(
-        'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases'
-      )
-      .pipe(
-        map((releases: GithubRelease[]) => {
-          // GitHub returns newest-first already.
-          const filtered = includePrereleases
-            ? releases // show everything (incl. prerelease and -rc)
-            : releases.filter(
-                (r) => !r.prerelease && !r.tag_name.includes('-rc')
-              );
+    const all$ = this.httpClient.get<GithubRelease[]>(
+      'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases'
+    );
 
-          // Limit to last 10 for the dropdown
-          return filtered.slice(0, 10);
-        })
-      );
+    const latest$ = this.httpClient.get<GithubRelease>(
+      'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases/latest'
+    );
+
+    return all$.pipe(
+      switchMap((releases: GithubRelease[]) =>
+        latest$.pipe(
+          map((latest) => {
+            const filtered = includePrereleases
+              ? releases
+              : releases.filter(r => !r.prerelease && !r.tag_name.includes('-rc'));
+
+            // mark the latest release
+            return filtered.slice(0, 10).map(r => ({
+              ...r,
+              isLatest: r.id === latest.id,
+            }));
+          })
+        )
+      )
+    );
   }
 
   /**
