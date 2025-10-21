@@ -1,156 +1,159 @@
 <!-- update.component.html -->
 
 
-  <!-- Settings Card (stays separate) -->
-  <nb-card>
-    <nb-card-header>{{ 'SETTINGS.TITLE' | translate }}</nb-card-header>
+<!-- Settings Card (stays separate) -->
+<nb-card>
+  <nb-card-header>{{ 'SETTINGS.TITLE' | translate }}</nb-card-header>
+  <nb-card-body>
+    <app-edit></app-edit>
+  </nb-card-body>
+</nb-card>
+
+<!-- Language Settings Card -->
+<nb-card>
+  <nb-card-header>{{ 'LANGUAGE.TITLE' | translate }}</nb-card-header>
+  <nb-card-body>
+    <app-language-selector></app-language-selector>
+  </nb-card-body>
+</nb-card>
+
+<!-- Flex container for the update cards -->
+<div class="cards-container">
+  <!-- Single "Release & Update" Card -->
+  <nb-card class="card-item version-card">
+    <nb-card-header>
+      <div class="version-header">
+        <span>{{ 'UPDATE.RELEASE_AND_UPDATE' | translate }}</span>
+        <nb-badge [status]="getStatusBadgeColor()" [text]="getStatusTranslationKey() | translate" position="top right">
+        </nb-badge>
+      </div>
+    </nb-card-header>
+
     <nb-card-body>
-      <app-edit></app-edit>
-    </nb-card-body>
-  </nb-card>
 
-  <!-- Language Settings Card -->
-  <nb-card>
-    <nb-card-header>{{ 'LANGUAGE.TITLE' | translate }}</nb-card-header>
-    <nb-card-body>
-      <app-language-selector></app-language-selector>
-    </nb-card-body>
-  </nb-card>
-
-  <!-- Flex container for the update cards -->
-  <div class="cards-container">
-
-    <!-- Enhanced Version Info Card with Status Badge -->
-    <nb-card class="card-item version-card">
-      <nb-card-header>
-        <div class="version-header">
-          <span>{{ 'UPDATE.VERSION_INFO' | translate }}</span>
-          <nb-badge [status]="getStatusBadgeColor()" [text]="getStatusTranslationKey() | translate" position="top right"></nb-badge>
+      <!-- Row: Current version -->
+      <div class="version-info">
+        <div class="version-row">
+          <strong>{{ 'UPDATE.CURRENT_VERSION' | translate }}:</strong>
+          <span>{{ currentVersion }}</span>
         </div>
-      </nb-card-header>
-      <nb-card-body>
-        <div class="version-info">
-          <div class="version-row">
-            <strong>{{ 'UPDATE.CURRENT_VERSION' | translate }}:</strong>
-            <span>{{ currentVersion }}</span>
-          </div>
-          <ng-container *ngIf="latestRelease$ | async as latestRelease">
-            <div class="version-row">
-              <strong>{{ 'UPDATE.LATEST_RELEASE' | translate }}:</strong>
-              <span>{{ latestRelease.tag_name }}</span>
-            </div>
-            <div class="version-row">
-              <strong>{{ 'UPDATE.PUBLISHED' | translate }}:</strong>
-              <span>{{ latestRelease.published_at | date }}</span>
-            </div>
+      </div>
 
-            <!-- Changelog Toggle -->
-            <div class="changelog-section">
-              <button nbButton ghost size="small" (click)="toggleChangelog()">
-                <nb-icon [icon]="showChangelog ? 'chevron-up-outline' : 'chevron-down-outline'" pack="eva"></nb-icon>
-                {{ showChangelog ? ('UPDATE.HIDE_CHANGELOG' | translate) : ('UPDATE.SHOW_CHANGELOG' | translate) }}
-              </button>
-              <div *ngIf="showChangelog" class="changelog-content" [innerHTML]="changelog"></div>
-            </div>
+      <hr>
+
+      <!-- Row: Selector + prerelease toggle -->
+      <div class="release-row">
+        <div class="release-select">
+          <label class="release-label"><strong>{{ 'UPDATE.SELECT_RELEASE' | translate }}:</strong></label>
+          <nb-select [selected]="selectedRelease?.id" (selectedChange)="onSelectReleaseId($event)"
+            placeholder="Select release" [disabled]="isOneClickUpdate">
+            <nb-option *ngFor="let r of (releases$ | async) ?? []; let i = index" [value]="r.id">
+              {{ getReleaseLabel(r, i) }}
+            </nb-option>
+          </nb-select>
+        </div>
+        <nb-checkbox class="prerelease-toggle" [formControl]="includePrereleasesCtrl" [disabled]="isOneClickUpdate">
+          Show pre-releases
+        </nb-checkbox>
+      </div>
+
+      <!-- Meta of selected release -->
+      <div class="version-info" *ngIf="selectedRelease">
+        <div class="version-row">
+          <strong>{{ 'UPDATE.PUBLISHED' | translate }}:</strong>
+          <span>{{ selectedRelease.published_at | date }}</span>
+        </div>
+        <div class="version-row" *ngIf="expectedFactoryFilename">
+          <strong>{{ 'UPDATE.FILENAME' | translate }}:</strong>
+          <span>{{ expectedFactoryFilename }}</span>
+        </div>
+      </div>
+
+      <!-- Changelog -->
+      <div class="changelog-section" *ngIf="selectedRelease">
+        <button nbButton ghost size="small" (click)="toggleChangelog()">
+          <nb-icon [icon]="showChangelog ? 'chevron-up-outline' : 'chevron-down-outline'" pack="eva"></nb-icon>
+          {{ showChangelog ? ('UPDATE.HIDE_CHANGELOG' | translate) : ('UPDATE.SHOW_CHANGELOG' | translate) }}
+        </button>
+        <div *ngIf="showChangelog" class="changelog-content" [innerHTML]="changelog"></div>
+      </div>
+
+      <hr>
+
+      <!-- Update CTA + progress -->
+      <div class="update-section">
+        <button nbButton [status]="updateStatus === UpdateStatus.UPDATE_AVAILABLE ? 'warning' : 'primary'" size="small"
+          [nbSpinner]="isOneClickUpdate" [disabled]="isOneClickUpdate || !selectedRelease"
+          (click)="directUpdateFromGithub()">
+          <nb-icon icon="cloud-download-outline" pack="eva"></nb-icon>&nbsp;
+          {{ 'UPDATE.INSTALL_FROM_GITHUB' | translate }}
+        </button>
+      </div>
+
+      <div class="progress-wrapper" *ngIf="isOneClickUpdate">
+        <nb-progress-bar [value]="otaProgress" [status]="otaProgress >= 100 ? 'success' : 'info'" [displayValue]="false"
+          size="large">
+        </nb-progress-bar>
+
+        <div class="progress-label">
+          <ng-container *ngIf="otaProgress === 0">
+            {{ 'UPDATE.INITIALIZING' | translate }}
+          </ng-container>
+          <ng-container *ngIf="otaProgress > 0 && otaProgress < 100">
+            {{ (currentStep || 'STEP_UNKNOWN') | translate }}: {{ otaProgress }}%
+          </ng-container>
+          <ng-container *ngIf="otaProgress >= 100">
+            {{ 'UPDATE.INSTALLATION_COMPLETE' | translate }}
           </ng-container>
         </div>
-      </nb-card-body>
-    </nb-card>
+      </div>
 
-    <nb-card class="card-item" style="position: relative;">
-      <nb-card-header>
-        {{ 'UPDATE.UPDATE_ONE_CLICK' | translate }}
-      </nb-card-header>
-      <nb-card-body>
-        <!-- Direct Update from GitHub -->
-        <div class="update-section">
-          <h6>{{ 'UPDATE.DIRECT_FROM_GITHUB' | translate }}</h6>
-          <button nbButton
-                  [status]="updateStatus === UpdateStatus.UPDATE_AVAILABLE ? 'warning' : 'primary'"
-                  size="small"
-                  [nbSpinner]="isOneClickUpdate"
-                  [disabled]="isOneClickUpdate || !latestRelease"
-                  (click)="directUpdateFromGithub()">
-            <nb-icon icon="cloud-download-outline" pack="eva"></nb-icon>&nbsp;
-            {{ 'UPDATE.INSTALL_FROM_GITHUB' | translate }}
+    </nb-card-body>
+  </nb-card>
+
+
+  <nb-card class="card-item" style="position: relative;">
+    <nb-card-header>
+      {{ 'UPDATE.LEGACY' | translate }}
+    </nb-card-header>
+    <nb-card-body>
+      <!-- Manual File Upload -->
+      <div class="update-section">
+        <h6>{{ 'UPDATE.MANUAL_FIRMWARE_UPDATE' | translate }}</h6>
+        <input type="file" #firmwareInput hidden (change)="onFirmwareFileSelected($event)" accept=".bin">
+        <div class="action-buttons">
+          <button nbButton [status]="'basic'" size="small" (click)="firmwareInput.click()">
+            <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
+            {{ 'UPDATE.BROWSE' | translate }}
           </button>
-
-          <div class="progress-wrapper" *ngIf="isOneClickUpdate">
-            <nb-progress-bar
-              [value]="otaProgress"
-              [status]="otaProgress >= 100 ? 'success' : 'info'"
-              [displayValue]="false"
-              size="large">
-            </nb-progress-bar>
-
-            <!-- centered label on top of the bar -->
-            <div class="progress-label">
-              <ng-container *ngIf="otaProgress === 0">
-                {{ 'UPDATE.INITIALIZING' | translate }}
-              </ng-container>
-              <ng-container *ngIf="otaProgress > 0 && otaProgress < 100">
-                {{ (currentStep || 'STEP_UNKNOWN') | translate }}: {{ otaProgress }}%
-              </ng-container>
-              <ng-container *ngIf="otaProgress >= 100">
-                {{ 'UPDATE.INSTALLATION_COMPLETE' | translate }}
-              </ng-container>
-            </div>
-          </div>
+          <button nbButton [status]="'primary'" size="small" [nbSpinner]="isFirmwareUploading"
+            (click)="uploadFirmwareFile()">
+            <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
+            {{ 'UPDATE.FLASH' | translate }}
+          </button>
         </div>
+        <small>({{ expectedFileName }})</small>
+      </div>
 
-        <hr>
+      <hr>
 
-      </nb-card-body>
-    </nb-card>
-
-    <nb-card class="card-item" style="position: relative;">
-      <nb-card-header>
-        {{ 'UPDATE.LEGACY' | translate }}
-      </nb-card-header>
-      <nb-card-body>
-        <!-- Manual File Upload -->
-        <div class="update-section">
-          <h6>{{ 'UPDATE.MANUAL_FIRMWARE_UPDATE' | translate }}</h6>
-          <input type="file"
-                 #firmwareInput
-                 hidden
-                 (change)="onFirmwareFileSelected($event)"
-                 accept=".bin">
-          <div class="action-buttons">
-            <button nbButton [status]="'basic'" size="small" (click)="firmwareInput.click()">
-              <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
-              {{ 'UPDATE.BROWSE' | translate }}
-            </button>
-            <button nbButton [status]="'primary'" size="small" [nbSpinner]="isFirmwareUploading" (click)="uploadFirmwareFile()">
-              <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
-              {{ 'UPDATE.FLASH' | translate }}
-            </button>
-          </div>
-          <small>({{ expectedFileName }})</small>
+      <!-- Manual File Upload -->
+      <div class="update-section">
+        <h6>{{ 'UPDATE.MANUAL_WWW_UPDATE' | translate }}</h6>
+        <input type="file" #websiteInput hidden (change)="onWebsiteFileSelected($event)" accept=".bin">
+        <div class="action-buttons">
+          <button nbButton [status]="'basic'" size="small" (click)="websiteInput.click()">
+            <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
+            {{ 'UPDATE.BROWSE' | translate }}
+          </button>
+          <button nbButton [status]="'primary'" size="small" [nbSpinner]="isWebsiteUploading"
+            (click)="uploadWebsiteFile()">
+            <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
+            {{ 'UPDATE.FLASH' | translate }}
+          </button>
         </div>
-
-        <hr>
-
-        <!-- Manual File Upload -->
-        <div class="update-section">
-          <h6>{{ 'UPDATE.MANUAL_WWW_UPDATE' | translate }}</h6>
-          <input type="file"
-                 #websiteInput
-                 hidden
-                 (change)="onWebsiteFileSelected($event)"
-                 accept=".bin">
-          <div class="action-buttons">
-            <button nbButton [status]="'basic'" size="small" (click)="websiteInput.click()">
-              <nb-icon icon="folder-outline" pack="eva"></nb-icon>&nbsp;
-              {{ 'UPDATE.BROWSE' | translate }}
-            </button>
-            <button nbButton [status]="'primary'" size="small" [nbSpinner]="isWebsiteUploading" (click)="uploadWebsiteFile()">
-              <nb-icon icon="upload-outline" pack="eva"></nb-icon>&nbsp;
-              {{ 'UPDATE.FLASH' | translate }}
-            </button>
-          </div>
-          <small>(www.bin)</small>
-        </div>
-      </nb-card-body>
-    </nb-card>
-  </div>
+        <small>(www.bin)</small>
+      </div>
+    </nb-card-body>
+  </nb-card>
+</div>

@@ -326,7 +326,11 @@
     "STEP_UPDATING_WWW": "Actualizando sitio web",
     "STEP_REBOOTING": "Reiniciando...",
     "STEP_ERROR": "Error",
-    "STEP_UNKNOWN": "Desconocido"
+    "STEP_UNKNOWN": "Desconocido",
+    "RELEASE_AND_UPDATE": "Versión y actualización",
+    "EXPECTED_FILE": "Archivo esperado",
+    "SELECT_RELEASE": "Seleccionar versión",
+    "FILENAME": "Nombre de archivo"
   },
   "TOAST": {
     "SUCCESS": "Éxito",

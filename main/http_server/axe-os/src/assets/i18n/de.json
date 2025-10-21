@@ -326,7 +326,11 @@
     "STEP_UPDATING_WWW": "WWW wird aktualisiert",
     "STEP_REBOOTING": "Neustart...",
     "STEP_ERROR": "Fehler",
-    "STEP_UNKNOWN": "Unbekannt"
+    "STEP_UNKNOWN": "Unbekannt",
+    "RELEASE_AND_UPDATE": "Release & Update",
+    "EXPECTED_FILE": "Erwartete Datei",
+    "SELECT_RELEASE": "Release auswählen",
+    "FILENAME": "Dateiname"
   },
   "TOAST": {
     "SUCCESS": "Erfolg",

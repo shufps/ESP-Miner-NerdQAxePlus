@@ -1,6 +1,6 @@
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Observable, of, switchMap } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 
@@ -11,7 +11,7 @@ interface GithubAsset {
   size: number;
 }
 
-interface GithubRelease {
+export interface GithubRelease {
   id: number;
   tag_name: string;
   name: string;
@@ -19,6 +19,7 @@ interface GithubRelease {
   body: string;
   published_at: string;
   assets: GithubAsset[];
+  isLatest?: boolean;
 }
 
 export interface VersionComparison {
@@ -46,14 +47,31 @@ export class GithubUpdateService {
   ) { }
 
 
-  public getReleases(): Observable<GithubRelease[]> {
-    return this.httpClient.get<GithubRelease[]>(
+  /** Fetch releases with optional inclusion of pre-releases / -rc */
+  public getReleases(includePrereleases = false): Observable<GithubRelease[]> {
+    const all$ = this.httpClient.get<GithubRelease[]>(
       'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases'
-    ).pipe(
-      map((releases: GithubRelease[]) =>
-        releases.filter((release: GithubRelease) =>
-          // Exclude prereleases and releases with "-rc" in the tag name.
-          !release.prerelease && !release.tag_name.includes('-rc')
+    );
+
+    const latest$ = this.httpClient.get<GithubRelease>(
+      'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases/latest'
+    );
+
+    return all$.pipe(
+      switchMap((releases: GithubRelease[]) =>
+        latest$.pipe(
+          map((latest) => {
+            const filtered = includePrereleases
+              ? releases
+              : releases.filter(r => !r.prerelease && !r.tag_name.includes('-rc'));
+
+            // mark the latest release
+            return filtered.slice(0, 10).map(r => ({
+              ...r,
+              body: r.body || '',
+              isLatest: r.id === latest.id,
+            }));
+          })
         )
       )
     );
@@ -151,5 +169,6 @@ export class GithubUpdateService {
   public findAsset(release: GithubRelease, filename: string): GithubAsset | undefined {
     return release.assets.find(asset => asset.name === filename);
   }
+
 
 }

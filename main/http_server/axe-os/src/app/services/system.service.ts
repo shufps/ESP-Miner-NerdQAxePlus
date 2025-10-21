@@ -181,7 +181,7 @@ export class SystemService {
   private otaUpdate(file: File | Blob, url: string, totp?: string) {
     return new Observable<HttpEvent<string>>((subscriber) => {
       const reader = new FileReader();
-      console.log(file);
+      //console.log(file);
 
       reader.onload = (event: any) => {
         const fileContent = event.target.result as ArrayBuffer;
