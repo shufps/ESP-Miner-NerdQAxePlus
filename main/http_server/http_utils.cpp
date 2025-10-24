@@ -154,15 +154,6 @@ static bool read_session_token(httpd_req_t *req, char *out, size_t outlen)
     return read_header_str(req, "X-OTP-Session", out, outlen);
 }
 
-static void get_client_fp(httpd_req_t *req, std::string &fp)
-{
-    char ua[256] = {0};
-    if (read_header_str(req, "User-Agent", ua, sizeof(ua)))
-        fp.assign(ua);
-    else
-        fp.clear();
-}
-
 static bool check_otp_or_session(httpd_req_t *req, bool force)
 {
     if (!otp.isEnabled() && !force)
