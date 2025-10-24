@@ -91,7 +91,7 @@ static ConfigCacheEntry* get_cache_entry(const char* key, config_type_t type) {
                 ESP_LOGE(TAG, "Failed to duplicate key '%s' due to memory allocation issues.", key);
                 return NULL;
             }
-            config_cache[i].key = key;
+            config_cache[i].key = duplicated_key;
             config_cache[i].type = type;
             config_cache[i].valid = false;
             config_cache[i].dirty = false;
