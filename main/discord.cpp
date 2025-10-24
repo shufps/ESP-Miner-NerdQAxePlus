@@ -105,20 +105,19 @@ bool DiscordAlerter::sendMessage(const char *message)
         return false;
     }
 
-    const std::string ip  = SYSTEM_MODULE.getIPAddress();
-    const std::string mac = SYSTEM_MODULE.getMacAddress();
+    char ip[20] = {0};
+    connect_get_ip_addr(ip, sizeof(ip));
+    //ESP_LOGI(TAG, "IP: %s", ip);
+    const char *mac = SYSTEM_MODULE.getMacAddress();
+    //ESP_LOGI(TAG, "MAC: %s", mac);
     char *hostname = Config::getHostname();
 
     //ESP_LOGI(TAG, "IP: %s", ip.c_str());
     //ESP_LOGI(TAG, "MAC: %s", mac.c_str());
     //ESP_LOGI(TAG, "Hostname: %s", hostname);
 
-    snprintf(m_messageBuffer, messageBufferSize - 1,
-            "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```",
-            message,
-            hostname ? hostname : "unknown",
-            ip.empty()  ? "unknown" : ip.c_str(),
-            mac.empty() ? "unknown" : mac.c_str());
+    snprintf(m_messageBuffer, messageBufferSize - 1, "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```", message,
+             hostname ? hostname : "unknown", ip, mac ? mac : "unknown");
 
     free(hostname);
 

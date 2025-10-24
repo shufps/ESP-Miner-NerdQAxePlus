@@ -81,11 +81,14 @@ void System::initSystem() {
     suffixString(m_bestNonceDiff, m_bestDiffString, DIFF_STRING_SIZE, 0);
     suffixString(m_bestSessionNonceDiff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
 
+    // Clear the ssid string
+    memset(m_ssid, 0, sizeof(m_ssid));
+
+    // Clear the wifi_status string
+    memset(m_wifiStatus, 0, 20);
+
     // initialize AP state
     m_apState = false;
-
-    // initialize connected flag
-    m_wifiConnected = false;
 
     // Initialize the display
     m_display = new DisplayDriver();
@@ -117,16 +120,18 @@ void System::updateEsp32Info() {}
 void System::initConnection() {}
 
 void System::updateConnection() {
-    m_display->updateWifiStatus(m_wifiStatus.c_str());
+    m_display->updateWifiStatus(m_wifiStatus);
 }
 
 void System::updateSystemPerformance() {}
 
 void System::showApInformation(const char* error) {
-    m_display->portalScreen(m_apSsid.c_str());
+    char apSsid[13];
+    generate_ssid(apSsid);
+    m_display->portalScreen(apSsid);
 }
 
-const std::string System::getMacAddress() {
+const char* System::getMacAddress() {
     return connect_get_mac_addr();
 }
 
@@ -262,7 +267,7 @@ esp_reset_reason_t System::showLastResetReason() {
         case ESP_RST_SDIO: m_lastResetReason = "SYSTEM.RESET_SDIO"; break;
         default: m_lastResetReason = "SYSTEM.RESET_NOT_SPECIFIED"; break;
     }
-    ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason.c_str());
+    ESP_LOGI(TAG, "Reset reason: %s", m_lastResetReason);
     return reason;
 }
 
@@ -300,8 +305,12 @@ void System::task() {
     // wait until splash1 and splash2 timed out
     m_display->waitForSplashs();
 
-    while (!connect_is_sta_connected()) {
-        if (connect_is_ap_running()) {
+    wifi_mode_t wifiMode;
+    esp_err_t result;
+    while (!m_startupDone) {
+        result = esp_wifi_get_mode(&wifiMode);
+        if (result == ESP_OK && (wifiMode == WIFI_MODE_APSTA || wifiMode == WIFI_MODE_AP) &&
+            strcmp(m_wifiStatus, "Failed to connect") == 0) {
             showApInformation(nullptr);
             vTaskDelay(pdMS_TO_TICKS(5000));
         } else {
@@ -314,14 +323,20 @@ void System::task() {
 
     uint8_t countCycle = 10;
 
+    char lastIpAddress[20] = {0};
+
     // show initial 0.0.0.0
-    m_display->updateIpAddress(m_ipAddress.c_str());
+    m_display->updateIpAddress(m_ipAddress);
     int lastFoundBlocks = 0;
 
     while (1) {
         // update IP on the screen if it is available
-        if (m_ipAddress != "") {
-            m_display->updateIpAddress(m_ipAddress.c_str());
+        if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
+            if (strcmp(m_ipAddress, lastIpAddress) != 0) {
+                ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
+                m_display->updateIpAddress(m_ipAddress);
+            }
+            strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
         }
 
         if (m_overheated) {

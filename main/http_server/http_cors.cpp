@@ -128,10 +128,10 @@ esp_err_t is_network_allowed(httpd_req_t * req)
         ESP_LOGI(CORS_TAG, "extracted origin host: %s", host);
 
         // check if origin is hostname
-        std::string hostname = SYSTEM_MODULE.getHostname();
-        ESP_LOGI(CORS_TAG, "hostname: %s", hostname.c_str());
-        if (std::string(host) == hostname) {
-            ESP_LOGI(CORS_TAG, "allowed: origin equals hostname");
+        const char *hostname = SYSTEM_MODULE.getHostname();
+        ESP_LOGI(CORS_TAG, "hostname: %s", hostname);
+        if (!(strncmp(host, hostname, strlen(hostname)))) {
+            ESP_LOGI(CORS_TAG, "origin equals hostname");
             return ESP_OK;
         }
 
