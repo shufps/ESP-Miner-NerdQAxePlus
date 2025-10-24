@@ -307,16 +307,25 @@ void System::task() {
 
     wifi_mode_t wifiMode;
     esp_err_t result;
+
     while (!m_startupDone) {
+        // Check if STA has a valid IP
+        char ip[20] = {0};
+        bool sta_has_ip = connect_get_ip_addr(ip, sizeof(ip)); // returns true if ip_valid
+
+        // Check whether AP is active
         result = esp_wifi_get_mode(&wifiMode);
-        if (result == ESP_OK && (wifiMode == WIFI_MODE_APSTA || wifiMode == WIFI_MODE_AP) &&
-            strcmp(m_wifiStatus, "Failed to connect") == 0) {
+        bool ap_active = (result == ESP_OK) && (wifiMode == WIFI_MODE_AP || wifiMode == WIFI_MODE_APSTA);
+
+        if (!sta_has_ip && ap_active) {
+            // STA not connected yet -> show captive/config info
             showApInformation(nullptr);
-            vTaskDelay(pdMS_TO_TICKS(5000));
+            vTaskDelay(pdMS_TO_TICKS(5000)); // avoid flicker/spam
         } else {
+            // Either STA is connected or AP is off -> show normal connection UI
             updateConnection();
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     m_display->miningScreen();
