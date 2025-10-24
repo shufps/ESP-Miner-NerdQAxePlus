@@ -35,6 +35,7 @@ EventBits_t wifi_connect(void);
 void generate_ssid(char *ssid);
 bool connect_get_ip_addr(char *buf, size_t buf_len);
 const char* connect_get_mac_addr();
+EventBits_t wifi_wait_connected_ms(TickType_t ticks);
 
 #ifdef __cplusplus
 }
