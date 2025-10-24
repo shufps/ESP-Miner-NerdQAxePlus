@@ -269,4 +269,8 @@ class System {
     }
 
     void loadSettings();
+
+    bool isStartupDone() {
+        return m_startupDone;
+    }
 };
