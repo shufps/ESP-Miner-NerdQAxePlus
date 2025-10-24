@@ -36,6 +36,7 @@
 #include "stratum_task.h"
 #include "system.h"
 #include "wifi_health.h"
+#include "guards.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -84,43 +85,46 @@ static void setup_wifi()
     // pull the wifi credentials and hostname out of NVS
     char *wifi_ssid = Config::getWifiSSID();
     char *wifi_pass = Config::getWifiPass();
-    char *hostname = Config::getHostname();
+    char *hostname  = Config::getHostname();
+
+    // release on exit of scope (RAII)
+    MemoryGuard gSsid(wifi_ssid);
+    MemoryGuard gWifiPass(wifi_pass);
+    MemoryGuard gHostname(hostname);
 
     // copy the wifi ssid to the global state
     SYSTEM_MODULE.setSsid(wifi_ssid);
 
-    // init and connect to wifi
+    // init and connect to wifi (asynchronous setup)
     wifi_init(wifi_ssid, wifi_pass, hostname);
 
-    free(wifi_pass);
-    free(hostname);
-
-    // start rest server
+    // start rest server (needed in AP fallback for config)
     start_rest_server(NULL);
 
-    // connect
-    EventBits_t result_bits = wifi_connect();
+    // initial blocking wait: CONNECTED or FAIL
+    EventBits_t bits = wifi_connect();
 
-    if (result_bits & WIFI_CONNECTED_BIT) {
+    if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to SSID: %s", wifi_ssid);
         SYSTEM_MODULE.setWifiStatus("Connected!");
-        free(wifi_ssid);
         return;
     }
 
-    if (result_bits & WIFI_FAIL_BIT) {
-        ESP_LOGE(TAG, "Failed to connect to SSID: %s", wifi_ssid);
-        SYSTEM_MODULE.setWifiStatus("Failed to connect");
-    } else {
-        ESP_LOGE(TAG, "UNEXPECTED EVENT");
-        SYSTEM_MODULE.setWifiStatus("unexpected error");
-    }
+    // Initial connect failed: stay in AP fallback, keep waiting for STA recovery
+    ESP_LOGW(TAG, "Initial WiFi connect failed. Staying in AP fallback and waiting for STA recovery...");
 
-    // User might be trying to configure with AP, just chill here
-    ESP_LOGI(TAG, "Finished, waiting for user input.");
+    for (;;) {
+        // Wait up to 30s for STA to come up (retries run in background)
+        EventBits_t w = wifi_wait_connected_ms(pdMS_TO_TICKS(30000));
 
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        if (w & WIFI_CONNECTED_BIT) {
+            ESP_LOGI(TAG, "STA recovered and connected to SSID: %s", wifi_ssid);
+            SYSTEM_MODULE.setWifiStatus("Connected!");
+            return; // continue normal init after this
+        }
+
+        // Heartbeat while waiting in AP mode
+        ESP_LOGI(TAG, "Still waiting for STA to connect... (AP is available for config)");
     }
 }
 

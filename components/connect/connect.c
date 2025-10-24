@@ -76,19 +76,23 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-
-        // Wait a little
+        // Small backoff before attempting to reconnect
         vTaskDelay(pdMS_TO_TICKS(1000));
-
         if (s_retry_num < WIFI_MAXIMUM_RETRY) {
+            // Keep retrying for the initial blocking connect()
             esp_wifi_connect();
             s_retry_num++;
             ESP_LOGI(TAG, "Retrying WiFi connection...");
             MINER_set_wifi_status(WIFI_RETRYING, s_retry_num);
         } else {
+            // Signal initial failure so wifi_connect() can return
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
-            ESP_LOGI(TAG, "Could not connect to WiFi.");
+            ESP_LOGI(TAG, "Could not connect to WiFi (initial).");
             MINER_set_wifi_status(WIFI_CONNECT_FAILED, 0);
+            // Keep reconnecting indefinitely in the background
+            // so the system can eventually recover without reboot.
+            s_retry_num = 0;
+            esp_wifi_connect();
         }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
@@ -99,6 +103,18 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         MINER_set_wifi_status(WIFI_CONNECTED, 0);
     }
+}
+
+EventBits_t wifi_wait_connected_ms(TickType_t ticks)
+{
+    // Do not clear the bit here; other waiters may rely on it.
+    return xEventGroupWaitBits(
+        s_wifi_event_group,
+        WIFI_CONNECTED_BIT,
+        pdFALSE,   // do not clear on exit
+        pdFALSE,
+        ticks
+    );
 }
 
 void generate_ssid(char *ssid)
