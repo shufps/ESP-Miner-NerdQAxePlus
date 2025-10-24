@@ -230,14 +230,18 @@ void PowerManagementTask::task()
             asic_overheat_temp = 70;
         }
 
-        // check if asic voltage changed
-        checkCoreVoltageChanged();
+        // don't change frequency or voltage if
+        // asics haven't been initialized
+        if (board->isInitialized()) {
+            // check if asic voltage changed
+            checkCoreVoltageChanged();
 
-        // check if asic frequency changed
-        checkAsicFrequencyChanged();
+            // check if asic frequency changed
+            checkAsicFrequencyChanged();
 
-        // check if version rolling frequency changed
-        checkVrFrequencyChanged();
+            // check if version rolling frequency changed
+            checkVrFrequencyChanged();
+        }
 
         // check if pid settings changed
         checkPidSettingsChanged();

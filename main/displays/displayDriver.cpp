@@ -860,11 +860,7 @@ void DisplayDriver::portalScreen(const char *message)
 {
     PThreadGuard lock(m_lvglMutex);
     strlcpy(m_portalWifiName, message, sizeof(m_portalWifiName));
-
-    if (m_ui->ui_PortalScreen) {
-        lv_label_set_text(m_ui->ui_lbIP, m_portalWifiName);
-    }
-
+    lv_label_set_text(m_ui->ui_lbSSID, m_portalWifiName);
     enterState(UiState::Portal, now_us());
 }
 
