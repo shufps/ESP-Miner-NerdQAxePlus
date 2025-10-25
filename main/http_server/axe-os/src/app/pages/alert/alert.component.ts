@@ -67,7 +67,7 @@ export class AlertComponent implements OnInit {
     )
       .pipe(
         switchMap(({ totp }: EnsureOtpResult) =>
-          this.systemService.updateInflux(this.uri, payload, totp)
+          this.systemService.updateAlertInfo(this.uri, payload, totp)
             .pipe(this.loadingService.lockUIUntilComplete())
         ),
       )
