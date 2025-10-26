@@ -126,8 +126,8 @@ void System::updateConnection() {
 void System::updateSystemPerformance() {}
 
 void System::showApInformation(const char* error) {
-    char apSsid[13];
-    generate_ssid(apSsid);
+    char apSsid[32];
+    generate_ssid(apSsid, sizeof(apSsid));
     m_display->portalScreen(apSsid);
 }
 

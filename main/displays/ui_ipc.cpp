@@ -10,7 +10,7 @@ void ui_ipc_init(void) {
 }
 
 bool ui_send_show_qr() {
-    ui_msg_t m = { .type = UI_CMD_SHOW_QR, .payload = nullptr };
+    ui_msg_t m = { .type = UI_CMD_SHOW_QR, .payload = nullptr, .param = 0 };
     if (xQueueSend(g_ui_queue, &m, 0) != pdTRUE) {
         return false;
     }
@@ -18,7 +18,7 @@ bool ui_send_show_qr() {
 }
 
 bool ui_send_hide_qr() {
-    ui_msg_t m = { .type = UI_CMD_HIDE_QR, .payload = nullptr };
+    ui_msg_t m = { .type = UI_CMD_HIDE_QR, .payload = nullptr, .param = 0 };
     if (xQueueSend(g_ui_queue, &m, 0) != pdTRUE) {
         return false;
     }

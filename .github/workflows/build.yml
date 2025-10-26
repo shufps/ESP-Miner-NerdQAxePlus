@@ -87,6 +87,11 @@ jobs:
       run: |
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.label }}.bin
 
+    - name: Rename ELF Artifact
+      run: |
+        # Ensure the ELF exists and rename it to include the device label
+        sudo mv build/esp-miner.elf build/esp-miner-${{ matrix.label }}.elf
+
     - name: Create files list
       run: |
         echo "esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
@@ -94,6 +99,12 @@ jobs:
         if [ "${{ matrix.upload_www }}" == "true" ]; then
           echo "build/www.bin" >> file_list.txt
         fi
+
+    - name: Create R2 files list
+      run: |
+        # Copy current file list and add the ELF for R2 uploads only
+        cp file_list.txt r2_file_list.txt
+        echo "build/esp-miner-${{ matrix.label }}.elf" >> r2_file_list.txt
 
     - name: Set files variable
       id: set_files_var
@@ -122,9 +133,10 @@ jobs:
 
         TARGET_DIR="webflasher/${{ env.VERSION_TAG }}"
 
+        # Upload everything listed in r2_file_list.txt (includes ELF)
         while read file; do
           rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
-        done < file_list.txt
+        done < r2_file_list.txt
 
 
 
