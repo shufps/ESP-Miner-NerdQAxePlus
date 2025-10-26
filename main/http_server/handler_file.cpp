@@ -47,12 +47,16 @@ esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filepath)
         type = "application/javascript";
     } else if (CHECK_FILE_EXTENSION(filepath, ".css")) {
         type = "text/css";
+    } else if (CHECK_FILE_EXTENSION(filepath, ".json")) {
+        type = "application/json";
     } else if (CHECK_FILE_EXTENSION(filepath, ".png")) {
         type = "image/png";
     } else if (CHECK_FILE_EXTENSION(filepath, ".ico")) {
         type = "image/x-icon";
     } else if (CHECK_FILE_EXTENSION(filepath, ".svg")) {
-        type = "text/xml";
+        type = "image/svg+xml";
+    } else if (CHECK_FILE_EXTENSION(filepath, ".woff2")) {
+        type = "font/woff2";
     }
     return httpd_resp_set_type(req, type);
 }
@@ -102,7 +106,6 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
     }
 
     if (strstr(req->uri, ".woff2")) {
-        httpd_resp_set_hdr(req, "Content-Type", "font/woff2");
         httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=31536000, immutable");
     } else if (req->uri[strlen(req->uri) - 1] != '/') {
         httpd_resp_set_hdr(req, "Cache-Control", "max-age=2592000");
