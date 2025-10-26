@@ -46,13 +46,11 @@ class System {
     bool m_startupDone;     // Flag to indicate if system startup is complete
 
     // Network and connection info
-    std::string m_ssid;        // WiFi SSID (+1 for null terminator)
-    std::string m_apSsid;
-    std::string m_wifiStatus;  // WiFi status string
-    std::string m_hostname;
-    std::string m_ipAddress = "0.0.0.0";
+    char m_ssid[33];           // WiFi SSID (+1 for null terminator)
+    char m_wifiStatus[20];     // WiFi status string
     bool m_apState;
-    bool m_wifiConnected;
+    char *m_hostname;
+    char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
 
     StratumConfig m_stratumConfig[2];
 
@@ -65,7 +63,7 @@ class System {
     bool m_showsOverlay;    // Flat if overlay is shown
     uint32_t m_currentErrorCode;
 
-    std::string m_lastResetReason;
+    const char* m_lastResetReason;
 
     History *m_history;
 
@@ -123,7 +121,7 @@ class System {
     static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
     // WiFi related
-    const std::string getMacAddress();
+    const char* getMacAddress();
     int get_wifi_rssi();
 
     // Getter methods for retrieving statistics
@@ -131,7 +129,6 @@ class System {
     {
         return m_sharesRejected;
     }
-
     uint64_t getSharesAccepted() const
     {
         return m_sharesAccepted;
@@ -201,24 +198,17 @@ class System {
     }
 
     // WiFi-related getters and setters
-    const std::string getWifiStatus() const
+    const char *getWifiStatus() const
     {
         return m_wifiStatus;
     }
-
-    const std::string getSsid() const
+    const char *getSsid() const
     {
         return m_ssid;
     }
-
-    const std::string getApSsid() const
+    void setWifiStatus(const char *wifiStatus)
     {
-        return m_apSsid;
-    }
-
-    void setWifiStatus(const std::string& wifiStatus)
-    {
-        m_wifiStatus = wifiStatus;
+        strncpy(m_wifiStatus, wifiStatus, sizeof(m_wifiStatus));
     }
 
     void setAPState(bool state) {
@@ -229,22 +219,9 @@ class System {
         return m_apState;
     }
 
-    void setWifiConnected(bool state) {
-        m_wifiConnected = state;
-    }
-
-    bool isWifiConnected() {
-        return m_wifiConnected;
-    }
-
-    void setSsid(const std::string& ssid)
+    void setSsid(const char *ssid)
     {
-        m_ssid = ssid;
-    }
-
-    void setApSsid(const std::string& ssid)
-    {
-        m_apSsid = ssid;
+        strncpy(m_ssid, ssid, sizeof(m_ssid));
     }
 
     // Count of found blocks sind reboot
@@ -279,21 +256,21 @@ class System {
 
     esp_reset_reason_t showLastResetReason();
 
-    const std::string getLastResetReason() {
+    const char* getLastResetReason() {
         return m_lastResetReason;
     }
 
-    const std::string getHostname() {
-        return m_hostname;
+    const char* getHostname() {
+        return (const char*) m_hostname;
     }
 
-    const std::string getIPAddress() {
-        return m_ipAddress;
-    }
-
-    void setIPAddress(const std::string& ip) {
-        m_ipAddress = ip;
+    const char* getIPAddress() {
+        return (const char*) m_ipAddress;
     }
 
     void loadSettings();
+
+    bool isStartupDone() {
+        return m_startupDone;
+    }
 };
