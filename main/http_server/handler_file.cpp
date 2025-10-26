@@ -141,19 +141,8 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
         }
     }
 
-<<<<<<< Updated upstream
-    if (strstr(req->uri, ".woff2")) {
-        httpd_resp_set_hdr(req, "Content-Type", "font/woff2");
-        httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=31536000, immutable");
-    } else if (req->uri[strlen(req->uri) - 1] != '/') {
-        httpd_resp_set_hdr(req, "Cache-Control", "max-age=2592000");
-    }
-
-    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
-=======
     // close file on out of scope
     FileGuard g(fd);
->>>>>>> Stashed changes
 
     char *chunk = rest_context->scratch;
     ssize_t read_bytes;
