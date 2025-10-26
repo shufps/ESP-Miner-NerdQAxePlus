@@ -41,53 +41,59 @@ static uint32_t get_origin_ip(const char *host)
     return origin_ip_addr;
 }
 
+static void strip_port_inplace(char *host)
+{
+    if (!host) return;
+
+    // ipv6?
+    if (host[0] == '[') {
+        char *br = strchr(host, ']');
+        if (!br) return; // invalid, nothing to do
+        char *colon_after = strchr(br + 1, ':');
+        if (colon_after) *colon_after = '\0'; // cut port
+        return;
+    }
+
+    // normal case: "name:port"
+    char *colon = strchr(host, ':');
+    if (colon) *colon = '\0';
+}
 
 static const char* extract_origin_host(char *origin)
 {
-    const char *prefix = "http://";
+    if (!origin) return nullptr;
 
-    origin = strstr(origin, prefix);
-    if (!origin) {
-        return nullptr;
-    }
+    const char *p_http  = strstr(origin, "http://");
+    const char *p_https = strstr(origin, "https://");
+    const char *p = p_http ? p_http : p_https;
+    if (!p) return nullptr;
 
     // skip prefix
-    char *host = &origin[strlen(prefix)];
+    size_t off = p_http ? strlen("http://") : strlen("https://");
+    char *host = (char*)(p + off);
 
-    // find the slash
-    char *prefix_end = strchr(host, '/');
+    // cut patch (everything after '/')
+    char *slash = strchr(host, '/');
+    if (slash) *slash = '\0';
 
-    // if we have one, we just terminate the string
-    if (prefix_end) {
-        *prefix_end = 0;
-    }
+    // cut port (in-place), incl. IPv6-brackets
+    strip_port_inplace(host);
 
-    // in the other case we keep the previous zero termination
-    return (const char*) host;
+    return (const char*)host;
 }
 
-static bool is_localhost(const char* origin) {
-    if (!origin) return false;
-
-    // remove port
-    const char *colon = strchr(origin, ':');
-    size_t len = colon ? (size_t)(colon - origin) : strlen(origin);
-
-    // must match localhost
-    return (len == strlen("localhost") &&
-            strncmp(origin, "localhost", len) == 0);
+static bool is_localhost(const char* host_wo_port) {
+    if (!host_wo_port) return false;
+    return strcmp(host_wo_port, "localhost") == 0;
 }
 
-static bool is_local(const char* origin) {
-    if (!origin) return false;
-
+static bool is_local(const char* host_wo_port) {
+    if (!host_wo_port) return false;
     const char *suffix = ".local";
-    size_t origin_len = strlen(origin);
+    size_t origin_len = strlen(host_wo_port);
     size_t suffix_len = strlen(suffix);
-
     if (origin_len < suffix_len) return false;
-
-    return strcmp(origin + origin_len - suffix_len, suffix) == 0;
+    return strcmp(host_wo_port + origin_len - suffix_len, suffix) == 0;
 }
 
 esp_err_t is_network_allowed(httpd_req_t * req)
@@ -99,7 +105,7 @@ esp_err_t is_network_allowed(httpd_req_t * req)
 
     int sockfd = httpd_req_to_sockfd(req);
     char ipstr[INET6_ADDRSTRLEN];
-    struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
+    struct sockaddr_in6 addr;
     socklen_t addr_size = sizeof(addr);
 
     if (getpeername(sockfd, (struct sockaddr *)&addr, &addr_size) < 0) {
@@ -125,16 +131,17 @@ esp_err_t is_network_allowed(httpd_req_t * req)
             ESP_LOGW(CORS_TAG, "couldn't extract origin host: %s", origin);
             return ESP_FAIL;
         }
-        ESP_LOGI(CORS_TAG, "extracted origin host: %s", host);
+        ESP_LOGI(CORS_TAG, "extracted origin host (no port): %s", host);
 
-        // check if origin is hostname
+        // compare hostname without port number
         const char *hostname = SYSTEM_MODULE.getHostname();
         ESP_LOGI(CORS_TAG, "hostname: %s", hostname);
-        if (!(strncmp(host, hostname, strlen(hostname)))) {
+        if (strcmp(host, hostname) == 0) {
             ESP_LOGI(CORS_TAG, "origin equals hostname");
             return ESP_OK;
         }
 
+        // localhost / .local
         if (is_localhost(host) || is_local(host)) {
             ESP_LOGI(CORS_TAG, "allowed: localhost or .local");
             return ESP_OK;
