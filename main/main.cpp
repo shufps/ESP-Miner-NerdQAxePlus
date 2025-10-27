@@ -37,6 +37,7 @@
 #include "system.h"
 #include "wifi_health.h"
 #include "guards.h"
+#include "connect.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -80,6 +81,33 @@ bool is_time_synced(void)
     return (sntp.isTimeSynced() && now() >= 1609459200);
 }
 
+
+static void on_wifi_status(apsta_wifi_status_t st, uint16_t retry, void *ctx) {
+    switch (st) {
+        case APSTA_WIFI_CONNECTED:
+            SYSTEM_MODULE.setWifiStatus("Connected!");
+            break;
+        case APSTA_WIFI_RETRYING: {
+            char buf[20];
+            snprintf(buf, sizeof(buf), "Retrying: %u", retry);
+            SYSTEM_MODULE.setWifiStatus(buf);
+            break;
+        }
+        case APSTA_WIFI_CONNECT_FAILED:
+            SYSTEM_MODULE.setWifiStatus("Connect Failed!");
+            break;
+        case APSTA_WIFI_CONNECTING:
+        case APSTA_WIFI_DISCONNECTED:
+        default:
+            // NOP
+            break;
+    }
+}
+
+static void on_ap_state(bool ap_on, void *ctx) {
+    SYSTEM_MODULE.setAPState(ap_on);
+}
+
 static void setup_wifi()
 {
     // pull the wifi credentials and hostname out of NVS
@@ -95,37 +123,25 @@ static void setup_wifi()
     // copy the wifi ssid to the global state
     SYSTEM_MODULE.setSsid(wifi_ssid);
 
-    // init and connect to wifi (asynchronous setup)
-    wifi_init(wifi_ssid, wifi_pass, hostname);
+    apsta_set_hostname(hostname);
 
-    // start rest server (needed in AP fallback for config)
-    start_rest_server(NULL);
+    // Register callbacks
+    apsta_register_status_callback(on_wifi_status, NULL);
+    apsta_register_ap_state_callback(on_ap_state, NULL);
 
-    // initial blocking wait: CONNECTED or FAIL
-    EventBits_t bits = wifi_connect();
+    apsta_config_t cfg = {
+        .sta_ssid = wifi_ssid,
+        .sta_pass = wifi_pass,
+        .ap_ssid  = NULL,     // auto "nerdaxe-xxxx"
+        .ap_channel = 1,
+        .ap_max_conn = 4,
+        .ps_disable = true,
+        .country = { .cc = "DE", .schan = 1, .nchan = 13, .policy = WIFI_COUNTRY_POLICY_AUTO },
+        .notify_fail_after_retries = 10
+    };
 
-    if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "Connected to SSID: %s", wifi_ssid);
-        SYSTEM_MODULE.setWifiStatus("Connected!");
-        return;
-    }
+    ESP_ERROR_CHECK(apsta_start_block_until_sta_ip_then_drop_ap(&cfg));
 
-    // Initial connect failed: stay in AP fallback, keep waiting for STA recovery
-    ESP_LOGW(TAG, "Initial WiFi connect failed. Staying in AP fallback and waiting for STA recovery...");
-
-    for (;;) {
-        // Wait up to 30s for STA to come up (retries run in background)
-        EventBits_t w = wifi_wait_connected_ms(pdMS_TO_TICKS(30000));
-
-        if (w & WIFI_CONNECTED_BIT) {
-            ESP_LOGI(TAG, "STA recovered and connected to SSID: %s", wifi_ssid);
-            SYSTEM_MODULE.setWifiStatus("Connected!");
-            return; // continue normal init after this
-        }
-
-        // Heartbeat while waiting in AP mode
-        ESP_LOGI(TAG, "Still waiting for STA to connect... (AP is available for config)");
-    }
 }
 
 // Function to configure the Task Watchdog Timer (TWDT)
@@ -253,9 +269,6 @@ extern "C" void app_main(void)
     // when a username is configured we will continue with startup and start mining
     const char *username = Config::nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL); // TODO
     if (username) {
-        // wifi is connected, switch the AP off
-        wifi_softap_off();
-
         discordAlerter.init();
         discordAlerter.loadConfig();
 
@@ -304,34 +317,4 @@ extern "C" void app_main(void)
         }
         // monitor_all_task_watermarks();
     }
-}
-
-void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
-{
-    switch (status) {
-    case WIFI_CONNECTED: {
-        SYSTEM_MODULE.setWifiStatus("Connected!");
-        break;
-    }
-    case WIFI_RETRYING: {
-        char buf[20];
-        snprintf(buf, sizeof(buf), "Retrying: %d", retry_count);
-        SYSTEM_MODULE.setWifiStatus(buf);
-        break;
-    }
-    case WIFI_CONNECT_FAILED: {
-        SYSTEM_MODULE.setWifiStatus("Connect Failed!");
-        break;
-    }
-    case WIFI_DISCONNECTED:
-    case WIFI_CONNECTING:
-    case WIFI_DISCONNECTING: {
-        // NOP
-        break;
-    }
-    }
-}
-
-void MINER_set_ap_status(bool state) {
-    SYSTEM_MODULE.setAPState(state);
 }

@@ -28,6 +28,17 @@
 
 static const char* TAG = "SystemModule";
 
+const char* connect_get_mac_addr(void)
+{
+    static char buf[18];
+    uint8_t mac[6];
+    if (apsta_get_sta_mac(mac) != ESP_OK) { buf[0] = '\0'; return buf; }
+    snprintf(buf, sizeof(buf),
+             "%02x:%02x:%02x:%02x:%02x:%02x",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return buf; // Achtung: static Buffer
+}
+
 System::System() {
     // NOP
 }
@@ -127,7 +138,7 @@ void System::updateSystemPerformance() {}
 
 void System::showApInformation(const char* error) {
     char apSsid[13];
-    generate_ssid(apSsid);
+    apsta_make_temp_ap_ssid(apSsid, sizeof(apSsid));
     m_display->portalScreen(apSsid);
 }
 
@@ -311,7 +322,7 @@ void System::task() {
     while (!m_startupDone) {
         // Check if STA has a valid IP
         char ip[20] = {0};
-        bool sta_has_ip = connect_get_ip_addr(ip, sizeof(ip)); // returns true if ip_valid
+        bool sta_has_ip = apsta_get_sta_ip_str(ip, sizeof(ip)) == ESP_OK;
 
         // Check whether AP is active
         result = esp_wifi_get_mode(&wifiMode);
@@ -340,7 +351,7 @@ void System::task() {
 
     while (1) {
         // update IP on the screen if it is available
-        if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
+        if (apsta_get_sta_ip_str(m_ipAddress, sizeof(m_ipAddress)) == ESP_OK) {
             if (strcmp(m_ipAddress, lastIpAddress) != 0) {
                 ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
                 m_display->updateIpAddress(m_ipAddress);

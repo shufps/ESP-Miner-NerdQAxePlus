@@ -106,7 +106,7 @@ bool DiscordAlerter::sendMessage(const char *message)
     }
 
     char ip[20] = {0};
-    connect_get_ip_addr(ip, sizeof(ip));
+    apsta_get_sta_ip_str(ip, sizeof(ip));
     //ESP_LOGI(TAG, "IP: %s", ip);
     const char *mac = SYSTEM_MODULE.getMacAddress();
     //ESP_LOGI(TAG, "MAC: %s", mac);
