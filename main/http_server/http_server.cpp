@@ -26,7 +26,7 @@
 #pragma GCC diagnostic error "-Wextra"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
-
+bool enter_recovery = false;
 
 static const char *TAG = "http_server";
 
@@ -90,7 +90,6 @@ esp_err_t start_rest_server(void * pvParameters)
 {
     const char *base_path = "";
 
-    bool enter_recovery = false;
     if (init_fs() != ESP_OK) {
         // Unable to initialize the web app filesystem.
         // Enter recovery mode
