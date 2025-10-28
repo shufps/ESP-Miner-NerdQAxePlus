@@ -53,6 +53,9 @@ public:
     virtual void status();
 
     uint8_t get_status_byte();
+    uint8_t get_status_iout();
+    uint8_t get_status_vout();
+    uint8_t get_status_input();
 
 };
 

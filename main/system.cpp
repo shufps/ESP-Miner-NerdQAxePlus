@@ -353,7 +353,15 @@ void System::task() {
         }
 
         if (m_psuError) {
-            showError("PSU ERROR", 0x15);
+            showError("PSU ERROR", m_errorCode);
+        }
+
+        if (m_ioutError) {
+            showError("CURRENT PROTECTION", m_errorCode);
+        }
+
+        if (m_voutError) {
+            showError("VOLTAGE PROTECTION", m_errorCode);
         }
 
         // trigger the overlay only once when block is found

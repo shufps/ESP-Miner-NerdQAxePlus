@@ -57,9 +57,13 @@ class System {
     uint32_t m_poolDifficulty; // Current pool difficulty
 
     // Error tracking
-    int m_poolErrors;  // Count of errors related to the mining pool
-    bool m_overheated; // Flag to indicate if the system is overheated
-    bool m_psuError;   // Flag to indicate that there is some PSU problem
+    int m_poolErrors = 0;      // Count of errors related to the mining pool
+    bool m_overheated = false; // Flag to indicate if the system is overheated
+    bool m_psuError = false;   // Flag to indicate that there is some PSU problem
+    bool m_ioutError = false;  // Flag to indicate an output over current condition
+    bool m_voutError = false;  // Flat to indicate an output voltage problem
+    uint32_t m_errorCode = 0x00000000;
+
     bool m_showsOverlay;    // Flat if overlay is shown
     uint32_t m_currentErrorCode;
 
@@ -192,10 +196,24 @@ class System {
         m_overheated = status;
     }
 
-    void setPSUError(bool status)
+    void setPSUError(bool status, uint32_t code)
     {
+        m_errorCode = code;
         m_psuError = status;
     }
+
+    void setIOUTError(bool status, uint32_t code)
+    {
+        m_errorCode = code;
+        m_ioutError = status;
+    }
+
+    void setVOUTError(bool status, uint32_t code)
+    {
+        m_errorCode = code;
+        m_voutError = status;
+    }
+
 
     // WiFi-related getters and setters
     const char *getWifiStatus() const

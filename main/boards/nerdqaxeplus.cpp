@@ -287,16 +287,47 @@ float NerdQaxePlus::getPout() {
     return m_tps->get_pout();
 }
 
-bool NerdQaxePlus::getPSUFault() {
-    uint16_t vid = m_tps->get_vout_vid();
-    uint8_t status_byte = m_tps->get_status_byte();
+BoardError NerdQaxePlus::getFault(uint32_t *status) {
+    *status = 0x00000000;
 
-    // if we have 0x97 it means the buck was reset and
-    // restarted with VBOOT. In this case we assume there
-    // is a PSU error
-    // in case of the PSUs over current protection (voltage will drop),
-    // we will see bit 3 "VIN_UV" in the status byte
-    return ((vid == 0x97) || (status_byte & 0x08));
+    uint8_t status_byte = m_tps->get_status_byte();
+    uint8_t status_iout = m_tps->get_status_iout();
+    uint8_t status_vout = m_tps->get_status_vout();
+    uint8_t status_input = m_tps->get_status_input();
+
+    *status = (static_cast<uint32_t>(status_byte) << 24) |
+        (static_cast<uint32_t>(status_iout) << 16) |
+        (static_cast<uint32_t>(status_vout) << 8) |
+        (static_cast<uint32_t>(status_input));
+
+    // we have 0xff bytes when +12V is missing
+    // when the buck is powered up the register always
+    // contain zero bits so this is a valid test
+    if (status_byte == 0xff ||
+        status_iout == 0xff ||
+        status_vout == 0xff ||
+        status_input == 0xff) {
+        return BoardError::UNKNOWN;
+    }
+
+    // check for output overcurrent flag
+    if (status_iout & 0x80) {
+        return BoardError::IOUT_OC_FAULT;
+    }
+
+    // check for output voltage flags
+    if (status_vout & 0x90) {
+        return BoardError::VOUT_FAULT;
+    }
+
+    // return PSU error
+    // 6: OFF, 3: VIN_UV (status, 0x48)
+    // 7: VIN_OVF, 4: VIN_UVF, 2: IIN_OCF (input, 0x94)
+    if ((status_byte & 0x48) || (status_input & 0x94)) {
+        return BoardError::PSU_ERROR;
+    }
+
+    return BoardError::NONE;
 }
 
 bool NerdQaxePlus::selfTest(){

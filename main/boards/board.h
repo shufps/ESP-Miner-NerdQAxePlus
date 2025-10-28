@@ -13,6 +13,14 @@ enum FanPolarityGuess {
     POLARITY_INVERTED
 };
 
+enum BoardError {
+    NONE,
+    UNKNOWN,
+    PSU_ERROR,
+    IOUT_OC_FAULT,
+    VOUT_FAULT
+};
+
 class Board {
   protected:
     // general board information
@@ -127,9 +135,10 @@ class Board {
 
     virtual void shutdown() = 0;
 
-    virtual bool getPSUFault()
+    virtual BoardError getFault(uint32_t *status)
     {
-        return false;
+        *status = 0x00000000;
+        return BoardError::NONE;
     }
 
     virtual bool selfTest();
