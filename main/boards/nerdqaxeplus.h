@@ -46,6 +46,6 @@ class NerdQaxePlus : public Board {
     virtual void requestBuckTelemtry();
     virtual void requestChipTemps();
 
-    virtual BoardError getFault(uint32_t *status);
+    virtual Board::Error getFault(uint32_t *status);
     virtual bool selfTest();
 };

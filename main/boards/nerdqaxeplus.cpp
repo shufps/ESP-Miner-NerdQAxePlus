@@ -287,13 +287,14 @@ float NerdQaxePlus::getPout() {
     return m_tps->get_pout();
 }
 
-BoardError NerdQaxePlus::getFault(uint32_t *status) {
+Board::Error NerdQaxePlus::getFault(uint32_t *status) {
     *status = 0x00000000;
 
     uint8_t status_byte = m_tps->get_status_byte();
     uint8_t status_iout = m_tps->get_status_iout();
     uint8_t status_vout = m_tps->get_status_vout();
     uint8_t status_input = m_tps->get_status_input();
+    uint8_t status_temp = m_tps->get_status_temp();
 
     *status = (static_cast<uint32_t>(status_byte) << 24) |
         (static_cast<uint32_t>(status_iout) << 16) |
@@ -301,33 +302,43 @@ BoardError NerdQaxePlus::getFault(uint32_t *status) {
         (static_cast<uint32_t>(status_input));
 
     // we have 0xff bytes when +12V is missing
-    // when the buck is powered up the register always
-    // contain zero bits so this is a valid test
+    // when the buck is operating normally all these
+    // registers have at least one zero bit, so
+    // this is a valid test
     if (status_byte == 0xff ||
         status_iout == 0xff ||
         status_vout == 0xff ||
+        status_temp == 0xff ||
         status_input == 0xff) {
-        return BoardError::UNKNOWN;
+        return Board::Error::UNKNOWN;
     }
 
     // check for output overcurrent flag
+    // 7: IOUT_OCF
     if (status_iout & 0x80) {
-        return BoardError::IOUT_OC_FAULT;
+        return Board::Error::IOUT_OC_FAULT;
     }
 
     // check for output voltage flags
+    // 7: VOUT_OVF, 4: VOUT_UVF
     if (status_vout & 0x90) {
-        return BoardError::VOUT_FAULT;
+        return Board::Error::VOUT_FAULT;
+    }
+
+    // check over temperature fault flag
+    // 7: OTF
+    if (status_temp & 0x80) {
+        return Board::Error::TEMP_FAULT;
     }
 
     // return PSU error
     // 6: OFF, 3: VIN_UV (status, 0x48)
     // 7: VIN_OVF, 4: VIN_UVF, 2: IIN_OCF (input, 0x94)
     if ((status_byte & 0x48) || (status_input & 0x94)) {
-        return BoardError::PSU_ERROR;
+        return Board::Error::PSU_FAULT;
     }
 
-    return BoardError::NONE;
+    return Board::Error::NONE;
 }
 
 bool NerdQaxePlus::selfTest(){

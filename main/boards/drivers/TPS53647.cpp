@@ -565,3 +565,12 @@ uint8_t TPS53647::get_status_input(void)
     return status_byte;
 }
 
+uint8_t TPS53647::get_status_temp(void)
+{
+    uint8_t status_byte = 0xff;
+    read_byte(PMBUS_STATUS_TEMPERATURE, &status_byte);
+    return status_byte;
+}
+
+
+

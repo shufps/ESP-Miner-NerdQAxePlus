@@ -56,6 +56,7 @@ public:
     uint8_t get_status_iout();
     uint8_t get_status_vout();
     uint8_t get_status_input();
+    uint8_t get_status_temp();
 
 };
 
