@@ -8,7 +8,12 @@
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "global_state.h"
+
 #include "lwip/dns.h"
+#include "lwip/sockets.h"
+#include "lwip/inet.h"
+#include "lwip/netdb.h"
+
 
 #include "asic_jobs.h"
 #include "boards/board.h"
