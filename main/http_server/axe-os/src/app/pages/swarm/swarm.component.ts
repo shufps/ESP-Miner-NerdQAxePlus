@@ -300,6 +300,8 @@ export class SwarmComponent implements OnInit, OnDestroy {
               supportsAsicApi,
             };
             if (!merged['swarmColor']) merged['swarmColor'] = existingDevice?.swarmColor ?? 'blue';
+            merged["bestDiff"] = this.normalizeDiff(merged["bestDiff"]);
+            merged["bestSessionDiff"] = this.normalizeDiff(merged["bestSessionDiff"]);
             return merged;
           }),
           catchError(error => {
