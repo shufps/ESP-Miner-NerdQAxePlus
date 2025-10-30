@@ -162,6 +162,10 @@ export class SwarmComponent implements OnInit, OnDestroy {
                 } : {}),
                 supportsAsicApi,
               };
+
+              merged["bestDiff"] = this.normalizeDiff(merged["bestDiff"]);
+              merged["bestSessionDiff"] = this.normalizeDiff(merged["bestSessionDiff"]);
+
               if (!merged['swarmColor']) merged['swarmColor'] = 'blue';
               return merged;
             }
@@ -217,6 +221,9 @@ export class SwarmComponent implements OnInit, OnDestroy {
           supportsAsicApi,
         };
         if (!merged['swarmColor']) merged['swarmColor'] = 'blue';
+
+        merged["bestDiff"] = this.normalizeDiff(merged["bestDiff"]);
+        merged["bestSessionDiff"] = this.normalizeDiff(merged["bestSessionDiff"]);
 
         this.swarm.push(merged);
         this.swarm = this.swarm.sort(this.sortByIp.bind(this));
@@ -335,6 +342,33 @@ export class SwarmComponent implements OnInit, OnDestroy {
 
   private sortByIp(a: any, b: any): number {
     return this.ipToInt(a.IP) - this.ipToInt(b.IP);
+  }
+
+  private normalizeDiff(value: string): string {
+    // Trim whitespace
+    value = value.trim();
+
+    // If it's not purely numeric, return as-is
+    if (!/^[\d.]+$/.test(value)) {
+      return value;
+    }
+
+    // Convert to number
+    const num = parseFloat(value);
+    if (!isFinite(num) || isNaN(num)) return '0.00';
+
+    // Define SI units
+    const units = ['', 'K', 'M', 'G', 'T', 'P', 'E'];
+    let unitIndex = 0;
+    let scaled = num;
+
+    // Iteratively scale down
+    while (scaled >= 1000 && unitIndex < units.length - 1) {
+      scaled /= 1000;
+      unitIndex++;
+    }
+
+    return `${scaled.toFixed(2)}${units[unitIndex]}`;
   }
 
   private convertBestDiffToNumber(bestDiff: string): number {
