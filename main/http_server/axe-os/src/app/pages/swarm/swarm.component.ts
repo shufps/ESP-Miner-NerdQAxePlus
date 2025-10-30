@@ -344,17 +344,16 @@ export class SwarmComponent implements OnInit, OnDestroy {
     return this.ipToInt(a.IP) - this.ipToInt(b.IP);
   }
 
-  private normalizeDiff(value: string): string {
-    // Trim whitespace
-    value = value.trim();
+  private normalizeDiff(value: string | number): string {
+    let strValue = String(value).trim();
 
     // If it's not purely numeric, return as-is
-    if (!/^[\d.]+$/.test(value)) {
-      return value;
+    if (!/^[\d.]+$/.test(strValue)) {
+      return strValue;
     }
 
     // Convert to number
-    const num = parseFloat(value);
+    const num = parseFloat(strValue);
     if (!isFinite(num) || isNaN(num)) return '0.00';
 
     // Define SI units
