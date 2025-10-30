@@ -28,3 +28,19 @@ public:
         }
     }
 };
+
+class FileGuard {
+protected:
+    int &m_fd; // reference to the file descriptor
+public:
+    explicit FileGuard(int &fd) : m_fd(fd) {}
+    ~FileGuard() {
+        if (m_fd >= 0) {
+            close(m_fd);
+            m_fd = -1;
+        }
+    }
+    // non-copyable
+    FileGuard(const FileGuard&) = delete;
+    FileGuard& operator=(const FileGuard&) = delete;
+};
