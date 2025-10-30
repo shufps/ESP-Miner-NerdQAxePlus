@@ -1,9 +1,9 @@
+#include "http_cors.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
-#include "http_cors.h"
 #include "global_state.h"
 
-static const char* CORS_TAG = "http_cors";
+static const char *CORS_TAG = "http_cors";
 
 // Returns true if the IPv4 address (in network byte order) is in RFC1918 private ranges
 static bool ip_in_private_range(uint32_t address_be)
@@ -11,13 +11,16 @@ static bool ip_in_private_range(uint32_t address_be)
     uint32_t ip = ntohl(address_be); // convert to host byte order for compare
 
     // 10.0.0.0 - 10.255.255.255
-    if (ip >= 0x0A000000 && ip <= 0x0AFFFFFF) return true;
+    if (ip >= 0x0A000000 && ip <= 0x0AFFFFFF)
+        return true;
 
     // 172.16.0.0 - 172.31.255.255
-    if (ip >= 0xAC100000 && ip <= 0xAC1FFFFF) return true;
+    if (ip >= 0xAC100000 && ip <= 0xAC1FFFFF)
+        return true;
 
     // 192.168.0.0 - 192.168.255.255
-    if (ip >= 0xC0A80000 && ip <= 0xC0A8FFFF) return true;
+    if (ip >= 0xC0A80000 && ip <= 0xC0A8FFFF)
+        return true;
 
     return false;
 }
@@ -36,9 +39,10 @@ static uint32_t get_origin_ip(const char *host_without_port)
 
 // Extract host from Origin header of form "http://host[:port]/..."
 // inplace operation
-static const char* extract_origin_host(char *origin)
+static const char *extract_origin_host(char *origin)
 {
-    if (!origin) return NULL;
+    if (!origin)
+        return NULL;
 
     const char *http_prefix = "http://";
     size_t http_len = strlen(http_prefix);
@@ -53,37 +57,42 @@ static const char* extract_origin_host(char *origin)
 
     // Cut at first slash to drop any path
     char *slash = strchr(host, '/');
-    if (slash) *slash = '\0';
+    if (slash)
+        *slash = '\0';
 
     // Cut optional :port (IPv4 / hostname form)
     char *colon = strchr(host, ':');
-    if (colon) *colon = '\0';
+    if (colon)
+        *colon = '\0';
 
     return host; // host is now [hostname OR IPv4 literal] without port/path
 }
 
 // Check "localhost"
-static bool is_localhost(const char* host_wo_port)
+static bool is_localhost(const char *host_wo_port)
 {
-    if (!host_wo_port) return false;
+    if (!host_wo_port)
+        return false;
     return strcmp(host_wo_port, "localhost") == 0;
 }
 
 // Check "*.local"
-static bool is_local(const char* host_wo_port)
+static bool is_local(const char *host_wo_port)
 {
-    if (!host_wo_port) return false;
+    if (!host_wo_port)
+        return false;
 
     const char *suffix = ".local";
     size_t len = strlen(host_wo_port);
     size_t suf_len = strlen(suffix);
 
-    if (len < suf_len) return false;
+    if (len < suf_len)
+        return false;
 
     return strcmp(host_wo_port + len - suf_len, suffix) == 0;
 }
 
-esp_err_t is_network_allowed(httpd_req_t * req)
+esp_err_t is_network_allowed(httpd_req_t *req)
 {
     // AP mode: always allow
     if (SYSTEM_MODULE.getAPState()) {
@@ -96,7 +105,7 @@ esp_err_t is_network_allowed(httpd_req_t * req)
     struct sockaddr_in addr;
     socklen_t addr_size = sizeof(addr);
 
-    if (getpeername(sockfd, (struct sockaddr *)&addr, &addr_size) < 0) {
+    if (getpeername(sockfd, (struct sockaddr *) &addr, &addr_size) < 0) {
         ESP_LOGE(CORS_TAG, "Error getting client IP");
         return ESP_FAIL;
     }
@@ -159,6 +168,6 @@ esp_err_t set_cors_headers(httpd_req_t *req)
     return (httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*") == ESP_OK &&
             httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS") == ESP_OK &&
             httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type") == ESP_OK)
-        ? ESP_OK
-        : ESP_FAIL;
+               ? ESP_OK
+               : ESP_FAIL;
 }
