@@ -32,7 +32,7 @@ static uint32_t get_origin_ip(const char *host_without_port)
     if (origin_ip_addr == INADDR_NONE) {
         ESP_LOGW(CORS_TAG, "Invalid IP address: %s", host_without_port);
     } else {
-        ESP_LOGD(CORS_TAG, "Extracted IP address %lu", origin_ip_addr);
+        ESP_LOGI(CORS_TAG, "Extracted IP address %lu", origin_ip_addr);
     }
     return origin_ip_addr;
 }
@@ -102,7 +102,7 @@ esp_err_t is_network_allowed(httpd_req_t *req)
 
     // Determine client's IPv4 address
     int sockfd = httpd_req_to_sockfd(req);
-    struct sockaddr_in addr;
+    struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
     socklen_t addr_size = sizeof(addr);
 
     if (getpeername(sockfd, (struct sockaddr *) &addr, &addr_size) < 0) {
@@ -110,26 +110,25 @@ esp_err_t is_network_allowed(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    uint32_t request_ip_addr = addr.sin_addr.s_addr; // network byte order
+    uint32_t request_ip_addr = addr.sin6_addr.un.u32_addr[3];
 
-    // Debug: string form
-    char ipstr[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &addr.sin_addr, ipstr, sizeof(ipstr));
-    ESP_LOGD(CORS_TAG, "Client IP: %s", ipstr);
+    char ipstr[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET, &request_ip_addr, ipstr, sizeof(ipstr));
+    ESP_LOGI(CORS_TAG, "Client IP: %s", ipstr);
 
     // Try to read Origin header (browser sends this on CORS requests)
     char origin[128];
     uint32_t origin_ip_addr;
 
     if (httpd_req_get_hdr_value_str(req, "Origin", origin, sizeof(origin)) == ESP_OK) {
-        ESP_LOGD(CORS_TAG, "Origin header: %s", origin);
+        ESP_LOGI(CORS_TAG, "Origin header: %s", origin);
 
         const char *host = extract_origin_host(origin);
         if (!host) {
             ESP_LOGW(CORS_TAG, "Couldn't extract origin host from: %s", origin);
             return ESP_FAIL;
         }
-        ESP_LOGD(CORS_TAG, "Extracted origin host: %s", host);
+        ESP_LOGI(CORS_TAG, "Extracted origin host: %s", host);
 
         // Check against device hostname (match exact, no port)
         const char *hostname = SYSTEM_MODULE.getHostname();
@@ -149,7 +148,7 @@ esp_err_t is_network_allowed(httpd_req_t *req)
 
     } else {
         // No Origin header → treat the client IP as origin
-        ESP_LOGD(CORS_TAG, "No Origin header found, assuming direct same-client access.");
+        ESP_LOGI(CORS_TAG, "No Origin header found, assuming direct same-client access.");
         origin_ip_addr = request_ip_addr;
     }
 
@@ -159,7 +158,7 @@ esp_err_t is_network_allowed(httpd_req_t *req)
         return ESP_OK;
     }
 
-    ESP_LOGI(CORS_TAG, "denied: not in private range / mismatch");
+    ESP_LOGE(CORS_TAG, "denied: not in private range / mismatch");
     return ESP_FAIL;
 }
 
