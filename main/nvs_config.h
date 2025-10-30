@@ -21,6 +21,8 @@
 #define NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB "fbstratumesub"
 #define NVS_CONFIG_STRATUM_DIFFICULTY "stratumdiff"
 #define NVS_CONFIG_STRATUM_KEEPALIVE "stratum_keep"
+#define NVS_CONFIG_POOL_MODE "pool_mode"
+#define NVS_CONFIG_POOL_BALANCE "pool_balance"
 
 #define NVS_CONFIG_ASIC_FREQ "asicfrequency"
 #define NVS_CONFIG_ASIC_VOLTAGE "asicvoltage"
@@ -133,7 +135,8 @@ namespace Config {
     inline uint16_t getOverheatTemp() { return nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP); }
     inline uint16_t getInfluxPort() { return nvs_config_get_u16(NVS_CONFIG_INFLUX_PORT, CONFIG_INFLUX_PORT); }
     inline uint16_t getTempControlMode() { return nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE); }
-
+    inline uint16_t getPoolMode() { return nvs_config_get_u16(NVS_CONFIG_POOL_MODE, 0); }
+    inline uint16_t getPoolBalance() { return nvs_config_get_u16(NVS_CONFIG_POOL_BALANCE, 50); }
 
     // ---- uint16_t Setters ----
     inline void setAsicFrequency(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_ASIC_FREQ, value); }
@@ -145,6 +148,8 @@ namespace Config {
     inline void setOverheatTemp(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_OVERHEAT_TEMP, value); }
     inline void setInfluxPort(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_PORT, value); }
     inline void setTempControlMode(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, value); }
+    inline void setPoolMode(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_POOL_MODE, value); }
+    inline void setPoolBalance(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_POOL_BALANCE, value); }
 
     inline void setPidTargetTemp(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_PID_TARGET_TEMP, value); }
     inline void setPidP(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_PID_P, value); }

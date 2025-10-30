@@ -167,7 +167,7 @@ float System::getCurrentHashrate() {
     return getCurrentHashrate10m();
 }
 
-void System::checkForBestDiff(double diff, uint32_t nbits) {
+void System::checkForBestDiff(double diff, uint32_t nbits, int pool_id) {
     if ((uint64_t)diff > m_bestSessionNonceDiff) {
         m_bestSessionNonceDiff = (uint64_t)diff;
         suffixString((uint64_t)diff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
@@ -176,7 +176,7 @@ void System::checkForBestDiff(double diff, uint32_t nbits) {
     double networkDiff = calculateNetworkDifficulty(nbits);
     if (diff > networkDiff) {
         m_foundBlocks++;
-        ESP_LOGI(TAG, "FOUND BLOCK!!! %f > %f", diff, networkDiff);
+        ESP_LOGI(TAG, "(%c) FOUND BLOCK!!! %f > %f", pool_id ? 'S' : 'P', diff, networkDiff);
 
         // increase total found blocks counter
         m_totalFoundBlocks++;

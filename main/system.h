@@ -1,14 +1,14 @@
 #pragma once
 
+#include <ctime>
 #include <stdint.h>
 #include <string.h>
-#include <ctime>
 
-#include "displays/displayDriver.h"
-#include "esp_system.h"
-#include "esp_netif.h"
-#include "freertos/queue.h"
 #include "boards/board.h"
+#include "displays/displayDriver.h"
+#include "esp_netif.h"
+#include "esp_system.h"
+#include "freertos/queue.h"
 #include "history.h"
 #include "sntp.h"
 
@@ -16,7 +16,7 @@
 #define STRATUM_USER CONFIG_STRATUM_USER
 #define DIFF_STRING_SIZE 12 // Maximum size of the difficulty string
 #define MAX_ASIC_JOBS 128   // Maximum number of ASIC jobs allowed
-//#define OVERHEAT_DEFAULT 70 // Default overheat threshold in degrees Celsius
+// #define OVERHEAT_DEFAULT 70 // Default overheat threshold in degrees Celsius
 
 class System {
   protected:
@@ -26,8 +26,8 @@ class System {
     int64_t m_startTime;         // System start time (in milliseconds)
 
     // Share statistics
-    uint64_t m_sharesAccepted; // Number of accepted shares
-    uint64_t m_sharesRejected; // Number of rejected shares
+    uint64_t m_sharesAccepted;    // Number of accepted shares
+    uint64_t m_sharesRejected;    // Number of rejected shares
     uint64_t m_duplicateHWNonces; // Numer of duplicates - counted with HW difficulty
 
     // Display and UI
@@ -46,8 +46,8 @@ class System {
     bool m_startupDone;     // Flag to indicate if system startup is complete
 
     // Network and connection info
-    char m_ssid[33];           // WiFi SSID (+1 for null terminator)
-    char m_wifiStatus[20];     // WiFi status string
+    char m_ssid[33];       // WiFi SSID (+1 for null terminator)
+    char m_wifiStatus[20]; // WiFi status string
     bool m_apState;
     char *m_hostname;
     char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
@@ -57,13 +57,13 @@ class System {
     uint32_t m_poolDifficulty; // Current pool difficulty
 
     // Error tracking
-    int m_poolErrors;  // Count of errors related to the mining pool
-    bool m_overheated; // Flag to indicate if the system is overheated
-    bool m_psuError;   // Flag to indicate that there is some PSU problem
-    bool m_showsOverlay;    // Flat if overlay is shown
+    int m_poolErrors;    // Count of errors related to the mining pool
+    bool m_overheated;   // Flag to indicate if the system is overheated
+    bool m_psuError;     // Flag to indicate that there is some PSU problem
+    bool m_showsOverlay; // Flat if overlay is shown
     uint32_t m_currentErrorCode;
 
-    const char* m_lastResetReason;
+    const char *m_lastResetReason;
 
     History *m_history;
 
@@ -108,12 +108,12 @@ class System {
     void hideError();
 
     // Notification methods to update share statistics
-    void notifyAcceptedShare();                              // Notify system of an accepted share
-    void notifyRejectedShare();                              // Notify system of a rejected share
-    void notifyFoundNonce(double poolDiff, int asicNr);      // Notify system of a found nonce
-    void checkForBestDiff(double foundDiff, uint32_t nbits); // Check if the found difficulty is the best so far
-    void notifyMiningStarted();                              // Notify system that mining has started
-    void notifyNewNtime(uint32_t ntime);                     // Notify system of new `ntime` received from the pool
+    void notifyAcceptedShare();                                      // Notify system of an accepted share
+    void notifyRejectedShare();                                      // Notify system of a rejected share
+    void notifyFoundNonce(double poolDiff, int asicNr);              // Notify system of a found nonce
+    void checkForBestDiff(double diff, uint32_t nbits, int pool_id); // Check if the found difficulty is the best so far
+    void notifyMiningStarted();                                      // Notify system that mining has started
+    void notifyNewNtime(uint32_t ntime);                             // Notify system of new `ntime` received from the pool
 
     void countDuplicateHWNonces();
 
@@ -121,7 +121,7 @@ class System {
     static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
     // WiFi related
-    const char* getMacAddress();
+    const char *getMacAddress();
     int get_wifi_rssi();
 
     // Getter methods for retrieving statistics
@@ -165,7 +165,8 @@ class System {
     }
     float getCurrentHashrate();
 
-    StratumConfig *getStratumConfig(uint8_t index) {
+    StratumConfig *getStratumConfig(uint8_t index)
+    {
         return &m_stratumConfig[index];
     }
 
@@ -211,11 +212,13 @@ class System {
         strncpy(m_wifiStatus, wifiStatus, sizeof(m_wifiStatus));
     }
 
-    void setAPState(bool state) {
+    void setAPState(bool state)
+    {
         m_apState = state;
     }
 
-    bool getAPState() {
+    bool getAPState()
+    {
         return m_apState;
     }
 
@@ -242,35 +245,42 @@ class System {
         m_startupDone = true;
     }
 
-    void setBoard(Board* board) {
+    void setBoard(Board *board)
+    {
         m_board = board;
     }
 
-    Board* getBoard() {
+    Board *getBoard()
+    {
         return m_board;
     }
 
-    History* getHistory() {
+    History *getHistory()
+    {
         return m_history;
     }
 
     esp_reset_reason_t showLastResetReason();
 
-    const char* getLastResetReason() {
+    const char *getLastResetReason()
+    {
         return m_lastResetReason;
     }
 
-    const char* getHostname() {
-        return (const char*) m_hostname;
+    const char *getHostname()
+    {
+        return (const char *) m_hostname;
     }
 
-    const char* getIPAddress() {
-        return (const char*) m_ipAddress;
+    const char *getIPAddress()
+    {
+        return (const char *) m_ipAddress;
     }
 
     void loadSettings();
 
-    bool isStartupDone() {
+    bool isStartupDone()
+    {
         return m_startupDone;
     }
 };

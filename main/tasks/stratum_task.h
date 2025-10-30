@@ -51,6 +51,17 @@ class StratumTask {
     void connect();    ///< Establish a connection to the pool
     void disconnect(); ///< Disconnect from the pool
 
+    // Reconnection management
+    TimerHandle_t m_reconnectTimer = nullptr;                        ///< FreeRTOS timer for automatic reconnection
+    static void reconnectTimerCallbackWrapper(TimerHandle_t xTimer); ///< Static wrapper for FreeRTOS timer callback
+    void reconnectTimerCallback(TimerHandle_t xTimer);               ///< Handles reconnection logic
+    void startReconnectTimer();                                      ///< Starts the reconnect timer
+    void stopReconnectTimer();                                       ///< Stops the reconnect timer
+
+    // Connection event callbacks
+    void connectedCallback();    ///< Called when a pool successfully connects
+    void disconnectedCallback(); ///< Called when a pool disconnects
+
     // Submit mining shares to the pool
     void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                      const uint32_t version);
@@ -79,7 +90,8 @@ class StratumTask {
     {
         return m_config ? m_config->port : 0;
     }
-    const char* getResolvedIp() const {
+    const char *getResolvedIp() const
+    {
         return m_lastResolvedIp[0] ? m_lastResolvedIp : nullptr;
     }
 
@@ -98,11 +110,11 @@ class StratumManager {
     const char *m_tag = "stratum-manager"; ///< Debug tag for logging
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER; ///< Mutex for thread safety
-    StratumApiV1Message m_stratum_api_v1_message;       ///< API message handler
+    StratumApiV1Message m_stratum_api_v1_message;        ///< API message handler
     StratumTask *m_stratumTasks[2] = {nullptr, nullptr}; ///< Primary and secondary Stratum tasks
-
-    int m_selected = 0;                         ///< Tracks the currently active pool (0 = primary, 1 = secondary)
-    uint64_t m_lastSubmitResponseTimestamp = 0; ///< Timestamp of last submitted share response
+    int m_selected = 0;                                  // default PRIMARY
+    int m_poolmode = 0;                                  // default FAILOVER
+    uint64_t m_lastSubmitResponseTimestamp = 0;          ///< Timestamp of last submitted share response
 
     // Helper methods for connection management
     void connect(int index);     ///< Connect to a specified pool (0 = primary, 1 = secondary)
@@ -118,18 +130,13 @@ class StratumManager {
     // Clears queued mining jobs
     void cleanQueue();
 
-    // Reconnection management
-    TimerHandle_t m_reconnectTimer;                                  ///< FreeRTOS timer for automatic reconnection
-    static void reconnectTimerCallbackWrapper(TimerHandle_t xTimer); ///< Static wrapper for FreeRTOS timer callback
-    void reconnectTimerCallback(TimerHandle_t xTimer);               ///< Handles reconnection logic
-    void startReconnectTimer();                                      ///< Starts the reconnect timer
-    void stopReconnectTimer();                                       ///< Stops the reconnect timer
-
-    // Connection event callbacks
-    void connectedCallback(int index);    ///< Called when a pool successfully connects
-    void disconnectedCallback(int index); ///< Called when a pool disconnects
-
     void freeStratumV1Message(StratumApiV1Message *message);
+
+    // reconnect logic for failover mode
+    void reconnectTimerCallback(int index);
+    void connectedCallback(int index);
+    void disconnectedCallback(int index);
+
   public:
     StratumManager();
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
@@ -140,9 +147,9 @@ class StratumManager {
     bool isAnyConnected();
 
     // Submit shares to the active Stratum pool
-    void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+    void submitShare(int pool, const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                      const uint32_t version);
 
     bool isUsingFallback(); ///< Check if the secondary (fallback) pool is in use
-    const char* getResolvedIpForSelected() const;
+    const char *getResolvedIpForSelected() const;
 };
