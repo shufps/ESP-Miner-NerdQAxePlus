@@ -15,6 +15,9 @@ endif()
 
 message(STATUS "Selected board: $ENV{BOARD}")
 
+set(ENV{SOURCE_DATE_EPOCH} 0)
+
+
 add_compile_definitions(LV_MEM_CUSTOM=1)
 add_compile_definitions(LV_MEM_CUSTOM_INCLUDE=<lvgl_psram.h>)
 add_compile_definitions(LV_MEM_CUSTOM_ALLOC=lv_psram_alloc)
