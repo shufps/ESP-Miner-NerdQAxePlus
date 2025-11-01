@@ -649,6 +649,32 @@ void UI::createQRScreen(uint8_t *buf, int size) {
     }
 }
 
+void UI::powerOffScreenInit(void)
+{
+    // Create a new blank screen
+    ui_PowerOffScreen = lv_obj_create(NULL);
+    lv_obj_clear_flag(ui_PowerOffScreen, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Black background
+    lv_obj_set_style_bg_color(ui_PowerOffScreen, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(ui_PowerOffScreen, 255, LV_PART_MAIN);
+
+    // "POWER OFF" label
+    lv_obj_t *label1 = lv_label_create(ui_PowerOffScreen);
+    lv_label_set_text(label1, "POWER OFF");
+    lv_obj_set_style_text_color(label1, lv_color_hex(0xFF0000), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label1, &ui_font_vt323_35, LV_PART_MAIN);
+    lv_obj_align(label1, LV_ALIGN_CENTER, 0, -10);  // a bit above center
+
+    // "You can remove power now" label
+    lv_obj_t *label2 = lv_label_create(ui_PowerOffScreen);
+    lv_label_set_text(label2, "You can remove power now");
+    lv_obj_set_style_text_color(label2, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label2, &ui_font_vt323_21, LV_PART_MAIN);
+    lv_obj_align(label2, LV_ALIGN_CENTER, 0, 25);  // below main text
+}
+
+
 void UI::destroyQRScreen() {
 }
 

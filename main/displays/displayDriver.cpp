@@ -284,6 +284,13 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
         enableLvglAnimations(true);
         _ui_screen_change(m_ui->ui_qrScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         break;
+    case UiState::PowerOff:
+        if (!m_ui->ui_PowerOffScreen) {
+            m_ui->powerOffScreenInit();
+        }
+        enableLvglAnimations(true);
+        _ui_screen_change(m_ui->ui_PowerOffScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0);
+        POWER_MANAGEMENT_MODULE.shutdown();
     }
     return true;
 }
@@ -292,6 +299,11 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
 void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress)
 {
     const int ms = elapsed_ms(m_stateStart_us, now);
+
+    if (btnBothLongPress) {
+        enterState(UiState::PowerOff, now);
+        return;
+    }
 
     switch (m_state) {
     case UiState::NOP:
@@ -360,7 +372,11 @@ void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, boo
             enterState(UiState::Mining, now);
         }
         break;
+    case UiState::PowerOff:
+        // NOP
+        break;
     }
+
 }
 
 

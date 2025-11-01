@@ -33,6 +33,7 @@ class PowerManagementTask {
     float m_voltage;
     float m_power;
     float m_current;
+    bool m_shutdown = false;
     PID *m_pid;
 
     void checkCoreVoltageChanged();
