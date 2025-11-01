@@ -18,7 +18,6 @@ class Board {
 public:
     enum Error {
         NONE,
-        UNKNOWN,
         TEMP_FAULT,
         PSU_FAULT,
         IOUT_OC_FAULT,
@@ -28,7 +27,6 @@ public:
     static const char* errorToStr(Error err) {
         switch (err) {
             case Error::NONE: return "";
-            case Error::UNKNOWN: return "UNKNOWN ERROR";
             case Error::TEMP_FAULT: return "MINER OVERHEATED";
             case Error::PSU_FAULT: return "PSU FAULT";
             case Error::IOUT_OC_FAULT: return "CURRENT PROTECTION";

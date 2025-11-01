@@ -297,44 +297,45 @@ Board::Error NerdQaxePlus::getFault(uint32_t *status) {
     uint8_t status_temp = m_tps->get_status_temp();
 
     *status = (static_cast<uint32_t>(status_byte) << 24) |
-        (static_cast<uint32_t>(status_iout) << 16) |
-        (static_cast<uint32_t>(status_vout) << 8) |
-        (static_cast<uint32_t>(status_input));
+              (static_cast<uint32_t>(status_iout) << 16) |
+              (static_cast<uint32_t>(status_vout) << 8)  |
+              (static_cast<uint32_t>(status_input));
 
-    // we have 0xff bytes when +12V is missing
-    // when the buck is operating normally all these
-    // registers have at least one zero bit, so
-    // this is a valid test
-    if (status_byte == 0xff ||
-        status_iout == 0xff ||
-        status_vout == 0xff ||
-        status_temp == 0xff ||
+    // When +12V is missing, all status bytes read as 0xFF.
+    // The combined && check ensures we only flag a PSU fault
+    // if all fields consistently return 0xFF, avoiding false triggers
+    // from transient read errors.
+    if (status_byte == 0xff &&
+        status_iout == 0xff &&
+        status_vout == 0xff &&
+        status_temp == 0xff &&
         status_input == 0xff) {
-        return Board::Error::UNKNOWN;
+        return Board::Error::PSU_FAULT;
     }
 
-    // check for output overcurrent flag
-    // 7: IOUT_OCF
-    if (status_iout & 0x80) {
+    // Check for output overcurrent fault flag
+    // Bit 7: IOUT_OCF
+    if (status_iout != 0xff && status_iout & 0x80) {
         return Board::Error::IOUT_OC_FAULT;
     }
 
-    // check for output voltage flags
-    // 7: VOUT_OVF, 4: VOUT_UVF
-    if (status_vout & 0x90) {
+    // Check for output voltage fault flags
+    // Bit 7: VOUT_OVF, Bit 4: VOUT_UVF
+    if (status_vout != 0xff && status_vout & 0x90) {
         return Board::Error::VOUT_FAULT;
     }
 
-    // check over temperature fault flag
-    // 7: OTF
-    if (status_temp & 0x80) {
+    // Check for overtemperature fault flag
+    // Bit 7: OTF
+    if (status_temp != 0xff && status_temp & 0x80) {
         return Board::Error::TEMP_FAULT;
     }
 
-    // return PSU error
-    // 6: OFF, 3: VIN_UV (status, 0x48)
-    // 7: VIN_OVF, 4: VIN_UVF, 2: IIN_OCF (input, 0x94)
-    if ((status_byte & 0x48) || (status_input & 0x94)) {
+    // Check for PSU-level input or state faults
+    // status_byte: Bit 6 = OFF, Bit 3 = VIN_UV
+    // status_input: Bit 7 = VIN_OVF, Bit 4 = VIN_UVF, Bit 2 = IIN_OCF
+    if (status_byte != 0xff && status_input != 0xff &&
+        ((status_byte & 0x48) || (status_input & 0x94))) {
         return Board::Error::PSU_FAULT;
     }
 
