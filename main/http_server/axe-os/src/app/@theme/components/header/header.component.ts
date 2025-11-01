@@ -209,19 +209,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
     const savedState = localStorage.getItem('sidebarState') as 'expanded' | 'compact' | 'collapsed' | null;
     // on mobile the default is collapsed, otherwise expanded
     const isMobile = window.innerWidth < 768;
-    this.sidebarState = savedState ?? isMobile ? 'collapsed' : 'expanded';
+    this.sidebarState = savedState ?? (isMobile ? 'collapsed' : 'expanded');
+  }
 
-    setTimeout(() => {
-      switch (this.sidebarState) {
-        case 'compact':
-          this.sidebarService.compact('menu-sidebar');
-          break;
-        case 'collapsed':
-          this.sidebarService.collapse('menu-sidebar');
-          break;
-        default:
-          this.sidebarService.expand('menu-sidebar');
-      }
-    }, 100);
+  ngAfterViewInit() {
+    this.applySidebarState();
+  }
+
+  private applySidebarState() {
+    switch (this.sidebarState) {
+      case 'compact':
+        this.sidebarService.compact('menu-sidebar');
+        break;
+      case 'collapsed':
+        this.sidebarService.collapse('menu-sidebar');
+        break;
+      default:
+        this.sidebarService.expand('menu-sidebar');
+    }
   }
 }
