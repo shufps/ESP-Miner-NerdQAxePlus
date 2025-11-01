@@ -19,6 +19,7 @@ public:
     enum Error {
         NONE,
         TEMP_FAULT,
+        VREG_TEMP_FAULT,
         PSU_FAULT,
         IOUT_OC_FAULT,
         VOUT_FAULT
@@ -28,6 +29,7 @@ public:
         switch (err) {
             case Error::NONE: return "";
             case Error::TEMP_FAULT: return "MINER OVERHEATED";
+            case Error::VREG_TEMP_FAULT: return "VREG OVERHEATED";
             case Error::PSU_FAULT: return "PSU FAULT";
             case Error::IOUT_OC_FAULT: return "CURRENT PROTECTION";
             case Error::VOUT_FAULT: return "VOLTAGE PROTECTION";

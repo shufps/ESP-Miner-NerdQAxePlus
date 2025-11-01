@@ -328,7 +328,7 @@ Board::Error NerdQaxePlus::getFault(uint32_t *status) {
     // Check for overtemperature fault flag
     // Bit 7: OTF
     if (status_temp != 0xff && (status_temp & 0x80)) {
-        return Board::Error::TEMP_FAULT;
+        return Board::Error::VREG_TEMP_FAULT;
     }
 
     // Check for PSU-level input or state faults
