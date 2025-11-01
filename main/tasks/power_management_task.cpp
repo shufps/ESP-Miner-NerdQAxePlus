@@ -50,6 +50,7 @@ void PowerManagementTask::shutdown() {
     if (board) {
         m_shutdown = true;
         board->shutdown();
+        SHUTDOWN = true;
     }
 }
 

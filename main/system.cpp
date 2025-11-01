@@ -336,6 +336,10 @@ void System::task() {
     int lastFoundBlocks = 0;
 
     while (1) {
+        if (SHUTDOWN) {
+            ESP_LOGW(TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
         // update IP on the screen if it is available
         if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
             if (strcmp(m_ipAddress, lastIpAddress) != 0) {

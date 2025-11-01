@@ -84,6 +84,10 @@ void HashrateMonitor::taskLoop()
     vTaskDelay(pdMS_TO_TICKS(3000));
 
     while (1) {
+        if (SHUTDOWN) {
+            ESP_LOGW(HR_TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
         vTaskDelay(pdMS_TO_TICKS(m_period_ms));
 
         if (!m_board || !m_asic)

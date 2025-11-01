@@ -195,6 +195,10 @@ void StratumTask::taskWrapper(void *pvParameters)
 void StratumTask::task()
 {
     while (1) {
+        if (SHUTDOWN) {
+            ESP_LOGW(m_tag, "suspended");
+            vTaskSuspend(NULL);
+        }
         // do we have a stratum host configured?
         // we do it here because we could reload the config after
         // it was updated on the UI and settings
@@ -332,7 +336,7 @@ void StratumTask::stratumLoop()
 
         // if stop is requested, don't dispatch anything
         // and break the loop
-        if (m_stopFlag) {
+        if (m_stopFlag || SHUTDOWN) {
             break;
         }
 
@@ -485,6 +489,10 @@ void StratumManager::task()
 
     // Watchdog Task Loop (optional, if needed)
     while (1) {
+        if (SHUTDOWN) {
+            ESP_LOGW(m_tag, "Stratum Manager Task suspended");
+            vTaskSuspend(NULL);
+        }
         vTaskDelay(pdMS_TO_TICKS(30000));
 
         // Reset watchdog if there was a submit response within the last hour

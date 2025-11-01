@@ -85,7 +85,7 @@
     "MS": "ms"
   },
   "POOL_INFO": {
-    "TITLE": "Pool (Primary)",
+    "TITLE": "Pool",
     "HOST": "Host",
     "PORT": "Port",
     "USER": "User",
