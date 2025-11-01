@@ -166,6 +166,10 @@ void *create_jobs_task(void *pvParameters)
     int lastJobInterval = board->getAsicJobIntervalMs();
 
     while (1) {
+        if (SHUTDOWN) {
+            ESP_LOGW(TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
         pthread_mutex_lock(&job_mutex);
         pthread_cond_wait(&job_cond, &job_mutex); // Wait for the timer or external trigger
         pthread_mutex_unlock(&job_mutex);

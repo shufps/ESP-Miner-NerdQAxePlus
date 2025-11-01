@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 
 #include "lwip/stats.h"
+#include "global_state.h"
 
 static const char* TAG = "wifi_health";
 
@@ -110,6 +111,10 @@ void wifi_monitor_task(void* arg)
     reset_lwip_stats();
 
     while (true) {
+        if (SHUTDOWN) {
+            ESP_LOGW(TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
         log_wifi_health();
         vTaskDelay(pdMS_TO_TICKS(300000));  // every 5 minutes
     }

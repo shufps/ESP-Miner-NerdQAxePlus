@@ -33,6 +33,7 @@ extern DiscordAlerter discordAlerter;
 
 extern OTP otp;
 
+extern bool SHUTDOWN;
 
 uint64_t now_ms();
 uint32_t now();

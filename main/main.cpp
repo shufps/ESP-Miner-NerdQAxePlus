@@ -56,6 +56,8 @@ AsicJobs asicJobs;
 OTP otp;
 SNTP sntp;
 
+bool SHUTDOWN = false;
+
 static const char *TAG = "nerd*axe";
 
 #ifndef CONFIG_SPIRAM
