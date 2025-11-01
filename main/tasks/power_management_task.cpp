@@ -48,6 +48,7 @@ void PowerManagementTask::restart() {
 void PowerManagementTask::shutdown() {
     Board* board = SYSTEM_MODULE.getBoard();
     if (board) {
+        m_shutdown = true;
         board->shutdown();
     }
 }

@@ -79,6 +79,7 @@ class DisplayDriver {
         BTCScreen,
         GlobalStats,
         ShowQR,
+        PowerOff,
         NOP
     };
 
