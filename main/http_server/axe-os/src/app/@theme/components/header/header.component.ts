@@ -1,6 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NbMediaBreakpointsService, NbMenuService, NbSidebarService, NbThemeService } from '@nebular/theme';
-
 import { LayoutService } from '../../../@core/utils.ts';
 import { SystemService } from '../../../services/system.service';
 import { map, takeUntil } from 'rxjs/operators';
@@ -19,7 +18,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   userPictureOnly = false;
   user: any;
-  private sidebarCollapsed: boolean = false;
+
+  // Sidebar state: expanded → compact → collapsed → expanded
+  private sidebarState: 'expanded' | 'compact' | 'collapsed' = 'expanded';
 
   themes = [
     { value: 'cosmic',  name: 'Default' },
@@ -37,8 +38,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private static readonly PLACEHOLDER_LOGO = '/assets/default_dark.png';
 
   userMenu = [{ title: 'Profile' }, { title: 'Log out' }];
-
-  info$: Observable<any>; // Device info observable
+  info$: Observable<ISystemInfo>;
 
   constructor(
     private sidebarService: NbSidebarService,
@@ -89,10 +89,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
       if (info?.deviceModel) {
         // Replace gamma symbol with "Gamma" to match asset filenames if needed
         this.deviceModel = String(info.deviceModel).replace('γ', 'Gamma');
-      }
-
-      // Take backend-provided filename (no theme suffix)
-      if (info?.deviceModel) {
         this.logoBaseName = String(info.deviceModel).trim();
       }
 
@@ -134,20 +130,36 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-
+  //  Sidebar 3-state toggle logic
   toggleSidebar(): boolean {
-    if (this.sidebarCollapsed) {
-      this.sidebarService.expand('menu-sidebar');
-      this.sidebarCollapsed = false;
-    } else {
-      this.sidebarService.compact('menu-sidebar');
-      this.sidebarCollapsed = true;
+    const isMobile = window.innerWidth < 768;
+
+    switch (this.sidebarState) {
+      case 'expanded':
+        if (isMobile) {
+          this.sidebarService.collapse('menu-sidebar');
+          this.sidebarState = 'collapsed';
+        } else {
+          this.sidebarService.compact('menu-sidebar');
+          this.sidebarState = 'compact';
+        }
+        break;
+
+      case 'compact':
+        this.sidebarService.collapse('menu-sidebar');
+        this.sidebarState = 'collapsed';
+        break;
+
+      case 'collapsed':
+        this.sidebarService.expand('menu-sidebar');
+        this.sidebarState = 'expanded';
+        break;
     }
 
     this.layoutService.changeLayoutSize();
 
     // Save the new state
-    localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed ? 'true' : 'false');
+    localStorage.setItem('sidebarState', this.sidebarState);
 
     return false;
   }
@@ -194,15 +206,20 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   private loadSidebarStateFromLocalStorage() {
-    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed');
-    if (sidebarCollapsed === 'true') {
-      this.sidebarCollapsed = true;
-      // Compact the sidebar if it was collapsed before (shows icons only)
-      setTimeout(() => {
-        this.sidebarService.compact('menu-sidebar');
-      }, 100);
-    } else {
-      this.sidebarCollapsed = false;
-    }
+    const savedState = localStorage.getItem('sidebarState') as 'expanded' | 'compact' | 'collapsed' | null;
+    this.sidebarState = savedState ?? 'expanded';
+
+    setTimeout(() => {
+      switch (this.sidebarState) {
+        case 'compact':
+          this.sidebarService.compact('menu-sidebar');
+          break;
+        case 'collapsed':
+          this.sidebarService.collapse('menu-sidebar');
+          break;
+        default:
+          this.sidebarService.expand('menu-sidebar');
+      }
+    }, 100);
   }
 }
