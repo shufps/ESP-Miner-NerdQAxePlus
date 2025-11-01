@@ -301,10 +301,10 @@ Board::Error NerdQaxePlus::getFault(uint32_t *status) {
               (static_cast<uint32_t>(status_vout) << 8)  |
               (static_cast<uint32_t>(status_input));
 
-    // When +12V is missing, all status bytes read as 0xFF.
-    // The combined && check ensures we only flag a PSU fault
-    // if all fields consistently return 0xFF, avoiding false triggers
-    // from transient read errors.
+    // If +12V is missing, the PMBus device does not respond to I2C reads,
+    // resulting in all bytes being 0xFF due to no ACK.
+    // The combined && check ensures we only flag a PSU fault when *all*
+    // reads failed, avoiding false triggers from single read errors.
     if (status_byte == 0xff &&
         status_iout == 0xff &&
         status_vout == 0xff &&
