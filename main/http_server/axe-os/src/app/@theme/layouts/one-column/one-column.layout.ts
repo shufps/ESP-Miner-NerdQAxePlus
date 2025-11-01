@@ -10,7 +10,7 @@ import { Subject, takeUntil } from 'rxjs';
         <ngx-header></ngx-header>
       </nb-layout-header>
 
-      <nb-sidebar class="menu-sidebar" tag="menu-sidebar" fixed responsive="false">
+      <nb-sidebar class="menu-sidebar" tag="menu-sidebar" fixed responsive>
         <ng-content select="nb-menu"></ng-content>
       </nb-sidebar>
 
