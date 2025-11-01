@@ -6,6 +6,7 @@
 
 
 LV_IMG_DECLARE(ui_img_overheat_png);      // overheating screen
+LV_IMG_DECLARE(ui_img_safe_png);
 
 #define LV_FONT_CUSTOM_DECLARE
 LV_FONT_DECLARE(ui_font_DigitalNumbers16);

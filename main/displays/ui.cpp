@@ -659,20 +659,13 @@ void UI::powerOffScreenInit(void)
     lv_obj_set_style_bg_color(ui_PowerOffScreen, lv_color_hex(0x000000), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(ui_PowerOffScreen, 255, LV_PART_MAIN);
 
-    // "POWER OFF" label
-    lv_obj_t *label1 = lv_label_create(ui_PowerOffScreen);
-    lv_label_set_text(label1, "POWER OFF");
-    lv_obj_set_style_text_color(label1, lv_color_hex(0xFF0000), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label1, &ui_font_vt323_35, LV_PART_MAIN);
-    lv_obj_align(label1, LV_ALIGN_CENTER, 0, -10);  // a bit above center
-
-    // "You can remove power now" label
-    lv_obj_t *label2 = lv_label_create(ui_PowerOffScreen);
-    lv_label_set_text(label2, "You can remove power now");
-    lv_obj_set_style_text_color(label2, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label2, &ui_font_vt323_21, LV_PART_MAIN);
-    lv_obj_align(label2, LV_ALIGN_CENTER, 0, 25);  // below main text
+    // "It's now safe to turn off your computer" image
+    LV_IMG_DECLARE(ui_img_safe_png); // Make sure your C array is declared in ui_img_safe_png.c
+    lv_obj_t *img = lv_img_create(ui_PowerOffScreen);
+    lv_img_set_src(img, &ui_img_safe_png);
+    lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);  // Center of screen
 }
+
 
 
 void UI::destroyQRScreen() {
