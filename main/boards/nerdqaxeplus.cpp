@@ -315,27 +315,32 @@ Board::Error NerdQaxePlus::getFault(uint32_t *status) {
 
     // Check for output overcurrent fault flag
     // Bit 7: IOUT_OCF
-    if (status_iout != 0xff && status_iout & 0x80) {
+    if (status_iout != 0xff && (status_iout & 0x80)) {
         return Board::Error::IOUT_OC_FAULT;
     }
 
     // Check for output voltage fault flags
     // Bit 7: VOUT_OVF, Bit 4: VOUT_UVF
-    if (status_vout != 0xff && status_vout & 0x90) {
+    if (status_vout != 0xff && (status_vout & 0x90)) {
         return Board::Error::VOUT_FAULT;
     }
 
     // Check for overtemperature fault flag
     // Bit 7: OTF
-    if (status_temp != 0xff && status_temp & 0x80) {
+    if (status_temp != 0xff && (status_temp & 0x80)) {
         return Board::Error::TEMP_FAULT;
     }
 
     // Check for PSU-level input or state faults
-    // status_byte: Bit 6 = OFF, Bit 3 = VIN_UV
     // status_input: Bit 7 = VIN_OVF, Bit 4 = VIN_UVF, Bit 2 = IIN_OCF
-    if (status_byte != 0xff && status_input != 0xff &&
-        ((status_byte & 0x48) || (status_input & 0x94))) {
+    if (status_input != 0xff && (status_input & 0x94)) {
+        return Board::Error::PSU_FAULT;
+    }
+
+    // is buck off? Then something is wrong ...
+    // return general error.
+    // status_byte: Bit 6 = OFF
+    if (status_byte != 0xff && (status_byte & 0x40)) {
         return Board::Error::PSU_FAULT;
     }
 
