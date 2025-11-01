@@ -207,7 +207,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private loadSidebarStateFromLocalStorage() {
     const savedState = localStorage.getItem('sidebarState') as 'expanded' | 'compact' | 'collapsed' | null;
-    this.sidebarState = savedState ?? 'expanded';
+    // on mobile the default is collapsed, otherwise expanded
+    const isMobile = window.innerWidth < 768;
+    this.sidebarState = savedState ?? isMobile ? 'collapsed' : 'expanded';
 
     setTimeout(() => {
       switch (this.sidebarState) {
