@@ -56,6 +56,10 @@ DisplayDriver::DisplayDriver() {
     m_isAutoScreenOffEnabled = false;
     m_tempControlMode = 0;
     m_fanSpeed = 0;
+    m_shutdownCountdownActive = false;
+    m_shutdownStartTime = 0;
+    m_shutdownLabel = nullptr;
+    m_buttonIgnoreUntil_us = 0;
 }
 
 void DisplayDriver::loadSettings() {
@@ -163,6 +167,54 @@ void DisplayDriver::checkAutoTurnOffScreen(void) {
         }
     }
 }
+
+void DisplayDriver::startShutdownCountdown() {
+    if (m_shutdownCountdownActive) return;
+
+    m_shutdownCountdownActive = true;
+    m_shutdownStartTime = esp_timer_get_time();
+
+    lv_obj_t* scr = lv_scr_act();
+    lv_obj_t* box = lv_obj_create(scr);
+    lv_obj_set_size(box, 200, 100);
+    lv_obj_set_style_bg_color(box, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_border_width(box, 0, LV_PART_MAIN);
+    lv_obj_align(box, LV_ALIGN_CENTER, 0, 0);
+
+    m_shutdownLabel = lv_label_create(box);
+    lv_label_set_text(m_shutdownLabel, "Shutdown in 5");
+    lv_obj_set_style_text_color(m_shutdownLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_center(m_shutdownLabel);
+}
+
+void DisplayDriver::updateShutdownCountdown() {
+    if (!m_shutdownCountdownActive) return;
+
+    int elapsed = (esp_timer_get_time() - m_shutdownStartTime) / 1000000;
+    int remaining = 5 - elapsed;
+    if (remaining < 0) remaining = 0;
+
+    if (m_shutdownLabel) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "Shutdown in %d", remaining);
+        lv_label_set_text(m_shutdownLabel, buf);
+    }
+
+    // After 5s → trigger shutdown
+    if (elapsed >= 5) {
+        hideShutdownCountdown();
+        enterState(UiState::PowerOff, esp_timer_get_time());
+    }
+}
+
+void DisplayDriver::hideShutdownCountdown() {
+    if (m_shutdownLabel) {
+        lv_obj_del(lv_obj_get_parent(m_shutdownLabel));
+        m_shutdownLabel = nullptr;
+    }
+    m_shutdownCountdownActive = false;
+}
+
 
 void DisplayDriver::increaseLvglTick() {
     lv_tick_inc(TDISPLAYS3_LVGL_TICK_PERIOD_MS);
@@ -288,9 +340,10 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
         if (!m_ui->ui_PowerOffScreen) {
             m_ui->powerOffScreenInit();
         }
-        enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_PowerOffScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0);
+        enableLvglAnimations(false);
+        _ui_screen_change(m_ui->ui_PowerOffScreen, LV_SCR_LOAD_ANIM_NONE, 0, 0);
         POWER_MANAGEMENT_MODULE.shutdown();
+        break;
     }
     return true;
 }
@@ -404,125 +457,169 @@ bool DisplayDriver::ledControl(bool btn1, bool btn2) {
     return false;
 }
 
+uint32_t DisplayDriver::handleLvglTick(int32_t &elapsed_Ani_cycles)
+{
+    uint32_t wait_ms = 0;
+
+    {
+        PThreadGuard lock(m_lvglMutex);
+        increaseLvglTick();
+        wait_ms = lv_timer_handler();
+    }
+
+    if (m_animationsEnabled) {
+        const uint32_t fast_cap = 5; // ~200 FPS
+        if (++elapsed_Ani_cycles > 80) {
+            m_animationsEnabled = false;
+            elapsed_Ani_cycles = 0;
+        }
+        uint32_t sleep_ms = std::min(wait_ms, fast_cap);
+        vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+        return sleep_ms;
+    }
+
+    const uint32_t idle_cap = 50;
+    uint32_t sleep_ms = (wait_ms > 0 && wait_ms < idle_cap) ? wait_ms : idle_cap;
+    vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+    return sleep_ms;
+}
+
+void DisplayDriver::processButtons(Button &btn1, Button &btn2, int64_t tnow,
+                                   bool &btn1Press, bool &btn2Press, bool &btnBothLongPress)
+{
+    btn1.update();
+    btn2.update();
+
+    uint32_t evt1 = btn1.getEvent();
+    uint32_t evt2 = btn2.getEvent();
+    bool bothPressed = (evt1 & BTN_EVENT_PRESSED) && (evt2 & BTN_EVENT_PRESSED);
+
+    // Ignore all button events within 200ms of both released
+    if (esp_timer_get_time() < m_buttonIgnoreUntil_us) {
+        btn1.clearEvent();
+        btn2.clearEvent();
+        return;
+    }
+
+    // Hide overlay if active
+    if ((evt1 & BTN_EVENT_SHORTPRESS || evt2 & BTN_EVENT_SHORTPRESS) && m_isActiveOverlay) {
+        hideFoundBlockOverlay();
+        btn1.clearEvent();
+        btn2.clearEvent();
+        return;
+    }
+
+    // --- Shutdown countdown handling ---
+    if (bothPressed) {
+        if (!m_shutdownCountdownActive) {
+            startShutdownCountdown();
+        } else {
+            updateShutdownCountdown();
+        }
+        return;
+    }
+
+    if (m_shutdownCountdownActive && !bothPressed) {
+        hideShutdownCountdown();
+        m_buttonIgnoreUntil_us = esp_timer_get_time() + 200 * 1000; // 200ms ignore
+        btn1.clearEvent();
+        btn2.clearEvent();
+        return;
+    }
+
+    // Normal button events
+    if ((evt1 & BTN_EVENT_LONGPRESS) && (evt2 & BTN_EVENT_LONGPRESS)) {
+        btnBothLongPress = true;
+        btn1.clearEvent();
+        btn2.clearEvent();
+    } else {
+        if (evt1 & BTN_EVENT_SHORTPRESS) {
+            m_lastKeypressTime = tnow;
+            btn1Press = true;
+            btn1.clearEvent();
+        }
+        if (evt2 & BTN_EVENT_SHORTPRESS) {
+            m_lastKeypressTime = tnow;
+            btn2Press = true;
+            btn2.clearEvent();
+        }
+    }
+}
+
+void DisplayDriver::handleUiQueueMessages(ui_msg_t &msg, int64_t tnow)
+{
+    if (xQueueReceive(g_ui_queue, &msg, 0) != pdTRUE) return;
+
+    switch (msg.type) {
+        case UI_CMD_SHOW_QR: {
+            if (!otp.isEnrollmentActive()) {
+                ESP_LOGE(TAG, "no otp enrollment active");
+                break;
+            }
+            int size = 0;
+            uint8_t* qrBuf = otp.getQrCode(&size);
+            m_ui->createQRScreen(qrBuf, size);
+            if (m_ui->ui_qrScreen)
+                enterState(UiState::ShowQR, tnow);
+            m_isActiveOverlay = true;
+            break;
+        }
+        case UI_CMD_HIDE_QR:
+            m_isActiveOverlay = false;
+            enterState(UiState::Mining, tnow);
+            break;
+    }
+
+    if (msg.payload) {
+        free(msg.payload);
+        msg.payload = nullptr;
+    }
+}
+
+void DisplayDriver::handleAutoOffAndOverlays()
+{
+    if (m_isActiveOverlay) {
+        displayTurnOn();
+    } else if (m_isAutoScreenOffEnabled) {
+        checkAutoTurnOffScreen();
+    }
+}
+
 void DisplayDriver::lvglTimerTask(void *param)
 {
-    // Initial
     displayTurnOn();
     m_lastKeypressTime = now_us();
     enterState(UiState::Splash1, now_us());
 
-    // button animation control
     int32_t elapsed_Ani_cycles = 0;
-
     Button btn1(PIN_BUTTON_1, 5000);
     Button btn2(PIN_BUTTON_2, 5000);
-
     ui_msg_t msg;
 
     while (true) {
-        uint32_t wait_ms = 0;
         const int64_t tnow = now_us();
-        {
-            PThreadGuard lock(m_lvglMutex);
+        uint32_t wait_ms = handleLvglTick(elapsed_Ani_cycles);
 
-            increaseLvglTick();                  // typically lv_tick_inc(...)
-            wait_ms = lv_timer_handler();        // time until next scheduled LVGL job
-        }
-
-        // 2) Decide sleep time outside the lock
-        if (m_animationsEnabled) {
-            // While animations are active, cap latency aggressively
-            const uint32_t fast_cap = 5;         // ~200 FPS budget for responsiveness
-            if (++elapsed_Ani_cycles > 80) {     // ~400 ms @ 5 ms cadence
-                m_animationsEnabled = false;
-                elapsed_Ani_cycles = 0;
-            }
-            // Sleep the smaller of LVGL's request and our fast cap
-            uint32_t sleep_ms = (wait_ms > 0 && wait_ms < fast_cap) ? wait_ms : fast_cap;
-            vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+        if (SHUTDOWN) {
+            vTaskDelay(pdMS_TO_TICKS(wait_ms));
             continue;
         }
 
-        // Idle path: allow longer sleeps but keep a reasonable upper bound
-        const uint32_t idle_cap = 50;            // latency cap while idle
-        uint32_t sleep_ms = (wait_ms > 0 && wait_ms < idle_cap) ? wait_ms : idle_cap;
-        vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+        // --- Handle buttons ---
+        bool btn1Press = false, btn2Press = false, btnBothLongPress = false;
+        processButtons(btn1, btn2, tnow, btn1Press, btn2Press, btnBothLongPress);
 
-        bool btn1Press = false;
-        bool btn2Press = false;
-        bool btnBothLongPress = false;
+        // --- Handle queued UI messages ---
+        handleUiQueueMessages(msg, tnow);
 
-        btn1.update();
-        btn2.update();
+        // --- Handle auto turn-off and overlays ---
+        handleAutoOffAndOverlays();
 
-        uint32_t evt1 = btn1.getEvent();
-        uint32_t evt2 = btn2.getEvent();
-
-        // if we show the block found overlay, we hide it with any of the two buttons
-        if ((evt1 & BTN_EVENT_SHORTPRESS || evt2 & BTN_EVENT_SHORTPRESS) && m_isActiveOverlay) {
-            hideFoundBlockOverlay();
-            btn1.clearEvent();
-            btn2.clearEvent();
-        }
-
-        if ((evt1 & BTN_EVENT_LONGPRESS) && (evt2 & BTN_EVENT_LONGPRESS)) {
-            btnBothLongPress = true;
-            btn1.clearEvent();
-            btn2.clearEvent();
-        } else {
-            if (evt1 & BTN_EVENT_SHORTPRESS) {
-                m_lastKeypressTime = tnow;
-                btn1Press = true;
-                btn1.clearEvent();
-            }
-
-            if (evt2 & BTN_EVENT_SHORTPRESS) {
-                m_lastKeypressTime = tnow;
-                btn2Press = true;
-                btn2.clearEvent();
-            }
-        }
-
-        // queue to receive commands from http server context
-        if (xQueueReceive(g_ui_queue, &msg, 0) == pdTRUE) {
-            switch (msg.type) {
-                case UI_CMD_SHOW_QR: {
-                    if (!otp.isEnrollmentActive()) {
-                        ESP_LOGE(TAG, "no otp enrollment active");
-                        break;
-                    }
-                    int size = 0;
-                    uint8_t* qrBuf = otp.getQrCode(&size);
-                    m_ui->createQRScreen(qrBuf, size);
-                    if (m_ui->ui_qrScreen) {
-                        enterState(UiState::ShowQR, tnow);
-                    }
-                    m_isActiveOverlay = true;
-                    break;
-                }
-                case UI_CMD_HIDE_QR: {
-                    m_isActiveOverlay = false;
-                    enterState(UiState::Mining, tnow);
-                    break;
-                }
-            }
-            if (msg.payload) {
-                free(msg.payload);
-                msg.payload = NULL;
-            }
-        }
-
-        // Auto-Off / Overlay
-        if (m_isActiveOverlay) {
-            displayTurnOn();
-        } else if (m_isAutoScreenOffEnabled) {
-            checkAutoTurnOffScreen();
-        }
-
-        // 4) FSM update (timeouts and screen changes)
+        // --- Update FSM state ---
         updateState(tnow, btn1Press, btn2Press, btnBothLongPress);
     }
 }
+
 
 // Función para activar las actualizaciones
 void DisplayDriver::enableLvglAnimations(bool enable)

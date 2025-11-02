@@ -299,6 +299,13 @@ extern "C" void app_main(void)
     // char* taskList = (char*) malloc(8192);
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(10000));
+
+        if (SHUTDOWN) {
+            ESP_LOGW(TAG, "disabling watchdog and suspending main task...");
+            esp_task_wdt_deinit();
+            vTaskSuspend(NULL);
+        }
+
         size_t free_internal_heap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 
         if (free_internal_heap < 10000) {
