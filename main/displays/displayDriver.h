@@ -6,6 +6,8 @@
 #include "esp_lcd_panel_io.h"
 #include "ui.h"
 #include "ui_helpers.h"
+#include "button.h"
+#include "ui_ipc.h"
 
 /* INCLUDES ------------------------------------------------------------------*/
 
@@ -107,6 +109,12 @@ class DisplayDriver {
     unsigned int m_btcPrice; // Current Bitcoin price
     uint32_t m_blockHeight; // Current Bitcoin price
 
+    // Shutdown countdown state
+    bool m_shutdownCountdownActive;
+    int64_t m_shutdownStartTime;
+    lv_obj_t* m_shutdownLabel;
+    int64_t m_buttonIgnoreUntil_us;
+
     UI *m_ui;
 
     // Helper methods for LVGL handling
@@ -155,6 +163,15 @@ class DisplayDriver {
     void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
 
     void hideFoundBlockOverlay();
+
+    void startShutdownCountdown();
+    void updateShutdownCountdown();
+    void hideShutdownCountdown();
+
+    void handleAutoOffAndOverlays();
+    void handleUiQueueMessages(ui_msg_t &msg, int64_t tnow);
+    void processButtons(Button &btn1, Button &btn2, int64_t tnow, bool &btn1Press, bool &btn2Press, bool &btnBothLongPress);
+    uint32_t handleLvglTick(int32_t &elapsed_Ani_cycles);
 
   public:
     // Constructor
