@@ -2,6 +2,7 @@
 #define RECOVERY_PAGE
 
 const char recovery_page[] = "<html>"
+                             "<meta charset=\"UTF-8\">"
                              "<style>"
                              "body {"
                              "    background-color: #000;"
