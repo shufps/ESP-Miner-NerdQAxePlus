@@ -50,6 +50,7 @@ static esp_err_t rest_recovery_handler(httpd_req_t *req)
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
+    httpd_resp_set_type(req, "text/html; charset=UTF-8");
     httpd_resp_send(req, recovery_page, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
