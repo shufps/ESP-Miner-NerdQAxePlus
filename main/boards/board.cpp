@@ -17,7 +17,7 @@ Board::Board() {
     m_hasHashCounter = false;
     m_ecoAsicFrequency = 0;
     m_ecoAsicVoltageMillis = 0;
-
+    m_numFans = 1;
 }
 
 void Board::loadSettings()
@@ -140,13 +140,13 @@ FanPolarityGuess Board::guessFanPolarity() {
     // Test low speed
     setFanSpeed(lowPWM);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
-    getFanSpeed(&rpmLow);
+    getFanSpeedCh(0, &rpmLow);
     ESP_LOGI("polarity", "set %.2f%% read: %d", lowPWM, rpmLow);
 
     // Test high speed
     setFanSpeed(highPWM);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
-    getFanSpeed(&rpmHigh);
+    getFanSpeedCh(0, &rpmHigh);
     ESP_LOGI("polarity", "set %.2f%% read: %d", highPWM, rpmHigh);
 
     // Reset to mid-range to be safe

@@ -100,7 +100,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
     doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
-    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
+    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["recentpingloss"]     = get_recent_ping_loss();
     doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();

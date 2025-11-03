@@ -381,18 +381,20 @@ void Influx::write()
     char url[256];
 
     snprintf(m_big_buffer, m_big_buffer_SIZE,
-             "%s temperature=%f,temperature2=%f,"
-             "hashing_speed=%f,hashing_speed_1m=%f,invalid_shares=%d,valid_shares=%d,uptime=%d,"
-             "best_difficulty=%f,total_best_difficulty=%f,pool_errors=%d,"
-             "accepted=%d,not_accepted=%d,total_uptime=%d,blocks_found=%d,"
-             "pwr_vin=%f,pwr_iin=%f,pwr_pin=%f,pwr_vout=%f,pwr_iout=%f,pwr_pout=%f,"
-             "total_blocks_found=%d,duplicate_hashes=%d,last_ping_rtt=%.2f,recent_ping_loss=%.2f",
-             m_prefix, m_stats.temp, m_stats.temp2, m_stats.hashing_speed, m_stats.hashing_speed_1m, m_stats.invalid_shares,
-             m_stats.valid_shares, m_stats.uptime, m_stats.best_difficulty, m_stats.total_best_difficulty,
-             m_stats.pool_errors, m_stats.accepted, m_stats.not_accepted, m_stats.total_uptime,
-             m_stats.blocks_found, m_stats.pwr_vin, m_stats.pwr_iin, m_stats.pwr_pin,
-             m_stats.pwr_vout, m_stats.pwr_iout, m_stats.pwr_pout, m_stats.total_blocks_found,
-             m_stats.duplicate_hashes, m_stats.last_ping_rtt, m_stats.recent_ping_loss);
+            "%s temperature=%f,temperature2=%f,"
+            "hashing_speed=%f,hashing_speed_1m=%f,invalid_shares=%d,valid_shares=%d,uptime=%d,"
+            "best_difficulty=%f,total_best_difficulty=%f,pool_errors=%d,"
+            "accepted=%d,not_accepted=%d,total_uptime=%d,blocks_found=%d,"
+            "pwr_vin=%f,pwr_iin=%f,pwr_pin=%f,pwr_vout=%f,pwr_iout=%f,pwr_pout=%f,"
+            "total_blocks_found=%d,duplicate_hashes=%d,last_ping_rtt=%.2f,recent_ping_loss=%.2f,"
+            "fan0_pwm=%f,fan0_rpm=%f,fan1_pwm=%f,fan1_rpm=%f",
+            m_prefix, m_stats.temp, m_stats.temp2,
+            m_stats.hashing_speed, m_stats.hashing_speed_1m, m_stats.invalid_shares, m_stats.valid_shares, m_stats.uptime,
+            m_stats.best_difficulty, m_stats.total_best_difficulty, m_stats.pool_errors,
+            m_stats.accepted, m_stats.not_accepted, m_stats.total_uptime, m_stats.blocks_found,
+            m_stats.pwr_vin, m_stats.pwr_iin, m_stats.pwr_pin, m_stats.pwr_vout, m_stats.pwr_iout, m_stats.pwr_pout,
+            m_stats.total_blocks_found, m_stats.duplicate_hashes, m_stats.last_ping_rtt, m_stats.recent_ping_loss,
+            m_stats.fan_pwm_0, m_stats.fan_rpm_0, m_stats.fan_rpm_1, m_stats.fan_pwm_1);
 
     snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", m_host, m_port, m_bucket,
              m_org);
