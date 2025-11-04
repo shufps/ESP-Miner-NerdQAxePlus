@@ -270,6 +270,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       return `https://solohash.co.uk/user/${address}`;
     } else if (stratumURL.includes('parasite.wtf')) {
       return `https://parasite.space/user/${address}`;
+    } else if (stratumURL.includes('solomining.de')) {
+      return `https://pool.solomining.de/#/app/${address}`;
     }
     return stratumURL.startsWith('http') ? stratumURL : `http://${stratumURL}`;
   }
