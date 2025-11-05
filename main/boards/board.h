@@ -72,6 +72,8 @@ class Board {
     float m_maxVin;
     float m_minVin;
 
+    int m_numFans;
+
     // display m_theme
     Theme *m_theme = nullptr;
 
@@ -103,9 +105,16 @@ class Board {
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
     virtual void setFanPolarity(bool invert) = 0;
-    virtual void setFanSpeed(float perc) = 0;
-    virtual void getFanSpeed(uint16_t *rpm) = 0;
+    virtual void setFanSpeedCh(int channel, float perc) = 0;
+    virtual void setFanSpeed(float perc) {
+        for (int i=0;i<getNumFans();i++) {
+            setFanSpeedCh(i, perc);
+        }
+    }
+    virtual void getFanSpeedCh(int channel, uint16_t *rpm) = 0;
     FanPolarityGuess guessFanPolarity();
+
+    virtual int getNumFans() { return m_numFans; }
 
     virtual float getTemperature(int index) = 0;
     virtual float getVRTemp() = 0;

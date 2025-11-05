@@ -52,6 +52,14 @@ void PowerManagementTask::shutdown() {
     }
 }
 
+uint16_t PowerManagementTask::getFanRPM(int channel) {
+     Board* board = SYSTEM_MODULE.getBoard();
+    if (!board || channel < 0 || channel >= board->getNumFans()) {
+        return 0;
+    }
+    return m_fanRPM[channel];
+}
+
 void PowerManagementTask::checkCoreVoltageChanged() {
     static uint16_t last_core_voltage = 0;
 
@@ -284,7 +292,11 @@ void PowerManagementTask::task()
         m_voltage = vin * 1000.0;
         m_current = iin * 1000.0;
         m_power = pin;
-        board->getFanSpeed(&m_fanRPM);
+
+        for (int i=0;i<board->getNumFans();i++) {
+            board->getFanSpeedCh(i, &m_fanRPM[i]);
+        }
+        influx_set_fan(m_fanPerc, (float) m_fanRPM[0], m_fanPerc, (float) m_fanRPM[1]);
 
         // collect temperatures
         // get the max of all asic measuring temp sensors

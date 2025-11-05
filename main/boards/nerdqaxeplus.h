@@ -30,8 +30,8 @@ class NerdQaxePlus : public Board {
     virtual bool setVoltage(float core_voltage);
 
     virtual void setFanPolarity(bool invert);
-    virtual void setFanSpeed(float perc);
-    virtual void getFanSpeed(uint16_t *rpm);
+    virtual void setFanSpeedCh(int channel, float perc);
+    virtual void getFanSpeedCh(int channel, uint16_t *rpm);
 
     virtual float getTemperature(int index);
     virtual float getVRTemp();

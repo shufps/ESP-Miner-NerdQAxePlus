@@ -25,9 +25,9 @@ class PowerManagementTask {
     SemaphoreHandle_t m_mutex;
     TimerHandle_t m_timer;
 
-    char m_logBuffer[256] = {0};
+    char m_logBuffer[256]{0};
     uint16_t m_fanPerc;
-    uint16_t m_fanRPM;
+    uint16_t m_fanRPM[2]{0};
     float m_chipTempMax;
     float m_vrTemp;
     float m_voltage;
@@ -75,10 +75,9 @@ class PowerManagementTask {
     {
         return m_vrTemp;
     };
-    uint16_t getFanRPM()
-    {
-        return m_fanRPM;
-    };
+
+    uint16_t getFanRPM(int channel);
+
     uint16_t getFanPerc()
     {
         return m_fanPerc;

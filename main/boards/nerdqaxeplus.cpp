@@ -45,6 +45,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_imax = m_numPhases * 30;
     m_ifault = (float) (m_imax - 5);
 
+    m_numFans = 2;
+
     m_maxPin = 70.0;
     m_minPin = 30.0;
     m_maxVin = 13.0;
@@ -88,6 +90,7 @@ bool NerdQaxePlus::initBoard()
     ESP_LOGI(TAG, "found %d ASIC temp measuring sensors", m_numTempSensors);
 
     EMC2302_init(m_fanInvertPolarity);
+    setFanSpeed(m_fanPerc);
     setFanSpeed(m_fanPerc);
 
     // configure gpios
@@ -214,12 +217,12 @@ bool NerdQaxePlus::setVoltage(float core_voltage)
     return m_tps->set_vout(core_voltage);
 }
 
-void NerdQaxePlus::setFanSpeed(float perc) {
-    EMC2302_set_fan_speed(perc);
+void NerdQaxePlus::setFanSpeedCh(int channel, float perc) {
+    EMC2302_set_fan_speed(channel, perc);
 }
 
-void NerdQaxePlus::getFanSpeed(uint16_t* rpm) {
-    EMC2302_get_fan_speed(rpm);
+void NerdQaxePlus::getFanSpeedCh(int channel, uint16_t* rpm) {
+    EMC2302_get_fan_speed(channel, rpm);
 }
 
 void NerdQaxePlus::setFanPolarity(bool invert) {
