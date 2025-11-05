@@ -53,8 +53,8 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
         m_tps = new TPS53667();
 
         // Extended frequency range for TPS53667 (6 phases, higher power capacity)
-        m_asicFrequencies = {500, 515, 525, 550, 575, 590, 600, 625, 650, 675, 700};
-        m_absMaxAsicFrequency = 900;  // Absolute max for manual input (danger zone)
+        m_asicFrequencies = {500, 525, 575, 590, 600, 625, 650, 675, 700};
+        m_absMaxAsicFrequency = 850;  // Absolute max for manual input (danger zone)
 
         ESP_LOGI(TAG, "TPS53667 voltage regulator detected (GPIO3=HIGH, 6 phases, 240A max with 24.9kΩ resistor)");
     } else {
