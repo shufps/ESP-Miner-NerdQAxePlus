@@ -18,8 +18,10 @@ TPS53667::TPS53667() : TPS53647()
 
 void TPS53667::set_phases(int num_phases)
 {
+    ESP_LOGI(TAG, "TPS53667::set_phases(%d) - enabling all phases", num_phases);
     TPS53647::set_phases(num_phases);
     write_byte(PMBUS_MFR_SPECIFIC_24, 0x00); // NerEKO: enable all phases
+    ESP_LOGI(TAG, "TPS53667: PMBUS_MFR_SPECIFIC_24 set to 0x00 (all 6 phases enabled)");
 }
 
 // Set up the TPS53667 regulator and turn it on
@@ -53,10 +55,17 @@ bool TPS53667::init(int num_phases, int imax, float ifault)
     // set maximum current
     write_byte(PMBUS_MFR_SPECIFIC_10, (uint8_t) imax);
 
-    // operation mode VR12 Mode - Enable dynamic phase shedding - Slew Rate 0.68mV/us
-    // write_byte(PMBUS_MFR_SPECIFIC_13, 0x89);                      // operation mode VR12 Mode - disable dynamic phase
-    // shedding - Slew Rate 0.68mV/us
-    write_byte(PMBUS_MFR_SPECIFIC_13, 0x99); // operation mode VR12 Mode - Enable dynamic phase shedding - Slew Rate 0.68mV/us
+    // operation mode VR12 Mode - Phase shedding configuration
+#ifdef NERDOCTAXEGAMMA
+    // NERDOCTAXEGAMMA: Disable phase shedding to force all 6 phases active at all times
+    // Phase shedding disabled to ensure consistent power delivery across all phases
+    write_byte(PMBUS_MFR_SPECIFIC_13, 0x89); // DISABLE dynamic phase shedding
+    ESP_LOGI(TAG, "Phase shedding DISABLED (0x89) - forcing all 6 phases ON (NerdOctaxeGamma)");
+#else
+    // Other boards (NerdEKO, etc.): Enable dynamic phase shedding for efficiency
+    write_byte(PMBUS_MFR_SPECIFIC_13, 0x99); // ENABLE dynamic phase shedding
+    ESP_LOGI(TAG, "Phase shedding ENABLED (0x99) - dynamic phase control");
+#endif
 
     set_phases(num_phases);
 
