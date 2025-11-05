@@ -340,3 +340,17 @@ a {
 .version-info {
   margin-top: 10px;
 }
+
+.keep-config-toggle {
+  margin-top: 3px;
+  margin-left: 20px;
+  margin-right: 10px;
+}
+
+.release-checkbox-row {
+  display: flex;
+  justify-content: flex-end; /* align checkbox to the right */
+  margin-top: 0.5rem;        /* small vertical gap if needed */
+  margin-right: 10px;
+
+}

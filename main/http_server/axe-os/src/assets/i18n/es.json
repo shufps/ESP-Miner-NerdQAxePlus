@@ -330,7 +330,9 @@
     "RELEASE_AND_UPDATE": "Versión y actualización",
     "EXPECTED_FILE": "Archivo esperado",
     "SELECT_RELEASE": "Seleccionar versión",
-    "FILENAME": "Nombre de archivo"
+    "FILENAME": "Nombre de archivo",
+    "KEEP_CONFIG": "Mantener ajustes",
+    "SHOW_PRERELEASES": "Mostrar versiones preliminares"
   },
   "TOAST": {
     "SUCCESS": "Éxito",
