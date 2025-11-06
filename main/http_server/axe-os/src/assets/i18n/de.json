@@ -332,7 +332,8 @@
     "SELECT_RELEASE": "Release auswählen",
     "FILENAME": "Dateiname",
     "KEEP_CONFIG": "Einstellungen beibehalten",
-    "SHOW_PRERELEASES": "Vorabversionen anzeigen"
+    "SHOW_PRERELEASES": "Vorabversionen anzeigen",
+    "KEEP_SETTINGS_DISABLED": "Das Zurücksetzen der Einstellungen ist noch nicht verfügbar."
   },
   "TOAST": {
     "SUCCESS": "Erfolg",

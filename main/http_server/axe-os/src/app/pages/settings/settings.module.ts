@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { NbCardModule, NbCheckboxModule, NbSelectModule, NbIconModule, NbButtonModule, NbBadgeModule } from '@nebular/theme';
+import { NbCardModule, NbTooltipModule, NbCheckboxModule, NbSelectModule, NbIconModule, NbButtonModule, NbBadgeModule } from '@nebular/theme';
 import { SettingsComponent } from './settings.component';
 import { NbThemeModule, NbLayoutModule } from '@nebular/theme';
 import { CommonModule } from '@angular/common';
@@ -27,6 +27,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     NbCheckboxModule,
     FormsModule,
     ReactiveFormsModule,
+    NbTooltipModule,
   ]
 })
 export class SettingsModule { }

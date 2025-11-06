@@ -42,33 +42,27 @@
       <hr>
 
       <!-- Row: Selector + prerelease toggle -->
-<!-- Row: Selector -->
-<div class="release-row">
-  <div class="release-select">
-    <label class="release-label">
-      <strong>{{ 'UPDATE.SELECT_RELEASE' | translate }}:</strong>
-    </label>
-    <nb-select
-      [selected]="selectedRelease?.id"
-      (selectedChange)="onSelectReleaseId($event)"
-      placeholder="Select release"
-      [disabled]="isOneClickUpdate">
-      <nb-option *ngFor="let r of (releases$ | async) ?? []; let i = index" [value]="r.id">
-        {{ getReleaseLabel(r, i) }}
-      </nb-option>
-    </nb-select>
-  </div>
-</div>
+      <!-- Row: Selector -->
+      <div class="release-row">
+        <div class="release-select">
+          <label class="release-label">
+            <strong>{{ 'UPDATE.SELECT_RELEASE' | translate }}:</strong>
+          </label>
+          <nb-select [selected]="selectedRelease?.id" (selectedChange)="onSelectReleaseId($event)"
+            placeholder="Select release" [disabled]="isOneClickUpdate">
+            <nb-option *ngFor="let r of (releases$ | async) ?? []; let i = index" [value]="r.id">
+              {{ getReleaseLabel(r, i) }}
+            </nb-option>
+          </nb-select>
+        </div>
+      </div>
 
-<!-- Row: Prerelease checkbox -->
-<div class="release-checkbox-row">
-  <nb-checkbox
-    class="prerelease-toggle"
-    [formControl]="includePrereleasesCtrl"
-    [disabled]="isOneClickUpdate">
-    {{ 'UPDATE.SHOW_PRERELEASES' | translate }}
-  </nb-checkbox>
-</div>
+      <!-- Row: Prerelease checkbox -->
+      <div class="release-checkbox-row">
+        <nb-checkbox class="prerelease-toggle" [formControl]="includePrereleasesCtrl" [disabled]="isOneClickUpdate">
+          {{ 'UPDATE.SHOW_PRERELEASES' | translate }}
+        </nb-checkbox>
+      </div>
 
 
       <!-- Meta of selected release -->
@@ -103,7 +97,8 @@
             <nb-icon icon="cloud-download-outline" pack="eva"></nb-icon>&nbsp;
             {{ 'UPDATE.INSTALL_FROM_GITHUB' | translate }}
           </button>
-          <nb-checkbox class="keep-config-toggle" [checked]="true" [disabled]="true">
+          <nb-checkbox class="keep-config-toggle" [checked]="true" (click)="$event.preventDefault()"
+            [nbTooltip]="'UPDATE.KEEP_SETTINGS_DISABLED' | translate" nbTooltipPlacement="top">
             {{ 'UPDATE.KEEP_CONFIG' | translate }}
           </nb-checkbox>
         </div>

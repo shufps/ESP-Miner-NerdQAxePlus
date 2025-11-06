@@ -332,7 +332,8 @@
     "SELECT_RELEASE": "Seleccionar versión",
     "FILENAME": "Nombre de archivo",
     "KEEP_CONFIG": "Mantener ajustes",
-    "SHOW_PRERELEASES": "Mostrar versiones preliminares"
+    "SHOW_PRERELEASES": "Mostrar versiones preliminares",
+    "KEEP_SETTINGS_DISABLED": "El restablecimiento de los ajustes aún no está disponible."
   },
   "TOAST": {
     "SUCCESS": "Éxito",

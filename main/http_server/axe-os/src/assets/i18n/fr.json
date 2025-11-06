@@ -332,7 +332,8 @@
     "SELECT_RELEASE": "Sélectionner la version",
     "FILENAME": "Nom de fichier",
     "KEEP_CONFIG": "Conserver les paramètres",
-    "SHOW_PRERELEASES": "Afficher les versions préliminaires"
+    "SHOW_PRERELEASES": "Afficher les versions préliminaires",
+    "KEEP_SETTINGS_DISABLED": "La réinitialisation des paramètres n’est pas encore disponible."
   },
   "TOAST": {
     "SUCCESS": "Succès",

@@ -332,7 +332,8 @@
     "SELECT_RELEASE": "Select release",
     "FILENAME": "Filename",
     "KEEP_CONFIG": "Keep Settings",
-    "SHOW_PRERELEASES": "Show pre-releases"
+    "SHOW_PRERELEASES": "Show pre-releases",
+    "KEEP_SETTINGS_DISABLED": "Resetting settings is not yet available."
   },
   "TOAST": {
     "SUCCESS": "Success",
