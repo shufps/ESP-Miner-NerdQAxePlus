@@ -50,6 +50,12 @@ jobs:
         echo "${version}" > version.txt
         echo "VERSION_TAG=${version}"
 
+    - name: Insert Version
+      run: |
+        #!/bin/bash
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        find ./main/http_server/axe-os/src/app -type f -name "*.ts" \ -exec sed -i "s|__COMMIT__|${COMMIT_HASH}|g" {} \;
+
     - name: Set Target
       run: |
         # Run the Docker container to build the project

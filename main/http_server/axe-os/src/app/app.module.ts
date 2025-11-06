@@ -27,7 +27,8 @@ import { OtpSessionInterceptor } from './services/otp-session.interceptor';
 
 
 export function createTranslateLoader(http: HttpClient) {
-  return new TranslateHttpLoader(http, './assets/i18n/', '.json');
+  const commit = '__COMMIT__';  // ersetzt z. B. durch "a3f9c12e"
+  return new TranslateHttpLoader(http, './assets/i18n/', `.json?v=${commit}`);
 }
 
 function filterInterceptorRequest(req: HttpRequest<any>): boolean {
