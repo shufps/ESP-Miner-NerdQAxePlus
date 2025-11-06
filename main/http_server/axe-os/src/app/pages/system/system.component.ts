@@ -1,9 +1,13 @@
 import { AfterViewChecked, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
-import { interval, map, catchError, of, Observable, shareReplay, startWith, Subscription, switchMap } from 'rxjs';
+import { interval, map, tap, catchError, of, Observable, shareReplay, startWith, Subscription, switchMap } from 'rxjs';
 import { SystemService } from '../../services/system.service';
 import { WebsocketService } from '../../services/web-socket.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
-import { NbToastrService } from '@nebular/theme';
+import { NbToastrService, NbThemeService } from '@nebular/theme';
+import { TranslateService } from '@ngx-translate/core';
+import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
+import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { LoadingService } from '../../services/loading.service';
 
 @Component({
   selector: 'app-logs',
@@ -24,11 +28,19 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
 
   public stopScroll: boolean = false;
 
+  public logoPrefix : string = "";
+
   constructor(
     private websocketService: WebsocketService,
     private toastrService: NbToastrService,
-    private systemService: SystemService
-  ) {
+    private themeService: NbThemeService,
+    private systemService: SystemService,
+    private loadingService: LoadingService,
+    private translateService: TranslateService,
+    private otpAuth: OtpAuthService,
+  ){
+
+    this.logoPrefix = themeService.currentTheme === 'default' ? '' : '_dark';
 
 
     this.info$ = interval(5000).pipe(
@@ -47,8 +59,15 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
       shareReplay({ refCount: true, bufferSize: 1 })
     );
 
-
+    this.themeService.onThemeChange()
+      .subscribe(themeName => {
+        console.log(themeName);
+        this.logoPrefix = themeName.name === 'default' ? '' : '_dark';
+      }
+    );
   }
+
+
   ngOnDestroy(): void {
     this.websocketSubscription?.unsubscribe();
   }
@@ -82,23 +101,43 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
   }
 
   public restart() {
-    this.systemService.restart().pipe(
-      catchError(error => {
-        this.toastrService.danger(`Failed to restart Device`, 'Error');
-        return of(null);
-      })
-    ).subscribe(res => {
-      if (res !== null) {
-        this.toastrService.success(`Device restarted`, 'Success');
-      }
-    });
+    this.otpAuth.ensureOtp$(
+      "",
+      this.translateService.instant('SECURITY.OTP_TITLE'),
+      this.translateService.instant('SECURITY.OTP_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.systemService.restart("", totp).pipe(
+            // drop session on reboot
+            tap(() => {}),
+            this.loadingService.lockUIUntilComplete()
+          )
+        ),
+        catchError((err: HttpErrorResponse) => {
+          this.toastrService.danger(this.translateService.instant('SYSTEM.RESTART_FAILED'), this.translateService.instant('COMMON.ERROR'));
+          return of(null);
+        })
+      )
+      .subscribe(res => {
+        if (res !== null) {
+          this.toastrService.success(this.translateService.instant('SYSTEM.RESTART_SUCCESS'), this.translateService.instant('COMMON.SUCCESS'));
+        }
+      });
   }
 
   public getRssiTooltip(rssi: number): string {
-    if (rssi <= -85) return 'Signal strength: Very weak (≤ -85 dBm)';
-    if (rssi <= -75) return 'Signal strength: Weak (≤ -75 dBm)';
-    if (rssi <= -65) return 'Signal strength: Moderate (≤ -65 dBm)';
-    if (rssi <= -55) return 'Signal strength: Strong (≤ -55 dBm)';
-    return 'Signal strength: Excellent (> -55 dBm)';
+    if (rssi <= -85) return this.translateService.instant('SYSTEM.SIGNAL_VERY_WEAK');
+    if (rssi <= -75) return this.translateService.instant('SYSTEM.SIGNAL_WEAK');
+    if (rssi <= -65) return this.translateService.instant('SYSTEM.SIGNAL_MODERATE');
+    if (rssi <= -55) return this.translateService.instant('SYSTEM.SIGNAL_STRONG');
+    return this.translateService.instant('SYSTEM.SIGNAL_EXCELLENT');
+  }
+
+
+
+  openLink(url: string): void {
+    // Open external link in a new tab
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 }

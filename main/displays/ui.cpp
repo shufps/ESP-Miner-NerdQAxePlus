@@ -5,6 +5,7 @@
 #include "displayDriver.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "../macros.h"
 
 
 #pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
@@ -12,6 +13,8 @@
 UI::UI() {
     m_last_screen_change_time = 0;
 }
+
+static const char *TAG="ui";
 
 ///////////////////// FUNCTIONS ////////////////////
 
@@ -572,6 +575,83 @@ void UI::globalStatsScreenInit(void)
     lv_obj_set_style_text_font(ui_lblhighFee, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
 
 }
+void UI::createQRScreen(uint8_t *buf, int size) {
+    if (!buf || size <= 0) {
+        ESP_LOGE(TAG, "No QR to draw");
+        return;
+    }
+
+    const int quiet = 4;
+    const int max_px = 160;
+    const int n     = size;                          // modules per side
+    const int scale = std::max(2, max_px / (n + 2*quiet));
+    const int img   = (n + 2*quiet) * scale;         // final pixels per side
+    const size_t bytes = (size_t)img * img * sizeof(lv_color_t);
+
+    // initialize once
+    if (!ui_qrScreen) {
+        ui_qrScreen = lv_obj_create(NULL);
+        lv_obj_clear_flag(ui_qrScreen, LV_OBJ_FLAG_SCROLLABLE);
+
+        // black background
+        lv_obj_set_style_bg_color(ui_qrScreen, lv_color_hex(0x000000), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(ui_qrScreen, 255, LV_PART_MAIN);
+
+        // create canvas for QR code
+        m_qr_canvas_buf = (lv_color_t*) MALLOC(bytes);
+        if (!m_qr_canvas_buf) {
+            ESP_LOGE(TAG, "QR canvas alloc failed: %dx%d = %u bytes", img, img, (unsigned)bytes);
+            return;
+        }
+        m_qr_canvas_w = img;
+
+        m_qr_canvas = lv_canvas_create(ui_qrScreen);
+        lv_canvas_set_buffer(m_qr_canvas, m_qr_canvas_buf, img, img, LV_IMG_CF_TRUE_COLOR);
+
+        // Position QR canvas on the right side of the screen
+        lv_obj_align(m_qr_canvas, LV_ALIGN_RIGHT_MID, -10, 0); // 10 px margin from right, slightly up
+
+        // Create label with instructions (left side of the screen)
+        lv_obj_t *label = lv_label_create(ui_qrScreen);
+        lv_label_set_text(label,"Scan this QR code with your Authenticator App.\n\nPress any button to cancel.");
+        lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
+        lv_obj_set_style_text_font(label, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
+
+        const int screen_w = 320;
+        const int label_area_w = screen_w / 2;
+
+        lv_obj_set_width(label, label_area_w - 20); // small margin inside left half
+        lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+
+        // Align label relative to the parent (screen)
+        lv_obj_align(label, LV_ALIGN_LEFT_MID, 10, 0); // start in left half, 10 px margin
+    }
+
+    // white background
+    lv_draw_rect_dsc_t bg; lv_draw_rect_dsc_init(&bg);
+    bg.bg_color = lv_color_white();
+    lv_canvas_draw_rect(m_qr_canvas, 0, 0, img, img, &bg);
+
+    // draw black modules
+    lv_draw_rect_dsc_t blk; lv_draw_rect_dsc_init(&blk);
+    blk.bg_color = lv_color_black();
+    blk.border_opa = LV_OPA_TRANSP;
+
+    for (int y = 0; y < n; ++y) {
+        for (int x = 0; x < n; ++x) {
+            if (!qrcodegen_getModule(buf, x, y)) continue;
+            const int px = (quiet + x) * scale;
+            const int py = (quiet + y) * scale;
+            lv_canvas_draw_rect(m_qr_canvas, px, py, scale, scale, &blk);
+        }
+    }
+}
+
+void UI::destroyQRScreen() {
+}
+
 
 // Function to show the overlay with an error message and custom colors
 void UI::showErrorOverlay(const char *error_message, uint32_t error_code)
@@ -674,12 +754,15 @@ void UI::init(Board* board)
     lv_theme_t *m_theme =
         lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, m_theme);
-    if (ui_Splash1 == NULL)
-        splash1ScreenInit();
-    // ui_Splash2_screen_init();
-    // ui_Portal_screen_init();
-    // ui_MiningScreen_screen_init();
-    // ui_SettingsScreen_screen_init();
+
+    splash1ScreenInit();
+    splash2ScreenInit();
+    portalScreenInit();
+    miningScreenInit();
+    settingsScreenInit();
+    bTCScreenInit();
+    globalStatsScreenInit();
     // ui_LogScreen_init();
+
     lv_disp_load_scr(ui_Splash1);
 }

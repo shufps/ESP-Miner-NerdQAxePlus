@@ -7,6 +7,7 @@
 #define BM1368_RST_PIN GPIO_NUM_1
 #define LDO_EN_PIN GPIO_NUM_13
 
+#include "periodic.hpp"
 #include "serial.h"
 #include "board.h"
 #include "nerdqaxeplus.h"
@@ -43,6 +44,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_numPhases = 2;
     m_imax = m_numPhases * 30;
     m_ifault = (float) (m_imax - 5);
+
+    m_numFans = 2;
 
     m_maxPin = 70.0;
     m_minPin = 30.0;
@@ -87,6 +90,7 @@ bool NerdQaxePlus::initBoard()
     ESP_LOGI(TAG, "found %d ASIC temp measuring sensors", m_numTempSensors);
 
     EMC2302_init(m_fanInvertPolarity);
+    setFanSpeed(m_fanPerc);
     setFanSpeed(m_fanPerc);
 
     // configure gpios
@@ -177,6 +181,20 @@ void NerdQaxePlus::requestBuckTelemtry() {
     m_tps->status();
 }
 
+void NerdQaxePlus::requestChipTemps() {
+    if (!m_asics) {
+        return;
+    }
+
+    // we need this large interval unfortunately because
+    // measuring takes so long
+    static Periodic every_15s(sec_to_us(15), /*start_immediately=*/false);
+    if (every_15s.due()) {
+        m_asics->requestChipTemp();
+    }
+}
+
+
 void NerdQaxePlus::LDO_enable()
 {
     ESP_LOGI(TAG, "Enabled LDOs");
@@ -199,12 +217,12 @@ bool NerdQaxePlus::setVoltage(float core_voltage)
     return m_tps->set_vout(core_voltage);
 }
 
-void NerdQaxePlus::setFanSpeed(float perc) {
-    EMC2302_set_fan_speed(perc);
+void NerdQaxePlus::setFanSpeedCh(int channel, float perc) {
+    EMC2302_set_fan_speed(channel, perc);
 }
 
-void NerdQaxePlus::getFanSpeed(uint16_t* rpm) {
-    EMC2302_get_fan_speed(rpm);
+void NerdQaxePlus::getFanSpeedCh(int channel, uint16_t* rpm) {
+    EMC2302_get_fan_speed(channel, rpm);
 }
 
 void NerdQaxePlus::setFanPolarity(bool invert) {

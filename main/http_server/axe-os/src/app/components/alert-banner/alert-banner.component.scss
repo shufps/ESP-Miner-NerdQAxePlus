@@ -1,0 +1,23 @@
+.otp-nudge {
+  margin-bottom: 12px;
+}
+.banner-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.banner-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.banner-msg {
+  opacity: .95;
+}
+.dont-show {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  user-select: none;
+}

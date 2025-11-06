@@ -64,9 +64,12 @@ export interface ISystemInfo {
     lastResetReason: string,
     jobInterval: number,
     lastpingrtt: number,
+    recentpingloss: number,
     stratum_keep: number,
     defaultVrFrequency?: number,
     vrFrequency: number,
+
+    defaultTheme: string,
 
     boardtemp1?: number,
     boardtemp2?: number,
@@ -77,5 +80,9 @@ export interface ISystemInfo {
     pidI: number,
     pidD: number,
 
+    asicTemps?: number[],
+
     history: IHistory
+
+    otp: boolean,
 }

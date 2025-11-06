@@ -52,7 +52,9 @@ nb-card-header {
 }
 
 .col-fixed-width {
-  width: 50px;
+  width: 80px;
+  min-width: 80px;
+  flex-shrink: 0;
 }
 .break-all {
   word-break: break-all;

@@ -1,3 +1,4 @@
+#include "global_state.h"
 #include "hashrate_monitor_task.h"
 #include "boards/board.h"
 #include "esp_log.h"
@@ -39,6 +40,13 @@ void HashrateMonitor::setChipHashrate(int nr, float temp) {
     m_chipHashrate[nr] = temp;
 }
 
+float HashrateMonitor::getChipHashrate(int nr) {
+    if (nr < 0 || nr >= m_asicCount) {
+        return 0.0f;
+    }
+    return m_chipHashrate[nr];
+}
+
 float HashrateMonitor::getTotalChipHashrate() {
     float total = 0.0f;
     for (int i=0;i < m_asicCount; i++) {
@@ -55,8 +63,19 @@ void HashrateMonitor::taskWrapper(void *pv)
 
 void HashrateMonitor::publishTotalIfComplete()
 {
-    float hashrate = getTotalChipHashrate();
-    ESP_LOGI(HR_TAG, "total hash reported by chips: %.3f GH/s", hashrate);
+    size_t offset = 0;
+
+    Board* board = SYSTEM_MODULE.getBoard();
+
+    // Iterate through each ASIC and append its count to the log message
+    for (int i = 0; i < board->getAsicCount(); i++) {
+        offset += snprintf(m_logBuffer + offset, sizeof(m_logBuffer) - offset, "%.2fGH/s / ", getChipHashrate(i));
+    }
+    if (offset >= 2) {
+        m_logBuffer[offset - 2] = 0; // remove trailing slash
+    }
+
+    ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, getTotalChipHashrate());
 }
 
 void HashrateMonitor::taskLoop()
@@ -111,7 +130,7 @@ void HashrateMonitor::onRegisterReply(uint8_t asic_idx, uint32_t data_ticks)
     double chip_ghs = (double) data_ticks * 4.096e6 * ERRATA_FACTOR / (double) m_window_us;
 
     if (m_board) {
-        ESP_LOGI(HR_TAG, "hashrate of chip %u: %.3f GH/s", asic_idx, (float) chip_ghs);
+        //ESP_LOGI(HR_TAG, "hashrate of chip %u: %.3f GH/s", asic_idx, (float) chip_ghs);
         setChipHashrate(asic_idx, chip_ghs);
     }
 }

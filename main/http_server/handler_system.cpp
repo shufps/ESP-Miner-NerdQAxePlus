@@ -100,11 +100,20 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
     doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
-    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM();
+    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
     doc["lastpingrtt"]        = get_last_ping_rtt();
+    doc["recentpingloss"]     = get_recent_ping_loss();
     doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
     doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
     doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
+
+    // asic temps
+    {
+        JsonArray arr = doc["asicTemps"].to<JsonArray>();
+        for (int i=0;i<board->getAsicCount();i++) {
+            arr.add(board->getChipTemp(i));
+        }
+    }
 
     // If history was requested, add the history data as a nested object
     if (history_requested) {
@@ -149,6 +158,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["vrFrequency"]        = board->getVrFrequency();
     doc["defaultVrFrequency"] = board->getDefaultVrFrequency();
 #endif
+    doc["otp"]                = Config::isOTPEnabled(); // flag if otp is enabled
 
     // system screen
     doc["ASICModel"]          = board->getAsicModel();
@@ -159,6 +169,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["freeHeapInt"]        = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     doc["version"]            = esp_app_get_description()->version;
     doc["runningPartition"]   = esp_ota_get_running_partition()->label;
+
+    doc["defaultTheme"]       = board->getDefaultTheme();
 
     //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 
@@ -194,35 +206,16 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    int total_len = req->content_len;
-    int cur_len = 0;
-    char *buf = ((rest_server_context_t *) (req->user_ctx))->scratch;
-    int received = 0;
-    if (total_len >= SCRATCH_BUFSIZE) {
-        /* Respond with 500 Internal Server Error */
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
+    if (validateOTP(req) != ESP_OK) {
         return ESP_FAIL;
     }
-    while (cur_len < total_len) {
-        received = httpd_req_recv(req, buf + cur_len, total_len);
-        if (received <= 0) {
-            /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to post control value");
-            return ESP_FAIL;
-        }
-        cur_len += received;
-    }
-    buf[total_len] = '\0';
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
-    // Parse the JSON payload
-    DeserializationError error = deserializeJson(doc, buf);
-    if (error) {
-        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+    esp_err_t err = getJsonData(req, doc);
+    if (err != ESP_OK) {
+        return err;
     }
 
     // Update settings if each key exists in the JSON object.
@@ -332,6 +325,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         Config::setVrFrequency(doc["vrFrequency"].as<uint32_t>());
     }
 #endif
+
+
+
     doc.clear();
 
     // Signal the end of the response
@@ -340,6 +336,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     // Reload settings after update
     Board* board = SYSTEM_MODULE.getBoard();
     board->loadSettings();
+
+    // reload settings of system module (and display)
+    SYSTEM_MODULE.loadSettings();
 
     return ESP_OK;
 }
@@ -371,8 +370,10 @@ esp_err_t GET_system_asic(httpd_req_t *req)
     doc["defaultVoltage"]   = board->getDefaultAsicVoltageMillis();
     doc["absMaxFrequency"]  = board->getAbsMaxAsicFrequency();
     doc["absMaxVoltage"]    = board->getAbsMaxAsicVoltageMillis();
+    doc["ecoFrequency"]     = board->getEcoAsicFrequency();
+    doc["ecoVoltage"]       = board->getEcoAsicVoltageMillis();
 
-    doc["swarmColor"] = board->getSwarmColorName();
+    doc["swarmColor"]       = board->getSwarmColorName();
 
     // frequencyOptions
     {

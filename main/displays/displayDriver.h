@@ -67,16 +67,37 @@
 class System;
 
 class DisplayDriver {
+  public:
+    // display state machine
+    enum class UiState : uint8_t {
+        Splash1,
+        Splash2,
+        Wait,
+        Portal,
+        Mining,
+        SettingsScreen,
+        BTCScreen,
+        GlobalStats,
+        ShowQR,
+        NOP
+    };
+
   protected:
+    UiState m_state = UiState::NOP;
+    int64_t m_stateStart_us = 0;
+
+    pthread_mutex_t m_lvglMutex;
     bool m_animationsEnabled;   // Flag for enabling animations
-    bool m_button1PressedFlag;  // Flag indicating button 1 is pressed
-    bool m_button2PressedFlag;  // Flag indicating button 2 is pressed
     int64_t m_lastKeypressTime; // Time of the last keypress event
     bool m_displayIsOn;         // Flag indicating if the display is currently on
-    int m_screenStatus;         // Current screen status
     int m_nextScreen;           // The next screen to display
     bool m_isActiveOverlay;     // flag if we have an overlay. LED light is forced to be on
     char m_portalWifiName[30];  // WiFi name displayed on the portal screen
+
+    // cache settings to not hammer the NVS
+    bool m_isAutoScreenOffEnabled;
+    uint16_t m_tempControlMode;
+    uint16_t m_fanSpeed;
 
     lv_obj_t *m_countdownLabel = nullptr; // Label object for the countdown timer
     bool m_countdownActive = false;       // Flag for countdown timer activity
@@ -97,8 +118,8 @@ class DisplayDriver {
     void updateBTCprice(void);
 
     // Display-related functions
-    void displayTurnOff();         // Turn off the display
-    void displayTurnOn();          // Turn on the display
+    bool displayTurnOff();         // Turn off the display
+    bool displayTurnOn();          // Turn on the display
     void startCountdown();         // Start the screen countdown timer
     void displayHideCountdown();   // Hide the countdown overlay
     void checkAutoTurnOffScreen(); // Check if the screen should auto-turn off
@@ -106,43 +127,54 @@ class DisplayDriver {
 
     // Button initialization and handling
     void buttonsInit();                    // Initialize GPIO buttons
-    static void button1IsrHandler(void *); // ISR handler for button 1
-    static void button2IsrHandler(void *); // ISR handler for button 2
+
 
     // Screen switching logic
-    void changeScreen();   // Change between screens
-    void updateBtcPrice(); // Update Bitcoin price on the screen
-    void updateGlobalMiningStats(); // Update Global mining stats
+    void changeScreen(uint64_t now);   // Change between screens
+    void updateBtcPrice();             // Update Bitcoin price on the screen
+    void updateGlobalMiningStats();    // Update Global mining stats
 
     // LVGL task handling
     void mainCreatSysteTasks();                    // Creates system tasks for LVGL
     static void lvglTimerTaskWrapper(void *param); // Wrapper for LVGL timer task
     void lvglTimerTask(void *param);               // LVGL timer task implementation
 
+    // display state machine
+    bool enterState(UiState s, int64_t now);
+    void updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress);
+
+    bool ledControl(bool btn1, bool btn2);        // returns true if LED was switched on/off
+
     // Display initialization
     lv_obj_t *initTDisplayS3(); // Initialize the TDisplay S3
+
+    void updateHashrate(System *module, float power);               // Update the hashrate display
+    void updateShares(System *module);                              // Update the shares information on the display
+    void updateTime(System *module);                                // Update the time display
+    void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
+
+    void hideFoundBlockOverlay();
 
   public:
     // Constructor
     DisplayDriver();
-
     // Public methods
     void init(Board *board);                                        // Initialize the display system
-    void updateHashrate(System *module, float power);               // Update the hashrate display
-    void updateShares(System *module);                              // Update the shares information on the display
-    void updateTime(System *module);                                // Update the time display
-    void updateGlobalState();                                       // Update the global state on the display
-    void updateCurrentSettings();                                   // Update the current settings screen
-    void updateIpAddress(const char *ipAddressStr);                 // Update the displayed IP address
-    void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
-    void refreshScreen();                                           // Refresh the display
-    void logMessage(const char *message);                           // Log a message to the display
-    void miningScreen();                                            // Switch to the mining screen
-    void portalScreen(const char *message);                         // Switch to the portal screen
     void updateWifiStatus(const char *message);                     // Update the WiFi status on the display
+    void portalScreen(const char *message);                         // Switch to the portal screen
     void showError(const char *error_message, uint32_t error_code); // Show generic error
     void hideError();                                               // Hide error overlay
-
+    void miningScreen();                                            // Switch to the mining screen
+    void updateIpAddress(const char *ipAddressStr);                 // Update the displayed IP address
     void showFoundBlockOverlay();
-    void hideFoundBlockOverlay();
+    void updateGlobalState();                                       // Update the global state on the display
+    void updateCurrentSettings();                                   // Update the current settings screen
+    void refreshScreen();                                           // Refresh the display
+    void logMessage(const char *message);                           // Log a message to the display
+    void waitForSplashs();
+    void loadSettings();                                            // (re)load settings
+
+    UiState getState() {
+      return m_state;
+    }
 };

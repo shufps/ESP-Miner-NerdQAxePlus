@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -14,6 +15,9 @@ Board::Board() {
     m_absMaxAsicVoltageMillis = 0;
     m_vrFrequency = m_defaultVrFrequency = 0;
     m_hasHashCounter = false;
+    m_ecoAsicFrequency = 0;
+    m_ecoAsicVoltageMillis = 0;
+    m_numFans = 1;
 }
 
 void Board::loadSettings()
@@ -21,8 +25,11 @@ void Board::loadSettings()
     m_fanPerc = Config::getFanSpeed();
 
     // default values are initialized in the constructor of each board
-    m_asicFrequency = Config::getAsicFrequency(m_asicFrequency);
-    m_asicVoltageMillis = Config::getAsicVoltage(m_asicVoltageMillis);
+
+    // clamp frequency and voltage to absMax values
+    m_asicFrequency = std::min((int) Config::getAsicFrequency(m_asicFrequency), m_absMaxAsicFrequency);
+    m_asicVoltageMillis = std::min((int) Config::getAsicVoltage(m_asicVoltageMillis), m_absMaxAsicVoltageMillis);
+
     m_asicJobIntervalMs = Config::getAsicJobInterval(m_asicJobIntervalMs);
     m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
     m_fanAutoPolarity = Config::isAutoFanPolarityEnabled(m_fanAutoPolarity);
@@ -51,6 +58,17 @@ void Board::setChipTemp(int nr, float temp) {
         return;
     }
     m_chipTemps[nr] = temp;
+}
+
+float Board::getChipTemp(int nr) {
+    if (nr < 0 || nr >= m_asicCount) {
+        return 0.0f;
+    }
+    return m_chipTemps[nr];
+}
+
+void Board::requestChipTemps() {
+    // NOP
 }
 
 float Board::getMaxChipTemp() {
@@ -122,13 +140,13 @@ FanPolarityGuess Board::guessFanPolarity() {
     // Test low speed
     setFanSpeed(lowPWM);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
-    getFanSpeed(&rpmLow);
+    getFanSpeedCh(0, &rpmLow);
     ESP_LOGI("polarity", "set %.2f%% read: %d", lowPWM, rpmLow);
 
     // Test high speed
     setFanSpeed(highPWM);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
-    getFanSpeed(&rpmHigh);
+    getFanSpeedCh(0, &rpmHigh);
     ESP_LOGI("polarity", "set %.2f%% read: %d", highPWM, rpmHigh);
 
     // Reset to mid-range to be safe

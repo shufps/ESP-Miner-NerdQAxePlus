@@ -10,7 +10,7 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_asicCount = 4;
     m_numPhases = 3;
     m_imax = m_numPhases * 30;
-    m_ifault = (float) (m_imax - 5);
+    m_ifault = (float) (m_imax + 5);
 
     m_asicJobIntervalMs = 500;
     m_asicFrequencies = {500, 515, 525, 550, 575, 590, 600};
@@ -51,3 +51,6 @@ float NerdQaxePlus2::getTemperature(int index) {
     return temp + 10.0f; // offset of 10°C
 }
 
+void NerdQaxePlus2::requestChipTemps() {
+    // NOP
+}

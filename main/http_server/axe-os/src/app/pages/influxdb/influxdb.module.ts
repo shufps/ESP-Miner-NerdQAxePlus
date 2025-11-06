@@ -1,7 +1,8 @@
 import { NgModule } from '@angular/core';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { NbCardModule, NbButtonModule, NbCheckboxModule, NbInputModule } from '@nebular/theme';
+import { NbCardModule, NbButtonModule, NbCheckboxModule, NbInputModule, NbTooltipModule } from '@nebular/theme';
+import { TranslateModule } from '@ngx-translate/core';
 import { InfluxdbComponent } from './influxdb.component';
 
 @NgModule({
@@ -15,7 +16,9 @@ import { InfluxdbComponent } from './influxdb.component';
     NbCardModule,
     NbButtonModule,
     NbCheckboxModule,
-    NbInputModule
+    NbInputModule,
+    NbTooltipModule,
+    TranslateModule
   ],
   exports: [
     InfluxdbComponent

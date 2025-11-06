@@ -51,6 +51,18 @@ void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout
     pthread_mutex_unlock(&influxdb->m_lock);
 }
 
+void influx_set_fan(float pwm0, float rpm0, float pwm1, float rpm1) {
+    if (!influxdb) {
+        return;
+    }
+    pthread_mutex_lock(&influxdb->m_lock);
+    influxdb->m_stats.fan_pwm_0 = pwm0;
+    influxdb->m_stats.fan_rpm_0 = rpm0;
+    influxdb->m_stats.fan_pwm_1 = pwm1;
+    influxdb->m_stats.fan_rpm_1 = rpm1;
+    pthread_mutex_unlock(&influxdb->m_lock);
+}
+
 static void influx_task_fetch_from_system_module(System *module)
 {
     // fetch best difficulty
@@ -83,6 +95,9 @@ static void influx_task_fetch_from_system_module(System *module)
 
     // Ping RTT
     influxdb->m_stats.last_ping_rtt = get_last_ping_rtt();
+
+    // Recent ping packet loss ratio
+    influxdb->m_stats.recent_ping_loss = get_recent_ping_loss();
 
     // found blocks
     int found = module->getFoundBlocks();

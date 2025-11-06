@@ -19,13 +19,14 @@
 #include "handler_restart.h"
 #include "handler_file.h"
 #include "handler_alert.h"
+#include "handler_otp.h"
 #include "macros.h"
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
-
+bool enter_recovery = false;
 
 static const char *TAG = "http_server";
 
@@ -49,6 +50,7 @@ static esp_err_t rest_recovery_handler(httpd_req_t *req)
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
+    httpd_resp_set_type(req, "text/html; charset=UTF-8");
     httpd_resp_send(req, recovery_page, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
@@ -89,7 +91,6 @@ esp_err_t start_rest_server(void * pvParameters)
 {
     const char *base_path = "";
 
-    bool enter_recovery = false;
     if (init_fs() != ESP_OK) {
         // Unable to initialize the web app filesystem.
         // Enter recovery mode
@@ -113,7 +114,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.max_uri_handlers = 20;
+    config.max_uri_handlers = 30;
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
     config.stack_size = 12288;
@@ -187,6 +188,22 @@ esp_err_t start_rest_server(void * pvParameters)
     };
     httpd_register_uri_handler(http_server, &system_options_uri);
 
+    httpd_uri_t update_otp_uri = {
+        .uri = "/api/otp", .method = HTTP_PATCH, .handler = PATCH_update_otp, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &update_otp_uri);
+
+    httpd_uri_t post_otp_uri = {
+        .uri = "/api/otp", .method = HTTP_POST, .handler = POST_create_otp, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &post_otp_uri);
+
+    httpd_uri_t post_otp_session_uri = {
+        .uri = "/api/otp/session", .method = HTTP_POST, .handler = POST_create_otp_session, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &post_otp_session_uri);
+
+    httpd_uri_t get_otp_status = {
+        .uri = "/api/otp/status", .method = HTTP_GET, .handler = GET_otp_status, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &get_otp_status);
+
     /* URI handler for fetching Discord alert settings */
     httpd_uri_t alert_info_get_uri = {
         .uri = "/api/alert/info", .method = HTTP_GET, .handler = GET_alert_info, .user_ctx = rest_context};
@@ -213,6 +230,22 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_uri_t ws = {.uri = "/api/ws", .method = HTTP_GET, .handler = echo_handler, .user_ctx = NULL, .is_websocket = true};
     httpd_register_uri_handler(http_server, &ws);
+
+    httpd_uri_t update_post_ota_from_url = {
+        .uri = "/api/system/OTA/github", .method = HTTP_POST, .handler = POST_OTA_update_from_url, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &update_post_ota_from_url);
+
+    httpd_uri_t update_get_ota_status = {
+        .uri = "/api/system/OTA/github", .method = HTTP_GET, .handler = GET_OTA_status, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &update_get_ota_status);
+
+    httpd_uri_t update_ota_github_options_uri = {
+        .uri = "/api/system/OTA/github",
+        .method = HTTP_OPTIONS,
+        .handler = handle_options_request,
+        .user_ctx = NULL
+    };
+    httpd_register_uri_handler(http_server, &update_ota_github_options_uri);
 
     if (enter_recovery) {
         /* Make default route serve Recovery */

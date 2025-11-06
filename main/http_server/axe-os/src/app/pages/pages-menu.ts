@@ -27,6 +27,10 @@ export const MENU_ITEMS: NbMenuItem[] = [
     icon: 'bell-outline',
     link: '/pages/alert',
   },
+  { title: 'Security',
+    icon: 'shield-outline',
+    link: '/pages/security',
+  },
   {
     title: 'System',
     icon: 'menu-outline',

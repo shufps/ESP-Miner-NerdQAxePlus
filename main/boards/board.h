@@ -28,6 +28,7 @@ class Board {
     uint32_t m_vrFrequency;
     uint32_t m_defaultVrFrequency;
     bool m_hasHashCounter;
+    const char *m_defaultTheme = "cosmic";
 
     PidSettings m_pidSettings;
 
@@ -45,6 +46,10 @@ class Board {
     // default settings
     int m_defaultAsicFrequency;
     int m_defaultAsicVoltageMillis;
+
+    // default settings
+    int m_ecoAsicFrequency;
+    int m_ecoAsicVoltageMillis;
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
@@ -66,6 +71,8 @@ class Board {
     float m_minPin;
     float m_maxVin;
     float m_minVin;
+
+    int m_numFans;
 
     // display m_theme
     Theme *m_theme = nullptr;
@@ -98,9 +105,16 @@ class Board {
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
     virtual void setFanPolarity(bool invert) = 0;
-    virtual void setFanSpeed(float perc) = 0;
-    virtual void getFanSpeed(uint16_t *rpm) = 0;
+    virtual void setFanSpeedCh(int channel, float perc) = 0;
+    virtual void setFanSpeed(float perc) {
+        for (int i=0;i<getNumFans();i++) {
+            setFanSpeedCh(i, perc);
+        }
+    }
+    virtual void getFanSpeedCh(int channel, uint16_t *rpm) = 0;
     FanPolarityGuess guessFanPolarity();
+
+    virtual int getNumFans() { return m_numFans; }
 
     virtual float getTemperature(int index) = 0;
     virtual float getVRTemp() = 0;
@@ -114,9 +128,11 @@ class Board {
     virtual float getPout() = 0;
 
     virtual void requestBuckTelemtry() = 0;
+    virtual void requestChipTemps();
 
     void setChipTemp(int nr, float temp);
     float getMaxChipTemp();
+    float getChipTemp(int nr);
 
     virtual void shutdown() = 0;
 
@@ -178,6 +194,16 @@ class Board {
     int getDefaultAsicFrequency()
     {
         return m_defaultAsicFrequency;
+    }
+
+    int getEcoAsicVoltageMillis()
+    {
+        return m_ecoAsicVoltageMillis;
+    }
+
+    int getEcoAsicFrequency()
+    {
+        return m_ecoAsicFrequency;
     }
 
     uint32_t getDefaultVrFrequency() {
@@ -251,6 +277,10 @@ class Board {
 
     virtual bool hasHashrateCounter() {
         return m_hasHashCounter;
+    }
+
+    const char* getDefaultTheme() {
+        return m_defaultTheme;
     }
 
 };

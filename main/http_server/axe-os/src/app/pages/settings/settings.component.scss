@@ -2,91 +2,356 @@ input[type="text"],
 input[type="number"],
 input[type="password"],
 input[type="range"] {
-    min-width: 250px;
-    max-width: 90%;
+  min-width: 250px;
+  max-width: 90%;
 }
 
 select {
-    min-width: 268px;
-    max-width: 90%;
+  min-width: 268px;
+  max-width: 90%;
 }
 
 .restart {
-    margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
 
 }
 
 @media only screen and (min-width:900px) {
 
-    input[type="text"],
-    input[type="password"],
-    input[type="number"],
-    input[type="range"] {
-        min-width: 500px
-    }
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  input[type="range"] {
+    min-width: 500px
+  }
 
-    select {
-        min-width: 518px
-    }
+  select {
+    min-width: 518px
+  }
 }
 
 a {
-    color: white;
+  color: white;
 }
 
 .pro-mode-warning {
-    background-color: #ffcccb;
-    color: #b22222;
-    border: 1px solid #b22222;
-    padding: 10px;
-    margin: 10px 0;
-    text-align: center;
-    font-weight: bold;
-    border-radius: 5px;
-  }
+  background-color: #ffcccb;
+  color: #b22222;
+  border: 1px solid #b22222;
+  padding: 10px;
+  margin: 10px 0;
+  text-align: center;
+  font-weight: bold;
+  border-radius: 5px;
+}
 
 
-  .cards-container {
+.cards-container {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  /* Ensures cards wrap on smaller screens */
+}
+
+.card-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 300px;
+  /* Prevents cards from getting too narrow */
+}
+
+.card-item nb-card-body {
+  flex: 1;
+  /* Makes the card body fill available vertical space */
+}
+
+.action-buttons button {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.upload-overlay {
+  position: fixed;
+  /* changed from absolute to fixed */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(255, 255, 255, 0.8);
+  /* semi-transparent overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  /* high z-index to ensure it's on top */
+}
+
+.progress-box {
+  text-align: center;
+  width: 400px;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.progress-text {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #333;
+  margin-top: 10px;
+}
+
+.progress-label {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 8px;
+}
+
+// Version card styles
+.version-card {
+  .version-header {
     display: flex;
-    gap: 1rem;
-    flex-wrap: wrap; /* Ensures cards wrap on smaller screens */
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
   }
-  .card-item {
-    flex: 1;
+
+  .version-info {
+    .version-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      padding: 0.5rem;
+      background-color: rgba(0, 0, 0, 0.02);
+      border-radius: 4px;
+
+      strong {
+        margin-right: 1rem;
+      }
+
+      .assets-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-top: 0.5rem;
+
+        small {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-family: monospace;
+
+          .badge-match {
+            color: #00d68f;
+            font-weight: bold;
+            font-size: 0.9em;
+          }
+        }
+      }
+    }
+
+    .changelog-section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+
+      .changelog-content {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: rgba(0, 0, 0, 0.02);
+        border-radius: 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        font-size: 0.9em;
+        line-height: 1.6;
+
+        h2,
+        h3,
+        h4 {
+          margin-top: 1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        strong {
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}
+
+// Update section styles
+.update-section {
+  margin-bottom: 1.5rem;
+
+  h6 {
+    margin-bottom: 0.75rem;
+    color: var(--text-hint-color);
+    font-weight: 600;
+  }
+
+  .update-step-label {
+    margin-top: 0.5rem;
+    font-size: 0.85em;
+    color: var(--text-hint-color);
+    font-style: italic;
+  }
+
+  .update-status-message {
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    background-color: rgba(51, 102, 255, 0.1);
+    border-left: 3px solid #3366ff;
+    border-radius: 4px;
+
+    small {
+      color: #3366ff;
+      font-weight: 500;
+      font-style: italic;
+    }
+  }
+}
+
+// Update steps indicator
+.update-steps {
+  display: flex;
+  justify-content: space-around;
+  margin: 1.5rem 0;
+
+  .step {
     display: flex;
     flex-direction: column;
-    min-width: 300px; /* Prevents cards from getting too narrow */
-  }
-  .card-item nb-card-body {
-    flex: 1; /* Makes the card body fill available vertical space */
-  }
-
-  .action-buttons button {
-    margin-right: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .upload-overlay {
-    position: fixed; /* changed from absolute to fixed */
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(255, 255, 255, 0.8); /* semi-transparent overlay */
-    display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 9999; /* high z-index to ensure it's on top */
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+
+    nb-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    span {
+      font-size: 0.85em;
+      text-align: center;
+    }
+
+    &.active {
+      opacity: 1;
+      color: #3366ff;
+
+      nb-icon {
+        animation: pulse 1s infinite;
+      }
+    }
+
+    &.completed {
+      opacity: 1;
+      color: #00d68f;
+    }
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
   }
 
-  .progress-box {
-    text-align: center;
-    width: 300px;
+  50% {
+    transform: scale(1.1);
   }
+}
 
-  .progress-text {
-    font-size: 1.5em;
-    font-weight: bold;
-    color: #333;
-    margin-top: 10px;
+/* Make the wrapper positioning context for the label */
+.progress-wrapper {
+  height: 50px;
+  position: relative;
+}
+
+/* Center the label over the bar */
+.progress-label {
+  inset: 0;
+  position: relative;
+  top: -33px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  /* clicks go through to underlying controls */
+  font-size: 0.85rem;
+  font-weight: 600;
+
+}
+
+:host ::ng-deep nb-progress-bar .progress-container {
+  margin-top: 10px;
+  height: 30px;
+  border-radius: 4px;
+}
+
+:host ::ng-deep nb-progress-bar .progress-value {
+  border-radius: 4px;
+}
+
+/* Make the trigger a bit wider */
+.release-select nb-select {
+  min-width: 280px;
+}
+
+/* Prevent line breaks inside the options (overlay content) */
+:host ::ng-deep nb-option,
+:host ::ng-deep nb-option .option-content {
+  white-space: nowrap;
+}
+
+/* Optional: don't constrain overlay width */
+:host ::ng-deep .cdk-overlay-pane {
+  max-width: none;
+}
+
+.release-row {
+  .release-select {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
   }
+}
+
+.changelog-content {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+}
+
+.release-select label {
+  padding-top: 8px;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.version-info {
+  margin-top: 10px;
+}
+
+.keep-config-toggle {
+  margin-top: 3px;
+  margin-left: 20px;
+  margin-right: 10px;
+}
+
+.release-checkbox-row {
+  display: flex;
+  justify-content: flex-end; /* align checkbox to the right */
+  margin-top: 0.5rem;        /* small vertical gap if needed */
+  margin-right: 10px;
+
+}
+

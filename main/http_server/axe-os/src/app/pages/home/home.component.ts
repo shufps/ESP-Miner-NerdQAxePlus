@@ -8,6 +8,8 @@ import { ElementRef, ViewChild } from "@angular/core";
 import { TimeScale} from "chart.js/auto";
 import { NbThemeService } from '@nebular/theme';
 import { NbTrigger } from '@nebular/theme';
+import { TranslateService } from '@ngx-translate/core';
+import { LocalStorageService } from '../../services/local-storage.service';
 
 @Component({
   selector: 'app-home',
@@ -23,6 +25,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private themeSubscription: any;
   private chartInitialized = false;
   private _info : any;
+  private timeFormatListener: any;
 
   private wasLoaded = false;
 
@@ -39,8 +42,12 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public dataData1d: number[] = [];
   public chartData?: any;
 
+  public hasChipTemps: boolean = false;
+  public viewMode: 'gauge' | 'bars' = 'bars'; // default to bars
+
   private localStorageKey = 'chartData';
   private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
+  private tempViewKey = 'tempViewMode';
 
   ngAfterViewChecked(): void {
     // Ensure chart is initialized only once when the canvas becomes available
@@ -64,19 +71,27 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   constructor(
     private themeService: NbThemeService,
-    private systemService: SystemService
+    private systemService: SystemService,
+    private translateService: TranslateService,
+    private localStorage: LocalStorageService
   ) {
     const documentStyle = getComputedStyle(document.documentElement);
     const bodyStyle = getComputedStyle(document.body);
     const textColor = bodyStyle.getPropertyValue('--card-text-color');
     const textColorSecondary = bodyStyle.getPropertyValue('--card-text-color');
 
+    // Load persisted view mode early (falls vorhanden)
+    const persisted = this.localStorage.getItem(this.tempViewKey);
+    if (persisted === 'gauge' || persisted === 'bars') {
+      this.viewMode = persisted as 'gauge' | 'bars';
+    }
+
     this.chartData = {
       labels: [],
       datasets: [
         {
           type: 'line',
-          label: 'Hashrate 10m',
+          label: this.translateService.instant('HOME.HASHRATE_10M'),
           data: this.dataData10m,
           fill: false,
           backgroundColor: '#6484f6',
@@ -87,7 +102,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         {
           type: 'line',
-          label: 'Hashrate 1h',
+          label: this.translateService.instant('HOME.HASHRATE_1H'),
           data: this.dataData1h,
           fill: false,
           backgroundColor: '#7464f6',
@@ -98,7 +113,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         {
           type: 'line',
-          label: 'Hashrate 1d',
+          label: this.translateService.instant('HOME.HASHRATE_1D'),
           data: this.dataData1d,
           fill: false,
           backgroundColor: '#a564f6',
@@ -121,6 +136,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         tooltip: {
           callbacks: {
+            title: (context: any) => {
+              const date = new Date(context[0].parsed.x);
+              const format = this.localStorage.getItem('timeFormat') === '12h';
+              return format
+                ? date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric' })
+                : date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, month: 'short', day: 'numeric' });
+            },
             label: (x: any) => `${x.dataset.label}: ${HashSuffixPipe.transform(x.raw)}`
           }
         },
@@ -130,6 +152,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           type: 'time',
           time: {
             unit: 'hour',
+            displayFormats: {
+              hour: this.localStorage.getItem('timeFormat') === '12h' ? 'h:mm A' : 'HH:mm'
+            }
           },
           ticks: {
             color: textColorSecondary
@@ -197,6 +222,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         info.coreVoltage = parseFloat((info.coreVoltage / 1000).toFixed(2));
         info.temp = parseFloat(info.temp.toFixed(1));
         info.vrTemp = parseFloat(info.vrTemp.toFixed(1));
+        info.overheat_temp = parseFloat(info.overheat_temp.toFixed(1));
+
+        const chipTemps = info?.asicTemps ?? [];
+        this.hasChipTemps =
+          Array.isArray(chipTemps) &&
+          chipTemps.length > 0 &&
+          chipTemps.some(v => v != null && !Number.isNaN(Number(v)) && Number(v) !== 0);
 
         return info;
       }),
@@ -238,6 +270,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       return `https://solohash.co.uk/user/${address}`;
     } else if (stratumURL.includes('parasite.wtf')) {
       return `https://parasite.space/user/${address}`;
+    } else if (stratumURL.includes('solomining.de')) {
+      return `https://pool.solomining.de/#/app/${address}`;
     }
     return stratumURL.startsWith('http') ? stratumURL : `http://${stratumURL}`;
   }
@@ -246,9 +280,38 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.themeSubscription = this.themeService.getJsTheme().subscribe(() => {
       this.updateThemeColors();
     });
+
+    // Listen for timeFormat changes
+    this.timeFormatListener = () => {
+      this.updateTimeFormat();
+    };
+    window.addEventListener('timeFormatChanged', this.timeFormatListener);
   }
 
   ngOnDestroy(): void {
+    if (this.timeFormatListener) {
+      window.removeEventListener('timeFormatChanged', this.timeFormatListener);
+    }
+  }
+
+  public updateTimeFormat(): void {
+    const timeFormat = this.localStorage.getItem('timeFormat') === '12h' ? 'h:mm A' : 'HH:mm';
+    if (this.chartOptions.scales?.x?.time?.displayFormats) {
+      this.chartOptions.scales.x.time.displayFormats.hour = timeFormat;
+
+      // Update tooltip format as well
+      this.chartOptions.plugins.tooltip.callbacks.title = (context: any) => {
+        const date = new Date(context[0].parsed.x);
+        const format = this.localStorage.getItem('timeFormat') === '12h';
+        return format
+          ? date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric' })
+          : date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, month: 'short', day: 'numeric' });
+      };
+
+      if (this.chart) {
+        this.chart.update();
+      }
+    }
   }
 
   private importHistoricalData(data: any) {
@@ -393,6 +456,18 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.chart.options = this.chartOptions;
       this.chart.update();
     }
+  }
+
+  // Toggle only if feature exists, then persist
+  public onTempViewClick(event: Event): void {
+    // Prevent toggling when chip temps aren't available
+    if (!this.hasChipTemps) return;
+
+    // Toggle mode
+    this.viewMode = this.viewMode === 'bars' ? 'gauge' : 'bars';
+
+    // Persist to local storage
+    this.localStorage.setItem(this.tempViewKey, this.viewMode);
   }
 }
 

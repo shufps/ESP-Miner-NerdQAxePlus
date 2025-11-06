@@ -6,6 +6,8 @@ import { SystemService } from '../../services/system.service';
 import { Chart } from 'chart.js/auto'; // Ensure Chart.js is properly imported
 import { GaugeModule } from '../../components/gauge/gauge.module';
 import { PipesModule} from '../../pipes/pipes.module';
+import { TranslateModule } from '@ngx-translate/core';
+import { AsicTempBarsModule } from 'src/app/components/asic-temp-bars/asic-temp-bars.module';
 
 @NgModule({
   declarations: [
@@ -22,6 +24,8 @@ import { PipesModule} from '../../pipes/pipes.module';
     NbBadgeModule,
     NbAlertModule,
     NbTooltipModule,
+    TranslateModule,
+    AsicTempBarsModule,
   ],
   providers: [
     SystemService

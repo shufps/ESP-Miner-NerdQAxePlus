@@ -60,11 +60,12 @@ import { Component, Input } from '@angular/core';
         fill: none;
         stroke: var(--gauge-bg, #304562);
         stroke-width: 14;
+        opacity: 0.45;
       }
 
       .gauge-value {
         fill: none;
-        stroke: var(--gauge-value-color, #64B5F6);
+        stroke: #2d8ad7;
         stroke-width: 14;
         transition: stroke-dashoffset 0.5s ease-in-out;
       }

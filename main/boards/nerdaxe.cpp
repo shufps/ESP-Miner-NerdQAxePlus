@@ -42,6 +42,8 @@ NerdAxe::NerdAxe() : Board() {
     m_asicVoltages = {1100, 1150, 1200, 1250, 1300};
     m_defaultAsicFrequency = m_asicFrequency = 485;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1200;
+    m_absMaxAsicFrequency = 650;
+    m_absMaxAsicVoltageMillis = 1400;
     m_fanInvertPolarity = true;
     m_fanPerc = 100;
     m_flipScreen = true;
@@ -199,15 +201,17 @@ bool NerdAxe::setVoltage(float core_voltage)
     return true;
 }
 
-void NerdAxe::setFanSpeed(float perc) {
-    EMC2101_set_fan_speed(perc);
+void NerdAxe::setFanSpeedCh(int channel, float perc) {
+    if (channel == 0) {
+        EMC2101_set_fan_speed(perc);
+    }
 }
 
 void NerdAxe::setFanPolarity(bool invert) {
     EMC2101_set_fan_polarity(invert);
 }
 
-void NerdAxe::getFanSpeed(uint16_t* rpm) {
+void NerdAxe::getFanSpeedCh(int channel, uint16_t* rpm) {
     *rpm = EMC2101_get_fan_speed();
 }
 

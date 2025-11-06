@@ -1,36 +1,36 @@
 <ng-template #loading>
-  <h4>Loading...</h4>
+  <h4>{{ 'COMMON.LOADING' | translate }}</h4>
 </ng-template>
 
 <ng-container *ngIf="form != null; else loading">
 
   <form [formGroup]="form">
     <nb-card>
-      <nb-card-header>Discord Alerts</nb-card-header>
+      <nb-card-header>{{ 'DISCORD.TITLE' | translate }}</nb-card-header>
 
       <nb-card-body>
         <div class="form-row mb-2">
-          Configure which Discord alerts you want to receive. The webhook is used for all selected topics.
+          {{ 'DISCORD.CONFIGURE_DESCRIPTION' | translate }}
         </div>
 
         <!-- Checkboxes with inline descriptions -->
         <div class="form-row">
           <nb-checkbox formControlName="alertDiscordWatchdogEnable" class="cb-line">
-            <span class="cb-title">Miner watchdog triggered</span>
-            <span class="cb-desc">— triggers if the device reboots after failing to submit a share for 1 hour.</span>
+            <span class="cb-title">{{ 'DISCORD.MINER_WATCHDOG' | translate }}</span>
+            <span class="cb-desc">— {{ 'DISCORD.MINER_WATCHDOG_DESC' | translate }}</span>
           </nb-checkbox>
         </div>
 
         <div class="form-row">
           <nb-checkbox formControlName="alertDiscordBlockFoundEnable" class="cb-line">
-            <span class="cb-title">Block found</span>
-            <span class="cb-desc">— triggers when your miner finds a block.</span>
+            <span class="cb-title">{{ 'DISCORD.BLOCK_FOUND' | translate }}</span>
+            <span class="cb-desc">— {{ 'DISCORD.BLOCK_FOUND_DESC' | translate }}</span>
           </nb-checkbox>
         </div>
 
         <!-- Webhook -->
         <div class="form-row mt-3">
-          <label for="alertDiscordWebhook" class="form-label">Webhook URL:</label>
+          <label for="alertDiscordWebhook" class="form-label">{{ 'DISCORD.WEBHOOK_URL' | translate }}:</label>
           <div class="form-control-wrapper">
             <input
               nbInput
@@ -39,17 +39,17 @@
               formControlName="alertDiscordWebhook"
               placeholder="https://discord.com/api/webhooks/..."
             /><br />
-            <small>Webhook from your Discord channel integration</small>
+            <small>{{ 'DISCORD.WEBHOOK_HELP' | translate }}</small>
           </div>
         </div>
 
         <!-- Actions -->
         <div class="d-flex align-items-center justify-content-between mt-3">
           <div>
-            <button nbButton size="small" (click)="save()" status="danger">Save</button>
+            <button nbButton size="small" (click)="save()" status="danger">{{ 'COMMON.SAVE' | translate }}</button>
           </div>
           <div>
-            <button nbButton size="small" (click)="sendTest()" status="info">Test</button>
+            <button nbButton size="small" (click)="sendTest()" status="info">{{ 'DISCORD.TEST' | translate }}</button>
           </div>
         </div>
       </nb-card-body>
