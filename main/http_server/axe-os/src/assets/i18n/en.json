@@ -330,7 +330,10 @@
     "RELEASE_AND_UPDATE": "Release & Update",
     "EXPECTED_FILE": "Expected file",
     "SELECT_RELEASE": "Select release",
-    "FILENAME": "Filename"
+    "FILENAME": "Filename",
+    "KEEP_CONFIG": "Keep Settings",
+    "SHOW_PRERELEASES": "Show pre-releases",
+    "KEEP_SETTINGS_DISABLED": "Resetting settings is not yet available."
   },
   "TOAST": {
     "SUCCESS": "Success",

@@ -42,9 +42,12 @@
       <hr>
 
       <!-- Row: Selector + prerelease toggle -->
+      <!-- Row: Selector -->
       <div class="release-row">
         <div class="release-select">
-          <label class="release-label"><strong>{{ 'UPDATE.SELECT_RELEASE' | translate }}:</strong></label>
+          <label class="release-label">
+            <strong>{{ 'UPDATE.SELECT_RELEASE' | translate }}:</strong>
+          </label>
           <nb-select [selected]="selectedRelease?.id" (selectedChange)="onSelectReleaseId($event)"
             placeholder="Select release" [disabled]="isOneClickUpdate">
             <nb-option *ngFor="let r of (releases$ | async) ?? []; let i = index" [value]="r.id">
@@ -52,10 +55,15 @@
             </nb-option>
           </nb-select>
         </div>
+      </div>
+
+      <!-- Row: Prerelease checkbox -->
+      <div class="release-checkbox-row">
         <nb-checkbox class="prerelease-toggle" [formControl]="includePrereleasesCtrl" [disabled]="isOneClickUpdate">
-          Show pre-releases
+          {{ 'UPDATE.SHOW_PRERELEASES' | translate }}
         </nb-checkbox>
       </div>
+
 
       <!-- Meta of selected release -->
       <div class="version-info" *ngIf="selectedRelease">
@@ -82,12 +90,18 @@
 
       <!-- Update CTA + progress -->
       <div class="update-section">
-        <button nbButton [status]="updateStatus === UpdateStatus.UPDATE_AVAILABLE ? 'warning' : 'primary'" size="small"
-          [nbSpinner]="isOneClickUpdate" [disabled]="isOneClickUpdate || !selectedRelease"
-          (click)="directUpdateFromGithub()">
-          <nb-icon icon="cloud-download-outline" pack="eva"></nb-icon>&nbsp;
-          {{ 'UPDATE.INSTALL_FROM_GITHUB' | translate }}
-        </button>
+        <div class="d-flex align-items-center justify-content-between mt-2">
+          <button nbButton [status]="updateStatus === UpdateStatus.UPDATE_AVAILABLE ? 'warning' : 'primary'"
+            size="small" [nbSpinner]="isOneClickUpdate" [disabled]="isOneClickUpdate || !selectedRelease"
+            (click)="directUpdateFromGithub()">
+            <nb-icon icon="cloud-download-outline" pack="eva"></nb-icon>&nbsp;
+            {{ 'UPDATE.INSTALL_FROM_GITHUB' | translate }}
+          </button>
+          <nb-checkbox class="keep-config-toggle" [checked]="true" (click)="$event.preventDefault()"
+            [nbTooltip]="'UPDATE.KEEP_SETTINGS_DISABLED' | translate" nbTooltipPlacement="top">
+            {{ 'UPDATE.KEEP_CONFIG' | translate }}
+          </nb-checkbox>
+        </div>
       </div>
 
       <div class="progress-wrapper" *ngIf="isOneClickUpdate">
