@@ -13,8 +13,8 @@ static const char* TAG = "http_alert";
 
 esp_err_t GET_alert_info(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
@@ -48,8 +48,8 @@ esp_err_t GET_alert_info(httpd_req_t *req)
 
 esp_err_t POST_update_alert(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
@@ -95,8 +95,8 @@ esp_err_t POST_update_alert(httpd_req_t *req)
 
 esp_err_t POST_test_alert(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     if (set_cors_headers(req) != ESP_OK) {
         httpd_resp_send_500(req);

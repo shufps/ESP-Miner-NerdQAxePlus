@@ -11,8 +11,8 @@ extern bool enter_recovery;
 
 esp_err_t POST_restart(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");

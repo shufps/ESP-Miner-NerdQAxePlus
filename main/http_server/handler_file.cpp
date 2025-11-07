@@ -6,6 +6,7 @@
 #include "esp_vfs.h"
 #include "esp_spiffs.h"
 
+#include "http_server.h"
 #include "http_cors.h"
 #include "http_utils.h"
 #include "guards.h"
@@ -107,6 +108,9 @@ static esp_err_t return_500(httpd_req_t *req, const char* msg)
 /* Send HTTP response with the contents of the requested file */
 esp_err_t rest_common_get_handler(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     char filepath[FILE_PATH_MAX];
     size_t filePathLength = sizeof(filepath);
 
@@ -124,9 +128,6 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
     }
 
     size_t uri_len = strlen(uri_clean);
-
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
 
     // Map "/foo/" -> "/foo/index.html"
     if (uri_len > 0 && uri_clean[uri_len - 1] == '/') {
@@ -170,7 +171,7 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
         }
     }
 
-    FileGuard g(fd); // ensure file closed on exit
+    FileGuard fg(fd); // ensure file closed on exit
 
     // Announce gzip content encoding
     httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
