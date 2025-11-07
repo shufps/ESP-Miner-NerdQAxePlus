@@ -20,6 +20,9 @@ static const char *TAG = "http_system";
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
 {
+    // always set connection: close
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -196,6 +199,9 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
 esp_err_t PATCH_update_settings(httpd_req_t *req)
 {
+    // always set connection: close
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -345,6 +351,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
 
 esp_err_t GET_system_asic(httpd_req_t *req)
 {
+    // always set connection: close
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }

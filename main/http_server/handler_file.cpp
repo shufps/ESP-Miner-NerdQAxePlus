@@ -125,46 +125,40 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
 
     size_t uri_len = strlen(uri_clean);
 
+    // always set connection: close
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     // Map "/foo/" -> "/foo/index.html"
     if (uri_len > 0 && uri_clean[uri_len - 1] == '/') {
         if (strlen(filepath) + strlen("/index.html") + 1 > filePathLength) {
-            return return_500(req, "File path too long");
+            // Ensure "Connection: close" on errors
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "File path too long");
         }
         strlcat(filepath, "/index.html", filePathLength);
     } else {
         // Check length before concatenating URI
         if (strlen(filepath) + uri_len + 1 > filePathLength) {
-            return return_500(req, "File path too long");
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "File path too long");
         }
         strlcat(filepath, uri_clean, filePathLength);
     }
 
-    // Set Content-Type based on extension (.html, .js, ...)
-    esp_err_t err = set_content_type_from_file(req, filepath);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error setting content-type");
-    }
+    // Set core headers before sending any body
+    // MIME type by extension (.html, .js, .css, .json, ...)
+    (void)set_content_type_from_file(req, filepath);
+    // Cache policy by extension
+    (void)set_cache_control(req, filepath);
 
-    // Set Cache-Control header
-    err = set_cache_control(req, filepath);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error setting cache-control");
-    }
-
-    // Security header: tell browser not to guess MIME types
+    // Security header: do not MIME-sniff
     httpd_resp_set_hdr(req, "X-Content-Type-Options", "nosniff");
 
-    // Tell client we're going to close the socket after response.
-    // This helps avoid piling up sockets on the ESP32.
-    httpd_resp_set_hdr(req, "Connection", "close");
-
-    // Now we append ".gz" because we serve precompressed assets.
-    // Check buffer bounds first.
+    // We serve precompressed assets -> append ".gz"
     if (strlen(filepath) + strlen(".gz") + 1 > filePathLength) {
-        return return_500(req, "File path too long");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "File path too long");
     }
     strlcat(filepath, ".gz", filePathLength);
 
+    // Try open file
     int fd = open(filepath, O_RDONLY, 0);
     if (fd < 0) {
         ESP_LOGE(TAG, "Failed to open file: %s, errno: %d", filepath, errno);
@@ -172,36 +166,38 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
             // If asset not found, treat it like a captive portal / SPA redirect
             return redirect_portal(req);
         } else {
-            return return_500(req, "Failed to open file");
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open file");
         }
     }
 
-    // At this point we KNOW we're actually serving a gzip file, so announce it.
+    FileGuard g(fd); // ensure file closed on exit
+
+    // Announce gzip content encoding
     httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
 
     ESP_LOGI(TAG, "Sending %s", filepath);
 
-    // Ensure file is closed automatically when we leave scope
-    FileGuard g(fd);
-
+    // Stream file using chunked transfer and finish with a zero-length chunk
     char *chunk = rest_context->scratch;
     ssize_t read_bytes;
+
     for (;;) {
-        // Read next chunk from SPIFFS
         read_bytes = read(fd, chunk, SCRATCH_BUFSIZE);
         if (read_bytes < 0) {
-            return return_500(req, "Read error");
+            ESP_LOGE(TAG, "Read error while sending %s", filepath);
+            // Terminate chunked response explicitly before reporting failure
+            httpd_resp_send_chunk(req, NULL, 0);
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Read error");
         }
 
-        // EOF reached
         if (read_bytes == 0) {
+            // EOF
             break;
         }
 
-        // Send chunk to client. httpd_resp_send_chunk() will use chunked transfer encoding.
         if (httpd_resp_send_chunk(req, chunk, read_bytes) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to send file chunk");
-            // Terminate chunked response explicitly before bailing out
+            // Try to terminate chunked response; ignore result
             httpd_resp_send_chunk(req, NULL, 0);
             return ESP_FAIL;
         }
@@ -209,7 +205,8 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
 
     ESP_LOGI(TAG, "File sending complete");
 
-    // Terminate chunked response
+    // Final zero-length chunk to end chunked body
     httpd_resp_send_chunk(req, NULL, 0);
+
     return ESP_OK;
 }
