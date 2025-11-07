@@ -127,6 +127,11 @@ void PowerManagementTask::logChipTemps() {
 
     Board* board = SYSTEM_MODULE.getBoard();
 
+    // no chip temp to report
+    if (board->getMaxChipTemp() == 0.0f) {
+        return;
+    }
+
     // Iterate through each ASIC and append its count to the log message
     for (int i = 0; i < board->getAsicCount(); i++) {
         offset += snprintf(m_logBuffer + offset, sizeof(m_logBuffer) - offset, "%.2f°C / ", board->getChipTemp(i));
