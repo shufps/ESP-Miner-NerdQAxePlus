@@ -20,6 +20,9 @@ static bool enrollmengActive = false;
 
 esp_err_t POST_create_otp(httpd_req_t *req)
 {
+    // always set connection: close
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -59,6 +62,9 @@ esp_err_t POST_create_otp(httpd_req_t *req)
 
 esp_err_t PATCH_update_otp(httpd_req_t *req)
 {
+    // always set connection: close
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -116,6 +122,9 @@ esp_err_t PATCH_update_otp(httpd_req_t *req)
 
 esp_err_t GET_otp_status(httpd_req_t *req)
 {
+    // always set connection: close
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -156,6 +165,9 @@ static uint32_t clamp_ttl_ms(uint64_t v, uint32_t min_ms, uint32_t max_ms) {
 
 esp_err_t POST_create_otp_session(httpd_req_t *req)
 {
+    // always set connection: close
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
