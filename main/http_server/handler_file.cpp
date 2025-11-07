@@ -115,11 +115,18 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
     // Initialize with base path
     strlcpy(filepath, rest_context->base_path, filePathLength);
 
-    // Get requested URI
-    size_t uri_len = strlen(req->uri);
+    // Strip query string from URI (e.g. "?v=abc123") ---
+    char uri_clean[FILE_PATH_MAX];
+    strlcpy(uri_clean, req->uri, sizeof(uri_clean));
+    char *qmark = strchr(uri_clean, '?');
+    if (qmark) {
+        *qmark = '\0';  // terminate before '?'
+    }
+
+    size_t uri_len = strlen(uri_clean);
 
     // Map "/foo/" -> "/foo/index.html"
-    if (uri_len > 0 && req->uri[uri_len - 1] == '/') {
+    if (uri_len > 0 && uri_clean[uri_len - 1] == '/') {
         if (strlen(filepath) + strlen("/index.html") + 1 > filePathLength) {
             return return_500(req, "File path too long");
         }
@@ -129,7 +136,7 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
         if (strlen(filepath) + uri_len + 1 > filePathLength) {
             return return_500(req, "File path too long");
         }
-        strlcat(filepath, req->uri, filePathLength);
+        strlcat(filepath, uri_clean, filePathLength);
     }
 
     // Set Content-Type based on extension (.html, .js, ...)
