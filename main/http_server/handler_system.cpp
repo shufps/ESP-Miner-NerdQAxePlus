@@ -20,8 +20,8 @@ static const char *TAG = "http_system";
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
@@ -177,9 +177,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
     //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 
-    // close connection to prevent clogging
-    httpd_resp_set_hdr(req, "Connection", "close");
-
     // Serialize the JSON document to a String and send it
     esp_err_t ret = sendJsonResponse(req, doc);
     doc.clear();
@@ -199,8 +196,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
 esp_err_t PATCH_update_settings(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
@@ -351,8 +348,8 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
 
 esp_err_t GET_system_asic(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
@@ -397,9 +394,6 @@ esp_err_t GET_system_asic(httpd_req_t *req)
         const auto& volts = board->getVoltageOptions();
         for (uint32_t v : volts) { arr.add(v); }
     }
-
-    // Verbindung schließen, damit nichts „hängt“
-    httpd_resp_set_hdr(req, "Connection", "close");
 
     esp_err_t ret = sendJsonResponse(req, doc);
     doc.clear();

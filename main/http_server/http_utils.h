@@ -34,3 +34,21 @@ esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc);
 esp_err_t getPostData(httpd_req_t *req);
 esp_err_t getJsonData(httpd_req_t *req, JsonDocument &doc);
 esp_err_t validateOTP(httpd_req_t *req, bool force = false);
+
+extern httpd_handle_t http_server;
+
+class ConGuard {
+protected:
+    httpd_handle_t m_http_server;
+    httpd_req_t *m_req;
+public:
+    ConGuard(httpd_handle_t http_server, httpd_req_t *req): m_http_server(http_server), m_req(req) {
+        httpd_resp_set_hdr(m_req, "Connection", "close");
+    };
+    ~ConGuard() {
+        int sock = httpd_req_to_sockfd(m_req);
+        if (sock >= 0 && m_http_server) {
+            httpd_sess_trigger_close(m_http_server, sock);
+        }
+    }
+};

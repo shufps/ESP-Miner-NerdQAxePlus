@@ -610,8 +610,8 @@ bool FactoryOTAUpdate::trigger(const char *url)
  */
 esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     ESP_LOGI(TAG, "=== POST_OTA_update_from_url called ===");
 
@@ -685,8 +685,8 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
 
 esp_err_t GET_OTA_status(httpd_req_t *req)
 {
-    // always set connection: close
-    httpd_resp_set_hdr(req, "Connection", "close");
+    // close connection when out of scope
+    ConGuard g(http_server, req);
 
     httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate");
 
