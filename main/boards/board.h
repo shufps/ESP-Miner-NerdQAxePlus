@@ -13,7 +13,29 @@ enum FanPolarityGuess {
     POLARITY_INVERTED
 };
 
+
 class Board {
+public:
+    enum Error {
+        NONE,
+        TEMP_FAULT,
+        VREG_TEMP_FAULT,
+        PSU_FAULT,
+        IOUT_OC_FAULT,
+        VOUT_FAULT
+    };
+
+    static const char* errorToStr(Error err) {
+        switch (err) {
+            case Error::NONE: return "";
+            case Error::TEMP_FAULT: return "MINER OVERHEATED";
+            case Error::VREG_TEMP_FAULT: return "VREG OVERHEATED";
+            case Error::PSU_FAULT: return "PSU FAULT";
+            case Error::IOUT_OC_FAULT: return "CURRENT PROTECTION";
+            case Error::VOUT_FAULT: return "VOLTAGE PROTECTION";
+            default: return "INVALID ERROR";
+        }
+    }
   protected:
     // general board information
     const char *m_deviceModel;
@@ -136,9 +158,10 @@ class Board {
 
     virtual void shutdown() = 0;
 
-    virtual bool getPSUFault()
+    virtual Error getFault(uint32_t *status)
     {
-        return false;
+        *status = 0x00000000;
+        return Error::NONE;
     }
 
     virtual bool selfTest();

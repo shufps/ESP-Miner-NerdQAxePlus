@@ -290,16 +290,64 @@ float NerdQaxePlus::getPout() {
     return m_tps->get_pout();
 }
 
-bool NerdQaxePlus::getPSUFault() {
-    uint16_t vid = m_tps->get_vout_vid();
-    uint8_t status_byte = m_tps->get_status_byte();
+Board::Error NerdQaxePlus::getFault(uint32_t *status) {
+    *status = 0x00000000;
 
-    // if we have 0x97 it means the buck was reset and
-    // restarted with VBOOT. In this case we assume there
-    // is a PSU error
-    // in case of the PSUs over current protection (voltage will drop),
-    // we will see bit 3 "VIN_UV" in the status byte
-    return ((vid == 0x97) || (status_byte & 0x08));
+    uint8_t status_byte = m_tps->get_status_byte();
+    uint8_t status_iout = m_tps->get_status_iout();
+    uint8_t status_vout = m_tps->get_status_vout();
+    uint8_t status_input = m_tps->get_status_input();
+    uint8_t status_temp = m_tps->get_status_temp();
+
+    *status = (static_cast<uint32_t>(status_byte) << 24) |
+              (static_cast<uint32_t>(status_iout) << 16) |
+              (static_cast<uint32_t>(status_vout) << 8)  |
+              (static_cast<uint32_t>(status_input));
+
+    // If +12V is missing, the PMBus device does not respond to I2C reads,
+    // resulting in all bytes being 0xFF due to no ACK.
+    // The combined && check ensures we only flag a PSU fault when *all*
+    // reads failed, avoiding false triggers from single read errors.
+    if (status_byte == 0xff &&
+        status_iout == 0xff &&
+        status_vout == 0xff &&
+        status_temp == 0xff &&
+        status_input == 0xff) {
+        return Board::Error::PSU_FAULT;
+    }
+
+    // Check for output overcurrent fault flag
+    // Bit 7: IOUT_OCF
+    if (status_iout != 0xff && (status_iout & 0x80)) {
+        return Board::Error::IOUT_OC_FAULT;
+    }
+
+    // Check for output voltage fault flags
+    // Bit 7: VOUT_OVF, Bit 4: VOUT_UVF
+    if (status_vout != 0xff && (status_vout & 0x90)) {
+        return Board::Error::VOUT_FAULT;
+    }
+
+    // Check for overtemperature fault flag
+    // Bit 7: OTF
+    if (status_temp != 0xff && (status_temp & 0x80)) {
+        return Board::Error::VREG_TEMP_FAULT;
+    }
+
+    // Check for PSU-level input or state faults
+    // status_input: Bit 7 = VIN_OVF, Bit 4 = VIN_UVF, Bit 2 = IIN_OCF
+    if (status_input != 0xff && (status_input & 0x94)) {
+        return Board::Error::PSU_FAULT;
+    }
+
+    // is buck off? Then something is wrong ...
+    // return general error.
+    // status_byte: Bit 6 = OFF
+    if (status_byte != 0xff && (status_byte & 0x40)) {
+        return Board::Error::PSU_FAULT;
+    }
+
+    return Board::Error::NONE;
 }
 
 bool NerdQaxePlus::selfTest(){

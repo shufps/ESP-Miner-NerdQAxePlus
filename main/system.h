@@ -57,9 +57,10 @@ class System {
     uint32_t m_poolDifficulty; // Current pool difficulty
 
     // Error tracking
-    int m_poolErrors;  // Count of errors related to the mining pool
-    bool m_overheated; // Flag to indicate if the system is overheated
-    bool m_psuError;   // Flag to indicate that there is some PSU problem
+    int m_poolErrors = 0;      // Count of errors related to the mining pool
+    Board::Error m_boardError; // Flag to indicate if the system is overheated
+    uint32_t m_errorCode = 0x00000000;
+
     bool m_showsOverlay;    // Flat if overlay is shown
     uint32_t m_currentErrorCode;
 
@@ -186,15 +187,9 @@ class System {
         return m_poolErrors;
     }
 
-    // Overheating status setters
-    void setOverheated(bool status)
-    {
-        m_overheated = status;
-    }
-
-    void setPSUError(bool status)
-    {
-        m_psuError = status;
+    void setBoardError(Board::Error error, uint32_t code) {
+        m_errorCode = code;
+        m_boardError = error;
     }
 
     // WiFi-related getters and setters

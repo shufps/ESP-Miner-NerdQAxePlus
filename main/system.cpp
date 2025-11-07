@@ -68,10 +68,7 @@ void System::initSystem() {
     m_totalFoundBlocks = Config::getTotalFoundBlocks();
 
     // Initialize overheat flag
-    m_overheated = false;
-
-    // Initialize psu error flag
-    m_psuError = false;
+    m_boardError = Board::Error::NONE;
 
     // Initialize shown overlay flag and last error code
     m_showsOverlay = false;
@@ -348,12 +345,8 @@ void System::task() {
             strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
         }
 
-        if (m_overheated) {
-            showError("MINER OVERHEATED", 0x14);
-        }
-
-        if (m_psuError) {
-            showError("PSU ERROR", 0x15);
+        if (m_boardError != Board::Error::NONE) {
+            showError(Board::errorToStr(m_boardError), m_errorCode);
         }
 
         // trigger the overlay only once when block is found

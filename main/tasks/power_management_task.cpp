@@ -279,13 +279,10 @@ void PowerManagementTask::task()
         influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
         // currently only implemented for boards with TPS536x7
-        bool psuError = board->getPSUFault();
-        if (psuError) {
-            // when this happens, there is some PSU error
-            // on the nerdqaxes the buck restarted and defaulted to 1.00V
-            // this can happen when the PSU can't deliver enough current
-            // we display the error message and switch the buck off
-            SYSTEM_MODULE.setPSUError(true);
+        uint32_t status = 0;
+        Board::Error error = board->getFault(&status);
+        if (error != Board::Error::NONE) {
+            SYSTEM_MODULE.setBoardError(error, status);
             board->setVoltage(0.0);
         }
 
@@ -335,8 +332,14 @@ void PowerManagementTask::task()
 
         if (asic_overheat_temp &&
             (m_chipTempMax > asic_overheat_temp || m_vrTemp > vr_maxTemp)) {
+            uint32_t status = ((uint32_t) m_chipTempMax << 24) |
+                ((uint32_t) asic_overheat_temp << 16) |
+                ((uint32_t) m_vrTemp << 8) |
+                ((uint32_t) vr_maxTemp << 8);
+
             // over temperature
-            SYSTEM_MODULE.setOverheated(true);
+            SYSTEM_MODULE.setBoardError(Board::Error::TEMP_FAULT, status);
+
             // disables the buck
             board->setVoltage(0.0);
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
