@@ -20,8 +20,6 @@ import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service
 })
 export class SettingsComponent implements OnInit, OnDestroy {
 
-  public form!: FormGroup;
-
   public firmwareUpdateProgress: number | null = 0;
   public websiteUpdateProgress: number | null = 0;
 
@@ -30,8 +28,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
 
-  public checkLatestRelease: boolean = true; // Auto-check enabled by default
-  public latestRelease$: Observable<any>;
   public expectedFileName: string = "";
   public expectedFactoryFilename: string = "";
 
@@ -61,12 +57,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public otpEnabled: boolean = false;
 
   // Enhanced progress tracking
-  public updateStep: 'idle' | 'downloading' | 'uploading' | 'flashing' | 'complete' = 'idle';
-  public downloadProgress: number = 0;
-  public isDirectUpdateInProgress: boolean = false;
-  public updateStatusMessage: string = '';
   public otaProgress: number = 0;
-  private wsSubscription?: Subscription;
   private rebootCheckInterval?: any;
 
   private normalizedModel: string = '';
@@ -86,35 +77,17 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
     private otpAuth: OtpAuthService,
   ) {
-    window.addEventListener('resize', this.checkDevTools);
-    this.checkDevTools();
 
     // Stream: always keep a "stable latest" for status badge etc.
     const latestStable$ = this.githubUpdateService.getReleases(false).pipe(
       map((rels) => rels?.[0] ?? null),
       tap((rel) => {
-        this.latestRelease = rel; // BEHÄLT deine alte Variable für Status
+        this.latestRelease = rel;
         this.latestStableRelease = rel;
         this.updateVersionStatus();
       }),
       shareReplay({ refCount: true, bufferSize: 1 })
     );
-
-    // Stream: releases for dropdown depending on the checkbox
-    this.releases$ = this.includePrereleasesCtrl.valueChanges.pipe(
-      startWith(this.includePrereleasesCtrl.value),
-      switchMap((include) => this.githubUpdateService.getReleases(include)),
-      tap((list) => {
-        // Auto-select first entry if nothing selected or selection no longer present
-        if (!this.selectedRelease || !list.find(r => r.id === this.selectedRelease!.id)) {
-          this.selectedRelease = list[0] ?? null;
-          this.updateSelectedReleaseDeps(); // update filenames/changelog
-        }
-      }),
-      shareReplay({ refCount: true, bufferSize: 1 })
-    );
-
-    this.latestRelease$ = latestStable$;
 
     this.info$ = this.systemService.getInfo(0).pipe(
       shareReplay({ refCount: true, bufferSize: 1 })
@@ -129,43 +102,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.deviceModel = info.deviceModel;
         this.ASICModel = info.ASICModel;
         this.otpEnabled = !!info.otp;
-
-        this.form = this.fb.group({
-          flipscreen: [info.flipscreen == 1],
-          invertscreen: [info.invertscreen == 1],
-          autoscreenoff: [info.autoscreenoff == 0],
-          stratumURL: [info.stratumURL, [
-            Validators.required,
-            Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
-            Validators.pattern(/^[^:]*$/),
-          ]],
-          stratumPort: [info.stratumPort, [
-            Validators.required,
-            Validators.pattern(/^[^:]*$/),
-            Validators.min(0),
-            Validators.max(65353)
-          ]],
-          stratumUser: [info.stratumUser, [Validators.required]],
-          stratumPassword: ['*****', [Validators.required]],
-          ssid: [info.ssid, [Validators.required]],
-          wifiPass: ['*****'],
-          coreVoltage: [info.coreVoltage, [Validators.required]],
-          frequency: [info.frequency, [Validators.required]],
-          jobInterval: [info.jobInterval, [Validators.required]],
-          autofanspeed: [info.autofanspeed == 1, [Validators.required]],
-          invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
-          fanspeed: [info.fanspeed, [Validators.required]],
-        });
-
-        this.form.controls['autofanspeed'].valueChanges.pipe(
-          startWith(this.form.controls['autofanspeed'].value)
-        ).subscribe(autofanspeed => {
-          if (autofanspeed) {
-            this.form.controls['fanspeed'].disable();
-          } else {
-            this.form.controls['fanspeed'].enable();
-          }
-        });
 
         // Replace 'γ' with 'Gamma' if present and remove spaces
         // Keep special characters like + as GitHub releases use them
@@ -182,7 +118,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     // Build releases$ AFTER info$ is available, and filter by asset existence
     this.releases$ = combineLatest([
       this.includePrereleasesCtrl.valueChanges.pipe(startWith(this.includePrereleasesCtrl.value)),
-      this.info$ // ensures deviceModel is loaded first
+      this.info$
     ]).pipe(
       switchMap(([include]) =>
         this.githubUpdateService.getReleases(include).pipe(
@@ -194,7 +130,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
         )
       ),
       tap(list => {
-        // Auto-select first valid release if current selection missing
         if (!this.selectedRelease || !list.find(r => r.id === this.selectedRelease!.id)) {
           this.selectedRelease = list[0] ?? null;
           this.updateSelectedReleaseDeps();
@@ -202,6 +137,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       }),
       shareReplay({ refCount: true, bufferSize: 1 })
     );
+
 
     this.checkUpdateStatus();
   }
@@ -234,7 +170,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
           next: (info) => {
             // Device is back online!
             clearInterval(this.rebootCheckInterval);
-            this.updateStatusMessage = 'Reboot complete, reloading page...';
+            //this.updateStatusMessage = 'Reboot complete, reloading page...';
 
             // Reload page after a short delay
             setTimeout(() => {
@@ -243,11 +179,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
           },
           error: (err) => {
             // Device not ready yet, keep trying
-            this.updateStatusMessage = `Reboot in progress... (${attemptCount}/${maxAttempts})`;
+            //this.updateStatusMessage = `Reboot in progress... (${attemptCount}/${maxAttempts})`;
 
             if (attemptCount >= maxAttempts) {
               clearInterval(this.rebootCheckInterval);
-              this.updateStatusMessage = 'The reboot is taking longer than expected. Please refresh manually.';
+              //this.updateStatusMessage = 'The reboot is taking longer than expected. Please refresh manually.';
               this.isOneClickUpdate = false;
             }
           }
@@ -255,17 +191,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
       }, 1000); // Check every second
     }, 5000); // Wait 5 seconds before starting
   }
-
-  private checkDevTools = () => {
-    if (
-      window.outerWidth - window.innerWidth > 160 ||
-      window.outerHeight - window.innerHeight > 160
-    ) {
-      this.devToolsOpen = true;
-    } else {
-      this.devToolsOpen = false;
-    }
-  };
 
   public onFirmwareFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
