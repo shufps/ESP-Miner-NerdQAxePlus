@@ -27,8 +27,17 @@ void Board::loadSettings()
     // default values are initialized in the constructor of each board
 
     // clamp frequency and voltage to absMax values
-    m_asicFrequency = std::min((int) Config::getAsicFrequency(m_asicFrequency), m_absMaxAsicFrequency);
-    m_asicVoltageMillis = std::min((int) Config::getAsicVoltage(m_asicVoltageMillis), m_absMaxAsicVoltageMillis);
+    if (m_absMaxAsicFrequency) {
+        m_asicFrequency = std::min((int) Config::getAsicFrequency(m_asicFrequency), m_absMaxAsicFrequency);
+    } else {
+        m_asicFrequency = (int) Config::getAsicFrequency(m_asicFrequency);
+    }
+
+    if (m_absMaxAsicVoltageMillis) {
+        m_asicVoltageMillis = std::min((int) Config::getAsicVoltage(m_asicVoltageMillis), m_absMaxAsicVoltageMillis);
+    } else {
+        m_asicVoltageMillis = (int) Config::getAsicVoltage(m_asicVoltageMillis);
+    }
 
     m_asicJobIntervalMs = Config::getAsicJobInterval(m_asicJobIntervalMs);
     m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
