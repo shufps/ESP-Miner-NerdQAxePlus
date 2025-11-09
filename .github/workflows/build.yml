@@ -113,6 +113,7 @@ jobs:
     - name: Rename Build Artifacts
       run: |
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.label }}.bin
+        sudo mv build/esp-miner.elf build/esp-miner-${{ matrix.label }}.elf
 
     - name: Upload build artifacts for internal testing
       if: env.RELEASE_EXISTS == 'false'
@@ -121,6 +122,7 @@ jobs:
         name: esp-miner-build-${{ matrix.label }}-${{ env.VERSION_TAG }}
         path: |
           esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
+          build/esp-miner-${{ matrix.label }}.elf
           build/esp-miner-${{ matrix.label }}.bin
         retention-days: 7
 
@@ -137,6 +139,7 @@ jobs:
       run: |
         echo "esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
         echo "build/esp-miner-${{ matrix.label }}.bin" >> file_list.txt
+        echo "build/esp-miner-${{ matrix.label }}.elf" >> file_list.txt
         if [ "${{ matrix.upload_www }}" == "true" ]; then
           echo "build/www.bin" >> file_list.txt
         fi
