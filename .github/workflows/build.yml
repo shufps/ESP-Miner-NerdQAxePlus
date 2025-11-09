@@ -152,10 +152,10 @@ jobs:
       run: |
         echo "esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
         echo "build/esp-miner-${{ matrix.label }}.bin" >> file_list.txt
-        echo "build/esp-miner-${{ matrix.label }}.elf" >> file_list.txt
         if [ "${{ matrix.upload_www }}" == "true" ]; then
           echo "build/www.bin" >> file_list.txt
         fi
+
 
     - name: Set files variable
       id: set_files_var
