@@ -1,8 +1,8 @@
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
-import { BehaviorSubject, combineLatest, map, Observable, catchError, of, shareReplay, startWith, Subscription, interval } from 'rxjs';
-import { switchMap, takeWhile, tap, take } from 'rxjs/operators';
+import { FormControl } from '@angular/forms';
+import { combineLatest, map, Observable, catchError, of, shareReplay, startWith, Subscription, interval } from 'rxjs';
+import { switchMap, tap, take } from 'rxjs/operators';
 import { GithubUpdateService, UpdateStatus, VersionComparison, GithubRelease } from '../../services/github-update.service';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
@@ -10,8 +10,8 @@ import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { IUpdateStatus } from 'src/app/models/IUpdateStatus';
-import { NbDialogService } from '@nebular/theme';
 import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { ISystemInfo } from '../../models/ISystemInfo';
 
 @Component({
   selector: 'app-settings',
@@ -20,8 +20,8 @@ import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service
 })
 export class SettingsComponent implements OnInit, OnDestroy {
 
-  public firmwareUpdateProgress: number | null = 0;
-  public websiteUpdateProgress: number | null = 0;
+  public firmwareUpdateProgress: number = 0;
+  public websiteUpdateProgress: number = 0;
 
   public deviceModel: string = "";
   public devToolsOpen: boolean = false;
@@ -34,7 +34,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public selectedFirmwareFile: File | null = null;
   public selectedWebsiteFile: File | null = null;
 
-  public info$: Observable<any>;
+  public info$: Observable<ISystemInfo>;
 
   public isWebsiteUploading = false;
   public isFirmwareUploading = false;
@@ -52,7 +52,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public showChangelog: boolean = false;
   public changelog: string = '';
   public currentVersion: string = '';
-  public latestRelease: any = null;
 
   public otpEnabled: boolean = false;
 
@@ -68,27 +67,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
   private latestStableRelease: GithubRelease | null = null;
 
   constructor(
-    private fb: FormBuilder,
     private systemService: SystemService,
     private toastrService: NbToastrService,
     private loadingService: LoadingService,
     private githubUpdateService: GithubUpdateService,
-    private dialog: NbDialogService,
     private translate: TranslateService,
     private otpAuth: OtpAuthService,
   ) {
-
-    // Stream: always keep a "stable latest" for status badge etc.
-    const latestStable$ = this.githubUpdateService.getReleases(false).pipe(
-      map((rels) => rels?.[0] ?? null),
-      tap((rel) => {
-        this.latestRelease = rel;
-        this.latestStableRelease = rel;
-        this.updateVersionStatus();
-      }),
-      shareReplay({ refCount: true, bufferSize: 1 })
-    );
-
     this.info$ = this.systemService.getInfo(0).pipe(
       shareReplay({ refCount: true, bufferSize: 1 })
     );
@@ -486,9 +471,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
    * Get filtered assets (only matching factory firmware)
    */
   public getFilteredAssets(): any[] {
-    return this.latestRelease.assets.filter(asset => {
-      return asset.name === this.expectedFactoryFilename;
-    });
+    return this.latestStableRelease?.assets?.filter(asset =>
+      asset.name === this.expectedFactoryFilename
+    ) ?? [];
   }
 
   public restart() {
