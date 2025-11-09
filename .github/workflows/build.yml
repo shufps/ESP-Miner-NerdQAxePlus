@@ -53,8 +53,13 @@ jobs:
     - name: Insert Version
       run: |
         #!/bin/bash
+        set -e
         COMMIT_HASH=$(git rev-parse --short HEAD)
-        find ./main/http_server/axe-os/src/app -type f -name "*.ts" -exec sed -i "s|__COMMIT__|${COMMIT_HASH}|g" {} \;
+        sed -e "s|__COMMIT__|${COMMIT_HASH}|g" -i ./main/http_server/axe-os/src/app/app.module.ts
+
+        for l in de en es fr; do
+          mv "./main/http_server/axe-os/src/assets/i18n/${l}.json" "./main/http_server/axe-os/src/assets/i18n/${l}.${COMMIT_HASH}.json"
+        done
 
     - name: Set Target
       run: |
