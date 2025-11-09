@@ -4,7 +4,7 @@
 .banner-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  /*justify-content: space-between;*/
   gap: 16px;
   flex-wrap: wrap;
 }
@@ -18,6 +18,6 @@
 .dont-show {
   display: inline-flex;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 6px;
   user-select: none;
 }
