@@ -28,14 +28,14 @@ jobs:
             upload_www: false
             label: NerdAxeGamma
           - board: NERDHAXEGAMMA
-            label: NerdHaxe-Gamma
             upload_www: false
+            label: NerdHaxe-Gamma
           - board: NERDEKO
             upload_www: false
             label: NerdEKO
           - board: NERDQX
-            label: NerdQX
             upload_www: false
+            label: NerdQX
 
     steps:
     - name: Checkout repository
@@ -50,6 +50,22 @@ jobs:
         echo "${version}" > version.txt
         echo "VERSION_TAG=${version}"
 
+    - name: Install GitHub CLI
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y gh
+
+    - name: Check if release exists
+      id: check_release
+      run: |
+        if gh release view "${{ env.VERSION_TAG }}" >/dev/null 2>&1; then
+          echo "RELEASE_EXISTS=true" >> $GITHUB_ENV
+        else
+          echo "RELEASE_EXISTS=false" >> $GITHUB_ENV
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Insert Version
       run: |
         #!/bin/bash
@@ -63,13 +79,13 @@ jobs:
 
     - name: Set Target
       run: |
-        # Run the Docker container to build the project
+        # Run the Docker container to set ESP32-S3 target
         docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
         shufps/esp-idf-builder:0.0.1 idf.py set-target esp32s3
 
     - name: Compile Binaries
       run: |
-        # Run the Docker container to build the project with BOARD environment variable
+        # Run the Docker container to build the project
         docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
         shufps/esp-idf-builder:0.0.1 idf.py build
 
@@ -110,19 +126,23 @@ jobs:
       id: set_files_var
       run: echo "files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
 
+    # Skip release upload if no release exists
+    - name: Guard: Skip release upload if not tagged
+      if: env.RELEASE_EXISTS == 'false'
+      run: echo "No GitHub release found for '${{ env.VERSION_TAG }}' — skipping release upload."
+
     - name: Upload to Existing Release
-      if: always()
+      if: env.RELEASE_EXISTS == 'true'
       uses: softprops/action-gh-release@v1
       with:
         files: ${{ env.files }}
         tag_name: ${{ env.VERSION_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install rclone
       run: |
-        curl https://rclone.org/install.sh | sudo bash
+        curl -fsSL https://rclone.org/install.sh | sudo bash
 
     - name: Upload to Cloudflare R2 using rclone
       env:
@@ -137,11 +157,14 @@ jobs:
           rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
         done < file_list.txt
 
+    outputs:
+      release_exists: ${{ env.RELEASE_EXISTS }}
 
 
   update-release-body:
     runs-on: ubuntu-latest
     needs: build-and-release
+    if: needs.build-and-release.outputs.release_exists == 'true'
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -167,7 +190,7 @@ jobs:
 
     - name: Install GitHub CLI
       run: |
-        sudo apt-get update
+        sudo apt-get update -y
         sudo apt-get install -y gh
 
     - name: Append to Release Body
