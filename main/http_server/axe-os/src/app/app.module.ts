@@ -27,8 +27,16 @@ import { OtpSessionInterceptor } from './services/otp-session.interceptor';
 
 
 export function createTranslateLoader(http: HttpClient) {
+  // Placeholder gets replaced by Github workflow
   const commit = '__COMMIT__';
-  return new TranslateHttpLoader(http, './assets/i18n/', `.json?v=${commit}`);
+
+  // detect if it's a local build.
+  const isLocal = commit.includes('COMMIT');
+
+  // for local builds don't insert __COMMIT__ into the filename
+  const suffix = isLocal ? '.json' : `.${commit}.json`;
+
+  return new TranslateHttpLoader(http, './assets/i18n/', suffix);
 }
 
 function filterInterceptorRequest(req: HttpRequest<any>): boolean {
