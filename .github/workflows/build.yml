@@ -115,22 +115,35 @@ jobs:
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.label }}.bin
         sudo mv build/esp-miner.elf build/esp-miner-${{ matrix.label }}.elf
 
-    - name: Upload build artifacts for internal testing
+    - name: Upload factory binary
       if: env.RELEASE_EXISTS == 'false'
       uses: actions/upload-artifact@v4
       with:
-        name: esp-miner-build-${{ matrix.label }}-${{ env.VERSION_TAG }}
-        path: |
-          esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
-          build/esp-miner-${{ matrix.label }}.elf
-          build/esp-miner-${{ matrix.label }}.bin
+        name: esp-miner-factory-${{ matrix.label }}.bin
+        path: esp-miner-factory-${{ matrix.label }}.bin
+        retention-days: 7
+
+    - name: Upload ELF for crash analysis
+      if: env.RELEASE_EXISTS == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: esp-miner-${{ matrix.label }}.elf
+        path: build/esp-miner-${{ matrix.label }}.elf
+        retention-days: 7
+
+    - name: Upload BIN firmware
+      if: env.RELEASE_EXISTS == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: esp-miner-${{ matrix.label }}.bin
+        path: build/esp-miner-${{ matrix.label }}.bin
         retention-days: 7
 
     - name: Upload www.bin (only once)
       if: env.RELEASE_EXISTS == 'false' && matrix.board == 'NERDQAXEPLUS'
       uses: actions/upload-artifact@v4
       with:
-        name: esp-miner-www-${{ env.VERSION_TAG }}
+        name: www.bin
         path: build/www.bin
         retention-days: 7
 
