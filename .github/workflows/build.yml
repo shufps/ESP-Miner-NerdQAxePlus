@@ -127,7 +127,7 @@ jobs:
       run: echo "files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
 
     # Skip release upload if no release exists
-    - name: Guard: Skip release upload if not tagged
+    - name: Skip release upload if not tagged
       if: env.RELEASE_EXISTS == 'false'
       run: echo "No GitHub release found for '${{ env.VERSION_TAG }}' — skipping release upload."
 
