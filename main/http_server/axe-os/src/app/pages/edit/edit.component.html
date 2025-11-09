@@ -226,17 +226,17 @@
                 <!-- Manual fan speed slider -->
                 <div *ngIf="form.controls['autofanspeed'].value === 0">
                     <div class="form-row">
-                        <label>{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['fanspeed'].value }}%</label>
+                        <label>{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['manualFanSpeed'].value }}%</label>
                         <div class="form-control-wrapper">
                             <div class="progress-wrap">
-                                <input type="range" class="progress" formControlName="fanspeed" min="0" max="100"
+                                <input type="range" class="progress" formControlName="manualFanSpeed" min="0" max="100"
                                     step="1" />
-                                <div class="progress-foreground" [style.width.%]="form.controls['fanspeed'].value">
+                                <div class="progress-foreground" [style.width.%]="form.controls['manualFanSpeed'].value">
                                 </div>
                             </div>
-                            <small *ngIf="form.controls['fanspeed'].value < 40" style="color: red; margin-left:10px;">Danger: Could Cause
+                            <small *ngIf="form.controls['manualFanSpeed'].value < 40" style="color: red; margin-left:10px;">Danger: Could Cause
                                 Overheating</small>
-                            <small *ngIf="form.controls['fanspeed'].value === 100" style="color: #F2A900; margin-left:10px;">S19
+                            <small *ngIf="form.controls['manualFanSpeed'].value === 100" style="color: #F2A900; margin-left:10px;">S19
                                 Simulator</small>
                         </div>
                     </div>

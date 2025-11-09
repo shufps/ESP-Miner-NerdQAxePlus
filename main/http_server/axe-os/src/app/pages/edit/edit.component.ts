@@ -202,7 +202,7 @@ export class EditComponent implements OnInit {
           ]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
           autofanpolarity: [info.autofanpolarity == 1, [Validators.required]],
-          fanspeed: [info.fanspeed, [Validators.required]],
+          manualFanSpeed: [info.manualFanSpeed, [Validators.required]],
           overheat_temp: [info.overheat_temp, [
             Validators.min(40),
             Validators.max(90),
@@ -231,19 +231,19 @@ export class EditComponent implements OnInit {
     const disable = (ctrl: string) => this.form.controls[ctrl]?.disable({ emitEvent: false });
 
     if (mode === 0) {
-      enable('fanspeed');
+      enable('manualFanSpeed');
       disable('pidTargetTemp');
       disable('pidP');
       disable('pidI');
       disable('pidD');
     } else if (mode === 1) {
-      disable('fanspeed');
+      disable('manualFanSpeed');
       disable('pidTargetTemp');
       disable('pidP');
       disable('pidI');
       disable('pidD');
     } else if (mode === 2) {
-      disable('fanspeed');
+      disable('manualFanSpeed');
       enable('pidTargetTemp');
       if (this.supportLevel >= 1) {
         enable('pidP');
