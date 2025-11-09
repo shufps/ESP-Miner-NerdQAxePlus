@@ -156,7 +156,6 @@ jobs:
           echo "build/www.bin" >> file_list.txt
         fi
 
-
     - name: Set files variable
       id: set_files_var
       run: echo "files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
