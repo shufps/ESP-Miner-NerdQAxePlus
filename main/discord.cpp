@@ -130,7 +130,7 @@ bool DiscordAlerter::sendWatchdogAlert() {
         return false;
     }
 
-    return discordAlerter.sendMessage("Device rebootet because there was no share for more than 1h!");
+    return discordAlerter.sendMessage("Device rebooted because there was no share for more than 1h!");
 }
 
 bool DiscordAlerter::sendBlockFoundAlert(double diff, double networkDiff)
