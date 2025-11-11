@@ -336,7 +336,7 @@ void System::task() {
     int lastFoundBlocks = 0;
 
     while (1) {
-        if (SHUTDOWN) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }

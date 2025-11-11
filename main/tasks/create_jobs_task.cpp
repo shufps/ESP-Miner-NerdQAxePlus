@@ -166,7 +166,7 @@ void *create_jobs_task(void *pvParameters)
     int lastJobInterval = board->getAsicJobIntervalMs();
 
     while (1) {
-        if (SHUTDOWN) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }

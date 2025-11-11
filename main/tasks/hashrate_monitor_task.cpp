@@ -84,7 +84,7 @@ void HashrateMonitor::taskLoop()
     vTaskDelay(pdMS_TO_TICKS(3000));
 
     while (1) {
-        if (SHUTDOWN) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(HR_TAG, "suspended");
             vTaskSuspend(NULL);
         }

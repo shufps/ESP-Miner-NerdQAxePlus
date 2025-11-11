@@ -78,6 +78,7 @@ const defaultInfo: ISystemInfo = {
   stratum_keep: 0,
   vrFrequency: 25000,
   defaultTheme: "cosmic",
+  shutdown: false,
 
   otp: false,
 

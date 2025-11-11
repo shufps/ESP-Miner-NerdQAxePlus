@@ -56,8 +56,6 @@ AsicJobs asicJobs;
 OTP otp;
 SNTP sntp;
 
-bool SHUTDOWN = false;
-
 static const char *TAG = "nerd*axe";
 
 #ifndef CONFIG_SPIRAM
@@ -300,9 +298,10 @@ extern "C" void app_main(void)
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(10000));
 
-        if (SHUTDOWN) {
-            ESP_LOGW(TAG, "disabling watchdog and suspending main task...");
-            esp_task_wdt_deinit();
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            // not needed, we deregister the WDT in the stratumtask on shutdown
+            //esp_task_wdt_deinit();
+            ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }
 

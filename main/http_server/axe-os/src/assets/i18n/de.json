@@ -20,7 +20,8 @@
     "SUBMIT": "Senden",
     "ERROR": "Fehler",
     "SUCCESS": "Erfolg",
-    "JUST_NOW": "Gerade eben"
+    "JUST_NOW": "Gerade eben",
+    "SHUTDOWN": "Der Miner wurde heruntergefahren."
   },
   "NAVIGATION": {
     "HOME": "Startseite",
@@ -116,7 +117,7 @@
     "AUTO_FAN": "Automatische Lüftersteuerung",
     "TEMPERATURE_TARGET": "Zieltemperatur",
     "TARGET_TEMP": "Zieltemp (°C)",
-    "SHUTDOWN_TEMP": "Abschalttemperatur",
+    "SHUTDOWN_TEMP": "Abschalt-Temperatur",
     "POWER_LIMIT": "Leistungsgrenze",
     "HOSTNAME": "Hostname",
     "TIMEZONE": "Zeitzone",

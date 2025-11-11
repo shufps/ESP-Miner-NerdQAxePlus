@@ -21,6 +21,14 @@
         border-bottom: 2px solid #304562;
     }
 
+    .form-row-separator {
+        @extend .form-row;
+
+        border-top: 1px solid;
+        border-color:var(--card-border-color);
+        padding-top:5px;
+    }
+
     .form-row {
         display: flex;
         align-items: center;
@@ -28,16 +36,8 @@
         width: 100%;
     }
 
-    .form-row-separator {
-        @extend .form-row;
-
-        border-top: 1px solid;
-        border-color:var(--card-border-color);
-        padding-top:5px;
-      }
-
     .form-label {
-        flex: 0 0 100px;
+        flex: 0 0 120px;
         text-align: right;
         margin-right: 16px;
     }
@@ -171,4 +171,6 @@
 
     .btn-support { user-select: none; }
 
+
 }
+

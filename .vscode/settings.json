@@ -92,7 +92,8 @@
         "variant": "cpp",
         "charconv": "c",
         "span": "c",
-        "format": "c"
+        "format": "c",
+        "unordered_set": "cpp"
     },
     "editor.formatOnSave": false,
     "cSpell.words": [

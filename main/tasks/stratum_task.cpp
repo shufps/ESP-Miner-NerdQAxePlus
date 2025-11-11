@@ -195,7 +195,7 @@ void StratumTask::taskWrapper(void *pvParameters)
 void StratumTask::task()
 {
     while (1) {
-        if (SHUTDOWN) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(m_tag, "suspended");
             vTaskSuspend(NULL);
         }
@@ -336,7 +336,7 @@ void StratumTask::stratumLoop()
 
         // if stop is requested, don't dispatch anything
         // and break the loop
-        if (m_stopFlag || SHUTDOWN) {
+        if (m_stopFlag || POWER_MANAGEMENT_MODULE.isShutdown()) {
             break;
         }
 
@@ -489,8 +489,13 @@ void StratumManager::task()
 
     // Watchdog Task Loop (optional, if needed)
     while (1) {
-        if (SHUTDOWN) {
-            ESP_LOGW(m_tag, "Stratum Manager Task suspended");
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            // remove watchdog
+            esp_err_t err = esp_task_wdt_delete(NULL);
+            if (err != ESP_OK) {
+                ESP_LOGE(m_tag, "Couldn't remove watchdog");
+            }
+            ESP_LOGW(m_tag, "suspended");
             vTaskSuspend(NULL);
         }
         vTaskDelay(pdMS_TO_TICKS(30000));

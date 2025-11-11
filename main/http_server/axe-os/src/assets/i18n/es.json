@@ -20,7 +20,8 @@
     "SUBMIT": "Enviar",
     "ERROR": "Error",
     "SUCCESS": "Éxito",
-    "JUST_NOW": "Ahora mismo"
+    "JUST_NOW": "Ahora mismo",
+    "SHUTDOWN": "El minero se ha apagado."
   },
   "NAVIGATION": {
     "HOME": "Inicio",

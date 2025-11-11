@@ -600,7 +600,7 @@ void DisplayDriver::lvglTimerTask(void *param)
         const int64_t tnow = now_us();
         uint32_t wait_ms = handleLvglTick(elapsed_Ani_cycles);
 
-        if (SHUTDOWN) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             vTaskDelay(pdMS_TO_TICKS(wait_ms));
             continue;
         }

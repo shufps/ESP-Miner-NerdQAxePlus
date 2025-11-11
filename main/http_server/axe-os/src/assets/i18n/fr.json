@@ -20,7 +20,8 @@
     "SUBMIT": "Soumettre",
     "ERROR": "Erreur",
     "SUCCESS": "Succès",
-    "JUST_NOW": "À l'instant"
+    "JUST_NOW": "À l'instant",
+    "SHUTDOWN": "Le mineur a été arrêté."
   },
   "NAVIGATION": {
     "HOME": "Accueil",

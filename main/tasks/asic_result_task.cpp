@@ -28,7 +28,7 @@ void ASIC_result_task(void *pvParameters)
     Asic* asics = board->getAsics();
 
     while (1) {
-        if (SHUTDOWN) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }

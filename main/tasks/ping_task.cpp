@@ -201,7 +201,7 @@ void ping_task(void *pvParameters) {
     const StratumConfig* last_config = nullptr;
 
     while (true) {
-        if (SHUTDOWN) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }

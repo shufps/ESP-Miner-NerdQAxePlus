@@ -111,7 +111,7 @@ void wifi_monitor_task(void* arg)
     reset_lwip_stats();
 
     while (true) {
-        if (SHUTDOWN) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }

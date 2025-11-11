@@ -93,4 +93,8 @@ class PowerManagementTask {
     }
 
     void shutdown();
+
+    bool isShutdown() {
+        return m_shutdown;
+    }
 };
