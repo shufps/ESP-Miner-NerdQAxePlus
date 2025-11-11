@@ -31,6 +31,7 @@ void Button::update() {
         }
         break;
     case 1:
+        m_event &= ~BTN_EVENT_PRESSED;
         if (!gpio_get_level(m_pin)) {
             m_state = 2;
             m_button_tmr = ticks;
@@ -44,6 +45,7 @@ void Button::update() {
 
         break;
     case 2: // button pressed, measure release time
+        m_event |= BTN_EVENT_PRESSED;
         if (m_button_tmr && ticks - m_button_tmr > m_longpress) {
             m_event |= BTN_EVENT_LONGPRESS;
             m_state = 0;

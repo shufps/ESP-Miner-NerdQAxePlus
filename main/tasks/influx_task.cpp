@@ -187,6 +187,10 @@ void influx_task(void *pvParameters)
     }
 
     while (1) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            ESP_LOGW(TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
         pthread_mutex_lock(&influxdb->m_lock);
         influx_task_fetch_from_system_module(module);
         influxdb->write();

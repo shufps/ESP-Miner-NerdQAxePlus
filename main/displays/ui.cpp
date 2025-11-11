@@ -649,6 +649,25 @@ void UI::createQRScreen(uint8_t *buf, int size) {
     }
 }
 
+void UI::powerOffScreenInit(void)
+{
+    // Create a new blank screen
+    ui_PowerOffScreen = lv_obj_create(NULL);
+    lv_obj_clear_flag(ui_PowerOffScreen, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Black background
+    lv_obj_set_style_bg_color(ui_PowerOffScreen, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(ui_PowerOffScreen, 255, LV_PART_MAIN);
+
+    // "It's now safe to turn off your computer" image
+    LV_IMG_DECLARE(ui_img_safe_png); // Make sure your C array is declared in ui_img_safe_png.c
+    lv_obj_t *img = lv_img_create(ui_PowerOffScreen);
+    lv_img_set_src(img, &ui_img_safe_png);
+    lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);  // Center of screen
+}
+
+
+
 void UI::destroyQRScreen() {
 }
 

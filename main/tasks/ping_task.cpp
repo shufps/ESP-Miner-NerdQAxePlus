@@ -201,6 +201,10 @@ void ping_task(void *pvParameters) {
     const StratumConfig* last_config = nullptr;
 
     while (true) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            ESP_LOGW(TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
         if (!STRATUM_MANAGER.isAnyConnected()) {
             ESP_LOGW(TAG, "Stratum not connected. Skipping ping...");
             vTaskDelay(pdMS_TO_TICKS(10000));

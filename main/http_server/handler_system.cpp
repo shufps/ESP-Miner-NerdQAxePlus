@@ -110,6 +110,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
     doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
     doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
+    doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
 
     // asic temps
     {

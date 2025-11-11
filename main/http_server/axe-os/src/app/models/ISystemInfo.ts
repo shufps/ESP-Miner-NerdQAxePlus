@@ -69,6 +69,7 @@ export interface ISystemInfo {
     stratum_keep: number,
     defaultVrFrequency?: number,
     vrFrequency: number,
+    shutdown: boolean,
 
     defaultTheme: string,
 

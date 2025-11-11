@@ -46,10 +46,13 @@ void PowerManagementTask::restart() {
 }
 
 void PowerManagementTask::shutdown() {
+    lock();
     Board* board = SYSTEM_MODULE.getBoard();
     if (board) {
+        m_shutdown = true;
         board->shutdown();
     }
+    unlock();
 }
 
 uint16_t PowerManagementTask::getFanRPM(int channel) {
@@ -233,6 +236,12 @@ void PowerManagementTask::task()
 
         //uint64_t start = esp_timer_get_time();
         lock();
+
+        if (m_shutdown) {
+            unlock();
+            ESP_LOGW(TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
 
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
         uint16_t temp_control_mode = Config::getTempControlMode();

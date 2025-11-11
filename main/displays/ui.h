@@ -6,6 +6,7 @@
 
 
 LV_IMG_DECLARE(ui_img_overheat_png);      // overheating screen
+LV_IMG_DECLARE(ui_img_safe_png);
 
 #define LV_FONT_CUSTOM_DECLARE
 LV_FONT_DECLARE(ui_font_DigitalNumbers16);
@@ -78,6 +79,7 @@ protected:
     lv_obj_t *ui_lblmedFee = nullptr;
     lv_obj_t *ui_lblhighFee = nullptr;
     lv_obj_t *ui_qrScreen = nullptr;
+    lv_obj_t *ui_PowerOffScreen = nullptr;
 
     Board* m_board;
     Theme* m_theme;
@@ -110,6 +112,7 @@ public:
     void logScreenInit(void);
     void bTCScreenInit(void);
     void globalStatsScreenInit(void);
+    void powerOffScreenInit(void);
 
     void showErrorOverlay(const char *error_message, uint32_t error_code);
     void hideErrorOverlay();

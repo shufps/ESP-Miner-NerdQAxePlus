@@ -20,7 +20,8 @@
     "SUBMIT": "Submit",
     "ERROR": "Error",
     "SUCCESS": "Success",
-    "JUST_NOW": "Just now"
+    "JUST_NOW": "Just now",
+    "SHUTDOWN": "Miner has been shut down."
   },
   "NAVIGATION": {
     "HOME": "Home",

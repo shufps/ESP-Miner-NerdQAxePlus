@@ -28,6 +28,10 @@ void ASIC_result_task(void *pvParameters)
     Asic* asics = board->getAsics();
 
     while (1) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            ESP_LOGW(TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
         //ESP_LOGI("Memory", "%lu", esp_get_free_heap_size()); test
         task_result asic_result;
 
