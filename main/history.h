@@ -4,9 +4,9 @@
 
 #include "esp_psram.h"
 
-// 128k samples should be enough^^
 // must be power of two
-#define HISTORY_MAX_SAMPLES 0x20000
+// is enough for 1d
+#define HISTORY_MAX_SAMPLES 131072
 
 class History;
 
@@ -25,41 +25,35 @@ class NonceDistribution {
 class HistoryAvg {
   protected:
     int m_firstSample = 0;
-    int m_lastSample = 0;
-    uint64_t m_timespan = 0;
-    uint64_t m_diffSum = 0;
-    double m_avg = 0;
-    double m_avgGh = 0;
+    int m_lastSample  = 0;
+    uint64_t m_timespan = 0;           // desired window length in ms
+    uint32_t m_samplePeriodMs = 1000;  // fixed sampling period
+    uint32_t m_windowSamples = 1;      // ceil(timespan / samplePeriodMs)
+
+    double m_sumRates = 0.0;           // sum of GH/s in the current window
+    double m_avgGh = 0.0;
     uint64_t m_timestamp = 0;
     bool m_preliminary = true;
 
     History *m_history;
 
   public:
-    HistoryAvg(History *history, uint64_t timespan);
+    HistoryAvg(History *history, uint64_t timespan, uint32_t samplePeriodMs = 1000);
 
-    float getGh()
-    {
-        return m_avgGh;
-    };
-
-    uint64_t getTimestamp()
-    {
-        return m_timestamp;
-    };
-
-    bool isPreliminary()
-    {
-        return m_preliminary;
-    };
     void update();
+
+    float getGh()        { return (float)m_avgGh; }
+    uint64_t getTimestamp() { return m_timestamp; }
+    bool isPreliminary() { return m_preliminary; }
 };
+
 
 class History {
   protected:
     int m_numSamples = 0;
-    uint32_t *m_shares = nullptr;
+    uint32_t *m_rates = nullptr;
     uint64_t *m_timestamps = nullptr;
+    float *m_hashrate1m = nullptr;
     float *m_hashrate10m = nullptr;
     float *m_hashrate1h = nullptr;
     float *m_hashrate1d = nullptr;
@@ -77,12 +71,14 @@ class History {
     bool init(int numAsics);
     bool isAvailable();
     void getTimestamps(uint64_t *first, uint64_t *last, int *num_samples);
-    void pushShare(uint32_t diff, uint64_t timestamp, int asic_nr);
+    void pushShare(int asic_nr);
+    void pushRate(float rateGh, uint64_t timestamp);
 
     void lock();
     void unlock();
 
     uint64_t getTimestampSample(int index);
+    float getHashrate1mSample(int index);
     float getHashrate10mSample(int index);
     float getHashrate1hSample(int index);
     float getHashrate1dSample(int index);
@@ -91,7 +87,7 @@ class History {
     double getCurrentHashrate10m();
     double getCurrentHashrate1h();
     double getCurrentHashrate1d();
-    uint32_t getShareSample(int index);
+    float getRateSample(int index);
     int searchNearestTimestamp(int64_t timestamp);
 
     void exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);

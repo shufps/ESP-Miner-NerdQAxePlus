@@ -37,9 +37,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public chartOptions: any;
   public dataLabel: number[] = [];
   public dataData: number[] = [];
+  public dataData1m: number[] = [];
   public dataData10m: number[] = [];
   public dataData1h: number[] = [];
-  public dataData1d: number[] = [];
   public chartData?: any;
 
   public hasChipTemps: boolean = false;
@@ -91,8 +91,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       datasets: [
         {
           type: 'line',
-          label: this.translateService.instant('HOME.HASHRATE_10M'),
-          data: this.dataData10m,
+          label: this.translateService.instant('HOME.HASHRATE_1M'),
+          data: this.dataData1m,
           fill: false,
           backgroundColor: '#6484f6',
           borderColor: '#6484f6',
@@ -102,8 +102,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         {
           type: 'line',
-          label: this.translateService.instant('HOME.HASHRATE_1H'),
-          data: this.dataData1h,
+          label: this.translateService.instant('HOME.HASHRATE_10M'),
+          data: this.dataData10m,
           fill: false,
           backgroundColor: '#7464f6',
           borderColor: '#7464f6',
@@ -113,8 +113,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         {
           type: 'line',
-          label: this.translateService.instant('HOME.HASHRATE_1D'),
-          data: this.dataData1d,
+          label: this.translateService.instant('HOME.HASHRATE_1H'),
+          data: this.dataData1h,
           fill: false,
           backgroundColor: '#a564f6',
           borderColor: '#a564f6',
@@ -338,17 +338,17 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   private clearChartData(): void {
     this.dataLabel = [];
+    this.dataData1m = [];
     this.dataData10m = [];
     this.dataData1h = [];
-    this.dataData1d = [];
   }
 
   private updateChartData(data: any): void {
     const baseTimestamp = data.timestampBase;
     const convertedTimestamps = data.timestamps.map((ts: number) => ts + baseTimestamp);
+    const convertedhashrate_1m = data.hashrate_1m.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_10m = data.hashrate_10m.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_1h = data.hashrate_1h.map((hr: number) => hr * 1000000000.0 / 100.0);
-    const convertedhashrate_1d = data.hashrate_1d.map((hr: number) => hr * 1000000000.0 / 100.0);
 
     // Find the highest existing timestamp
     const lastTimestamp = this.dataLabel.length > 0 ? Math.max(...this.dataLabel) : -Infinity;
@@ -356,17 +356,17 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     // Filter new data to include only timestamps greater than the lastTimestamp
     const newData = convertedTimestamps.map((ts, index) => ({
       timestamp: ts,
+      hashrate_1m: convertedhashrate_1m[index],
       hashrate_10m: convertedhashrate_10m[index],
       hashrate_1h: convertedhashrate_1h[index],
-      hashrate_1d: convertedhashrate_1d[index]
     })).filter(entry => entry.timestamp > lastTimestamp);
 
     // Append only new data
     if (newData.length > 0) {
       this.dataLabel = [...this.dataLabel, ...newData.map(entry => entry.timestamp)];
+      this.dataData1m = [...this.dataData1m, ...newData.map(entry => entry.hashrate_1m)];
       this.dataData10m = [...this.dataData10m, ...newData.map(entry => entry.hashrate_10m)];
       this.dataData1h = [...this.dataData1h, ...newData.map(entry => entry.hashrate_1h)];
-      this.dataData1d = [...this.dataData1d, ...newData.map(entry => entry.hashrate_1d)];
     }
   }
 
@@ -375,9 +375,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     if (storedData) {
       const parsedData = JSON.parse(storedData);
       this.dataLabel = parsedData.labels || [];
+      this.dataData1m = parsedData.dataData1m || [];
       this.dataData10m = parsedData.dataData10m || [];
       this.dataData1h = parsedData.dataData1h || [];
-      this.dataData1d = parsedData.dataData1d || [];
     }
     this.updateChart();
 
@@ -388,9 +388,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private saveChartData(): void {
     const dataToSave = {
       labels: this.dataLabel,
+      dataData1m: this.dataData1m,
       dataData10m: this.dataData10m,
       dataData1h: this.dataData1h,
-      dataData1d: this.dataData1d
     };
     localStorage.setItem(this.localStorageKey, JSON.stringify(dataToSave));
   }
@@ -401,9 +401,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     while (this.dataLabel.length && this.dataLabel[0] < cutoff) {
       this.dataLabel.shift();
+      this.dataData1m.shift();
       this.dataData10m.shift();
       this.dataData1h.shift();
-      this.dataData1d.shift();
     }
 
     if (this.dataLabel.length) {
@@ -426,9 +426,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   private updateChart() {
     this.chartData.labels = this.dataLabel;
-    this.chartData.datasets[0].data = this.dataData10m;
-    this.chartData.datasets[1].data = this.dataData1h;
-    this.chartData.datasets[2].data = this.dataData1d;
+    this.chartData.datasets[0].data = this.dataData1m;
+    this.chartData.datasets[1].data = this.dataData10m;
+    this.chartData.datasets[2].data = this.dataData1h;
 
     if (!this.chart) {
       return;

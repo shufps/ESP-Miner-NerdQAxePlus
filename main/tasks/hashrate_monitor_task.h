@@ -1,13 +1,11 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <pthread.h>
 
-extern "C"
-{
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-}
 
 class Board;
 class Asic;
@@ -15,8 +13,10 @@ class Asic;
 class HashrateMonitor {
   private:
     // confirmed by long-term averages
-    const double ERRATA_FACTOR = 1.046;
+    static constexpr double ERRATA_FACTOR = 1.046;
     char m_logBuffer[256] = {0};
+
+    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     // Task + config
     uint32_t m_period_ms = 1000;

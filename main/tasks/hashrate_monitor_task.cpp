@@ -75,23 +75,31 @@ void HashrateMonitor::publishTotalIfComplete()
         m_logBuffer[offset - 2] = 0; // remove trailing slash
     }
 
+    History *history = SYSTEM_MODULE.getHistory();
+    if (history) {
+        uint64_t timestamp = esp_timer_get_time() / 1000llu;
+        history->pushRate(getTotalChipHashrate(), timestamp);
+    }
+
     ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, getTotalChipHashrate());
 }
 
 void HashrateMonitor::taskLoop()
 {
     // Small startup delay
-    vTaskDelay(pdMS_TO_TICKS(3000));
+    vTaskDelay(pdMS_TO_TICKS(4000));
 
+    TickType_t lastWake = xTaskGetTickCount();
     while (1) {
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(HR_TAG, "suspended");
             vTaskSuspend(NULL);
         }
-        vTaskDelay(pdMS_TO_TICKS(m_period_ms));
 
-        if (!m_board || !m_asic)
+        if (!m_board || !m_asic) {
+            vTaskDelay(pdMS_TO_TICKS(m_period_ms));
             continue;
+        }
 
         // Precise start timestamp (µs) taken right before RESET.
         uint64_t m_t0_us = esp_timer_get_time();
@@ -120,6 +128,8 @@ void HashrateMonitor::taskLoop()
 
         // In case not all replies arrived, still publish what we have
         publishTotalIfComplete();
+
+        vTaskDelayUntil(&lastWake, pdMS_TO_TICKS(m_period_ms));
     }
 }
 

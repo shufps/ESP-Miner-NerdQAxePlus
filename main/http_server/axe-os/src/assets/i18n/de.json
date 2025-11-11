@@ -60,6 +60,7 @@
     "IDLE": "Leerlauf",
     "PRIMARY_POOL": "Primärer Pool",
     "FALLBACK_POOL": "Fallback-Pool",
+    "HASHRATE_1M": "Hashrate 1min",
     "HASHRATE_10M": "Hashrate 10min",
     "HASHRATE_1H": "Hashrate 1h",
     "HASHRATE_1D": "Hashrate 1T"
