@@ -75,13 +75,15 @@ void HashrateMonitor::publishTotalIfComplete()
         m_logBuffer[offset - 2] = 0; // remove trailing slash
     }
 
+    float hashrate = getTotalChipHashrate();
+
     History *history = SYSTEM_MODULE.getHistory();
-    if (history) {
+    if (hashrate && history) {
         uint64_t timestamp = esp_timer_get_time() / 1000llu;
-        history->pushRate(getTotalChipHashrate(), timestamp);
+        history->pushRate(hashrate, timestamp);
     }
 
-    ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, getTotalChipHashrate());
+    ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, hashrate);
 }
 
 void HashrateMonitor::taskLoop()
@@ -115,6 +117,7 @@ void HashrateMonitor::taskLoop()
         m_asic->readCounter(REG_NONCE_TOTAL_CNT);
 
         // Give RX some time to deliver replies
+        // normally they arrive in 10-20ms
         vTaskDelay(pdMS_TO_TICKS(m_settle_ms));
 
         // apply a slight smoothing

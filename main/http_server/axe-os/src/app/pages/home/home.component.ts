@@ -24,7 +24,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private chart: Chart;
   private themeSubscription: any;
   private chartInitialized = false;
-  private _info : any;
+  private _info: any;
   private timeFormatListener: any;
 
   private wasLoaded = false;
@@ -315,26 +315,20 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   private importHistoricalData(data: any) {
-    // relative to absolute time stamps
+    // relative -> absolute
     this.updateChartData(data);
 
     if (data.timestamps && data.timestamps.length) {
-      const lastDataTimestamp = Math.max(...data.timestamps);
-      this.storeTimestamp(lastDataTimestamp);
+      const lastDataTimestampAbs = data.timestampBase + Math.max(...data.timestamps);
+      this.storeTimestamp(lastDataTimestampAbs);
     }
 
-    // remove data that are older than 1h
+    // remove > save > update
     this.filterOldData();
-
-    // save data into the local browser storage
-    // only if we had loaded it before
-    if (this.wasLoaded) {
-      this.saveChartData();
-    }
-
-    // set flag that we have finished the initial import
+    if (this.wasLoaded) this.saveChartData();
     this.updateChart();
   }
+
 
   private clearChartData(): void {
     this.dataLabel = [];
@@ -373,17 +367,21 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private loadChartData(): void {
     const storedData = localStorage.getItem(this.localStorageKey);
     if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      this.dataLabel = parsedData.labels || [];
-      this.dataData1m = parsedData.dataData1m || [];
-      this.dataData10m = parsedData.dataData10m || [];
-      this.dataData1h = parsedData.dataData1h || [];
-    }
-    this.updateChart();
+      const parsed = JSON.parse(storedData);
+      this.dataLabel = parsed.labels || [];
+      this.dataData1m = parsed.dataData1m || [];
+      this.dataData10m = parsed.dataData10m || [];
+      this.dataData1h = parsed.dataData1h || [];
 
-    // make sure we load the data before we save it
-    this.wasLoaded = true;
+      if (this.dataLabel.length) {
+        this.storeTimestamp(this.dataLabel[this.dataLabel.length - 1]);
+      }
+    }
+
+    this.updateChart();
+    this.wasLoaded = true; // erst NACH dem Laden auf true
   }
+
 
   private saveChartData(): void {
     const dataToSave = {
@@ -430,12 +428,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.chartData.datasets[1].data = this.dataData10m;
     this.chartData.datasets[2].data = this.dataData1h;
 
-    if (!this.chart) {
-      return;
-    }
+    if (!this.chart) return;
 
-    // Force dataset updates
-    this.chart.data.datasets.forEach(dataset => dataset.data = [...dataset.data]);
+    // Force updates for both labels and datasets
+    this.chart.data.labels = [...this.chartData.labels];
+    this.chart.data.datasets.forEach((ds, i) => {
+      ds.data = [...(this.chartData.datasets[i].data as number[])];
+    });
 
     this.chart.update();
   }

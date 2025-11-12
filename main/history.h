@@ -22,36 +22,45 @@ class NonceDistribution {
     void toLog();
 };
 
+// --- HistoryAvg: robust, time-windowed, with "ramping" display average ---
 class HistoryAvg {
   protected:
     int m_firstSample = 0;
-    int m_lastSample  = 0;
-    uint64_t m_timespan = 0;           // desired window length in ms
-    uint32_t m_samplePeriodMs = 1000;  // fixed sampling period
-    uint32_t m_windowSamples = 1;      // ceil(timespan / samplePeriodMs)
+    int m_lastSample  = -1;           // start "empty"
+    uint64_t m_timespan = 0;          // desired window length in ms
+    uint32_t m_samplePeriodMs = 5000; // your push period (5s)
+    int m_numSamples = 0;             // actual samples inside the window
 
-    double m_sumRates = 0.0;           // sum of GH/s in the current window
-    double m_avgGh = 0.0;
-    uint64_t m_timestamp = 0;
-    bool m_preliminary = true;
+    int64_t m_sumRates = 0;           // sum of rate samples in Q10 (uQ22.10 summed into sQ54.10)
+    double m_avgGh = 0.0;             // unbiased average (GH/s)
+    double m_avgGhDisplay = 0.0;      // "ramping" average for UI (GH/s)
+    uint64_t m_timestamp = 0;         // timestamp of the newest sample in the window
+    bool m_preliminary = true;        // duration < timespan
 
-    History *m_history;
+    History *m_history = nullptr;
 
   public:
-    HistoryAvg(History *history, uint64_t timespan, uint32_t samplePeriodMs = 1000);
+    HistoryAvg(History *history, uint64_t timespan, uint32_t samplePeriodMs = 5000);
 
+    // Call on each push to include new samples and trim the left edge
     void update();
 
-    float getGh()        { return (float)m_avgGh; }
-    uint64_t getTimestamp() { return m_timestamp; }
-    bool isPreliminary() { return m_preliminary; }
+    // True, physically correct average GH/s
+    float getGh() const { return (float)m_avgGh; }
+
+    // Smoothed, "ramping" average GH/s for plotting or UI
+    float getGhDisplay() const { return (float)m_avgGhDisplay; }
+
+    uint64_t getTimestamp() const { return m_timestamp; }
+    bool isPreliminary() const { return m_preliminary; }
 };
+
 
 
 class History {
   protected:
     int m_numSamples = 0;
-    uint32_t *m_rates = nullptr;
+    uint32_t *m_rates = nullptr; // (uQ22.10)
     uint64_t *m_timestamps = nullptr;
     float *m_hashrate1m = nullptr;
     float *m_hashrate10m = nullptr;
@@ -87,7 +96,7 @@ class History {
     double getCurrentHashrate10m();
     double getCurrentHashrate1h();
     double getCurrentHashrate1d();
-    float getRateSample(int index);
+    uint32_t getRateSample(int index);
     int searchNearestTimestamp(int64_t timestamp);
 
     void exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);

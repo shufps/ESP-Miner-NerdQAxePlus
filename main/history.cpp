@@ -107,7 +107,7 @@ double History::getCurrentHashrate1d()
     return m_avg1d.getGh();
 }
 
-float History::getRateSample(int index)
+uint32_t History::getRateSample(int index)
 {
     return m_rates[WRAP(index)];
 }
@@ -134,20 +134,20 @@ bool History::isAvailable()
 }
 
 History::History()
-    : m_avg1m(this, 60llu * 1000llu, 1100), m_avg10m(this, 600llu * 1000llu, 1100), m_avg1h(this, 3600llu * 1000llu, 1100),
-      m_avg1d(this, 86400llu * 1000llu, 1100)
+    : m_avg1m(this, 60llu * 1000llu, 5000), m_avg10m(this, 600llu * 1000llu, 5000), m_avg1h(this, 3600llu * 1000llu, 5000),
+      m_avg1d(this, 86400llu * 1000llu, 5000)
 {
     // NOP
 }
 
 bool History::init(int num_asics)
 {
-    m_rates = (uint32_t *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(uint32_t));
-    m_timestamps = (uint64_t *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(uint64_t));
-    m_hashrate1m = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
-    m_hashrate10m = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
-    m_hashrate1h = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
-    m_hashrate1d = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
+    m_rates = (uint32_t *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(uint32_t));
+    m_timestamps = (uint64_t *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(uint64_t));
+    m_hashrate1m = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+    m_hashrate10m = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+    m_hashrate1h = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+    m_hashrate1d = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
 
     m_distribution.init(num_asics);
 
@@ -172,41 +172,67 @@ void History::getTimestamps(uint64_t *first, uint64_t *last, int *num_samples)
 HistoryAvg::HistoryAvg(History *history, uint64_t timespan, uint32_t samplePeriodMs)
     : m_timespan(timespan), m_samplePeriodMs(samplePeriodMs), m_history(history)
 {
-    // ceil division to fully cover the intended timespan
-    m_windowSamples = (uint32_t) ((timespan + samplePeriodMs - 1) / samplePeriodMs);
-    if (m_windowSamples == 0)
-        m_windowSamples = 1;
+    // NOP
 }
 
-// calculates incrementally without "scanning" the entire time span
+// Call on each push to include new samples and trim the left edge
 void HistoryAvg::update()
 {
-    // include all newly appended samples
-    while (m_lastSample + 1 < m_history->getNumSamples()) {
+    // 1) Pull in newly arrived samples on the right edge
+    const int histCount = m_history->getNumSamples();
+    while (m_lastSample + 1 < histCount) {
         m_lastSample++;
-        m_sumRates += (double) m_history->getRateSample(m_lastSample);
+        m_numSamples++;
+        m_sumRates += (int64_t) m_history->getRateSample(m_lastSample);
     }
 
-    // shrink window to at most m_windowSamples items
-    while (m_lastSample - m_firstSample + 1 > (int) m_windowSamples) {
-        m_sumRates -= (double) m_history->getRateSample(m_firstSample);
-        m_firstSample++;
-    }
-/*
-    int count = m_lastSample - m_firstSample + 1;
-    if (count <= 0) {
+    if (m_lastSample < 0 || m_numSamples <= 0) {
+        // No data yet
+        m_timestamp = 0;
         m_avgGh = 0.0;
+        m_avgGhDisplay = 0.0;
         m_preliminary = true;
         return;
     }
-*/
-    int count = m_windowSamples;
 
-    m_avgGh = m_sumRates / (double) count; // simple average over fixed-period samples
-    m_timestamp = m_history->getTimestampSample(m_lastSample);
-    m_preliminary = (uint32_t) count < m_windowSamples; // ramp-up indicator
+    const uint64_t lastTs = m_history->getTimestampSample(m_lastSample);
+
+    // 2) Trim from the left while the first sample is too old for the time window
+    //    Keep the window such that (lastTs - firstTs) < m_timespan whenever possible.
+    while (m_firstSample < m_lastSample && lastTs - m_history->getTimestampSample(m_firstSample) >= m_timespan) {
+        m_sumRates -= (int64_t) m_history->getRateSample(m_firstSample);
+        m_numSamples--;
+        m_firstSample++;
+    }
+
+    const uint64_t firstTs = m_history->getTimestampSample(m_firstSample);
+    const uint64_t covered = (lastTs >= firstTs) ? (lastTs - firstTs) : 0;
+
+    // Consider the window "filled" once we effectively have >= timespan coverage.
+    // Add one samplePeriod as tolerance to account for discrete sampling.
+    const bool filled = (covered + m_samplePeriodMs) >= m_timespan;
+
+    // preliminary only while the window is not filled yet
+    m_preliminary = !filled;
+
+    // Unbiased average over actual samples in the window (Q10 -> GH/s)
+    const int denom = (m_numSamples > 0) ? m_numSamples : 1;
+    const double avg_q10 = (double) m_sumRates / (double) denom;
+    m_avgGh = avg_q10 / 1024.0; // -> GH/s
+
+    // Display ("ramping") average: only damp while preliminary
+    if (m_preliminary) {
+        // scale by coverage ratio with the same tolerance
+        double fill = (double) (covered + m_samplePeriodMs) / (double) m_timespan;
+        if (fill > 1.0)
+            fill = 1.0;
+        m_avgGhDisplay = m_avgGh * fill;
+    } else {
+        m_avgGhDisplay = m_avgGh;
+    }
+
+    m_timestamp = lastTs;
 }
-
 // push a measured instantaneous hashrate (GH/s)
 void History::pushRate(float rateGh, uint64_t timestamp)
 {
@@ -218,10 +244,11 @@ void History::pushRate(float rateGh, uint64_t timestamp)
     lock();
 
     // sanity check
-    if (!isfinite(rateGh) || rateGh < 0.0f) rateGh = 0.0f;
+    if (!isfinite(rateGh) || rateGh < 0.0f)
+        rateGh = 0.0f;
 
     // store rate sample and timestamp
-    m_rates[WRAP(m_numSamples)] = rateGh;
+    m_rates[WRAP(m_numSamples)] = (uint32_t) (rateGh * 1024.0); // -> Q22.10
     m_timestamps[WRAP(m_numSamples)] = timestamp;
     m_numSamples++;
 
@@ -232,10 +259,10 @@ void History::pushRate(float rateGh, uint64_t timestamp)
     m_avg1d.update();
 
     // write per-sample windowed averages for export
-    m_hashrate1m[WRAP(m_numSamples - 1)] = m_avg1m.getGh();
-    m_hashrate10m[WRAP(m_numSamples - 1)] = m_avg10m.getGh();
-    m_hashrate1h[WRAP(m_numSamples - 1)] = m_avg1h.getGh();
-    m_hashrate1d[WRAP(m_numSamples - 1)] = m_avg1d.getGh();
+    m_hashrate1m[WRAP(m_numSamples - 1)] = m_avg1m.getGhDisplay();
+    m_hashrate10m[WRAP(m_numSamples - 1)] = m_avg10m.getGhDisplay();
+    m_hashrate1h[WRAP(m_numSamples - 1)] = m_avg1h.getGhDisplay();
+    m_hashrate1d[WRAP(m_numSamples - 1)] = m_avg1d.getGhDisplay();
 
     unlock();
 
@@ -340,7 +367,7 @@ void History::exportHistoryData(JsonObject &json_history, uint64_t start_timesta
         hashrate_1m.add((int) (getHashrate1mSample(i) * 100.0));
         hashrate_10m.add((int) (getHashrate10mSample(i) * 100.0));
         hashrate_1h.add((int) (getHashrate1hSample(i) * 100.0));
-        hashrate_1d.add((int) (getHashrate1hSample(i) * 100.0));
+        hashrate_1d.add((int) (getHashrate1dSample(i) * 100.0));
         timestamps.add((int64_t) sample_timestamp - sys_start);
     }
 

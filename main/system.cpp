@@ -33,8 +33,6 @@ System::System() {
 }
 
 void System::initSystem() {
-    m_currentHashrate10m = 0.0;
-    m_currentHashrate1m = 0.0;
     m_screenPage = 0;
     m_sharesAccepted = 0;
     m_sharesRejected = 0;
