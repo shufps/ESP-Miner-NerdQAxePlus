@@ -291,7 +291,7 @@ extern "C" void app_main(void)
         xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 4096, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
 
         if (board->hasHashrateCounter()) {
-            HASHRATE_MONITOR.start(board, board->getAsics(), /*period_ms*/ 5000, /*window_ms*/ 4800, /*settle_ms*/ 100);
+            HASHRATE_MONITOR.start(board, board->getAsics());
         }
     }
     // char* taskList = (char*) malloc(8192);

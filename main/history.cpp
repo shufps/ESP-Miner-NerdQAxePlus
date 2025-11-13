@@ -11,6 +11,7 @@
 #include "global_state.h"
 #include "history.h"
 #include "macros.h"
+#include "hashrate_monitor_task.h"
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
@@ -134,8 +135,8 @@ bool History::isAvailable()
 }
 
 History::History()
-    : m_avg1m(this, 60llu * 1000llu, 5000), m_avg10m(this, 600llu * 1000llu, 5000), m_avg1h(this, 3600llu * 1000llu, 5000),
-      m_avg1d(this, 86400llu * 1000llu, 5000)
+    : m_avg1m(this, 60llu * 1000llu, HR_INTERVAL), m_avg10m(this, 600llu * 1000llu, HR_INTERVAL), m_avg1h(this, 3600llu * 1000llu, HR_INTERVAL),
+      m_avg1d(this, 86400llu * 1000llu, HR_INTERVAL)
 {
     // NOP
 }

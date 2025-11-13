@@ -10,6 +10,8 @@
 class Board;
 class Asic;
 
+#define HR_INTERVAL 5000
+
 class HashrateMonitor {
   private:
     // confirmed by long-term averages
@@ -20,8 +22,6 @@ class HashrateMonitor {
 
     // Task + config
     uint32_t m_period_ms = 1000;
-    uint32_t m_window_ms = 10000;
-    uint32_t m_settle_ms = 300;
 
     int m_asicCount = 0;
     float *m_chipHashrate = nullptr;
@@ -50,7 +50,7 @@ class HashrateMonitor {
 
     // Start the background task. period_ms = cadence of measurements,
     // window_ms = measurement window length before READ, settle_ms = RX settle time after READ.
-    bool start(Board *board, Asic *asic, uint32_t period_ms, uint32_t window_ms, uint32_t settle_ms = 300);
+    bool start(Board *board, Asic *asic);
 
     // Called from RX dispatcher for each register reply.
     // 'counterNow' is the 32-bit counter (host-endian).

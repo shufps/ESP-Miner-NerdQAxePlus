@@ -10,13 +10,11 @@ static constexpr uint8_t REG_NONCE_TOTAL_CNT = 0x90;
 HashrateMonitor::HashrateMonitor()
 {}
 
-bool HashrateMonitor::start(Board *board, Asic *asic, uint32_t period_ms, uint32_t window_ms, uint32_t settle_ms)
+bool HashrateMonitor::start(Board *board, Asic *asic)
 {
     m_board = board;
     m_asic = asic;
-    m_period_ms = period_ms;
-    m_window_ms = window_ms;
-    m_settle_ms = settle_ms;
+    m_period_ms = HR_INTERVAL;
 
     if (!m_board || !m_asic) {
         ESP_LOGE(HR_TAG, "start(): missing dependencies (board=%p, asic=%p)", (void *) m_board, (void *) m_asic);
@@ -32,7 +30,7 @@ bool HashrateMonitor::start(Board *board, Asic *asic, uint32_t period_ms, uint32
 
 
     xTaskCreate(&HashrateMonitor::taskWrapper, "hr_monitor", 4096, (void *) this, 10, NULL);
-    ESP_LOGI(HR_TAG, "started (period=%lums, window=%lums, settle=%lums)", m_period_ms, m_window_ms, m_settle_ms);
+    ESP_LOGI(HR_TAG, "started (period=%lums)", m_period_ms);
     return true;
 }
 
