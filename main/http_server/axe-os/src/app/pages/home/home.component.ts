@@ -5,7 +5,7 @@ import { SystemService } from '../../services/system.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
 import { Chart } from 'chart.js';  // Import Chart.js
 import { ElementRef, ViewChild } from "@angular/core";
-import { TimeScale} from "chart.js/auto";
+import { TimeScale } from "chart.js/auto";
 import { NbThemeService } from '@nebular/theme';
 import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
@@ -49,6 +49,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private localStorageKey = 'chartData';
   private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
   private tempViewKey = 'tempViewMode';
+  private legendVisibilityKey = 'chartLegendVisibility';
+
 
   ngAfterViewChecked(): void {
     // Ensure chart is initialized only once when the canvas becomes available
@@ -64,6 +66,18 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       data: this.chartData,
       options: this.chartOptions,
     });
+    // Restore legend visibility
+    const saved = localStorage.getItem(this.legendVisibilityKey);
+    if (saved) {
+      const visibility = JSON.parse(saved);
+      visibility.forEach((hidden: boolean, i: number) => {
+        if (hidden) {
+          this.chart.getDatasetMeta(i).hidden = true;
+        }
+      });
+      this.chart.update();
+    }
+
     this.loadChartData();
     if (this._info.history) {
       this.importHistoricalData(this._info.history);
@@ -144,6 +158,22 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         legend: {
           labels: {
             color: textColor
+          },
+          onClick: (evt, legendItem, legend) => {
+            const chart = legend.chart;
+            const index = legendItem.datasetIndex;
+            const meta = chart.getDatasetMeta(index);
+
+            // Toggle
+            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+
+            chart.update();
+
+            // Persist
+            const visibility = chart.data.datasets.map((ds, i) =>
+              chart.getDatasetMeta(i).hidden ? true : false
+            );
+            localStorage.setItem(this.legendVisibilityKey, JSON.stringify(visibility));
           }
         },
         tooltip: {
