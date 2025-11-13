@@ -146,6 +146,8 @@ void HashrateMonitor::onRegisterReply(uint8_t asic_idx, uint32_t counterNow)
     uint32_t counterDelta = counterNow - m_prevCounter[asic_idx];
 
     double chip_ghs = (double) counterDelta * (double) 0x100000000uLL / (double) timeDelta / 1000.0;
+//    ESP_LOGE("XXX", "m_prevResponse[%d]=%lld now=%lld m_prevCounter[%d]=%lu counterNow=%lu timeDelta=%llu counterDelta=%lu chip_ghs=%.3f",
+//        (int) asic_idx, m_prevResponse[asic_idx], now, (int) asic_idx, m_prevCounter[asic_idx], counterNow, timeDelta, counterDelta, chip_ghs);
 
     setChipHashrate(asic_idx, chip_ghs);
 
