@@ -60,10 +60,10 @@
     "IDLE": "Inactif",
     "PRIMARY_POOL": "Pool Primaire",
     "FALLBACK_POOL": "Pool de Secours",
-    "HASHRATE_1M": "Hashrate 1min",
-    "HASHRATE_10M": "Hashrate 10min",
-    "HASHRATE_1H": "Hashrate 1h",
-    "HASHRATE_1D": "Hashrate 1j"
+    "HASHRATE_1M": "Hashrate (1 min)",
+    "HASHRATE_10M": "Hashrate (10 min)",
+    "HASHRATE_1H": "Hashrate (1 h)",
+    "HASHRATE_1D": "Hashrate (1 j)"
   },
   "PERFORMANCE": {
     "TITLE": "Performance",

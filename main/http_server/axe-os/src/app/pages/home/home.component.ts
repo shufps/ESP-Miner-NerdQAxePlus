@@ -40,6 +40,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public dataData1m: number[] = [];
   public dataData10m: number[] = [];
   public dataData1h: number[] = [];
+  public dataData1d: number[] = [];
   public chartData?: any;
 
   public hasChipTemps: boolean = false;
@@ -118,6 +119,17 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           fill: false,
           backgroundColor: '#a564f6',
           borderColor: '#a564f6',
+          tension: .4,
+          pointRadius: 0,
+          borderWidth: 1
+        },
+        {
+          type: 'line',
+          label: this.translateService.instant('HOME.HASHRATE_1D'),
+          data: this.dataData1d,
+          fill: false,
+          backgroundColor: '#c764f6',
+          borderColor: '#c764f6',
           tension: .4,
           pointRadius: 0,
           borderWidth: 1
@@ -335,6 +347,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.dataData1m = [];
     this.dataData10m = [];
     this.dataData1h = [];
+    this.dataData1d = [];
   }
 
   private updateChartData(data: any): void {
@@ -343,6 +356,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     const convertedhashrate_1m = data.hashrate_1m.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_10m = data.hashrate_10m.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_1h = data.hashrate_1h.map((hr: number) => hr * 1000000000.0 / 100.0);
+    const convertedhashrate_1d = data.hashrate_1d.map((hr: number) => hr * 1000000000.0 / 100.0);
 
     // Find the highest existing timestamp
     const lastTimestamp = this.dataLabel.length > 0 ? Math.max(...this.dataLabel) : -Infinity;
@@ -353,6 +367,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       hashrate_1m: convertedhashrate_1m[index],
       hashrate_10m: convertedhashrate_10m[index],
       hashrate_1h: convertedhashrate_1h[index],
+      hashrate_1d: convertedhashrate_1d[index],
     })).filter(entry => entry.timestamp > lastTimestamp);
 
     // Append only new data
@@ -361,6 +376,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.dataData1m = [...this.dataData1m, ...newData.map(entry => entry.hashrate_1m)];
       this.dataData10m = [...this.dataData10m, ...newData.map(entry => entry.hashrate_10m)];
       this.dataData1h = [...this.dataData1h, ...newData.map(entry => entry.hashrate_1h)];
+      this.dataData1d = [...this.dataData1d, ...newData.map(entry => entry.hashrate_1d)];
     }
   }
 
@@ -372,6 +388,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.dataData1m = parsed.dataData1m || [];
       this.dataData10m = parsed.dataData10m || [];
       this.dataData1h = parsed.dataData1h || [];
+      this.dataData1d = parsed.dataData1d || [];
 
       if (this.dataLabel.length) {
         this.storeTimestamp(this.dataLabel[this.dataLabel.length - 1]);
@@ -389,6 +406,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       dataData1m: this.dataData1m,
       dataData10m: this.dataData10m,
       dataData1h: this.dataData1h,
+      dataData1d: this.dataData1d,
     };
     localStorage.setItem(this.localStorageKey, JSON.stringify(dataToSave));
   }
@@ -402,6 +420,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.dataData1m.shift();
       this.dataData10m.shift();
       this.dataData1h.shift();
+      this.dataData1d.shift();
     }
 
     if (this.dataLabel.length) {
@@ -427,6 +446,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.chartData.datasets[0].data = this.dataData1m;
     this.chartData.datasets[1].data = this.dataData10m;
     this.chartData.datasets[2].data = this.dataData1h;
+    this.chartData.datasets[3].data = this.dataData1d;
 
     if (!this.chart) return;
 

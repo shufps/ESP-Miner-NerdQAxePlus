@@ -60,10 +60,10 @@
     "IDLE": "Leerlauf",
     "PRIMARY_POOL": "Primärer Pool",
     "FALLBACK_POOL": "Fallback-Pool",
-    "HASHRATE_1M": "Hashrate 1min",
-    "HASHRATE_10M": "Hashrate 10min",
-    "HASHRATE_1H": "Hashrate 1h",
-    "HASHRATE_1D": "Hashrate 1T"
+    "HASHRATE_1M": "Hashrate (1 min)",
+    "HASHRATE_10M": "Hashrate (10 min)",
+    "HASHRATE_1H": "Hashrate (1 std)",
+    "HASHRATE_1D": "Hashrate (1 Tag)"
   },
   "PERFORMANCE": {
     "TITLE": "Leistung",
