@@ -3,10 +3,16 @@
 #include "ArduinoJson.h"
 
 #include "esp_psram.h"
+#include "hashrate_monitor_task.h"
 
-// must be power of two
-// is enough for 1d
-#define HISTORY_MAX_SAMPLES 131072
+#define NEXT_POWER_OF_TWO(x) \
+    (1 << (32 - __builtin_clz((x) - 1)))
+
+// data points needed for a day
+#define HISTORY_RAW (86400000 / HR_INTERVAL)
+
+// round up to the next power of 2
+#define HISTORY_MAX_SAMPLES NEXT_POWER_OF_TWO(HISTORY_RAW)
 
 class History;
 

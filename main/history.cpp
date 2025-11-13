@@ -11,7 +11,6 @@
 #include "global_state.h"
 #include "history.h"
 #include "macros.h"
-#include "hashrate_monitor_task.h"
 
 #pragma GCC diagnostic error "-Wall"
 #pragma GCC diagnostic error "-Wextra"
@@ -149,6 +148,8 @@ bool History::init(int num_asics)
     m_hashrate10m = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
     m_hashrate1h = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
     m_hashrate1d = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+
+    ESP_LOGI(TAG, "History size %d samples", (int) HISTORY_MAX_SAMPLES);
 
     m_distribution.init(num_asics);
 
