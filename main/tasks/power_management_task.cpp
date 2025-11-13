@@ -30,6 +30,9 @@ void PowerManagementTask::taskWrapper(void *pvParameters) {
 }
 
 void PowerManagementTask::restart() {
+    Config::flush_nvs_changes();  // Ensure all config changes are persisted
+    ESP_LOGI(TAG, "Configuration changes flushed to NVS");
+
     ESP_LOGW(TAG, "Shutdown requested ...");
     // stops the main task
     lock();

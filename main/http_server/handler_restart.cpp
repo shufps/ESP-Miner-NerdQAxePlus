@@ -4,6 +4,7 @@
 #include "global_state.h"
 #include "http_cors.h"
 #include "http_utils.h"
+#include "nvs_config.h"
 
 static const char *TAG = "http_restart";
 
@@ -24,6 +25,8 @@ esp_err_t POST_restart(httpd_req_t *req)
     }
 
     ESP_LOGI(TAG, "Restarting System because of API Request");
+
+    Config::flush_nvs_changes();  // Ensure persistent settings are saved
 
     // Send HTTP response before restarting
     const char *resp_str = "System will restart shortly.";

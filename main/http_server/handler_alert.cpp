@@ -85,6 +85,8 @@ esp_err_t POST_update_alert(httpd_req_t *req)
 
     doc.clear();
 
+    Config::flush_nvs_changes();  // Commit batched alert settings to NVS
+    ESP_LOGI(TAG, "Alert configuration flushed to NVS");
     httpd_resp_send_chunk(req, NULL, 0);
 
     // reload discord alerter config
