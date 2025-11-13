@@ -1,14 +1,14 @@
 #pragma once
 
+#include <ctime>
 #include <stdint.h>
 #include <string.h>
-#include <ctime>
 
-#include "displays/displayDriver.h"
-#include "esp_system.h"
-#include "esp_netif.h"
-#include "freertos/queue.h"
 #include "boards/board.h"
+#include "displays/displayDriver.h"
+#include "esp_netif.h"
+#include "esp_system.h"
+#include "freertos/queue.h"
 #include "history.h"
 #include "sntp.h"
 
@@ -16,18 +16,15 @@
 #define STRATUM_USER CONFIG_STRATUM_USER
 #define DIFF_STRING_SIZE 12 // Maximum size of the difficulty string
 #define MAX_ASIC_JOBS 128   // Maximum number of ASIC jobs allowed
-//#define OVERHEAT_DEFAULT 70 // Default overheat threshold in degrees Celsius
+// #define OVERHEAT_DEFAULT 70 // Default overheat threshold in degrees Celsius
 
 class System {
   protected:
-    // Hashrate and timing
-    double m_currentHashrate10m; // Current hashrate averaged over 10 minutes
-    double m_currentHashrate1m;  // Current hashrate averaged over 1 minute
     int64_t m_startTime;         // System start time (in milliseconds)
 
     // Share statistics
-    uint64_t m_sharesAccepted; // Number of accepted shares
-    uint64_t m_sharesRejected; // Number of rejected shares
+    uint64_t m_sharesAccepted;    // Number of accepted shares
+    uint64_t m_sharesRejected;    // Number of rejected shares
     uint64_t m_duplicateHWNonces; // Numer of duplicates - counted with HW difficulty
 
     // Display and UI
@@ -46,8 +43,8 @@ class System {
     bool m_startupDone;     // Flag to indicate if system startup is complete
 
     // Network and connection info
-    char m_ssid[33];           // WiFi SSID (+1 for null terminator)
-    char m_wifiStatus[20];     // WiFi status string
+    char m_ssid[33];       // WiFi SSID (+1 for null terminator)
+    char m_wifiStatus[20]; // WiFi status string
     bool m_apState;
     char *m_hostname;
     char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
@@ -61,10 +58,10 @@ class System {
     Board::Error m_boardError; // Flag to indicate if the system is overheated
     uint32_t m_errorCode = 0x00000000;
 
-    bool m_showsOverlay;    // Flat if overlay is shown
+    bool m_showsOverlay; // Flat if overlay is shown
     uint32_t m_currentErrorCode;
 
-    const char* m_lastResetReason;
+    const char *m_lastResetReason;
 
     History *m_history;
 
@@ -122,7 +119,7 @@ class System {
     static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
     // WiFi related
-    const char* getMacAddress();
+    const char *getMacAddress();
     int get_wifi_rssi();
 
     // Getter methods for retrieving statistics
@@ -158,15 +155,24 @@ class System {
     }
     double getCurrentHashrate10m() const
     {
-        return m_currentHashrate10m;
+        if (!m_history) {
+            return 0.0;
+        }
+        return m_history->getCurrentHashrate10m();
     }
+
     double getCurrentHashrate1m() const
     {
-        return m_currentHashrate1m;
+        if (!m_history) {
+            return 0.0;
+        }
+        return m_history->getCurrentHashrate1m();
     }
+
     float getCurrentHashrate();
 
-    StratumConfig *getStratumConfig(uint8_t index) {
+    StratumConfig *getStratumConfig(uint8_t index)
+    {
         return &m_stratumConfig[index];
     }
 
@@ -187,7 +193,8 @@ class System {
         return m_poolErrors;
     }
 
-    void setBoardError(Board::Error error, uint32_t code) {
+    void setBoardError(Board::Error error, uint32_t code)
+    {
         m_errorCode = code;
         m_boardError = error;
     }
@@ -206,11 +213,13 @@ class System {
         strncpy(m_wifiStatus, wifiStatus, sizeof(m_wifiStatus));
     }
 
-    void setAPState(bool state) {
+    void setAPState(bool state)
+    {
         m_apState = state;
     }
 
-    bool getAPState() {
+    bool getAPState()
+    {
         return m_apState;
     }
 
@@ -237,35 +246,42 @@ class System {
         m_startupDone = true;
     }
 
-    void setBoard(Board* board) {
+    void setBoard(Board *board)
+    {
         m_board = board;
     }
 
-    Board* getBoard() {
+    Board *getBoard()
+    {
         return m_board;
     }
 
-    History* getHistory() {
+    History *getHistory()
+    {
         return m_history;
     }
 
     esp_reset_reason_t showLastResetReason();
 
-    const char* getLastResetReason() {
+    const char *getLastResetReason()
+    {
         return m_lastResetReason;
     }
 
-    const char* getHostname() {
-        return (const char*) m_hostname;
+    const char *getHostname()
+    {
+        return (const char *) m_hostname;
     }
 
-    const char* getIPAddress() {
-        return (const char*) m_ipAddress;
+    const char *getIPAddress()
+    {
+        return (const char *) m_ipAddress;
     }
 
     void loadSettings();
 
-    bool isStartupDone() {
+    bool isStartupDone()
+    {
         return m_startupDone;
     }
 };

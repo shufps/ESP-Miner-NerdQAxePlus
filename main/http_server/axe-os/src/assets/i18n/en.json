@@ -60,9 +60,10 @@
     "IDLE": "Idle",
     "PRIMARY_POOL": "Primary Pool",
     "FALLBACK_POOL": "Fallback Pool",
-    "HASHRATE_10M": "Hashrate 10m",
-    "HASHRATE_1H": "Hashrate 1h",
-    "HASHRATE_1D": "Hashrate 1d"
+    "HASHRATE_1M": "Hashrate (1 m)",
+    "HASHRATE_10M": "Hashrate (10 m)",
+    "HASHRATE_1H": "Hashrate (1 h)",
+    "HASHRATE_1D": "Hashrate (1 d)"
   },
   "PERFORMANCE": {
     "TITLE": "Performance",

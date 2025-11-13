@@ -50,8 +50,13 @@ void ASIC_result_task(void *pvParameters)
                     }
                     break;
                 }
+                case 0x48: {
+                    // maybe the upper 32bit of a 64bit counter and 0x90 returns the lower 32bit
+                    break;
+                }
                 case 0x90: {
                     HASHRATE_MONITOR.onRegisterReply(asic_result.asic_nr, asic_result.data);
+                    break;
                 }
                 default: {
                     // NOP

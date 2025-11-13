@@ -15,12 +15,6 @@
           <nb-card class="h-100">
             <nb-card-header>
               <span class="text-hint">{{ 'HOME.HASH_RATE' | translate }}</span>
-              <nb-icon icon="question-mark-circle-outline" pack="eva" class="ms-1 icon-xxs icon-help-muted"
-                [nbTooltip]="'HOME.HASH_RATE_TOOLTIP' | translate" [nbTooltipTrigger]="NbTrigger.CLICK"
-                nbTooltipPlacement="top">
-              </nb-icon>
-
-
             </nb-card-header>
             <nb-card-body>
               <div class="d-flex justify-content-between align-items-center mb-3">
@@ -139,10 +133,6 @@
           <nb-card>
             <nb-card-header>
               <span class="text-hint">{{ 'HOME.HASH_RATE_CHART' | translate }}</span>
-              <nb-icon icon="question-mark-circle-outline" pack="eva" class="ms-1 icon-xxs icon-help-muted"
-                [nbTooltip]="'HOME.HASHRATE_ESTIMATED' | translate" [nbTooltipTrigger]="NbTrigger.CLICK"
-                nbTooltipPlacement="top">
-              </nb-icon>
             </nb-card-header>
             <nb-card-body>
               <canvas #myChart width="400" height="400"></canvas>

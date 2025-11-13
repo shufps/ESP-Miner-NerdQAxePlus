@@ -1,34 +1,34 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <pthread.h>
 
-extern "C"
-{
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-}
 
 class Board;
 class Asic;
 
+#define HR_INTERVAL 5000
+
 class HashrateMonitor {
   private:
     // confirmed by long-term averages
-    const double ERRATA_FACTOR = 1.046;
+    static constexpr double ERRATA_FACTOR = 1.046;
     char m_logBuffer[256] = {0};
+
+    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     // Task + config
     uint32_t m_period_ms = 1000;
-    uint32_t m_window_ms = 10000;
-    uint32_t m_settle_ms = 300;
-
-    uint64_t m_window_us = 0;
 
     int m_asicCount = 0;
     float *m_chipHashrate = nullptr;
     float m_smoothedHashrate = 0.0f;
 
+    int64_t *m_prevResponse = nullptr;
+    uint32_t *m_prevCounter = nullptr;
 
     // Task plumbing
     static void taskWrapper(void *pv);
@@ -50,11 +50,11 @@ class HashrateMonitor {
 
     // Start the background task. period_ms = cadence of measurements,
     // window_ms = measurement window length before READ, settle_ms = RX settle time after READ.
-    bool start(Board *board, Asic *asic, uint32_t period_ms, uint32_t window_ms, uint32_t settle_ms = 300);
+    bool start(Board *board, Asic *asic);
 
     // Called from RX dispatcher for each register reply.
-    // 'data_ticks' is the 32-bit counter (host-endian).
-    void onRegisterReply(uint8_t asic_idx, uint32_t data_ticks);
+    // 'counterNow' is the 32-bit counter (host-endian).
+    void onRegisterReply(uint8_t asic_idx, uint32_t counterNow);
 
     float getSmoothedTotalChipHashrate() {
       return m_smoothedHashrate;

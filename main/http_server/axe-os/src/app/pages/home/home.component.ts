@@ -5,7 +5,7 @@ import { SystemService } from '../../services/system.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
 import { Chart } from 'chart.js';  // Import Chart.js
 import { ElementRef, ViewChild } from "@angular/core";
-import { TimeScale} from "chart.js/auto";
+import { TimeScale } from "chart.js/auto";
 import { NbThemeService } from '@nebular/theme';
 import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
@@ -24,7 +24,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private chart: Chart;
   private themeSubscription: any;
   private chartInitialized = false;
-  private _info : any;
+  private _info: any;
   private timeFormatListener: any;
 
   private wasLoaded = false;
@@ -37,6 +37,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public chartOptions: any;
   public dataLabel: number[] = [];
   public dataData: number[] = [];
+  public dataData1m: number[] = [];
   public dataData10m: number[] = [];
   public dataData1h: number[] = [];
   public dataData1d: number[] = [];
@@ -48,6 +49,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private localStorageKey = 'chartData';
   private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
   private tempViewKey = 'tempViewMode';
+  private legendVisibilityKey = 'chartLegendVisibility';
+
 
   ngAfterViewChecked(): void {
     // Ensure chart is initialized only once when the canvas becomes available
@@ -63,6 +66,18 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       data: this.chartData,
       options: this.chartOptions,
     });
+    // Restore legend visibility
+    const saved = localStorage.getItem(this.legendVisibilityKey);
+    if (saved) {
+      const visibility = JSON.parse(saved);
+      visibility.forEach((hidden: boolean, i: number) => {
+        if (hidden) {
+          this.chart.getDatasetMeta(i).hidden = true;
+        }
+      });
+      this.chart.update();
+    }
+
     this.loadChartData();
     if (this._info.history) {
       this.importHistoricalData(this._info.history);
@@ -91,8 +106,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       datasets: [
         {
           type: 'line',
-          label: this.translateService.instant('HOME.HASHRATE_10M'),
-          data: this.dataData10m,
+          label: this.translateService.instant('HOME.HASHRATE_1M'),
+          data: this.dataData1m,
           fill: false,
           backgroundColor: '#6484f6',
           borderColor: '#6484f6',
@@ -102,8 +117,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         {
           type: 'line',
-          label: this.translateService.instant('HOME.HASHRATE_1H'),
-          data: this.dataData1h,
+          label: this.translateService.instant('HOME.HASHRATE_10M'),
+          data: this.dataData10m,
           fill: false,
           backgroundColor: '#7464f6',
           borderColor: '#7464f6',
@@ -113,11 +128,22 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         },
         {
           type: 'line',
-          label: this.translateService.instant('HOME.HASHRATE_1D'),
-          data: this.dataData1d,
+          label: this.translateService.instant('HOME.HASHRATE_1H'),
+          data: this.dataData1h,
           fill: false,
           backgroundColor: '#a564f6',
           borderColor: '#a564f6',
+          tension: .4,
+          pointRadius: 0,
+          borderWidth: 1
+        },
+        {
+          type: 'line',
+          label: this.translateService.instant('HOME.HASHRATE_1D'),
+          data: this.dataData1d,
+          fill: false,
+          backgroundColor: '#c764f6',
+          borderColor: '#c764f6',
           tension: .4,
           pointRadius: 0,
           borderWidth: 1
@@ -132,6 +158,22 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         legend: {
           labels: {
             color: textColor
+          },
+          onClick: (evt, legendItem, legend) => {
+            const chart = legend.chart;
+            const index = legendItem.datasetIndex;
+            const meta = chart.getDatasetMeta(index);
+
+            // Toggle
+            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+
+            chart.update();
+
+            // Persist
+            const visibility = chart.data.datasets.map((ds, i) =>
+              chart.getDatasetMeta(i).hidden ? true : false
+            );
+            localStorage.setItem(this.legendVisibilityKey, JSON.stringify(visibility));
           }
         },
         tooltip: {
@@ -315,29 +357,24 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   private importHistoricalData(data: any) {
-    // relative to absolute time stamps
+    // relative -> absolute
     this.updateChartData(data);
 
     if (data.timestamps && data.timestamps.length) {
-      const lastDataTimestamp = Math.max(...data.timestamps);
-      this.storeTimestamp(lastDataTimestamp);
+      const lastDataTimestampAbs = data.timestampBase + Math.max(...data.timestamps);
+      this.storeTimestamp(lastDataTimestampAbs);
     }
 
-    // remove data that are older than 1h
+    // remove > save > update
     this.filterOldData();
-
-    // save data into the local browser storage
-    // only if we had loaded it before
-    if (this.wasLoaded) {
-      this.saveChartData();
-    }
-
-    // set flag that we have finished the initial import
+    if (this.wasLoaded) this.saveChartData();
     this.updateChart();
   }
 
+
   private clearChartData(): void {
     this.dataLabel = [];
+    this.dataData1m = [];
     this.dataData10m = [];
     this.dataData1h = [];
     this.dataData1d = [];
@@ -346,6 +383,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private updateChartData(data: any): void {
     const baseTimestamp = data.timestampBase;
     const convertedTimestamps = data.timestamps.map((ts: number) => ts + baseTimestamp);
+    const convertedhashrate_1m = data.hashrate_1m.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_10m = data.hashrate_10m.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_1h = data.hashrate_1h.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_1d = data.hashrate_1d.map((hr: number) => hr * 1000000000.0 / 100.0);
@@ -356,14 +394,16 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     // Filter new data to include only timestamps greater than the lastTimestamp
     const newData = convertedTimestamps.map((ts, index) => ({
       timestamp: ts,
+      hashrate_1m: convertedhashrate_1m[index],
       hashrate_10m: convertedhashrate_10m[index],
       hashrate_1h: convertedhashrate_1h[index],
-      hashrate_1d: convertedhashrate_1d[index]
+      hashrate_1d: convertedhashrate_1d[index],
     })).filter(entry => entry.timestamp > lastTimestamp);
 
     // Append only new data
     if (newData.length > 0) {
       this.dataLabel = [...this.dataLabel, ...newData.map(entry => entry.timestamp)];
+      this.dataData1m = [...this.dataData1m, ...newData.map(entry => entry.hashrate_1m)];
       this.dataData10m = [...this.dataData10m, ...newData.map(entry => entry.hashrate_10m)];
       this.dataData1h = [...this.dataData1h, ...newData.map(entry => entry.hashrate_1h)];
       this.dataData1d = [...this.dataData1d, ...newData.map(entry => entry.hashrate_1d)];
@@ -373,24 +413,30 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private loadChartData(): void {
     const storedData = localStorage.getItem(this.localStorageKey);
     if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      this.dataLabel = parsedData.labels || [];
-      this.dataData10m = parsedData.dataData10m || [];
-      this.dataData1h = parsedData.dataData1h || [];
-      this.dataData1d = parsedData.dataData1d || [];
-    }
-    this.updateChart();
+      const parsed = JSON.parse(storedData);
+      this.dataLabel = parsed.labels || [];
+      this.dataData1m = parsed.dataData1m || [];
+      this.dataData10m = parsed.dataData10m || [];
+      this.dataData1h = parsed.dataData1h || [];
+      this.dataData1d = parsed.dataData1d || [];
 
-    // make sure we load the data before we save it
-    this.wasLoaded = true;
+      if (this.dataLabel.length) {
+        this.storeTimestamp(this.dataLabel[this.dataLabel.length - 1]);
+      }
+    }
+
+    this.updateChart();
+    this.wasLoaded = true; // erst NACH dem Laden auf true
   }
+
 
   private saveChartData(): void {
     const dataToSave = {
       labels: this.dataLabel,
+      dataData1m: this.dataData1m,
       dataData10m: this.dataData10m,
       dataData1h: this.dataData1h,
-      dataData1d: this.dataData1d
+      dataData1d: this.dataData1d,
     };
     localStorage.setItem(this.localStorageKey, JSON.stringify(dataToSave));
   }
@@ -401,6 +447,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     while (this.dataLabel.length && this.dataLabel[0] < cutoff) {
       this.dataLabel.shift();
+      this.dataData1m.shift();
       this.dataData10m.shift();
       this.dataData1h.shift();
       this.dataData1d.shift();
@@ -426,16 +473,18 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   private updateChart() {
     this.chartData.labels = this.dataLabel;
-    this.chartData.datasets[0].data = this.dataData10m;
-    this.chartData.datasets[1].data = this.dataData1h;
-    this.chartData.datasets[2].data = this.dataData1d;
+    this.chartData.datasets[0].data = this.dataData1m;
+    this.chartData.datasets[1].data = this.dataData10m;
+    this.chartData.datasets[2].data = this.dataData1h;
+    this.chartData.datasets[3].data = this.dataData1d;
 
-    if (!this.chart) {
-      return;
-    }
+    if (!this.chart) return;
 
-    // Force dataset updates
-    this.chart.data.datasets.forEach(dataset => dataset.data = [...dataset.data]);
+    // Force updates for both labels and datasets
+    this.chart.data.labels = [...this.chartData.labels];
+    this.chart.data.datasets.forEach((ds, i) => {
+      ds.data = [...(this.chartData.datasets[i].data as number[])];
+    });
 
     this.chart.update();
   }

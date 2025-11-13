@@ -33,8 +33,6 @@ System::System() {
 }
 
 void System::initSystem() {
-    m_currentHashrate10m = 0.0;
-    m_currentHashrate1m = 0.0;
     m_screenPage = 0;
     m_sharesAccepted = 0;
     m_sharesRejected = 0;
@@ -386,13 +384,7 @@ void System::notifyMiningStarted() {}
 void System::notifyNewNtime(uint32_t ntime) {}
 
 void System::notifyFoundNonce(double poolDiff, int asicNr) {
-    // ms timestamp
-    uint64_t timestamp = esp_timer_get_time() / 1000llu;
-
-    m_history->pushShare(poolDiff, timestamp, asicNr);
-
-    m_currentHashrate10m = m_history->getCurrentHashrate10m();
-    m_currentHashrate1m = m_history->getCurrentHashrate1m();
-    updateHashrate();
+    // we only build the nonce distribution here
+    m_history->pushShare(asicNr);
 }
 
