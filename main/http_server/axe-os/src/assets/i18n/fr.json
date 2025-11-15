@@ -63,7 +63,8 @@
     "HASHRATE_1M": "Hashrate (1 min)",
     "HASHRATE_10M": "Hashrate (10 min)",
     "HASHRATE_1H": "Hashrate (1 h)",
-    "HASHRATE_1D": "Hashrate (1 j)"
+    "HASHRATE_1D": "Hashrate (1 j)",
+    "DUAL_POOL_BALANCE_WITH_STATUS": "Pool double {{primary}}/{{secondary}} ({{connected}}/2 en ligne)"
   },
   "PERFORMANCE": {
     "TITLE": "Performance",
@@ -128,7 +129,12 @@
     "DEFAULT": "défaut",
     "TIME_FORMAT": "Format d'Heure",
     "TIME_FORMAT_24H": "Format 24 heures",
-    "TIME_FORMAT_12H": "Format 12 heures (AM/PM)"
+    "TIME_FORMAT_12H": "Format 12 heures (AM/PM)",
+    "POOL_MODE": "Mode de pool",
+    "POOL_MODE_FAILOVER": "Failover (primaire/secours)",
+    "POOL_MODE_DUAL": "Pool double",
+    "POOL_BALANCE": "Équilibrage du pool",
+    "POOL_BALANCE_HINT": "Répartit les tâches entre le pool primaire et le pool secondaire, par ex. 70/30."
   },
   "SYSTEM": {
     "TITLE": "Informations Système",
