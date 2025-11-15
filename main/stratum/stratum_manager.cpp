@@ -76,7 +76,7 @@ void StratumManager::task()
 
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
-        m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
+        m_stratumTasks[i] = new StratumTask(this, i);
         xTaskCreate(m_stratumTasks[i]->taskWrapper, (i == 0 ? "stratum task (primary)" : "stratum task (secondary)"), 8192,
                     (void *) m_stratumTasks[i], 5, NULL);
     }
@@ -239,4 +239,8 @@ void StratumManager::submitShare(int pool, const char *jobid, const char *extran
         return;
     }
     m_stratumTasks[pool]->submitShare(jobid, extranonce_2, ntime, nonce, version);
+}
+
+void StratumManager::loadSettings() {
+    // NOP
 }

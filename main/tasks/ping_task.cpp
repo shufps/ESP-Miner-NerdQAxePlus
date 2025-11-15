@@ -198,9 +198,10 @@ void ping_task(void *pvParameters) {
     vTaskDelete(NULL);
         return;
     }
-    const StratumConfig* last_config = nullptr;
+//    const StratumConfig* last_config = nullptr; TODO
 
     while (true) {
+/*
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
@@ -240,6 +241,7 @@ void ping_task(void *pvParameters) {
         record_ping_result(PING_COUNT, result.replies);
         ESP_LOGI(TAG, "Recent %d-min packet loss: %.1f%%", HISTORY_WINDOW_SEC / 60, 100.0 * get_recent_packet_loss());
         last_config = current_config;
+*/
         vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
     }
 }

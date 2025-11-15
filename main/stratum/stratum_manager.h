@@ -30,7 +30,9 @@ class StratumManager {
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER; ///< Mutex for thread safety
     StratumApiV1Message m_stratum_api_v1_message;        ///< API message handler
+
     StratumTask *m_stratumTasks[2];                      ///< Primary and secondary Stratum tasks
+
     PoolMode m_poolmode;                                 // default FAILOVER
     uint64_t m_lastSubmitResponseTimestamp;              ///< Timestamp of last submitted share response
 
@@ -72,9 +74,7 @@ class StratumManager {
 
     bool isAnyConnected();
     int getNumConnectedPools();
-
-    virtual void loadSettings() { /* NOP */};
-
+    virtual void loadSettings();
 
     // abstract
     virtual const char *getResolvedIpForSelected() const = 0;
