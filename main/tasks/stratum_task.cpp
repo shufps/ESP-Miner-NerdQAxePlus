@@ -15,21 +15,17 @@
 #include "connect.h"
 #include "create_jobs_task.h"
 #include "global_state.h"
+#include "macros.h"
 #include "nvs_config.h"
 #include "psram_allocator.h"
 #include "stratum_task.h"
 #include "system.h"
-#include "macros.h"
 
 // fallback can nicely be tested with netcat
 // mkfifo /tmp/ncpipe
 // nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
 
-enum Selected
-{
-    PRIMARY = 0,
-    SECONDARY = 1
-};
+
 
 int is_socket_connected(int socket)
 {
@@ -50,15 +46,13 @@ int is_socket_connected(int socket)
 }
 
 StratumTask::StratumTask(StratumManager *manager, int index, StratumConfig *config)
+    : m_manager(manager), m_config(config), m_index(index), m_sock(-1), m_isConnected(false), m_stopFlag(false), m_firstJob(true),
+      m_reconnectTimer(nullptr)
 {
-    m_manager = manager;
-    m_config = config;
-    m_index = index;
-
     if (config->primary) {
-        m_tag = "stratum task";
+        m_tag = "stratum task (Pri)";
     } else {
-        m_tag = "stratum task (fallback)";
+        m_tag = "stratum task (Sec)";
     }
 }
 
@@ -163,9 +157,9 @@ bool StratumTask::setupSocketTimeouts(int sock)
 
     if (enable) {
         // Configure Keepalive parameters
-        int keepidle = 10;   // Start sending keepalive probes after 10 seconds of inactivity
-        int keepintvl = 5;   // Interval of 5 seconds between individual keepalive probes
-        int keepcnt = 3;     // Disconnect after 3 unanswered probes
+        int keepidle = 10; // Start sending keepalive probes after 10 seconds of inactivity
+        int keepintvl = 5; // Interval of 5 seconds between individual keepalive probes
+        int keepcnt = 3;   // Disconnect after 3 unanswered probes
 
         if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(keepidle)) < 0) {
             ESP_LOGW(m_tag, "TCP_KEEPIDLE not supported or failed to set");
@@ -194,6 +188,9 @@ void StratumTask::taskWrapper(void *pvParameters)
 
 void StratumTask::task()
 {
+    // Start the reconnect timer
+    startReconnectTimer();
+
     while (1) {
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(m_tag, "suspended");
@@ -255,7 +252,7 @@ void StratumTask::task()
         // mark invalid
         m_sock = -1;
 
-        m_manager->disconnectedCallback(m_index);
+        disconnectedCallback();
         m_isConnected = false;
 
         vTaskDelay(pdMS_TO_TICKS(10000)); // Delay before attempting to reconnect
@@ -330,7 +327,7 @@ void StratumTask::stratumLoop()
         // we are pretty confident now that we have valid json and we can
         // call the connected callback
         if (!m_isConnected) {
-            m_manager->connectedCallback(m_index);
+            connectedCallback();
             m_isConnected = true;
         }
 
@@ -366,14 +363,63 @@ void StratumTask::disconnect()
     m_stopFlag = true;
 }
 
-StratumManager::StratumManager()
+void StratumTask::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
 {
+    StratumTask *self = static_cast<StratumTask *>(pvTimerGetTimerID(xTimer));
+    self->reconnectTimerCallback(xTimer);
 }
 
-bool StratumManager::isUsingFallback()
+// Reconnect Timer Callback
+void StratumTask::reconnectTimerCallback(TimerHandle_t xTimer)
 {
-    return m_selected != Selected::PRIMARY;
+    m_manager->reconnectTimerCallback(m_index);
 }
+
+// Connected Callback
+void StratumTask::connectedCallback()
+{
+    m_manager->connectedCallback(m_index);
+}
+
+// Disconnected Callback
+void StratumTask::disconnectedCallback()
+{
+    m_manager->disconnectedCallback(m_index);
+}
+
+// Start the reconnect timer
+void StratumTask::startReconnectTimer()
+{
+    if (m_reconnectTimer == NULL) {
+        m_reconnectTimer = xTimerCreate("Reconnect Timer", pdMS_TO_TICKS(30000), pdTRUE, this, reconnectTimerCallbackWrapper);
+    }
+
+    // only start the timer when it is not running
+    if (xTimerIsTimerActive(m_reconnectTimer) == pdFALSE) {
+        xTimerStart(m_reconnectTimer, 0);
+    }
+}
+
+// Stop the reconnect timer
+void StratumTask::stopReconnectTimer()
+{
+    if (m_reconnectTimer != NULL) {
+        xTimerStop(m_reconnectTimer, 0);
+    }
+}
+
+// ------------  stratum manager
+StratumManager::StratumManager(PoolMode poolmode) : m_poolmode(poolmode), m_lastSubmitResponseTimestamp(0)
+{
+    m_stratumTasks[0] = nullptr;
+    m_stratumTasks[1] = nullptr;
+}
+
+StratumManagerFallback::StratumManagerFallback() : StratumManager(PoolMode::FAILOVER), m_selected(PRIMARY)
+{}
+
+StratumManagerDualPool::StratumManagerDualPool() : StratumManager(PoolMode::DUAL)
+{}
 
 void StratumManager::connect(int index)
 {
@@ -390,71 +436,104 @@ bool StratumManager::isConnected(int index)
     return m_stratumTasks[index] && m_stratumTasks[index]->isConnected();
 }
 
-bool StratumManager::isAnyConnected() {
+bool StratumManager::isAnyConnected()
+{
     return isConnected(PRIMARY) || isConnected(SECONDARY);
 }
 
-const char* StratumManager::getResolvedIpForSelected() const {
+const char *StratumManagerFallback::getResolvedIpForSelected() const
+{
     if (!m_stratumTasks[m_selected]) {
         return nullptr;
     }
     return m_stratumTasks[m_selected]->getResolvedIp();
 }
 
-void StratumManager::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
+const char *StratumManagerDualPool::getResolvedIpForSelected() const
 {
-    StratumManager *self = static_cast<StratumManager *>(pvTimerGetTimerID(xTimer));
-    self->reconnectTimerCallback(xTimer);
+    // what to do? is used for ping TODO
+    return nullptr;
 }
 
-// Reconnect Timer Callback
-void StratumManager::reconnectTimerCallback(TimerHandle_t xTimer)
+void StratumManagerFallback::reconnectTimerCallback(int index)
 {
-    PThreadGuard lock(m_mutex);
-    // Check if primary is still disconnected
-    if (!isConnected(Selected::PRIMARY)) {
-        connect(Selected::SECONDARY);
-        m_selected = Selected::SECONDARY;
+    // failover mode:
+    if (index == PRIMARY) {
+        // primary is always allowed to reconnect
+        m_stratumTasks[index]->connect();
+    } else {
+        // secondary is only allowed if primary is NOT connected
+        if (!isConnected(PRIMARY)) {
+            m_stratumTasks[index]->connect();
+        } else {
+            // primary is good, we don't want secondary online
+            m_stratumTasks[index]->disconnect();
+        }
     }
 }
 
-// Start the reconnect timer
-void StratumManager::startReconnectTimer()
+void StratumManagerDualPool::reconnectTimerCallback(int index)
 {
-    if (m_reconnectTimer == NULL) {
-        m_reconnectTimer = xTimerCreate("Reconnect Timer", pdMS_TO_TICKS(30000), pdTRUE, this, reconnectTimerCallbackWrapper);
-    }
-
-    // only start the timer when it is not running
-    if (xTimerIsTimerActive(m_reconnectTimer) == pdFALSE) {
-        xTimerStart(m_reconnectTimer, 0);
-    }
+    // dual pool: both pools always try to stay alive
+    m_stratumTasks[index]->connect();
 }
 
-// Stop the reconnect timer
-void StratumManager::stopReconnectTimer()
-{
-    if (m_reconnectTimer != NULL) {
-        xTimerStop(m_reconnectTimer, 0);
-    }
-}
-
-// Connected Callback
-void StratumManager::connectedCallback(int index)
+void StratumManagerFallback::connectedCallback(int index)
 {
     PThreadGuard lock(m_mutex);
 
-    if (index == Selected::PRIMARY) {
-        m_selected = Selected::PRIMARY;
-        disconnect(Selected::SECONDARY);
-        stopReconnectTimer(); // Stop reconnect attempts
+    if (index == PRIMARY) {
+        // Primary is up → Secondary should go away
+        m_selected = PRIMARY;
+
+        if (m_stratumTasks[SECONDARY]) {
+            m_stratumTasks[SECONDARY]->disconnect();
+            m_stratumTasks[SECONDARY]->stopReconnectTimer();
+        }
+    } else { // index == SECONDARY
+        // Secondary is up
+        if (!isConnected(PRIMARY)) {
+            // Primary is dead → accept Secondary as active
+            m_selected = SECONDARY;
+        } else {
+            // Primary is alive → we don't allow Secondary online
+            m_stratumTasks[SECONDARY]->disconnect();
+            m_stratumTasks[SECONDARY]->stopReconnectTimer();
+        }
     }
 }
 
-// Disconnected Callback
-void StratumManager::disconnectedCallback(int index)
+void StratumManagerDualPool::connectedCallback(int index)
 {
-    startReconnectTimer(); // Start the timer to attempt reconnects
+    return;
+}
+
+void StratumManagerFallback::disconnectedCallback(int index)
+{
+    PThreadGuard lock(m_mutex);
+    create_job_invalidate(index);
+
+    m_stratumTasks[index]->m_validNotify = false;
+
+    if (index == PRIMARY) {
+        // Primary went down -> allow secondary to try
+        if (m_stratumTasks[SECONDARY]) {
+            m_stratumTasks[SECONDARY]->startReconnectTimer();
+            // m_stratumTasks[SECONDARY]->connect();
+        }
+        // m_selected will switch to SECONDARY once SECONDARY actually connects
+    } else { // index == SECONDARY
+        // Secondary went down. If Primary is still down too,
+        // we might eventually reconnect SECONDARY anyway via its timer,
+    }
+}
+
+void StratumManagerDualPool::disconnectedCallback(int index)
+{
+    PThreadGuard lock(m_mutex);
+    create_job_invalidate(index);
+    m_stratumTasks[index]->m_validNotify = false;
+    m_stratumTasks[index]->startReconnectTimer();
 }
 
 // This static wrapper converts the void* parameter into a StratumManager pointer
@@ -474,6 +553,13 @@ void StratumManager::task()
         ESP_LOGE("StratumManager", "Failed to add task to watchdog!");
     }
 
+    m_poolmode = PoolMode::DUAL; // Config::getPoolMode(); TODO
+    if (m_poolmode == PoolMode::DUAL) {
+        ESP_LOGI("StratumManager", "Dual Pool mode enabled");
+    } else {
+        ESP_LOGI("StratumManager", "Failover mode enabled");
+    }
+
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
         m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
@@ -481,11 +567,12 @@ void StratumManager::task()
                     (void *) m_stratumTasks[i], 5, NULL);
     }
 
-    // Always start by connecting to the primary pool
-    connect(Selected::PRIMARY);
-
-    // Start the reconnect timer
-    startReconnectTimer();
+    if (m_poolmode == PoolMode::DUAL) {
+        connect(PRIMARY);
+        connect(SECONDARY);
+    } else {
+        connect(PRIMARY);
+    }
 
     // Watchdog Task Loop (optional, if needed)
     while (1) {
@@ -513,7 +600,45 @@ void StratumManager::cleanQueue()
     asicJobs.cleanJobs();
 }
 
-const char *StratumManager::getCurrentPoolHost()
+int StratumManagerFallback::getNextActivePool() {
+    return m_selected;
+}
+
+int StratumManagerDualPool::getNextActivePool() {
+    int secondary_pct = 100 - m_primary_pct;
+
+    bool valid0 = m_stratumTasks[0] && m_stratumTasks[0]->m_validNotify;
+    bool valid1 = m_stratumTasks[1] && m_stratumTasks[1]->m_validNotify;
+
+    // fast paths: only one pool has valid work
+    if (valid0 && !valid1) {
+        m_error_accum = 0; // reset drift so wir nicht "Schuld" ansammeln
+        return PRIMARY;
+    }
+    if (!valid0 && valid1) {
+        m_error_accum = 0;
+        return SECONDARY;
+    }
+    if (!valid0 && !valid1) {
+        // nobody valid -> doesn't matter, but don't explode error
+        m_error_accum = 0;
+        return PRIMARY;
+    }
+
+    // dithering logic
+    m_error_accum += secondary_pct; // accumulate pressure for SECONDARY
+
+    if (m_error_accum >= 100) {
+        // time to give SECONDARY a turn
+        m_error_accum -= 100;
+        return SECONDARY;
+    }
+    return PRIMARY;
+
+}
+
+
+const char *StratumManagerFallback::getCurrentPoolHost()
 {
     if (!m_stratumTasks[m_selected]) {
         return "-";
@@ -521,7 +646,7 @@ const char *StratumManager::getCurrentPoolHost()
     return m_stratumTasks[m_selected]->getHost();
 }
 
-int StratumManager::getCurrentPoolPort()
+int StratumManagerFallback::getCurrentPoolPort()
 {
     if (!m_stratumTasks[m_selected]) {
         return 0;
@@ -529,7 +654,20 @@ int StratumManager::getCurrentPoolPort()
     return m_stratumTasks[m_selected]->getPort();
 }
 
-void StratumManager::freeStratumV1Message(StratumApiV1Message *message) {
+const char *StratumManagerDualPool::getCurrentPoolHost()
+{
+    // TODO
+    return "-";
+}
+
+int StratumManagerDualPool::getCurrentPoolPort()
+{
+    // TODO
+    return 0;
+}
+
+void StratumManager::freeStratumV1Message(StratumApiV1Message *message)
+{
     if (!message) {
         return;
     }
@@ -538,17 +676,24 @@ void StratumManager::freeStratumV1Message(StratumApiV1Message *message) {
     safe_free(message->extranonce_str);
 }
 
+bool StratumManagerFallback::acceptsNotifyFrom(int pool) {
+    return pool == m_selected;
+}
+
+bool StratumManagerDualPool::acceptsNotifyFrom(int pool) {
+    return true;
+}
+
 void StratumManager::dispatch(int pool, JsonDocument &doc)
 {
     // ensure consistent use of m_stratum_api_v1_message
     PThreadGuard lock(m_mutex);
 
-    // only accept data from the selected pool
-    if (pool != m_selected) {
+    if (!acceptsNotifyFrom(pool)) {
         return;
     }
 
-    StratumTask *selected = m_stratumTasks[m_selected];
+    StratumTask *selected = m_stratumTasks[pool];
 
     const char *tag = selected->getTag();
 
@@ -573,13 +718,16 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
             cleanQueue();
             selected->m_firstJob = false;
         }
-        create_job_mining_notify(m_stratum_api_v1_message.mining_notification);
+        create_job_mining_notify(pool, m_stratum_api_v1_message.mining_notification);
+        if (m_stratum_api_v1_message.mining_notification->ntime) {
+            m_stratumTasks[pool]->m_validNotify = true;
+        }
         break;
     }
 
     case MINING_SET_DIFFICULTY: {
         SYSTEM_MODULE.setPoolDifficulty(m_stratum_api_v1_message.new_difficulty);
-        if (create_job_set_difficulty(m_stratum_api_v1_message.new_difficulty)) {
+        if (create_job_set_difficulty(pool, m_stratum_api_v1_message.new_difficulty)) {
             ESP_LOGI(tag, "Set stratum difficulty: %ld", m_stratum_api_v1_message.new_difficulty);
         }
         break;
@@ -588,7 +736,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     case MINING_SET_VERSION_MASK:
     case STRATUM_RESULT_VERSION_MASK: {
         ESP_LOGI(tag, "Set version mask: %08lx", m_stratum_api_v1_message.version_mask);
-        create_job_set_version_mask(m_stratum_api_v1_message.version_mask);
+        create_job_set_version_mask(pool, m_stratum_api_v1_message.version_mask);
         break;
     }
 
@@ -596,14 +744,14 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
         // the new extranonce gets active with the next mining.notify
         ESP_LOGI(tag, "Set next enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
                  m_stratum_api_v1_message.extranonce_2_len);
-        set_next_enonce(m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
+        set_next_enonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         break;
     }
 
     case STRATUM_RESULT_SUBSCRIBE: {
         ESP_LOGI(tag, "Set enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
                  m_stratum_api_v1_message.extranonce_2_len);
-        create_job_set_enonce(m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
+        create_job_set_enonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         break;
     }
 
@@ -642,13 +790,13 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     freeStratumV1Message(&m_stratum_api_v1_message);
 }
 
-void StratumManager::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+void StratumManager::submitShare(int pool, const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                                  const uint32_t version)
 {
     // send to the selected pool
-    if (!m_stratumTasks[m_selected]->m_isConnected) {
+    if (!m_stratumTasks[pool]->m_isConnected) {
         ESP_LOGE(m_tag, "selected pool not connected");
         return;
     }
-    m_stratumTasks[m_selected]->submitShare(jobid, extranonce_2, ntime, nonce, version);
+    m_stratumTasks[pool]->submitShare(jobid, extranonce_2, ntime, nonce, version);
 }
