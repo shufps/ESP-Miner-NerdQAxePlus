@@ -243,8 +243,6 @@ void *create_jobs_task(void *pvParameters)
 
     int lastJobInterval = board->getAsicJobIntervalMs();
 
-    uint32_t dual_pool_asic_diff = board->getAsicMaxDifficulty();
-
     while (1) {
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
@@ -261,64 +259,55 @@ void *create_jobs_task(void *pvParameters)
             continue;
         }
 
-        pthread_mutex_lock(&current_stratum_job_mutex);
+        bm_job *next_job = nullptr;
+        int active_pool = 0;
 
-        if (!STRATUM_MANAGER) {
-            continue;
-        }
+        { // scope for mutex
+            PThreadGuard g(current_stratum_job_mutex);
 
-        // select pool to mine for
-        int active_pool = STRATUM_MANAGER->getNextActivePool();
+            if (!STRATUM_MANAGER) {
+                continue;
+            }
 
-        // set current pool data
-        MiningInfo *mi = &miningInfo[active_pool];
+            // select pool to mine for
+            active_pool = STRATUM_MANAGER->getNextActivePool();
 
-        if (!mi->current_job->ntime || !asics) {
-            pthread_mutex_unlock(&current_stratum_job_mutex);
-            continue;
-        }
+            // set current pool data
+            MiningInfo *mi = &miningInfo[active_pool];
 
-        if (last_ntime != mi->current_job->ntime) {
-            last_ntime = mi->current_job->ntime;
-            ESP_LOGI(TAG, "(%c) New Work Received %s", ACTIVE, mi->current_job->job_id);
-        }
+            if (!mi->current_job->ntime || !asics) {
+                continue;
+            }
 
-        // generate extranonce2 hex string
-        char extranonce_2_str[mi->extranonce_2_len * 2 + 1]; // +1 zero termination
-        snprintf(extranonce_2_str, sizeof(extranonce_2_str), "%0*lx", (int) mi->extranonce_2_len * 2, extranonce_2);
+            if (last_ntime != mi->current_job->ntime) {
+                last_ntime = mi->current_job->ntime;
+                ESP_LOGI(TAG, "(%c) New Work Received %s", ACTIVE, mi->current_job->job_id);
+            }
 
-        // generate coinbase tx
-        int coinbase_tx_len = strlen(mi->current_job->coinbase_1) + strlen(mi->extranonce_str) + strlen(extranonce_2_str) +
-                              strlen(mi->current_job->coinbase_2);
-        char coinbase_tx[coinbase_tx_len + 1]; // +1 zero termination
-        snprintf(coinbase_tx, sizeof(coinbase_tx), "%s%s%s%s", mi->current_job->coinbase_1, mi->extranonce_str, extranonce_2_str,
-                 mi->current_job->coinbase_2);
+            // generate extranonce2 hex string
+            char extranonce_2_str[mi->extranonce_2_len * 2 + 1]; // +1 zero termination
+            snprintf(extranonce_2_str, sizeof(extranonce_2_str), "%0*lx", (int) mi->extranonce_2_len * 2, extranonce_2);
 
-        // calculate merkle root
-        char merkle_root[65];
-        calculate_merkle_root_hash(coinbase_tx, mi->current_job->_merkle_branches, mi->current_job->n_merkle_branches, merkle_root);
+            // generate coinbase tx
+            int coinbase_tx_len = strlen(mi->current_job->coinbase_1) + strlen(mi->extranonce_str) + strlen(extranonce_2_str) +
+                                strlen(mi->current_job->coinbase_2);
+            char coinbase_tx[coinbase_tx_len + 1]; // +1 zero termination
+            snprintf(coinbase_tx, sizeof(coinbase_tx), "%s%s%s%s", mi->current_job->coinbase_1, mi->extranonce_str, extranonce_2_str,
+                    mi->current_job->coinbase_2);
 
-        // we need malloc because we will save it in the job array
-        bm_job *next_job = (bm_job *) malloc(sizeof(bm_job));
-        construct_bm_job(mi->current_job, merkle_root, mi->version_mask, next_job);
-        next_job->jobid = strdup(mi->current_job->job_id);
-        next_job->extranonce2 = strdup(extranonce_2_str);
-        next_job->pool_diff = mi->active_stratum_difficulty;
-        next_job->pool_id = active_pool;
+            // calculate merkle root
+            char merkle_root[65];
+            calculate_merkle_root_hash(coinbase_tx, mi->current_job->_merkle_branches, mi->current_job->n_merkle_branches, merkle_root);
 
-        // clamp stratum difficulty
-        //if (mode == PoolMode::FAILOVER) {
-            // In failover we still try to match ASIC difficulty to the pool difficulty
-            next_job->asic_diff = max(
-                min(mi->active_stratum_difficulty, board->getAsicMaxDifficulty()),
-                board->getAsicMinDifficulty()
-            );
-        /*} else { TODO
-            // In dual pool mode we keep a fixed ASIC difficulty
-            next_job->asic_diff = fixed_asic_diff;
-        }*/
-
-        pthread_mutex_unlock(&current_stratum_job_mutex);
+            // we need malloc because we will save it in the job array
+            next_job = (bm_job *) malloc(sizeof(bm_job));
+            construct_bm_job(mi->current_job, merkle_root, mi->version_mask, next_job);
+            next_job->jobid = strdup(mi->current_job->job_id);
+            next_job->extranonce2 = strdup(extranonce_2_str);
+            next_job->pool_diff = mi->active_stratum_difficulty;
+            next_job->pool_id = active_pool;
+            next_job->asic_diff = STRATUM_MANAGER->selectAsicDiff(mi->active_stratum_difficulty, board->getAsicMinDifficulty(), board->getAsicMaxDifficulty());
+        } // mutex
 
         if (next_job->asic_diff != last_asic_diff) {
             ESP_LOGI(TAG, "New ASIC difficulty %lu", next_job->asic_diff);

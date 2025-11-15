@@ -130,7 +130,7 @@ class StratumManager {
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER; ///< Mutex for thread safety
     StratumApiV1Message m_stratum_api_v1_message;        ///< API message handler
     StratumTask *m_stratumTasks[2];                      ///< Primary and secondary Stratum tasks
-    PoolMode m_poolmode;                                      // default FAILOVER
+    PoolMode m_poolmode;                                 // default FAILOVER
     uint64_t m_lastSubmitResponseTimestamp;              ///< Timestamp of last submitted share response
 
     PoolMode getPoolMode() const
@@ -180,6 +180,8 @@ class StratumManager {
     virtual int getCurrentPoolPort() = 0;
 
     virtual int getNextActivePool() = 0;
+
+    virtual uint32_t selectAsicDiff(uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax) = 0;
 };
 
 class StratumManagerFallback : public StratumManager {
@@ -203,6 +205,8 @@ class StratumManagerFallback : public StratumManager {
     virtual const char *getResolvedIpForSelected() const;
 
     virtual int getNextActivePool();
+
+    virtual uint32_t selectAsicDiff(uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax);
 
     virtual bool isUsingFallback()
     {
@@ -230,6 +234,8 @@ class StratumManagerDualPool : public StratumManager {
     virtual int getCurrentPoolPort();
 
     virtual const char *getResolvedIpForSelected() const;
+
+    virtual uint32_t selectAsicDiff(uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax);
 
     virtual int getNextActivePool();
 
