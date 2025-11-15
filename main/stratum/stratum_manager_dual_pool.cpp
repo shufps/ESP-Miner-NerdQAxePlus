@@ -102,6 +102,9 @@ void StratumManagerDualPool::loadSettings() {
     StratumManager::loadSettings();
 
     // set new percentage and reset error
-    m_primary_pct = Config::getPoolBalance();
-    m_error_accum = 0;
+    int new_pct = Config::getPoolBalance();
+    if (new_pct != m_primary_pct) {
+        m_primary_pct = new_pct;
+        m_error_accum = 0; // reset dithering to avoid drift from old config
+    }
 };
