@@ -134,47 +134,42 @@ void trigger_job_creation()
 
 void create_job_set_version_mask(int pool, uint32_t mask)
 {
-    pthread_mutex_lock(&current_stratum_job_mutex);
+    PThreadGuard g(current_stratum_job_mutex);
     miningInfo[pool].set_version_mask(mask);
-    pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
 bool create_job_set_difficulty(int pool, uint32_t difficulty)
 {
-    pthread_mutex_lock(&current_stratum_job_mutex);
+    PThreadGuard g(current_stratum_job_mutex);
     bool is_new = miningInfo[pool].set_difficulty(difficulty);
-    pthread_mutex_unlock(&current_stratum_job_mutex);
     return is_new;
 }
 
 void create_job_set_enonce(int pool, char *enonce, int enonce2_len)
 {
-    pthread_mutex_lock(&current_stratum_job_mutex);
+    PThreadGuard g(current_stratum_job_mutex);
     miningInfo[pool].set_enonce(enonce, enonce2_len);
-    pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
 void set_next_enonce(int pool, char *enonce, int enonce2_len)
 {
-    pthread_mutex_lock(&current_stratum_job_mutex);
+    PThreadGuard g(current_stratum_job_mutex);
     miningInfo[pool].set_next_enonce(enonce, enonce2_len);
-    pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
 void create_job_mining_notify(int pool, mining_notify *notify)
 {
-    pthread_mutex_lock(&current_stratum_job_mutex);
-    miningInfo[pool].create_job_mining_notify(notify);
-    pthread_mutex_unlock(&current_stratum_job_mutex);
-
+    {
+        PThreadGuard g(current_stratum_job_mutex);
+        miningInfo[pool].create_job_mining_notify(notify);
+    }
     trigger_job_creation();
 }
 
 void create_job_invalidate(int pool)
 {
-    pthread_mutex_lock(&current_stratum_job_mutex);
+    PThreadGuard g(current_stratum_job_mutex);
     miningInfo[pool].invalidate();
-    pthread_mutex_unlock(&current_stratum_job_mutex);
 }
 
 /*
@@ -260,7 +255,7 @@ void *create_jobs_task(void *pvParameters)
 
         bm_job *next_job = nullptr;
         int active_pool = 0;
-        const char* active_pool_str = "";
+        const char *active_pool_str = "";
 
         { // scope for mutex
             PThreadGuard g(current_stratum_job_mutex);
@@ -291,14 +286,15 @@ void *create_jobs_task(void *pvParameters)
 
             // generate coinbase tx
             int coinbase_tx_len = strlen(mi->current_job->coinbase_1) + strlen(mi->extranonce_str) + strlen(extranonce_2_str) +
-                                strlen(mi->current_job->coinbase_2);
+                                  strlen(mi->current_job->coinbase_2);
             char coinbase_tx[coinbase_tx_len + 1]; // +1 zero termination
-            snprintf(coinbase_tx, sizeof(coinbase_tx), "%s%s%s%s", mi->current_job->coinbase_1, mi->extranonce_str, extranonce_2_str,
-                    mi->current_job->coinbase_2);
+            snprintf(coinbase_tx, sizeof(coinbase_tx), "%s%s%s%s", mi->current_job->coinbase_1, mi->extranonce_str,
+                     extranonce_2_str, mi->current_job->coinbase_2);
 
             // calculate merkle root
             char merkle_root[65];
-            calculate_merkle_root_hash(coinbase_tx, mi->current_job->_merkle_branches, mi->current_job->n_merkle_branches, merkle_root);
+            calculate_merkle_root_hash(coinbase_tx, mi->current_job->_merkle_branches, mi->current_job->n_merkle_branches,
+                                       merkle_root);
 
             // we need malloc because we will save it in the job array
             next_job = (bm_job *) malloc(sizeof(bm_job));
@@ -307,7 +303,8 @@ void *create_jobs_task(void *pvParameters)
             next_job->extranonce2 = strdup(extranonce_2_str);
             next_job->pool_diff = mi->active_stratum_difficulty;
             next_job->pool_id = active_pool;
-            next_job->asic_diff = STRATUM_MANAGER->selectAsicDiff(mi->active_stratum_difficulty, board->getAsicMinDifficulty(), board->getAsicMaxDifficulty());
+            next_job->asic_diff = STRATUM_MANAGER->selectAsicDiff(mi->active_stratum_difficulty, board->getAsicMinDifficulty(),
+                                                                  board->getAsicMaxDifficulty());
         } // mutex
 
         if (next_job->asic_diff != last_asic_diff) {

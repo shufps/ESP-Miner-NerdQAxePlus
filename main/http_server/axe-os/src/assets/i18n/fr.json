@@ -134,7 +134,8 @@
     "POOL_MODE_FAILOVER": "Failover (primaire/secours)",
     "POOL_MODE_DUAL": "Pool double",
     "POOL_BALANCE": "Équilibrage du pool",
-    "POOL_BALANCE_HINT": "Répartit les tâches entre le pool primaire et le pool secondaire, par ex. 70/30."
+    "POOL_BALANCE_HINT": "Répartit les tâches entre le pool primaire et le pool secondaire, par ex. 70/30.",
+    "STRATUM": "Paramètres Stratum"
   },
   "SYSTEM": {
     "TITLE": "Informations Système",

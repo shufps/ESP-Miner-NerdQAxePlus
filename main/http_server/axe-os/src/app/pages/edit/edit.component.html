@@ -3,13 +3,9 @@
 </ng-template>
 
 <ng-container *ngIf="form != null; else loading">
-<app-alert-banner
-    *ngIf="!otpEnabled"
-    storageKey="hideOtpNudge"
-    status="basic"
-    [title]="'SECURITY.OTP_NUDGE_TITLE' | translate"
-    [message]="'SECURITY.OTP_NUDGE_TEXT' | translate">
-  </app-alert-banner>
+    <app-alert-banner *ngIf="!otpEnabled" storageKey="hideOtpNudge" status="basic"
+        [title]="'SECURITY.OTP_NUDGE_TITLE' | translate" [message]="'SECURITY.OTP_NUDGE_TEXT' | translate">
+    </app-alert-banner>
     <form [formGroup]="form">
         <nb-card>
             <nb-card-header>{{ 'SETTINGS.WIFI_SETTINGS' | translate }}</nb-card-header>
@@ -30,7 +26,8 @@
                     <label for="wifiPass" class="form-label">{{ 'SETTINGS.WIFI_PASSWORD' | translate }}:</label>
                     <div class="input-with-icon">
                         <input nbInput id="wifiPass" formControlName="wifiPass"
-                            [type]="showWifiPassword ? 'text' : 'password'" [placeholder]="'SETTINGS.WIFI_PASSWORD_PLACEHOLDER' | translate" />
+                            [type]="showWifiPassword ? 'text' : 'password'"
+                            [placeholder]="'SETTINGS.WIFI_PASSWORD_PLACEHOLDER' | translate" />
                         <button nbButton ghost size="small" (click)="toggleWifiPasswordVisibility()" type="button"
                             class="icon-button">
                             <nb-icon [icon]="showWifiPassword ? 'eye-off-outline' : 'eye-outline'" pack="eva"></nb-icon>
@@ -39,91 +36,144 @@
                 </div>
             </nb-card-body>
         </nb-card>
+        <nb-card>
+            <nb-card-header>{{ 'SETTINGS.STRATUM' | translate }}</nb-card-header>
+            <nb-card-body>
 
-        <nb-tabset>
-            <nb-tab [tabTitle]="'SETTINGS.PRIMARY_STRATUM_POOL' | translate">
-                <nb-card-body>
-                    <div class="form-row">
-                        <label for="stratumURL" class="form-label">{{ 'SETTINGS.STRATUM_HOST' | translate }}:</label>
-                        <div class="form-control-wrapper">
-                            <input nbInput id="stratumURL" type="text" formControlName="stratumURL" /><br />
-                            <small>{{ 'SETTINGS.STRATUM_HOST_HINT' | translate }}</small>
+                <div class="form-row">
+                    <label class="form-label">{{ 'SETTINGS.POOL_MODE' | translate }}:</label>
+                    <div class="form-control-wrapper">
+                        <nb-select formControlName="poolMode">
+                            <nb-option [value]="0">
+                                {{ 'SETTINGS.POOL_MODE_FAILOVER' | translate }}
+                            </nb-option>
+                            <nb-option [value]="1">
+                                {{ 'SETTINGS.POOL_MODE_DUAL' | translate }}
+                            </nb-option>
+                        </nb-select>
+                    </div>
+                </div>
+                <div class="form-row" *ngIf="form.controls['poolMode'].value === 1">
+                    <label class="form-label">
+                        {{ 'SETTINGS.POOL_BALANCE' | translate }}<br />
+                        (P: {{ form.controls['poolBalance'].value }}% /
+                        S: {{ 100 - form.controls['poolBalance'].value }}%)
+                    </label>
+                    <div class="form-control-wrapper">
+                        <div class="progress-wrap">
+                            <input type="range" class="progress" formControlName="poolBalance" min="0" max="100"
+                                step="5" />
+                            <div class="progress-foreground" [style.width.%]="form.controls['poolBalance'].value">
+                            </div>
                         </div>
+                        <small class="text-hint">
+                            {{ 'SETTINGS.POOL_BALANCE_HINT' | translate }}
+                        </small>
                     </div>
-                    <div class="form-row">
-                        <label for="stratumPort" class="form-label">{{ 'SETTINGS.STRATUM_PORT' | translate }}:</label>
-                        <div class="form-control-wrapper">
-                            <input nbInput id="stratumPort" formControlName="stratumPort" type="number" />
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <label for="stratumUser" class="form-label">{{ 'SETTINGS.STRATUM_USER' | translate }}:</label>
-                        <div class="form-control-wrapper">
-                            <input nbInput id="stratumUser" formControlName="stratumUser" type="text" />
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <label for="stratumPassword" class="form-label">{{ 'SETTINGS.STRATUM_PASSWORD' | translate }}:</label>
-                        <div class="input-with-icon">
-                            <input nbInput id="stratumPassword" formControlName="stratumPassword"
-                                [type]="showStratumPassword ? 'text' : 'password'"
-                                placeholder="Enter stratum password" />
-                            <button nbButton ghost (click)="toggleStratumPasswordVisibility()" type="button"
-                                class="icon-button">
-                                <nb-icon [icon]="showStratumPassword ? 'eye-off-outline' : 'eye-outline'"
-                                    pack="eva"></nb-icon>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <nb-checkbox formControlName="stratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE' | translate }}</nb-checkbox>
-                    </div>
-                </nb-card-body>
-            </nb-tab>
+                </div>
+                <div class="form-row">
+                    <nb-checkbox formControlName="stratum_keep">{{ 'MISC.STRATUM_KEEPALIVE' | translate }}</nb-checkbox>
+                </div>
 
-            <nb-tab [tabTitle]="'SETTINGS.FALLBACK_STRATUM_POOL' | translate">
-                <nb-card-body>
-                    <div class="form-row">
-                        <label for="fallbackStratumURL" class="form-label">{{ 'SETTINGS.STRATUM_HOST' | translate }}:</label>
-                        <div class="form-control-wrapper">
-                            <input nbInput id="fallbackStratumURL" type="text"
-                                formControlName="fallbackStratumURL" /><br />
-                            <small>{{ 'SETTINGS.STRATUM_HOST_HINT' | translate }}</small>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <label for="fallbackStratumPort" class="form-label">{{ 'SETTINGS.STRATUM_PORT' | translate }}:</label>
-                        <div class="form-control-wrapper">
-                            <input nbInput id="fallbackStratumPort" formControlName="fallbackStratumPort"
-                                type="number" />
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <label for="fallbackStratumUser" class="form-label">{{ 'SETTINGS.STRATUM_USER' | translate }}:</label>
-                        <div class="form-control-wrapper">
-                            <input nbInput id="fallbackStratumUser" formControlName="fallbackStratumUser" type="text" />
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <label for="fallbackStratumPassword" class="form-label">{{ 'SETTINGS.STRATUM_PASSWORD' | translate }}:</label>
-                        <div class="input-with-icon">
-                            <input nbInput id="fallbackStratumPassword" formControlName="fallbackStratumPassword"
-                                [type]="showFallbackStratumPassword ? 'text' : 'password'"
-                                placeholder="Enter stratum password" />
-                            <button nbButton ghost (click)="toggleFallbackStratumPasswordVisibility()" type="button"
-                                class="icon-button">
-                                <nb-icon [icon]="showFallbackStratumPassword ? 'eye-off-outline' : 'eye-outline'"
-                                    pack="eva"></nb-icon>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <nb-checkbox formControlName="fallbackStratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE' | translate }}</nb-checkbox>
-                    </div>
-                </nb-card-body>
-            </nb-tab>
-        </nb-tabset>
+            </nb-card-body>
 
+            <nb-tabset>
+                <nb-tab [tabTitle]="'SETTINGS.PRIMARY_STRATUM_POOL' | translate">
+                    <nb-card-body>
+                        <div class="form-row">
+                            <label for="stratumURL" class="form-label">{{ 'SETTINGS.STRATUM_HOST' | translate
+                                }}:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput id="stratumURL" type="text" formControlName="stratumURL" /><br />
+                                <small>{{ 'SETTINGS.STRATUM_HOST_HINT' | translate }}</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="stratumPort" class="form-label">{{ 'SETTINGS.STRATUM_PORT' | translate
+                                }}:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput id="stratumPort" formControlName="stratumPort" type="number" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="stratumUser" class="form-label">{{ 'SETTINGS.STRATUM_USER' | translate
+                                }}:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput id="stratumUser" formControlName="stratumUser" type="text" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="stratumPassword" class="form-label">{{ 'SETTINGS.STRATUM_PASSWORD' | translate
+                                }}:</label>
+                            <div class="input-with-icon">
+                                <input nbInput id="stratumPassword" formControlName="stratumPassword"
+                                    [type]="showStratumPassword ? 'text' : 'password'"
+                                    placeholder="Enter stratum password" />
+                                <button nbButton ghost (click)="toggleStratumPasswordVisibility()" type="button"
+                                    class="icon-button">
+                                    <nb-icon [icon]="showStratumPassword ? 'eye-off-outline' : 'eye-outline'"
+                                        pack="eva"></nb-icon>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <nb-checkbox formControlName="stratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE' |
+                                translate
+                                }}</nb-checkbox>
+                        </div>
+                    </nb-card-body>
+                </nb-tab>
+
+                <nb-tab [tabTitle]="'SETTINGS.FALLBACK_STRATUM_POOL' | translate">
+                    <nb-card-body>
+                        <div class="form-row">
+                            <label for="fallbackStratumURL" class="form-label">{{ 'SETTINGS.STRATUM_HOST' | translate
+                                }}:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput id="fallbackStratumURL" type="text"
+                                    formControlName="fallbackStratumURL" /><br />
+                                <small>{{ 'SETTINGS.STRATUM_HOST_HINT' | translate }}</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="fallbackStratumPort" class="form-label">{{ 'SETTINGS.STRATUM_PORT' | translate
+                                }}:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput id="fallbackStratumPort" formControlName="fallbackStratumPort"
+                                    type="number" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="fallbackStratumUser" class="form-label">{{ 'SETTINGS.STRATUM_USER' | translate
+                                }}:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput id="fallbackStratumUser" formControlName="fallbackStratumUser"
+                                    type="text" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="fallbackStratumPassword" class="form-label">{{ 'SETTINGS.STRATUM_PASSWORD' |
+                                translate }}:</label>
+                            <div class="input-with-icon">
+                                <input nbInput id="fallbackStratumPassword" formControlName="fallbackStratumPassword"
+                                    [type]="showFallbackStratumPassword ? 'text' : 'password'"
+                                    placeholder="Enter stratum password" />
+                                <button nbButton ghost (click)="toggleFallbackStratumPasswordVisibility()" type="button"
+                                    class="icon-button">
+                                    <nb-icon [icon]="showFallbackStratumPassword ? 'eye-off-outline' : 'eye-outline'"
+                                        pack="eva"></nb-icon>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <nb-checkbox formControlName="fallbackStratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE'
+                                |
+                                translate }}</nb-checkbox>
+                        </div>
+                    </nb-card-body>
+                </nb-tab>
+            </nb-tabset>
+        </nb-card>
         <nb-card>
             <nb-card-header>
                 <div class="d-flex align-items-center justify-content-between mt-2">
@@ -182,71 +232,35 @@
                         </div>
                     </div>
                     <div class="form-row" *ngIf="defaultVrFrequency !== undefined">
-                    <label for="vrFrequency" class="form-label">VR-Frequency:</label>
-                    <div class="form-control-wrapper">
-                        <input nbInput id="vrFrequency" formControlName="vrFrequency" type="number" /><br />
-                    </div>
+                        <label for="vrFrequency" class="form-label">VR-Frequency:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="vrFrequency" formControlName="vrFrequency" type="number" /><br />
+                        </div>
                     </div>
                     <div class="form-row" *ngIf="defaultVrFrequency !== undefined">
                         <div class="form-control-wrapper-no-label">
                             <small>
-                            Version Rolling Frequency.<!-- (Default <b>{{ defaultVrFrequency | number:'1.3-3' }} Hz</b>).-->
+                                Version Rolling
+                                Frequency.<!-- (Default <b>{{ defaultVrFrequency | number:'1.3-3' }} Hz</b>).-->
                             </small>
-                            <br/>
+                            <br />
                             <small>
-                            Calculated wrap-around time: <b>{{ wrapAroundTime | number:'1.2-2' }} s</b>
+                                Calculated wrap-around time: <b>{{ wrapAroundTime | number:'1.2-2' }} s</b>
                             </small>
                         </div>
                     </div>
                 </ng-container>
                 <ng-container *ngIf="supportLevel >= 1">
                     <div class="form-row">
-                        <label for="stratumDifficulty" class="form-label">{{ 'MINING.STRATUM_DIFFICULTY' | translate }}:</label>
+                        <label for="stratumDifficulty" class="form-label">{{ 'MINING.STRATUM_DIFFICULTY' | translate
+                            }}:</label>
                         <div class="form-control-wrapper">
-                            <input nbInput id="stratumDifficulty" formControlName="stratumDifficulty" type="number" /><br />
+                            <input nbInput id="stratumDifficulty" formControlName="stratumDifficulty"
+                                type="number" /><br />
                             <small>{{ 'MINING.STRATUM_DIFFICULTY_HELP' | translate }}</small>
                         </div>
                     </div>
                 </ng-container>
-<!-- 🔹 NEU: Pool Mode Auswahl -->
-<div class="form-row">
-  <label class="form-label">{{ 'SETTINGS.POOL_MODE' | translate }}:</label>
-  <div class="form-control-wrapper">
-    <nb-select formControlName="poolMode">
-      <nb-option [value]="0">
-        {{ 'SETTINGS.POOL_MODE_FAILOVER' | translate }}
-      </nb-option>
-      <nb-option [value]="1">
-        {{ 'SETTINGS.POOL_MODE_DUAL' | translate }}
-      </nb-option>
-    </nb-select>
-  </div>
-</div>
-<div class="form-row" *ngIf="form.controls['poolMode'].value === 1">
-  <label class="form-label">
-    {{ 'SETTINGS.POOL_BALANCE' | translate }}<br/>
-    (P: {{ form.controls['poolBalance'].value }}% /
-     S: {{ 100 - form.controls['poolBalance'].value }}%)
-  </label>
-  <div class="form-control-wrapper">
-    <div class="progress-wrap">
-      <input
-        type="range"
-        class="progress"
-        formControlName="poolBalance"
-        min="0"
-        max="100"
-        step="5" />
-      <div class="progress-foreground"
-           [style.width.%]="form.controls['poolBalance'].value">
-      </div>
-    </div>
-    <small class="text-hint">
-      {{ 'SETTINGS.POOL_BALANCE_HINT' | translate }}
-    </small>
-  </div>
-</div>
-
             </nb-card-body>
         </nb-card>
         <nb-card>
@@ -257,7 +271,8 @@
                     <div class="form-control-wrapper">
                         <nb-select fullWidth formControlName="autofanspeed">
                             <nb-option [value]="0">{{ 'FAN.MANUAL' | translate }}</nb-option>
-                            <nb-option *ngIf="form.controls['pidTargetTemp'].value != -1" [value]="2">{{ 'SETTINGS.AUTO_FAN' | translate }} (PID)</nb-option>
+                            <nb-option *ngIf="form.controls['pidTargetTemp'].value != -1" [value]="2">{{
+                                'SETTINGS.AUTO_FAN' | translate }} (PID)</nb-option>
                         </nb-select>
                     </div>
                 </div>
@@ -265,17 +280,21 @@
                 <!-- Manual fan speed slider -->
                 <div *ngIf="form.controls['autofanspeed'].value === 0">
                     <div class="form-row">
-                        <label>{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['manualFanSpeed'].value }}%</label>
+                        <label>{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['manualFanSpeed'].value
+                            }}%</label>
                         <div class="form-control-wrapper">
                             <div class="progress-wrap">
                                 <input type="range" class="progress" formControlName="manualFanSpeed" min="0" max="100"
                                     step="1" />
-                                <div class="progress-foreground" [style.width.%]="form.controls['manualFanSpeed'].value">
+                                <div class="progress-foreground"
+                                    [style.width.%]="form.controls['manualFanSpeed'].value">
                                 </div>
                             </div>
-                            <small *ngIf="form.controls['manualFanSpeed'].value < 40" style="color: red; margin-left:10px;">Danger: Could Cause
+                            <small *ngIf="form.controls['manualFanSpeed'].value < 40"
+                                style="color: red; margin-left:10px;">Danger: Could Cause
                                 Overheating</small>
-                            <small *ngIf="form.controls['manualFanSpeed'].value === 100" style="color: #F2A900; margin-left:10px;">S19
+                            <small *ngIf="form.controls['manualFanSpeed'].value === 100"
+                                style="color: #F2A900; margin-left:10px;">S19
                                 Simulator</small>
                         </div>
                     </div>
@@ -290,7 +309,8 @@
                         </div>
                     </div>
 
-                    <div *ngIf="supportLevel >= 1" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
+                    <div *ngIf="supportLevel >= 1" class="form-row-separator" style="font-weight:bold;">PID Parameters:
+                    </div>
 
                     <div *ngIf="supportLevel >= 1">
                         <div class="form-row">
@@ -320,10 +340,12 @@
                     </div>
                 </div>
                 <div class="form-row" *ngIf="supportLevel >= 1">
-                    <nb-checkbox formControlName="autofanpolarity">{{ 'FAN.AUTODETECT_POLARITY' | translate }} <small>({{ 'FAN.AUTODETECT_RECOMMENDED' | translate }})</small></nb-checkbox>
+                    <nb-checkbox formControlName="autofanpolarity">{{ 'FAN.AUTODETECT_POLARITY' | translate }}
+                        <small>({{ 'FAN.AUTODETECT_RECOMMENDED' | translate }})</small></nb-checkbox>
                 </div>
                 <div class="form-row" *ngIf="supportLevel >= 1">
-                    <nb-checkbox formControlName="invertfanpolarity">{{ 'FAN.INVERT_POLARITY' | translate }}</nb-checkbox>
+                    <nb-checkbox formControlName="invertfanpolarity">{{ 'FAN.INVERT_POLARITY' | translate
+                        }}</nb-checkbox>
                 </div>
 
             </nb-card-body>
@@ -338,16 +360,13 @@
                     <nb-checkbox formControlName="autoscreenoff">{{ 'MISC.AUTO_SCREEN_OFF' | translate }}</nb-checkbox>
                 </div>
                 <div class="form-row">
-                  <nb-checkbox formControlName="stratum_keep">{{ 'MISC.STRATUM_KEEPALIVE' | translate }}</nb-checkbox>
-                </div>
-                <div class="form-row">
-                  <label class="form-label">{{ 'SETTINGS.TIME_FORMAT' | translate }}:</label>
-                  <div class="form-control-wrapper">
-                    <nb-select formControlName="timeFormat" placeholder="{{ 'SETTINGS.TIME_FORMAT' | translate }}">
-                      <nb-option value="24h">{{ 'SETTINGS.TIME_FORMAT_24H' | translate }}</nb-option>
-                      <nb-option value="12h">{{ 'SETTINGS.TIME_FORMAT_12H' | translate }}</nb-option>
-                    </nb-select>
-                  </div>
+                    <label class="form-label">{{ 'SETTINGS.TIME_FORMAT' | translate }}:</label>
+                    <div class="form-control-wrapper">
+                        <nb-select formControlName="timeFormat" placeholder="{{ 'SETTINGS.TIME_FORMAT' | translate }}">
+                            <nb-option value="24h">{{ 'SETTINGS.TIME_FORMAT_24H' | translate }}</nb-option>
+                            <nb-option value="12h">{{ 'SETTINGS.TIME_FORMAT_12H' | translate }}</nb-option>
+                        </nb-select>
+                    </div>
                 </div>
             </nb-card-body>
         </nb-card>
@@ -360,8 +379,8 @@
                     </button>
                 </div>
             </div>
-            <div><button nbButton size="small" (click)="restart()" nbTooltip="'asdf'"
-                    status="danger">{{ 'SYSTEM.RESTART' | translate }}</button>
+            <div><button nbButton size="small" (click)="restart()" nbTooltip="'asdf'" status="danger">{{
+                    'SYSTEM.RESTART' | translate }}</button>
             </div>
 
         </div>
@@ -397,8 +416,10 @@
                     </nb-checkbox>
                 </p>
                 <div class="d-flex justify-content-between">
-                    <button nbButton status="danger" (click)="saveAfterWarning()">{{ 'WARNINGS.PROCEED_ANYWAY' | translate }}</button>
-                    <button nbButton status="basic" (click)="dialogRef?.close()">{{ 'COMMON.CANCEL' | translate }}</button>
+                    <button nbButton status="danger" (click)="saveAfterWarning()">{{ 'WARNINGS.PROCEED_ANYWAY' |
+                        translate }}</button>
+                    <button nbButton status="basic" (click)="dialogRef?.close()">{{ 'COMMON.CANCEL' | translate
+                        }}</button>
                 </div>
             </nb-card-body>
         </nb-card>

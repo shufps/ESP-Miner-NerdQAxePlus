@@ -134,7 +134,8 @@
     "POOL_MODE_FAILOVER": "Failover (primario/secundario)",
     "POOL_MODE_DUAL": "Pool dual",
     "POOL_BALANCE": "Balance de pool",
-    "POOL_BALANCE_HINT": "Distribuye trabajos entre el pool primario y el secundario, p. ej., 70/30."
+    "POOL_BALANCE_HINT": "Distribuye trabajos entre el pool primario y el secundario, p. ej., 70/30.",
+    "STRATUM": "Configuración de Stratum"
   },
   "SYSTEM": {
     "TITLE": "Información del Sistema",
