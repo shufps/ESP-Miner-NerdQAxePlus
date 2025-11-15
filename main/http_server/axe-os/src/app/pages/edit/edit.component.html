@@ -208,6 +208,45 @@
                         </div>
                     </div>
                 </ng-container>
+<!-- 🔹 NEU: Pool Mode Auswahl -->
+<div class="form-row">
+  <label class="form-label">{{ 'SETTINGS.POOL_MODE' | translate }}:</label>
+  <div class="form-control-wrapper">
+    <nb-select formControlName="poolMode">
+      <nb-option [value]="0">
+        {{ 'SETTINGS.POOL_MODE_FAILOVER' | translate }}
+      </nb-option>
+      <nb-option [value]="1">
+        {{ 'SETTINGS.POOL_MODE_DUAL' | translate }}
+      </nb-option>
+    </nb-select>
+  </div>
+</div>
+<div class="form-row" *ngIf="form.controls['poolMode'].value === 1">
+  <label class="form-label">
+    {{ 'SETTINGS.POOL_BALANCE' | translate }}<br/>
+    (P: {{ form.controls['poolBalance'].value }}% /
+     S: {{ 100 - form.controls['poolBalance'].value }}%)
+  </label>
+  <div class="form-control-wrapper">
+    <div class="progress-wrap">
+      <input
+        type="range"
+        class="progress"
+        formControlName="poolBalance"
+        min="0"
+        max="100"
+        step="5" />
+      <div class="progress-foreground"
+           [style.width.%]="form.controls['poolBalance'].value">
+      </div>
+    </div>
+    <small class="text-hint">
+      {{ 'SETTINGS.POOL_BALANCE_HINT' | translate }}
+    </small>
+  </div>
+</div>
+
             </nb-card-body>
         </nb-card>
         <nb-card>

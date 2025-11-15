@@ -148,7 +148,7 @@ void initWatchdog()
 
 bool initStratumManager() {
     int mode = (int) Config::getPoolMode();
-    int balance = (int) Config::getPoolModeBalance();
+    int balance = (int) Config::getPoolBalance();
 
     switch (mode) {
     case 0:

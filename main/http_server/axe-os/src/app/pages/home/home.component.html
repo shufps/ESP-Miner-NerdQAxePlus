@@ -45,15 +45,8 @@
             <nb-card-header style="position: relative;">
               <div class="d-flex justify-content-between align-items-center">
                 <span class="text-hint">{{ 'HOME.SHARES' | translate }}</span>
-                <nb-badge [text]="
-            !info.isStratumConnected
-              ? ('HOME.DISCONNECTED' | translate)
-              : (info.isUsingFallbackStratum ? ('HOME.FALLBACK_POOL' | translate) : ('HOME.PRIMARY_POOL' | translate))
-          " [status]="
-            !info.isStratumConnected
-              ? 'danger'
-              : (info.isUsingFallbackStratum ? 'warning' : 'success')
-          " size="small" position="top end" style="margin-top:5px;">
+                <nb-badge [text]="poolBadgeLabel()" [status]="poolBadgeStatus()" size="small" position="top end"
+                  style="margin-top:5px;">
                 </nb-badge>
               </div>
             </nb-card-header>

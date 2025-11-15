@@ -71,6 +71,10 @@ class StratumManager {
                      const uint32_t version);
 
     bool isAnyConnected();
+    int getNumConnectedPools();
+
+    virtual void loadSettings() { /* NOP */};
+
 
     // abstract
     virtual const char *getResolvedIpForSelected() const = 0;

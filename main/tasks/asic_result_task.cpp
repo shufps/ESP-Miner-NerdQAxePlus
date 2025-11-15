@@ -15,8 +15,6 @@ static const char *TAG = "asic_result";
 
 static SimpleRing64<32> s_seen_keys;
 
-#define ACTIVE (job->pool_id ? 'S' : 'P')
-
 // Combine nonce + version into a single 64-bit key
 static inline uint64_t make_key(uint32_t nonce, uint32_t version)
 {
@@ -86,15 +84,17 @@ void ASIC_result_task(void *pvParameters)
         char bestDiffString[16];
         System::suffixString(SYSTEM_MODULE.getBestSessionNonceDiff(), bestDiffString, sizeof(bestDiffString), 3);
 
+        const char *pool_str = job->pool_id ? "Sec" : "Pri";
+
         // log the ASIC response, including pool and best session difficulty using human-readable SI formatting
-        ESP_LOGI(TAG, "(%c) Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 "; Extranonce2 %s diff %.1f/%lu/%s",
-            ACTIVE, asic_job_id, asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce, job->extranonce2,
+        ESP_LOGI(TAG, "(%s) Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 "; Extranonce2 %s diff %.1f/%lu/%s",
+            pool_str, asic_job_id, asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce, job->extranonce2,
             nonce_diff, job->pool_diff, bestDiffString);
 
         uint64_t key = make_key(asic_result.nonce, asic_result.rolled_version);
         bool duplicate = !s_seen_keys.insert_if_absent(key);
         if (duplicate) {
-            ESP_LOGW(TAG, "(%c) duplicate share detected!", ACTIVE);
+            ESP_LOGW(TAG, "(%s) duplicate share detected!", pool_str);
             SYSTEM_MODULE.countDuplicateHWNonces();
         }
 
