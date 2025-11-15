@@ -171,6 +171,10 @@
 
     .btn-support { user-select: none; }
 
-
+    nb-tabset .form-label {
+        flex: 0 0 110px;
+        text-align: right;
+        margin-right: 16px;
+    }
 }
 
