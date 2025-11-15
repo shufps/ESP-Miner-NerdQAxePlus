@@ -71,6 +71,10 @@ export interface ISystemInfo {
     vrFrequency: number,
     shutdown: boolean,
 
+    poolMode: number,
+    poolBalance: number,
+    numConnected: number,
+
     defaultTheme: string,
 
     boardtemp1?: number,

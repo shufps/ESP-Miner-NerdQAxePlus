@@ -20,7 +20,7 @@
 
 class System {
   protected:
-    int64_t m_startTime;         // System start time (in milliseconds)
+    int64_t m_startTime; // System start time (in milliseconds)
 
     // Share statistics
     uint64_t m_sharesAccepted;    // Number of accepted shares
@@ -106,12 +106,12 @@ class System {
     void hideError();
 
     // Notification methods to update share statistics
-    void notifyAcceptedShare();                              // Notify system of an accepted share
-    void notifyRejectedShare();                              // Notify system of a rejected share
-    void notifyFoundNonce(double poolDiff, int asicNr);      // Notify system of a found nonce
-    void checkForBestDiff(double foundDiff, uint32_t nbits); // Check if the found difficulty is the best so far
-    void notifyMiningStarted();                              // Notify system that mining has started
-    void notifyNewNtime(uint32_t ntime);                     // Notify system of new `ntime` received from the pool
+    void notifyAcceptedShare();                                        // Notify system of an accepted share
+    void notifyRejectedShare();                                        // Notify system of a rejected share
+    void notifyFoundNonce(double poolDiff, int asicNr);                // Notify system of a found nonce
+    void checkForBestDiff(double foundDiff, uint32_t nbits, int pool); // Check if the found difficulty is the best so far
+    void notifyMiningStarted();                                        // Notify system that mining has started
+    void notifyNewNtime(uint32_t ntime);                               // Notify system of new `ntime` received from the pool
 
     void countDuplicateHWNonces();
 

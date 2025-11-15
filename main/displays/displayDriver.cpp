@@ -822,14 +822,14 @@ void DisplayDriver::updateCurrentSettings()
 {
     PThreadGuard lock(m_lvglMutex);
     char strData[20];
-    if (m_ui->ui_SettingsScreen == NULL)
+    if (m_ui->ui_SettingsScreen == NULL || !STRATUM_MANAGER)
         return;
 
     Board *board = SYSTEM_MODULE.getBoard();
 
-    lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER.getCurrentPoolHost()); // Update label
+    lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER->getCurrentPoolHost()); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER.getCurrentPoolPort());
+    snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER->getCurrentPoolPort());
     lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", board->getAsicFrequency());

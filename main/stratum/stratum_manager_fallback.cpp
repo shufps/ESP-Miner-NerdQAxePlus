@@ -1,0 +1,115 @@
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <time.h>
+#include <pthread.h>
+
+#include "macros.h"
+#include "stratum_manager_fallback.h"
+#include "create_jobs_task.h"
+
+StratumManagerFallback::StratumManagerFallback() : StratumManager(PoolMode::FAILOVER), m_selected(PRIMARY)
+{
+    // NOP
+}
+
+const char *StratumManagerFallback::getResolvedIpForSelected() const
+{
+    if (!m_stratumTasks[m_selected]) {
+        return nullptr;
+    }
+    return m_stratumTasks[m_selected]->getResolvedIp();
+}
+
+void StratumManagerFallback::reconnectTimerCallback(int index)
+{
+    // failover mode:
+    if (index == PRIMARY) {
+        // primary is always allowed to reconnect
+        m_stratumTasks[index]->connect();
+    } else {
+        // secondary is only allowed if primary is NOT connected
+        if (!isConnected(PRIMARY)) {
+            m_stratumTasks[index]->connect();
+        } else {
+            // primary is good, we don't want secondary online
+            m_stratumTasks[index]->disconnect();
+        }
+    }
+}
+
+void StratumManagerFallback::connectedCallback(int index)
+{
+    PThreadGuard lock(m_mutex);
+
+    if (index == PRIMARY) {
+        // Primary is up → Secondary should go away
+        m_selected = PRIMARY;
+
+        if (m_stratumTasks[SECONDARY]) {
+            m_stratumTasks[SECONDARY]->disconnect();
+            m_stratumTasks[SECONDARY]->stopReconnectTimer();
+        }
+    } else { // index == SECONDARY
+        // Secondary is up
+        if (!isConnected(PRIMARY)) {
+            // Primary is dead → accept Secondary as active
+            m_selected = SECONDARY;
+        } else {
+            // Primary is alive → we don't allow Secondary online
+            m_stratumTasks[SECONDARY]->disconnect();
+            m_stratumTasks[SECONDARY]->stopReconnectTimer();
+        }
+    }
+}
+
+void StratumManagerFallback::disconnectedCallback(int index)
+{
+    PThreadGuard lock(m_mutex);
+    create_job_invalidate(index);
+
+    m_stratumTasks[index]->m_validNotify = false;
+
+    if (index == PRIMARY) {
+        // Primary went down -> allow secondary to try
+        if (m_stratumTasks[SECONDARY]) {
+            m_stratumTasks[SECONDARY]->startReconnectTimer();
+            // m_stratumTasks[SECONDARY]->connect();
+        }
+        // m_selected will switch to SECONDARY once SECONDARY actually connects
+    } else { // index == SECONDARY
+        // Secondary went down. If Primary is still down too,
+        // we might eventually reconnect SECONDARY anyway via its timer,
+    }
+}
+
+int StratumManagerFallback::getNextActivePool()
+{
+    PThreadGuard lock(m_mutex);
+    return m_selected;
+}
+
+const char *StratumManagerFallback::getCurrentPoolHost()
+{
+    if (!m_stratumTasks[m_selected]) {
+        return "-";
+    }
+    return m_stratumTasks[m_selected]->getHost();
+}
+
+int StratumManagerFallback::getCurrentPoolPort()
+{
+    if (!m_stratumTasks[m_selected]) {
+        return 0;
+    }
+    return m_stratumTasks[m_selected]->getPort();
+}
+
+uint32_t StratumManagerFallback::selectAsicDiff(uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax)
+{
+    return std::max(std::min(poolDiff, asicMax), asicMin);
+}
+
+bool StratumManagerFallback::acceptsNotifyFrom(int pool)
+{
+    return pool == m_selected;
+}

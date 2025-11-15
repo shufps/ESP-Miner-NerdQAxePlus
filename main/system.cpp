@@ -162,7 +162,7 @@ float System::getCurrentHashrate() {
     return getCurrentHashrate10m();
 }
 
-void System::checkForBestDiff(double diff, uint32_t nbits) {
+void System::checkForBestDiff(double diff, uint32_t nbits, int pool) {
     if ((uint64_t)diff > m_bestSessionNonceDiff) {
         m_bestSessionNonceDiff = (uint64_t)diff;
         suffixString((uint64_t)diff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
