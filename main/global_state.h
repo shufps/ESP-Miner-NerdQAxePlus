@@ -24,7 +24,7 @@ extern System SYSTEM_MODULE;
 extern PowerManagementTask POWER_MANAGEMENT_MODULE;
 extern HashrateMonitor HASHRATE_MONITOR;
 
-extern StratumManager STRATUM_MANAGER;
+extern StratumManager *STRATUM_MANAGER;
 extern APIsFetcher APIs_FETCHER;
 extern FactoryOTAUpdate FACTORY_OTA_UPDATER;
 

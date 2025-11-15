@@ -205,17 +205,17 @@ void ping_task(void *pvParameters) {
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }
-        if (!STRATUM_MANAGER.isAnyConnected()) {
+        if (!STRATUM_MANAGER || !STRATUM_MANAGER->isAnyConnected()) {
             ESP_LOGW(TAG, "Stratum not connected. Skipping ping...");
             vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
-        int index = STRATUM_MANAGER.isUsingFallback() ? 1 : 0;
+        int index = STRATUM_MANAGER->isUsingFallback() ? 1 : 0;
 
         const StratumConfig* current_config = SYSTEM_MODULE.getStratumConfig(index);
         const char* hostname = current_config ? current_config->host : nullptr;
-        const char* ip_str = STRATUM_MANAGER.getResolvedIpForSelected();
+        const char* ip_str = STRATUM_MANAGER->getResolvedIpForSelected();
 
         if (!hostname || !ip_str) {
             ESP_LOGE(TAG, "No resolved IP for current hostname");

@@ -6,6 +6,8 @@
 #include <pthread.h>
 
 class StratumManager;
+class StratumManagerFallback;
+class StratumManagerDualPool;
 
 /**
  * @brief Configuration structure for Stratum pools
@@ -24,20 +26,24 @@ typedef struct
  * @brief Stratum Task handles the connection and communication with a Stratum pool.
  */
 class StratumTask {
-    friend StratumManager; ///< Allows StratumManager to access private members
+    friend StratumManager;
+    friend StratumManagerFallback;
+    friend StratumManagerDualPool;
 
   protected:
-    StratumConfig *m_config = nullptr; ///< Stratum configuration for the task
-    StratumApi m_stratumAPI;           ///< API instance for Stratum communication
-    int m_index;                       ///< Index of the Stratum task (0 = primary, 1 = secondary)
-    const char *m_tag;                 ///< Debug tag for logging
-
-    int m_sock = 0;            ///< Socket for the Stratum connection
     StratumManager *m_manager; ///< Reference to the StratumManager
+    StratumConfig *m_config;   ///< Stratum configuration for the task
+    int m_index;               ///< Index of the Stratum task (0 = primary, 1 = secondary)
 
-    bool m_isConnected = false; ///< Connection state flag
-    bool m_stopFlag = true;     ///< Stop flag for the task
+    StratumApi m_stratumAPI; ///< API instance for Stratum communication
+    const char *m_tag;       ///< Debug tag for logging
+
+    int m_sock; ///< Socket for the Stratum connection
+
+    bool m_isConnected; ///< Connection state flag
+    bool m_stopFlag;    ///< Stop flag for the task
     bool m_firstJob;
+    bool m_validNotify; // flag if the mining notify is valid
 
     // Connection and network-related methods
     bool isWifiConnected();                                                      ///< Check if Wi-Fi is connected
@@ -50,6 +56,17 @@ class StratumTask {
     void stratumLoop();
     void connect();    ///< Establish a connection to the pool
     void disconnect(); ///< Disconnect from the pool
+
+    // Reconnection management
+    TimerHandle_t m_reconnectTimer = nullptr;                        ///< FreeRTOS timer for automatic reconnection
+    static void reconnectTimerCallbackWrapper(TimerHandle_t xTimer); ///< Static wrapper for FreeRTOS timer callback
+    void reconnectTimerCallback(TimerHandle_t xTimer);               ///< Handles reconnection logic
+    void startReconnectTimer();                                      ///< Starts the reconnect timer
+    void stopReconnectTimer();                                       ///< Stops the reconnect timer
+
+    // Connection event callbacks
+    void connectedCallback();    ///< Called when a pool successfully connects
+    void disconnectedCallback(); ///< Called when a pool disconnects
 
     // Submit mining shares to the pool
     void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
@@ -79,7 +96,8 @@ class StratumTask {
     {
         return m_config ? m_config->port : 0;
     }
-    const char* getResolvedIp() const {
+    const char *getResolvedIp() const
+    {
         return m_lastResolvedIp[0] ? m_lastResolvedIp : nullptr;
     }
 
@@ -93,16 +111,32 @@ class StratumTask {
  */
 class StratumManager {
     friend StratumTask; ///< Allows StratumTask to access private members
+  public:
+    enum Selected
+    {
+        PRIMARY = 0,
+        SECONDARY = 1
+    };
+
+    enum PoolMode
+    {
+        FAILOVER = 0,
+        DUAL = 1
+    };
 
   protected:
     const char *m_tag = "stratum-manager"; ///< Debug tag for logging
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER; ///< Mutex for thread safety
-    StratumApiV1Message m_stratum_api_v1_message;       ///< API message handler
-    StratumTask *m_stratumTasks[2] = {nullptr, nullptr}; ///< Primary and secondary Stratum tasks
+    StratumApiV1Message m_stratum_api_v1_message;        ///< API message handler
+    StratumTask *m_stratumTasks[2];                      ///< Primary and secondary Stratum tasks
+    PoolMode m_poolmode;                                      // default FAILOVER
+    uint64_t m_lastSubmitResponseTimestamp;              ///< Timestamp of last submitted share response
 
-    int m_selected = 0;                         ///< Tracks the currently active pool (0 = primary, 1 = secondary)
-    uint64_t m_lastSubmitResponseTimestamp = 0; ///< Timestamp of last submitted share response
+    PoolMode getPoolMode() const
+    {
+        return m_poolmode;
+    }
 
     // Helper methods for connection management
     void connect(int index);     ///< Connect to a specified pool (0 = primary, 1 = secondary)
@@ -118,31 +152,90 @@ class StratumManager {
     // Clears queued mining jobs
     void cleanQueue();
 
-    // Reconnection management
-    TimerHandle_t m_reconnectTimer;                                  ///< FreeRTOS timer for automatic reconnection
-    static void reconnectTimerCallbackWrapper(TimerHandle_t xTimer); ///< Static wrapper for FreeRTOS timer callback
-    void reconnectTimerCallback(TimerHandle_t xTimer);               ///< Handles reconnection logic
-    void startReconnectTimer();                                      ///< Starts the reconnect timer
-    void stopReconnectTimer();                                       ///< Stops the reconnect timer
-
-    // Connection event callbacks
-    void connectedCallback(int index);    ///< Called when a pool successfully connects
-    void disconnectedCallback(int index); ///< Called when a pool disconnects
-
     void freeStratumV1Message(StratumApiV1Message *message);
+
+    // abstract methods
+    // reconnect logic for failover mode
+    virtual void reconnectTimerCallback(int index) = 0;
+    virtual void connectedCallback(int index) = 0;
+    virtual void disconnectedCallback(int index) = 0;
+    virtual bool acceptsNotifyFrom(int pool) = 0;
+
   public:
-    StratumManager();
+    StratumManager(PoolMode mode);
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
 
-    // Get information about the currently selected pool
-    const char *getCurrentPoolHost();
-    int getCurrentPoolPort();
-    bool isAnyConnected();
-
     // Submit shares to the active Stratum pool
-    void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+    void submitShare(int pool, const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                      const uint32_t version);
 
-    bool isUsingFallback(); ///< Check if the secondary (fallback) pool is in use
-    const char* getResolvedIpForSelected() const;
+    bool isAnyConnected();
+
+    // abstract
+    virtual const char *getResolvedIpForSelected() const = 0;
+    virtual bool isUsingFallback() = 0;
+
+    // Get information about the currently selected pool
+    virtual const char *getCurrentPoolHost() = 0;
+    virtual int getCurrentPoolPort() = 0;
+
+    virtual int getNextActivePool() = 0;
+};
+
+class StratumManagerFallback : public StratumManager {
+    friend StratumTask; ///< Allows StratumTask to access private members
+
+  protected:
+    int m_selected; // default PRIMARY
+
+    virtual void reconnectTimerCallback(int index);
+    virtual void connectedCallback(int index);
+    virtual void disconnectedCallback(int index);
+
+    virtual bool acceptsNotifyFrom(int pool);
+
+  public:
+    StratumManagerFallback();
+
+    virtual const char *getCurrentPoolHost();
+    virtual int getCurrentPoolPort();
+
+    virtual const char *getResolvedIpForSelected() const;
+
+    virtual int getNextActivePool();
+
+    virtual bool isUsingFallback()
+    {
+        return m_selected == StratumManager::Selected::SECONDARY;
+    }
+};
+
+class StratumManagerDualPool : public StratumManager {
+    friend StratumTask; ///< Allows StratumTask to access private members
+
+  protected:
+    int m_primary_pct = 50;
+    int32_t m_error_accum = 0;
+
+    virtual void reconnectTimerCallback(int index);
+    virtual void connectedCallback(int index);
+    virtual void disconnectedCallback(int index);
+
+    virtual bool acceptsNotifyFrom(int pool);
+
+  public:
+    StratumManagerDualPool();
+
+    virtual const char *getCurrentPoolHost();
+    virtual int getCurrentPoolPort();
+
+    virtual const char *getResolvedIpForSelected() const;
+
+    virtual int getNextActivePool();
+
+    virtual bool isUsingFallback()
+    {
+        // not applicable
+        return false;
+    }
 };
