@@ -68,6 +68,7 @@ export class EditComponent implements OnInit {
     'autofanpolarity',
     'stratumDifficulty',
     'stratum_keep',
+    'poolMode',
   ]);
 
   @Input() uri = '';
@@ -179,6 +180,14 @@ export class EditComponent implements OnInit {
           frequency: [info.frequency, [Validators.required]],
           jobInterval: [info.jobInterval, [Validators.required]],
           stratumDifficulty: [info.stratumDifficulty, [Validators.required, Validators.min(1)]],
+
+          poolMode: [info.poolMode ?? 0, [Validators.required]],        // 0 = Failover, 1 = Dual
+          poolBalance: [info.poolBalance ?? 50, [                  // Anteil PRIMARY in %
+            Validators.required,
+            Validators.min(0),
+            Validators.max(100),
+          ]],
+
           autofanspeed: [info.autofanspeed ?? 0, [Validators.required]],
           pidTargetTemp: [info.pidTargetTemp ?? 55, [
             Validators.min(30),

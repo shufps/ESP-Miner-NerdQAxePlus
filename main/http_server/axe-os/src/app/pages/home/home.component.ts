@@ -519,6 +519,71 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     // Persist to local storage
     this.localStorage.setItem(this.tempViewKey, this.viewMode);
   }
+
+  public poolBadgeStatus(): string {
+    const mode = this._info.poolMode;          // 0 = Failover, 1 = Dual
+    const connected = this._info.numConnected ?? 0;
+
+    if (!this._info.isStratumConnected) {
+      return 'danger';
+    }
+
+    // Failover mode: same behavior as before
+    if (mode === 0) {
+      return this._info.isUsingFallbackStratum ? 'warning' : 'success';
+    }
+
+    // Dual mode
+    if (mode === 1) {
+      if (connected >= 2) {
+        // both pools online
+        return 'success';
+      } else if (connected === 1) {
+        // only one of the two online -> warn
+        return 'warning';
+      } else {
+        // should not happen
+        return 'danger';
+      }
+    }
+
+    return 'basic';
+  }
+
+  public poolBadgeLabel(): string {
+    const mode = this._info.poolMode;
+    const balance = this._info.poolBalance;
+    const connected = this._info.numConnected ?? 0;
+
+    if (mode === 0) {
+      if (!this._info.isStratumConnected) {
+        return this.translateService.instant('HOME.DISCONNECTED');
+      }
+      return this._info.isUsingFallbackStratum
+        ? this.translateService.instant('HOME.FALLBACK_POOL')
+        : this.translateService.instant('HOME.PRIMARY_POOL');
+    }
+
+    if (mode === 1) {
+      if (!this._info.isStratumConnected) {
+        return this.translateService.instant('HOME.DISCONNECTED');
+      }
+
+      const primary = balance ?? 50;
+      const secondary = 100 - primary;
+
+      return this.translateService.instant('HOME.DUAL_POOL_BALANCE_WITH_STATUS', {
+        primary,
+        secondary,
+        connected,
+      });
+    }
+
+    return '';
+  }
+
+
+
 }
 
 Chart.register(TimeScale);

@@ -50,6 +50,11 @@ bool StratumManager::isAnyConnected()
     return isConnected(PRIMARY) || isConnected(SECONDARY);
 }
 
+int StratumManager::getNumConnectedPools() {
+    return !!isConnected(PRIMARY) + !!isConnected(SECONDARY);
+}
+
+
 // This static wrapper converts the void* parameter into a StratumManager pointer
 // and calls the member function.
 void StratumManager::taskWrapper(void *pvParameters)

@@ -27,6 +27,8 @@ class StratumManagerDualPool : public StratumManager {
 
     virtual int getNextActivePool();
 
+    virtual void loadSettings();
+
     virtual bool isUsingFallback()
     {
         // not applicable

@@ -102,6 +102,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["duplicateHWNonces"]  = SYSTEM_MODULE.getDuplicateHWNonces();
     doc["isUsingFallbackStratum"] = !STRATUM_MANAGER ? false : STRATUM_MANAGER->isUsingFallback();
     doc["isStratumConnected"] = !STRATUM_MANAGER ? false : STRATUM_MANAGER->isAnyConnected();
+    doc["numConnected"]       = !STRATUM_MANAGER ? 0 : STRATUM_MANAGER->getNumConnectedPools();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["manualFanSpeed"]     = Config::getFanSpeed();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
@@ -111,6 +112,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
     doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
     doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
+    doc["poolMode"]           = Config::getPoolMode();
+    doc["poolBalance"]    = Config::getPoolBalance();
 
     // asic temps
     {
@@ -331,7 +334,13 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
 #endif
 
+    if (doc["poolMode"].is<uint16_t>()) {
+        Config::setPoolMode(doc["poolMode"].as<uint16_t>());
+    }
 
+    if (doc["poolBalance"].is<uint16_t>()) {
+        Config::setPoolBalance(doc["poolBalance"].as<uint16_t>());
+    }
 
     doc.clear();
 
@@ -344,6 +353,10 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
 
     // reload settings of system module (and display)
     SYSTEM_MODULE.loadSettings();
+
+    if (STRATUM_MANAGER) {
+        STRATUM_MANAGER->loadSettings();
+    }
 
     return ESP_OK;
 }

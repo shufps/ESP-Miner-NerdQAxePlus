@@ -3,6 +3,7 @@
 #include <time.h>
 #include <pthread.h>
 
+#include "nvs_config.h"
 #include "macros.h"
 #include "stratum_manager_dual_pool.h"
 #include "create_jobs_task.h"
@@ -93,3 +94,14 @@ bool StratumManagerDualPool::acceptsNotifyFrom(int pool)
 {
     return true;
 }
+
+void StratumManagerDualPool::loadSettings() {
+    PThreadGuard lock(m_mutex);
+
+    // call parent
+    StratumManager::loadSettings();
+
+    // set new percentage and reset error
+    m_primary_pct = Config::getPoolBalance();
+    m_error_accum = 0;
+};

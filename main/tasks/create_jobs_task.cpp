@@ -16,7 +16,6 @@
 
 #define PRIMARY 0
 #define SECONDARY 1
-#define ACTIVE (active_pool ? 'S' : 'P')
 
 static const char *TAG = "create_jobs_task";
 
@@ -261,6 +260,7 @@ void *create_jobs_task(void *pvParameters)
 
         bm_job *next_job = nullptr;
         int active_pool = 0;
+        const char* active_pool_str = "";
 
         { // scope for mutex
             PThreadGuard g(current_stratum_job_mutex);
@@ -271,6 +271,7 @@ void *create_jobs_task(void *pvParameters)
 
             // select pool to mine for
             active_pool = STRATUM_MANAGER->getNextActivePool();
+            active_pool_str = active_pool ? "Sec" : "Pri";
 
             // set current pool data
             MiningInfo *mi = &miningInfo[active_pool];
@@ -281,7 +282,7 @@ void *create_jobs_task(void *pvParameters)
 
             if (last_ntime != mi->current_job->ntime) {
                 last_ntime = mi->current_job->ntime;
-                ESP_LOGI(TAG, "(%c) New Work Received %s", ACTIVE, mi->current_job->job_id);
+                ESP_LOGI(TAG, "(%s) New Work Received %s", active_pool_str, mi->current_job->job_id);
             }
 
             // generate extranonce2 hex string
@@ -318,13 +319,13 @@ void *create_jobs_task(void *pvParameters)
 
         uint64_t current_time = esp_timer_get_time();
         if (last_submit_time) {
-            ESP_LOGD(TAG, "(%c) job interval %dms", ACTIVE, (int) ((current_time - last_submit_time) / 1e3));
+            ESP_LOGD(TAG, "(%s) job interval %dms", active_pool_str, (int) ((current_time - last_submit_time) / 1e3));
         }
         last_submit_time = current_time;
 
         int asic_job_id = asics->sendWork(extranonce_2, next_job);
 
-        ESP_LOGD(TAG, "(%c) Sent Job (%d): %02X", ACTIVE, active_pool, asic_job_id);
+        ESP_LOGD(TAG, "(%s) Sent Job (%d): %02X", active_pool_str, active_pool, asic_job_id);
 
         // save job
         asicJobs.storeJob(next_job, asic_job_id);
