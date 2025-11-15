@@ -25,8 +25,6 @@
 // mkfifo /tmp/ncpipe
 // nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
 
-
-
 int is_socket_connected(int socket)
 {
     if (socket == -1) {
@@ -47,7 +45,7 @@ int is_socket_connected(int socket)
 
 StratumTask::StratumTask(StratumManager *manager, int index, StratumConfig *config)
     : m_manager(manager), m_config(config), m_index(index), m_sock(-1), m_isConnected(false), m_stopFlag(false), m_firstJob(true),
-      m_reconnectTimer(nullptr)
+      m_validNotify(false), m_reconnectTimer(nullptr)
 {
     if (config->primary) {
         m_tag = "stratum task (Pri)";
@@ -553,12 +551,7 @@ void StratumManager::task()
         ESP_LOGE("StratumManager", "Failed to add task to watchdog!");
     }
 
-    m_poolmode = PoolMode::DUAL; // Config::getPoolMode(); TODO
-    if (m_poolmode == PoolMode::DUAL) {
-        ESP_LOGI("StratumManager", "Dual Pool mode enabled");
-    } else {
-        ESP_LOGI("StratumManager", "Failover mode enabled");
-    }
+    ESP_LOGI("StratumManager", "%s mode enabled", m_poolmode == PoolMode::DUAL ? "Dual Pool" : "Failover");
 
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
@@ -600,11 +593,15 @@ void StratumManager::cleanQueue()
     asicJobs.cleanJobs();
 }
 
-int StratumManagerFallback::getNextActivePool() {
+int StratumManagerFallback::getNextActivePool()
+{
+    PThreadGuard lock(m_mutex);
     return m_selected;
 }
 
-int StratumManagerDualPool::getNextActivePool() {
+int StratumManagerDualPool::getNextActivePool()
+{
+    PThreadGuard lock(m_mutex);
     int secondary_pct = 100 - m_primary_pct;
 
     bool valid0 = m_stratumTasks[0] && m_stratumTasks[0]->m_validNotify;
@@ -634,9 +631,7 @@ int StratumManagerDualPool::getNextActivePool() {
         return SECONDARY;
     }
     return PRIMARY;
-
 }
-
 
 const char *StratumManagerFallback::getCurrentPoolHost()
 {
@@ -666,6 +661,16 @@ int StratumManagerDualPool::getCurrentPoolPort()
     return 0;
 }
 
+uint32_t StratumManagerFallback::selectAsicDiff(uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax)
+{
+    return std::max(std::min(poolDiff, asicMax), asicMin);
+}
+
+uint32_t StratumManagerDualPool::selectAsicDiff(uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax)
+{
+    return asicMax;
+}
+
 void StratumManager::freeStratumV1Message(StratumApiV1Message *message)
 {
     if (!message) {
@@ -676,11 +681,13 @@ void StratumManager::freeStratumV1Message(StratumApiV1Message *message)
     safe_free(message->extranonce_str);
 }
 
-bool StratumManagerFallback::acceptsNotifyFrom(int pool) {
+bool StratumManagerFallback::acceptsNotifyFrom(int pool)
+{
     return pool == m_selected;
 }
 
-bool StratumManagerDualPool::acceptsNotifyFrom(int pool) {
+bool StratumManagerDualPool::acceptsNotifyFrom(int pool)
+{
     return true;
 }
 
