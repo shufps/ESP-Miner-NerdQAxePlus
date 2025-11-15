@@ -257,16 +257,16 @@ void *create_jobs_task(void *pvParameters)
         int active_pool = 0;
         const char *active_pool_str = "";
 
+        if (!STRATUM_MANAGER) {
+            continue;
+        }
+
+        // select pool to mine for
+        active_pool = STRATUM_MANAGER->getNextActivePool();
+        active_pool_str = active_pool ? "Sec" : "Pri";
+
         { // scope for mutex
             PThreadGuard g(current_stratum_job_mutex);
-
-            if (!STRATUM_MANAGER) {
-                continue;
-            }
-
-            // select pool to mine for
-            active_pool = STRATUM_MANAGER->getNextActivePool();
-            active_pool_str = active_pool ? "Sec" : "Pri";
 
             // set current pool data
             MiningInfo *mi = &miningInfo[active_pool];
