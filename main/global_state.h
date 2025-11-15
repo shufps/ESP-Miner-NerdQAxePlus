@@ -10,7 +10,7 @@
 #include "bm1368.h"
 #include "tasks/asic_jobs.h"
 #include "tasks/power_management_task.h"
-#include "tasks/stratum_task.h"
+#include "stratum/stratum_manager.h"
 #include "tasks/apis_task.h"
 
 #include "boards/nerdqaxeplus.h"

@@ -66,6 +66,9 @@
 #define NVS_CONFIG_OTP_SESSION_KEY "otp_sess_key"
 #define NVS_CONFIG_OTP_BOOT_ID "otp_boot_id"
 
+#define NVS_CONFIG_POOL_MODE_BALANCE "pool_mode_balance"
+#define NVS_CONFIG_POOL_MODE "pool_mode"
+
 #if defined(CONFIG_FAN_MODE_MANUAL)
 #define CONFIG_AUTO_FAN_SPEED_VALUE 0
 #elif defined(CONFIG_FAN_MODE_CLASSIC)
@@ -133,7 +136,8 @@ namespace Config {
     inline uint16_t getOverheatTemp() { return nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP); }
     inline uint16_t getInfluxPort() { return nvs_config_get_u16(NVS_CONFIG_INFLUX_PORT, CONFIG_INFLUX_PORT); }
     inline uint16_t getTempControlMode() { return nvs_config_get_u16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE); }
-
+    inline uint16_t getPoolMode() { return nvs_config_get_u16(NVS_CONFIG_POOL_MODE, 0); }
+    inline uint16_t getPoolModeBalance() { return nvs_config_get_u16(NVS_CONFIG_POOL_MODE_BALANCE, 50); }
 
     // ---- uint16_t Setters ----
     inline void setAsicFrequency(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_ASIC_FREQ, value); }
@@ -145,6 +149,9 @@ namespace Config {
     inline void setOverheatTemp(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_OVERHEAT_TEMP, value); }
     inline void setInfluxPort(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_PORT, value); }
     inline void setTempControlMode(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_AUTO_FAN_SPEED, value); }
+    inline void setPoolMode(uint16_t value) { return nvs_config_set_u16(NVS_CONFIG_POOL_MODE, value); }
+    inline void setPoolModeBalance(uint16_t value) { return nvs_config_set_u16(NVS_CONFIG_POOL_MODE_BALANCE, value); }
+
 
     inline void setPidTargetTemp(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_PID_TARGET_TEMP, value); }
     inline void setPidP(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_PID_P, value); }

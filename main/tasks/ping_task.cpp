@@ -6,7 +6,7 @@
 #include "lwip/sockets.h"
 #include "nvs_config.h"
 #include "global_state.h"
-#include "stratum_task.h"
+#include "stratum/stratum_manager.h"
 #include "macros.h"
 
 // Configuration for ping intervals and history
