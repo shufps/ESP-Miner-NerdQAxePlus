@@ -44,24 +44,6 @@ void System::initSystem() {
     m_poolErrors = 0;
     m_poolDifficulty = 8192;
 
-    m_stratumConfig[0] = {
-        true,
-        Config::getStratumURL(),
-        Config::getStratumPortNumber(),
-        Config::getStratumUser(),
-        Config::getStratumPass(),
-        Config::isStratumEnonceSubscribe(),
-    };
-
-    m_stratumConfig[1] = {
-        false,
-        Config::getStratumFallbackURL(),
-        Config::getStratumFallbackPortNumber(),
-        Config::getStratumFallbackUser(),
-        Config::getStratumFallbackPass(),
-        Config::isStratumFallbackEnonceSubscribe(),
-    };
-
     m_foundBlocks = 0;
     m_totalFoundBlocks = Config::getTotalFoundBlocks();
 

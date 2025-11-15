@@ -1,17 +1,18 @@
-#include "esp_ota_ops.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_ota_ops.h"
 #include "esp_timer.h"
 
 #include "ArduinoJson.h"
 
-#include "psram_allocator.h"
 #include "global_state.h"
-#include "nvs_config.h"
 #include "http_cors.h"
 #include "http_utils.h"
+#include "nvs_config.h"
+#include "psram_allocator.h"
 
 #include "ping_task.h"
+#include "stratum/stratum_config.h"
 
 static const char *TAG = "http_system";
 
@@ -54,71 +55,75 @@ esp_err_t GET_system_info(httpd_req_t *req)
         }
     }
 
-    Board* board   = SYSTEM_MODULE.getBoard();
-    History* history = SYSTEM_MODULE.getHistory();
+    Board *board = SYSTEM_MODULE.getBoard();
+    History *history = SYSTEM_MODULE.getHistory();
+
+    auto primaryView = StratumConfigReader::readPrimary();
+    auto fallbackView = StratumConfigReader::readFallback();
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
     // Get configuration strings from NVS
-    char *ssid               = Config::getWifiSSID();
-    char *hostname           = Config::getHostname();
-    char *stratumURL         = Config::getStratumURL();
-    char *stratumUser        = Config::getStratumUser();
+    char *ssid = Config::getWifiSSID();
+    char *hostname = Config::getHostname();
+
+    char *stratumURL = Config::getStratumURL();
+    char *stratumUser = Config::getStratumUser();
     char *fallbackStratumURL = Config::getStratumFallbackURL();
-    char *fallbackStratumUser= Config::getStratumFallbackUser();
+    char *fallbackStratumUser = Config::getStratumFallbackUser();
 
     // static
-    doc["asicCount"]          = board->getAsicCount();
-    doc["smallCoreCount"]     = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
-    doc["deviceModel"]        = board->getDeviceModel();
-    doc["hostip"]             = SYSTEM_MODULE.getIPAddress();
-    doc["macAddr"]            = SYSTEM_MODULE.getMacAddress();
-    doc["wifiRSSI"]           = SYSTEM_MODULE.get_wifi_rssi();
+    doc["asicCount"] = board->getAsicCount();
+    doc["smallCoreCount"] = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
+    doc["deviceModel"] = board->getDeviceModel();
+    doc["hostip"] = SYSTEM_MODULE.getIPAddress();
+    doc["macAddr"] = SYSTEM_MODULE.getMacAddress();
+    doc["wifiRSSI"] = SYSTEM_MODULE.get_wifi_rssi();
 
     // dashboard
-    doc["power"]              = POWER_MANAGEMENT_MODULE.getPower();
-    doc["maxPower"]           = board->getMaxPin();
-    doc["minPower"]           = board->getMinPin();
-    doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
-    doc["maxVoltage"]         = board->getMaxVin();
-    doc["minVoltage"]         = board->getMinVin();
-    doc["current"]            = POWER_MANAGEMENT_MODULE.getCurrent();
-    doc["temp"]               = POWER_MANAGEMENT_MODULE.getChipTempMax();
-    doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
-    doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
-    doc["hashRate"]           = SYSTEM_MODULE.getCurrentHashrate();
-    doc["hashRate_1m"]        = history->getCurrentHashrate1m();
-    doc["hashRate_10m"]       = history->getCurrentHashrate10m();
-    doc["hashRate_1h"]        = history->getCurrentHashrate1h();
-    doc["hashRate_1d"]        = history->getCurrentHashrate1d();
-    doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
-    doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
-    doc["coreVoltage"]        = board->getAsicVoltageMillis();
+    doc["power"] = POWER_MANAGEMENT_MODULE.getPower();
+    doc["maxPower"] = board->getMaxPin();
+    doc["minPower"] = board->getMinPin();
+    doc["voltage"] = POWER_MANAGEMENT_MODULE.getVoltage();
+    doc["maxVoltage"] = board->getMaxVin();
+    doc["minVoltage"] = board->getMinVin();
+    doc["current"] = POWER_MANAGEMENT_MODULE.getCurrent();
+    doc["temp"] = POWER_MANAGEMENT_MODULE.getChipTempMax();
+    doc["vrTemp"] = POWER_MANAGEMENT_MODULE.getVRTemp();
+    doc["hashRateTimestamp"] = history->getCurrentTimestamp();
+    doc["hashRate"] = SYSTEM_MODULE.getCurrentHashrate();
+    doc["hashRate_1m"] = history->getCurrentHashrate1m();
+    doc["hashRate_10m"] = history->getCurrentHashrate10m();
+    doc["hashRate_1h"] = history->getCurrentHashrate1h();
+    doc["hashRate_1d"] = history->getCurrentHashrate1d();
+    doc["bestDiff"] = SYSTEM_MODULE.getBestDiffString();
+    doc["bestSessionDiff"] = SYSTEM_MODULE.getBestSessionDiffString();
+    doc["coreVoltage"] = board->getAsicVoltageMillis();
     doc["defaultCoreVoltage"] = board->getDefaultAsicVoltageMillis();
-    doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
-    doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
-    doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
-    doc["duplicateHWNonces"]  = SYSTEM_MODULE.getDuplicateHWNonces();
+    doc["coreVoltageActual"] = (int) (board->getVout() * 1000.0f);
+    doc["sharesAccepted"] = SYSTEM_MODULE.getSharesAccepted();
+    doc["sharesRejected"] = SYSTEM_MODULE.getSharesRejected();
+    doc["duplicateHWNonces"] = SYSTEM_MODULE.getDuplicateHWNonces();
     doc["isUsingFallbackStratum"] = !STRATUM_MANAGER ? false : STRATUM_MANAGER->isUsingFallback();
     doc["isStratumConnected"] = !STRATUM_MANAGER ? false : STRATUM_MANAGER->isAnyConnected();
-    doc["numConnected"]       = !STRATUM_MANAGER ? 0 : STRATUM_MANAGER->getNumConnectedPools();
-    doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
-    doc["manualFanSpeed"]     = Config::getFanSpeed();
-    doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
-    doc["lastpingrtt"]        = get_last_ping_rtt();
-    doc["recentpingloss"]     = get_recent_ping_loss();
-    doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
-    doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
-    doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
-    doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
-    doc["poolMode"]           = Config::getPoolMode();
-    doc["poolBalance"]    = Config::getPoolBalance();
+    doc["numConnected"] = !STRATUM_MANAGER ? 0 : STRATUM_MANAGER->getNumConnectedPools();
+    doc["fanspeed"] = POWER_MANAGEMENT_MODULE.getFanPerc();
+    doc["manualFanSpeed"] = Config::getFanSpeed();
+    doc["fanrpm"] = POWER_MANAGEMENT_MODULE.getFanRPM(0);
+    doc["lastpingrtt"] = get_last_ping_rtt();
+    doc["recentpingloss"] = get_recent_ping_loss();
+    doc["poolDifficulty"] = SYSTEM_MODULE.getPoolDifficulty();
+    doc["foundBlocks"] = SYSTEM_MODULE.getFoundBlocks();
+    doc["totalFoundBlocks"] = SYSTEM_MODULE.getTotalFoundBlocks();
+    doc["shutdown"] = POWER_MANAGEMENT_MODULE.isShutdown();
+    doc["poolMode"] = Config::getPoolMode();
+    doc["poolBalance"] = Config::getPoolBalance();
 
     // asic temps
     {
         JsonArray arr = doc["asicTemps"].to<JsonArray>();
-        for (int i=0;i<board->getAsicCount();i++) {
+        for (int i = 0; i < board->getAsicCount(); i++) {
             arr.add(board->getChipTemp(i));
         }
     }
@@ -134,53 +139,53 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
     // settings
     PidSettings *pid = board->getPidSettings();
-    doc["pidTargetTemp"]      = board->isPIDAvailable() ? pid->targetTemp : -1;
-    doc["pidP"]               = (float) pid->p / 100.0f;
-    doc["pidI"]               = (float) pid->i / 100.0f;
-    doc["pidD"]               = (float) pid->d / 100.0f;
+    doc["pidTargetTemp"] = board->isPIDAvailable() ? pid->targetTemp : -1;
+    doc["pidP"] = (float) pid->p / 100.0f;
+    doc["pidI"] = (float) pid->i / 100.0f;
+    doc["pidD"] = (float) pid->d / 100.0f;
 
-    doc["hostname"]           = hostname;
-    doc["ssid"]               = ssid;
-    doc["stratumURL"]         = stratumURL;
-    doc["stratumPort"]        = Config::getStratumPortNumber();
-    doc["stratumUser"]        = stratumUser;
-    doc["stratumEnonceSubscribe"] = Config::isStratumEnonceSubscribe();
-    doc["fallbackStratumURL"] = fallbackStratumURL;
-    doc["fallbackStratumPort"]= Config::getStratumFallbackPortNumber();
-    doc["fallbackStratumUser"] = fallbackStratumUser;
-    doc["fallbackStratumEnonceSubscribe"] = Config::isStratumFallbackEnonceSubscribe();
-    doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
-    doc["frequency"]          = board->getAsicFrequency();
-    doc["defaultFrequency"]   = board->getDefaultAsicFrequency();
-    doc["jobInterval"]        = board->getAsicJobIntervalMs();
+    doc["hostname"] = hostname;
+    doc["ssid"] = ssid;
+    doc["stratumURL"] = primaryView.host;
+    doc["stratumPort"] = primaryView.port;
+    doc["stratumUser"] = primaryView.user;
+    doc["stratumEnonceSubscribe"] = primaryView.enonceSub;
+    doc["fallbackStratumURL"] = fallbackView.host;
+    doc["fallbackStratumPort"] = fallbackView.port;
+    doc["fallbackStratumUser"] = fallbackView.user;
+    doc["fallbackStratumEnonceSubscribe"] = fallbackView.enonceSub;
+    doc["voltage"] = POWER_MANAGEMENT_MODULE.getVoltage();
+    doc["frequency"] = board->getAsicFrequency();
+    doc["defaultFrequency"] = board->getDefaultAsicFrequency();
+    doc["jobInterval"] = board->getAsicJobIntervalMs();
     doc["stratumDifficulty"] = Config::getStratumDifficulty();
-    doc["overheat_temp"]      = Config::getOverheatTemp();
-    doc["flipscreen"]         = board->isFlipScreenEnabled() ? 1 : 0;
-    doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
-    doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
-    doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
-    doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
-    doc["autofanspeed"]       = Config::getTempControlMode();
-    doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
+    doc["overheat_temp"] = Config::getOverheatTemp();
+    doc["flipscreen"] = board->isFlipScreenEnabled() ? 1 : 0;
+    doc["invertscreen"] = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
+    doc["autoscreenoff"] = Config::isAutoScreenOffEnabled() ? 1 : 0;
+    doc["invertfanpolarity"] = board->isInvertFanPolarityEnabled() ? 1 : 0;
+    doc["autofanpolarity"] = board->isAutoFanPolarityEnabled() ? 1 : 0;
+    doc["autofanspeed"] = Config::getTempControlMode();
+    doc["stratum_keep"] = Config::isStratumKeepaliveEnabled() ? 1 : 0;
 #ifdef VR_FREQUENCY_ENABLED
-    doc["vrFrequency"]        = board->getVrFrequency();
+    doc["vrFrequency"] = board->getVrFrequency();
     doc["defaultVrFrequency"] = board->getDefaultVrFrequency();
 #endif
-    doc["otp"]                = Config::isOTPEnabled(); // flag if otp is enabled
+    doc["otp"] = Config::isOTPEnabled(); // flag if otp is enabled
 
     // system screen
-    doc["ASICModel"]          = board->getAsicModel();
-    doc["uptimeSeconds"]      = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
-    doc["lastResetReason"]    = SYSTEM_MODULE.getLastResetReason();
-    doc["wifiStatus"]         = SYSTEM_MODULE.getWifiStatus();
-    doc["freeHeap"]           = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-    doc["freeHeapInt"]        = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-    doc["version"]            = esp_app_get_description()->version;
-    doc["runningPartition"]   = esp_ota_get_running_partition()->label;
+    doc["ASICModel"] = board->getAsicModel();
+    doc["uptimeSeconds"] = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
+    doc["lastResetReason"] = SYSTEM_MODULE.getLastResetReason();
+    doc["wifiStatus"] = SYSTEM_MODULE.getWifiStatus();
+    doc["freeHeap"] = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    doc["freeHeapInt"] = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    doc["version"] = esp_app_get_description()->version;
+    doc["runningPartition"] = esp_ota_get_running_partition()->label;
 
-    doc["defaultTheme"]       = board->getDefaultTheme();
+    doc["defaultTheme"] = board->getDefaultTheme();
 
-    //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
+    // ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 
     // Serialize the JSON document to a String and send it
     esp_err_t ret = sendJsonResponse(req, doc);
@@ -189,15 +194,9 @@ esp_err_t GET_system_info(httpd_req_t *req)
     // Free temporary strings
     free(ssid);
     free(hostname);
-    free(stratumURL);
-    free(stratumUser);
-    free(fallbackStratumURL);
-    free(fallbackStratumUser);
 
     return ret;
 }
-
-
 
 esp_err_t PATCH_update_settings(httpd_req_t *req)
 {
@@ -218,6 +217,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    auto primaryView = StratumConfigReader::readPrimary();
+    auto fallbackView = StratumConfigReader::readFallback();
+
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
@@ -226,45 +228,14 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         return err;
     }
 
-    // Update settings if each key exists in the JSON object.
-    if (doc["stratumURL"].is<const char*>()) {
-        Config::setStratumURL(doc["stratumURL"].as<const char*>());
+    if (doc["ssid"].is<const char *>()) {
+        Config::setWifiSSID(doc["ssid"].as<const char *>());
     }
-    if (doc["stratumUser"].is<const char*>()) {
-        Config::setStratumUser(doc["stratumUser"].as<const char*>());
+    if (doc["wifiPass"].is<const char *>()) {
+        Config::setWifiPass(doc["wifiPass"].as<const char *>());
     }
-    if (doc["stratumPassword"].is<const char*>()) {
-        Config::setStratumPass(doc["stratumPassword"].as<const char*>());
-    }
-    if (doc["stratumPort"].is<uint16_t>()) {
-        Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
-    }
-    if (doc["stratumEnonceSubscribe"].is<bool>()) {
-        Config::setStratumEnonceSubscribe(doc["stratumEnonceSubscribe"].as<bool>());
-    }
-    if (doc["fallbackStratumURL"].is<const char*>()) {
-        Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
-    }
-    if (doc["fallbackStratumUser"].is<const char*>()) {
-        Config::setStratumFallbackUser(doc["fallbackStratumUser"].as<const char*>());
-    }
-    if (doc["fallbackStratumPassword"].is<const char*>()) {
-        Config::setStratumFallbackPass(doc["fallbackStratumPassword"].as<const char*>());
-    }
-    if (doc["fallbackStratumPort"].is<uint16_t>()) {
-        Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
-    }
-    if (doc["fallbackStratumEnonceSubscribe"].is<bool>()) {
-        Config::setStratumFallbackEnonceSubscribe(doc["fallbackStratumEnonceSubscribe"].as<bool>());
-    }
-    if (doc["ssid"].is<const char*>()) {
-        Config::setWifiSSID(doc["ssid"].as<const char*>());
-    }
-    if (doc["wifiPass"].is<const char*>()) {
-        Config::setWifiPass(doc["wifiPass"].as<const char*>());
-    }
-    if (doc["hostname"].is<const char*>()) {
-        Config::setHostname(doc["hostname"].as<const char*>());
+    if (doc["hostname"].is<const char *>()) {
+        Config::setHostname(doc["hostname"].as<const char *>());
     }
     if (doc["coreVoltage"].is<uint16_t>()) {
         uint16_t coreVoltage = doc["coreVoltage"].as<uint16_t>();
@@ -342,13 +313,20 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         Config::setPoolBalance(doc["poolBalance"].as<uint16_t>());
     }
 
+    bool primaryChanged = StratumConfigWriter::applyPrimaryPatch(doc, primaryView);
+    bool fallbackChanged = StratumConfigWriter::applyFallbackPatch(doc, fallbackView);
+
+    if (primaryChanged || fallbackChanged) {
+     //   STRATUM_MANAGER->requestReload(); TODO
+    }
+
     doc.clear();
 
     // Signal the end of the response
     httpd_resp_send_chunk(req, NULL, 0);
 
     // Reload settings after update
-    Board* board = SYSTEM_MODULE.getBoard();
+    Board *board = SYSTEM_MODULE.getBoard();
     board->loadSettings();
 
     // reload settings of system module (and display)
@@ -378,36 +356,40 @@ esp_err_t GET_system_asic(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    Board* board = SYSTEM_MODULE.getBoard();
+    Board *board = SYSTEM_MODULE.getBoard();
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
     // Basisfelder
-    doc["ASICModel"]        = board->getAsicModel();
-    doc["deviceModel"]      = board->getDeviceModel();
-    doc["asicCount"]        = board->getAsicCount();
+    doc["ASICModel"] = board->getAsicModel();
+    doc["deviceModel"] = board->getDeviceModel();
+    doc["asicCount"] = board->getAsicCount();
     doc["defaultFrequency"] = board->getDefaultAsicFrequency();
-    doc["defaultVoltage"]   = board->getDefaultAsicVoltageMillis();
-    doc["absMaxFrequency"]  = board->getAbsMaxAsicFrequency();
-    doc["absMaxVoltage"]    = board->getAbsMaxAsicVoltageMillis();
-    doc["ecoFrequency"]     = board->getEcoAsicFrequency();
-    doc["ecoVoltage"]       = board->getEcoAsicVoltageMillis();
+    doc["defaultVoltage"] = board->getDefaultAsicVoltageMillis();
+    doc["absMaxFrequency"] = board->getAbsMaxAsicFrequency();
+    doc["absMaxVoltage"] = board->getAbsMaxAsicVoltageMillis();
+    doc["ecoFrequency"] = board->getEcoAsicFrequency();
+    doc["ecoVoltage"] = board->getEcoAsicVoltageMillis();
 
-    doc["swarmColor"]       = board->getSwarmColorName();
+    doc["swarmColor"] = board->getSwarmColorName();
 
     // frequencyOptions
     {
         JsonArray arr = doc["frequencyOptions"].to<JsonArray>();
-        const auto& freqs = board->getFrequencyOptions();
-        for (uint32_t f : freqs) { arr.add(f); }
+        const auto &freqs = board->getFrequencyOptions();
+        for (uint32_t f : freqs) {
+            arr.add(f);
+        }
     }
 
     // voltageOptions
     {
         JsonArray arr = doc["voltageOptions"].to<JsonArray>();
-        const auto& volts = board->getVoltageOptions();
-        for (uint32_t v : volts) { arr.add(v); }
+        const auto &volts = board->getVoltageOptions();
+        for (uint32_t v : volts) {
+            arr.add(v);
+        }
     }
 
     esp_err_t ret = sendJsonResponse(req, doc);

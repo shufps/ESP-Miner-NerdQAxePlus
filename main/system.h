@@ -49,8 +49,6 @@ class System {
     char *m_hostname;
     char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
 
-    StratumConfig m_stratumConfig[2];
-
     uint32_t m_poolDifficulty; // Current pool difficulty
 
     // Error tracking
@@ -170,11 +168,6 @@ class System {
     }
 
     float getCurrentHashrate();
-
-    StratumConfig *getStratumConfig(uint8_t index)
-    {
-        return &m_stratumConfig[index];
-    }
 
     void setPoolDifficulty(uint32_t difficulty)
     {

@@ -43,11 +43,13 @@ int is_socket_connected(int socket)
     return (ret > 0 && FD_ISSET(socket, &writefds)) ? 1 : 0;
 }
 
-StratumTask::StratumTask(StratumManager *manager, int index, StratumConfig *config)
-    : m_manager(manager), m_config(config), m_index(index), m_sock(-1), m_isConnected(false), m_stopFlag(false), m_firstJob(true),
-      m_validNotify(false), m_reconnectTimer(nullptr)
+StratumTask::StratumTask(StratumManager *manager, int index)
+    : m_manager(manager), m_index(index), m_sock(-1), m_isConnected(false), m_stopFlag(false), m_firstJob(true),
+      m_validNotify(false), m_reloadConfig(false), m_reconnectTimer(nullptr)
 {
-    if (config->primary) {
+    m_primary = !index;
+
+    if (m_primary) {
         m_tag = "stratum task (Pri)";
     } else {
         m_tag = "stratum task (Sec)";
@@ -193,13 +195,13 @@ void StratumTask::stratumLoop()
     success = success && m_stratumAPI.configureVersionRolling(m_sock);
 
     // mining.authorize - ID: 3
-    success = success && m_stratumAPI.authenticate(m_sock, m_config->user, m_config->password);
+    success = success && m_stratumAPI.authenticate(m_sock, m_config.user, m_config.password);
 
     // mining.suggest_difficulty - ID: 4
     success = success && m_stratumAPI.suggestDifficulty(m_sock, Config::getStratumDifficulty());
 
     // mining.mining.extranonce.subscribe - ID 5
-    if (m_config->enonceSub) {
+    if (m_config.enonceSub) {
         success = success && m_stratumAPI.entranonceSubscribe(m_sock);
     }
 
@@ -249,6 +251,10 @@ void StratumTask::stratumLoop()
             m_isConnected = true;
         }
 
+        if (m_reloadConfig) {
+            ESP_LOGI(m_tag, "stratum config reload requested.");
+            break;
+        }
         // if stop is requested, don't dispatch anything
         // and break the loop
         if (m_stopFlag || POWER_MANAGEMENT_MODULE.isShutdown()) {
@@ -323,7 +329,7 @@ void StratumTask::stopReconnectTimer()
 void StratumTask::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                               const uint32_t version)
 {
-    m_stratumAPI.submitShare(m_sock, m_config->user, jobid, extranonce_2, ntime, nonce, version);
+    m_stratumAPI.submitShare(m_sock, m_config.user, jobid, extranonce_2, ntime, nonce, version);
 }
 
 void StratumTask::taskWrapper(void *pvParameters)
@@ -332,8 +338,21 @@ void StratumTask::taskWrapper(void *pvParameters)
     task->task();
 }
 
+void StratumTask::loadConfig() {
+    // release previous config
+    StratumConfigReader::releaseConfig(m_config);
+
+    if (m_primary) {
+        m_config = StratumConfigReader::readPrimary();
+    } else {
+        m_config = StratumConfigReader::readFallback();
+    }
+}
+
 void StratumTask::task()
 {
+    loadConfig();
+
     // Start the reconnect timer
     startReconnectTimer();
 
@@ -342,10 +361,17 @@ void StratumTask::task()
             ESP_LOGW(m_tag, "suspended");
             vTaskSuspend(NULL);
         }
+
+        // reload config if settings changed
+        if (m_reloadConfig) {
+            m_reloadConfig = false;
+            loadConfig();
+        }
+
         // do we have a stratum host configured?
         // we do it here because we could reload the config after
         // it was updated on the UI and settings
-        if (!strlen(m_config->host)) {
+        if (!strlen(m_config.host)) {
             vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
@@ -367,16 +393,16 @@ void StratumTask::task()
 
         // resolve the IP of the host
         char ip[INET_ADDRSTRLEN] = {0};
-        if (!resolveHostname(m_config->host, ip, sizeof(ip))) {
-            ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config->host);
+        if (!resolveHostname(m_config.host, ip, sizeof(ip))) {
+            ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config.host);
             vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }
 
-        ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d (%s)", m_config->host, m_config->port, ip);
+        ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d (%s)", m_config.host, m_config.port, ip);
 
-        if (!(m_sock = connectStratum(ip, m_config->port))) {
-            ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config->host, m_config->port, errno);
+        if (!(m_sock = connectStratum(ip, m_config.port))) {
+            ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config.host, m_config.port, errno);
             vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }

@@ -7,23 +7,11 @@
 #include "lwip/inet.h"
 
 #include "stratum_api.h"
+#include "stratum_config.h"
 
 class StratumManager;
 class StratumManagerFallback;
 class StratumManagerDualPool;
-
-/**
- * @brief Configuration structure for Stratum pools
- */
-typedef struct
-{
-    bool primary;         ///< Indicates if this is the primary pool
-    const char *host;     ///< Stratum pool hostname
-    int port;             ///< Stratum pool port
-    const char *user;     ///< Stratum user credentials
-    const char *password; ///< Stratum password credentials
-    bool enonceSub;       ///< Flag is enonce subscription is enabled
-} StratumConfig;
 
 /**
  * @brief Stratum Task handles the connection and communication with a Stratum pool.
@@ -34,9 +22,9 @@ class StratumTask {
     friend StratumManagerDualPool;
 
   protected:
-    StratumManager *m_manager; ///< Reference to the StratumManager
-    StratumConfig *m_config;   ///< Stratum configuration for the task
-    int m_index;               ///< Index of the Stratum task (0 = primary, 1 = secondary)
+    StratumManager *m_manager;    ///< Reference to the StratumManager
+    StratumConfigView m_config{}; ///< Stratum configuration for the task
+    int m_index;                  ///< Index of the Stratum task (0 = primary, 1 = secondary)
 
     StratumApi m_stratumAPI; ///< API instance for Stratum communication
     const char *m_tag;       ///< Debug tag for logging
@@ -47,6 +35,8 @@ class StratumTask {
     bool m_stopFlag;    ///< Stop flag for the task
     bool m_firstJob;
     bool m_validNotify; // flag if the mining notify is valid
+    bool m_reloadConfig;
+    bool m_primary;
 
     // Connection and network-related methods
     bool isWifiConnected();                                                      ///< Check if Wi-Fi is connected
@@ -75,6 +65,7 @@ class StratumTask {
     void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                      const uint32_t version);
 
+    void loadConfig();
     // Stratum task function
     void task();
 
@@ -93,11 +84,11 @@ class StratumTask {
     }
     const char *getHost()
     {
-        return m_config ? m_config->host : "-";
+        return m_config.host ? m_config.host : "-";
     }
     int getPort()
     {
-        return m_config ? m_config->port : 0;
+        return m_config.port;
     }
     const char *getResolvedIp() const
     {
@@ -105,6 +96,6 @@ class StratumTask {
     }
 
   public:
-    StratumTask(StratumManager *manager, int index, StratumConfig *config);
+    StratumTask(StratumManager *manager, int index);
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
 };
