@@ -33,7 +33,8 @@
 #include "otp/otp.h"
 #include "ping_task.h"
 #include "serial.h"
-#include "stratum_task.h"
+#include "stratum/stratum_manager_fallback.h"
+#include "stratum/stratum_manager_dual_pool.h"
 #include "system.h"
 #include "wifi_health.h"
 #include "guards.h"
@@ -143,6 +144,26 @@ void initWatchdog()
     if (result != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize watchdog: %d\n", result);
     }
+}
+
+bool initStratumManager() {
+    int mode = (int) Config::getPoolMode();
+    int balance = (int) Config::getPoolModeBalance();
+
+    switch (mode) {
+    case 0:
+        STRATUM_MANAGER = new StratumManagerFallback();
+        return true;
+    case 1:
+        STRATUM_MANAGER = new StratumManagerDualPool(balance);
+        return true;
+    default:
+        // won't crash, won't do anything either
+        break;
+    }
+
+    ESP_LOGE(TAG, "invalid pool mode %d", (int) mode);
+    return false;
 }
 
 // Custom calloc function that allocates from PSRAM
@@ -281,7 +302,7 @@ extern "C" void app_main(void)
 
         TaskHandle_t stratum_manager_handle;
 
-        STRATUM_MANAGER = new StratumManagerFallback();
+        (void)initStratumManager();
 
         xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, &stratum_manager_handle);
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
