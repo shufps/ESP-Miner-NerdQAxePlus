@@ -35,6 +35,7 @@ const static char* TAG = "asic";
 
 Asic::Asic() {
     m_current_frequency = 56.25;
+    m_asicDifficulty = 0xffffffff;
 }
 
 uint16_t Asic::reverseUint16(uint16_t num)
@@ -296,6 +297,10 @@ void Asic::setJobDifficultyMask(int difficulty)
     // (difficulty - 1) if it is a pow 2 then step down to second largest for more hashrate sampling
     difficulty = _largest_power_of_two(difficulty) - 1;
 
+    if (m_asicDifficulty == difficulty) {
+        return;
+    }
+
     // convert difficulty into char array
     // Ex: 256 = {0b00000000, 0b00000000, 0b00000000, 0b11111111}, {0x00, 0x00, 0x00, 0xff}
     // Ex: 512 = {0b00000000, 0b00000000, 0b00000001, 0b11111111}, {0x00, 0x00, 0x01, 0xff}
@@ -311,6 +316,9 @@ void Asic::setJobDifficultyMask(int difficulty)
     ESP_LOGI(TAG, "Setting ASIC difficulty mask to %d", difficulty);
 
     send((CMD_WRITE_ALL), job_difficulty_mask, 6);
+
+    // remember the hw difficulty
+    m_asicDifficulty = difficulty;
 }
 
 // can ramp up and down in 6.25MHz steps

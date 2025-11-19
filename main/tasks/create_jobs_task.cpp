@@ -303,16 +303,12 @@ void *create_jobs_task(void *pvParameters)
             next_job->extranonce2 = strdup(extranonce_2_str);
             next_job->pool_diff = mi->active_stratum_difficulty;
             next_job->pool_id = active_pool;
-            next_job->asic_diff = STRATUM_MANAGER->selectAsicDiff(mi->active_stratum_difficulty, board->getAsicMinDifficulty(),
-                                                                  board->getAsicMaxDifficulty());
+            next_job->asic_diff = STRATUM_MANAGER->selectAsicDiff(active_pool, mi->active_stratum_difficulty,
+                                                                  board->getAsicMinDifficulty(), board->getAsicMaxDifficulty());
         } // mutex
 
-        if (next_job->asic_diff != last_asic_diff) {
-            ESP_LOGI(TAG, "New ASIC difficulty %lu", next_job->asic_diff);
-            last_asic_diff = next_job->asic_diff;
-
-            asics->setJobDifficultyMask(next_job->asic_diff);
-        }
+        // set asic difficulty
+        asics->setJobDifficultyMask(next_job->asic_diff);
 
         uint64_t current_time = esp_timer_get_time();
         if (last_submit_time) {

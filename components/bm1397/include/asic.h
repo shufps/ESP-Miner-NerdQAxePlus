@@ -78,6 +78,7 @@ class Asic {
 protected:
     float m_current_frequency;
     float m_actual_current_frequency;
+    uint32_t m_asicDifficulty;
 
     void send(uint8_t header, uint8_t *data, uint8_t data_len);
     void send2(uint8_t header, uint8_t b0, uint8_t b1);

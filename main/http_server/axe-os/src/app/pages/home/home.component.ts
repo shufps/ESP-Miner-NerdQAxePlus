@@ -28,6 +28,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private timeFormatListener: any;
 
   private wasLoaded = false;
+  private saveLock = false;
 
   public info$: Observable<ISystemInfo>;
   public quickLink$: Observable<string | undefined>;
@@ -51,6 +52,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private tempViewKey = 'tempViewMode';
   private legendVisibilityKey = 'chartLegendVisibility';
 
+  public isDualPool: boolean = false;
 
   ngAfterViewChecked(): void {
     // Ensure chart is initialized only once when the canvas becomes available
@@ -266,6 +268,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         info.vrTemp = parseFloat(info.vrTemp.toFixed(1));
         info.overheat_temp = parseFloat(info.overheat_temp.toFixed(1));
 
+        this.isDualPool = info.poolMode == 1;
         const chipTemps = info?.asicTemps ?? [];
         this.hasChipTemps =
           Array.isArray(chipTemps) &&
@@ -426,6 +429,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.dataData1h = parsedData.dataData1h || [];
       this.dataData1d = parsedData.dataData1d || [];
     }
+
+    // do a simple consistency check
+    this.validateOrResetHistory();
+
     this.updateChart();
 
     // make sure we load the data before we save it
@@ -433,6 +440,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   private saveChartData(): void {
+    if (this.saveLock) {
+      return;
+    }
     const dataToSave = {
       labels: this.dataLabel,
       dataData1m: this.dataData1m,
@@ -461,6 +471,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   private storeTimestamp(timestamp: number): void {
+    if (this.saveLock) {
+      return;
+    }
     localStorage.setItem(this.timestampKey, timestamp.toString());
   }
 
@@ -582,6 +595,45 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return '';
   }
 
+  // edge case where chart data in the browser is not consistent
+  // this happens when adding new charts
+  private validateOrResetHistory() {
+    const lenLabels = this.dataLabel.length;
+    const len1m = this.dataData1m.length;
+    const len10m = this.dataData10m.length;
+    const len1h = this.dataData1h.length;
+    const len1d = this.dataData1d.length;
+
+    const lengths = [lenLabels, len1m, len10m, len1h, len1d];
+
+    // if all arrays have the same length everything is fine
+    const allEqual = lengths.every(l => l === lengths[0]);
+    if (allEqual) {
+      return;
+    }
+
+    // if not we clear the data and trigger a reload
+    console.warn('[History] Inconsistent lengths detected from', {
+      lenLabels, len1m, len10m, len1h, len1d,
+    });
+
+    // Clear in-memory history arrays
+    this.dataLabel = [];
+    this.dataData1m = [];
+    this.dataData10m = [];
+    this.dataData1h = [];
+    this.dataData1d = [];
+
+    // prevent saving anything after we clear and reload the window
+    this.saveLock = true;
+
+    // Clear persisted history
+    localStorage.removeItem(this.localStorageKey);
+    localStorage.removeItem(this.timestampKey);
+
+    // Hard reload to force a clean state
+    window.location.reload();
+  }
 
 
 }

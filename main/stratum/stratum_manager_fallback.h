@@ -24,7 +24,7 @@ class StratumManagerFallback : public StratumManager {
 
     virtual int getNextActivePool();
 
-    virtual uint32_t selectAsicDiff(uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax);
+    virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax);
 
     virtual bool isUsingFallback()
     {
