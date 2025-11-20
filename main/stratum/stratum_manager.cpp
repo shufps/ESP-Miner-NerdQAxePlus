@@ -22,6 +22,7 @@
 #include "system.h"
 
 #include "stratum_manager.h"
+#include "utils.h"
 
 // ------------  stratum manager
 StratumManager::StratumManager(PoolMode poolmode) : m_poolmode(poolmode), m_lastSubmitResponseTimestamp(0)
@@ -50,10 +51,10 @@ bool StratumManager::isAnyConnected()
     return isConnected(PRIMARY) || isConnected(SECONDARY);
 }
 
-int StratumManager::getNumConnectedPools() {
+int StratumManager::getNumConnectedPools()
+{
     return !!isConnected(PRIMARY) + !!isConnected(SECONDARY);
 }
-
 
 // This static wrapper converts the void* parameter into a StratumManager pointer
 // and calls the member function.
@@ -150,8 +151,6 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     switch (m_stratum_api_v1_message.method) {
     case MINING_NOTIFY: {
-        SYSTEM_MODULE.notifyNewNtime(m_stratum_api_v1_message.mining_notification->ntime);
-
         // abandon work clears the asic job list
         // also clear on first job
         if (selected->m_firstJob || m_stratum_api_v1_message.should_abandon_work) {
@@ -203,9 +202,11 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     case STRATUM_RESULT: {
         if (m_stratum_api_v1_message.response_success) {
             ESP_LOGI(tag, "message result accepted");
+            acceptedShare(pool);
             SYSTEM_MODULE.notifyAcceptedShare();
         } else {
             ESP_LOGW(tag, "message result rejected");
+            rejectedShare(pool);
             SYSTEM_MODULE.notifyRejectedShare();
         }
         m_lastSubmitResponseTimestamp = esp_timer_get_time();
@@ -239,4 +240,42 @@ void StratumManager::submitShare(int pool, const char *jobid, const char *extran
         return;
     }
     m_stratumTasks[pool]->submitShare(jobid, extranonce_2, ntime, nonce, version);
+}
+
+void StratumManager::loadSettings() {
+    m_totalBestDiff = Config::getBestDiff();
+    m_totalFoundBlocks = Config::getTotalFoundBlocks();
+}
+
+void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
+{
+    if ((uint64_t) diff <= m_totalBestDiff) {
+        return;
+    }
+    m_totalBestDiff = (uint64_t) diff;
+    Config::setBestDiff(m_totalBestDiff);
+}
+
+void StratumManager::getManagerInfoJson(JsonObject &obj)
+{
+    obj["poolMode"] = Config::getPoolMode();
+    obj["poolBalance"] = Config::getPoolBalance();
+
+    // obj["totalBestDiff"] =
+}
+
+void StratumManager::checkForFoundBlock(int pool, double diff, uint32_t nbits)
+{
+    double networkDiff = calculateNetworkDifficulty(nbits);
+    if (diff <= networkDiff) {
+        return;
+    }
+
+    ESP_LOGI(m_tag, "FOUND BLOCK!!! %f > %f", diff, networkDiff);
+
+    // increase total found blocks counter
+    m_totalFoundBlocks++;
+    Config::setTotalFoundBlocks(m_totalFoundBlocks);
+
+    discordAlerter.sendBlockFoundAlert(diff, networkDiff);
 }

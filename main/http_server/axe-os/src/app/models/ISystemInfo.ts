@@ -1,5 +1,6 @@
 import { eASICModel } from './enum/eASICModel';
 import { IHistory } from '../models/IHistory';
+import { IPool } from './IPools';
 
 export interface ISystemInfo {
 
@@ -74,6 +75,7 @@ export interface ISystemInfo {
     poolMode: number,
     poolBalance: number,
     numConnected: number,
+    pools: IPool[],
 
     defaultTheme: string,
 
