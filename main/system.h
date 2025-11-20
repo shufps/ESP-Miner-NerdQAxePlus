@@ -111,12 +111,8 @@ class System {
     void notifyFoundNonce(double poolDiff, int asicNr);                // Notify system of a found nonce
     void checkForBestDiff(double foundDiff, uint32_t nbits, int pool); // Check if the found difficulty is the best so far
     void notifyMiningStarted();                                        // Notify system that mining has started
-    void notifyNewNtime(uint32_t ntime);                               // Notify system of new `ntime` received from the pool
 
     void countDuplicateHWNonces();
-
-    // Made public (was protected) to allow usage in external modules like ASIC_result_task for formatting/logging.
-    static void suffixString(uint64_t val, char *buf, size_t bufSize, int sigDigits); // Format a value with a suffix (e.g., K, M)
 
     // WiFi related
     const char *getMacAddress();

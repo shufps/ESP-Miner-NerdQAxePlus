@@ -5,6 +5,8 @@
 #include "freertos/timers.h"
 #include "lwip/inet.h"
 
+#include "ArduinoJson.h"
+
 #include "stratum_task.h"
 
 /**
@@ -30,9 +32,13 @@ class StratumManager {
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER; ///< Mutex for thread safety
     StratumApiV1Message m_stratum_api_v1_message;        ///< API message handler
-    StratumTask *m_stratumTasks[2];                      ///< Primary and secondary Stratum tasks
     PoolMode m_poolmode;                                 // default FAILOVER
     uint64_t m_lastSubmitResponseTimestamp;              ///< Timestamp of last submitted share response
+
+    StratumTask *m_stratumTasks[2]{};                      ///< Primary and secondary Stratum tasks
+
+    int m_totalFoundBlocks;
+    uint64_t m_totalBestDiff;
 
     PoolMode getPoolMode() const
     {
@@ -62,6 +68,9 @@ class StratumManager {
     virtual void disconnectedCallback(int index) = 0;
     virtual bool acceptsNotifyFrom(int pool) = 0;
 
+    virtual void acceptedShare(int pool) = 0;
+    virtual void rejectedShare(int pool) = 0;
+
   public:
     StratumManager(PoolMode mode);
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
@@ -70,10 +79,14 @@ class StratumManager {
     void submitShare(int pool, const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                      const uint32_t version);
 
+    void checkForFoundBlock(int pool, double diff, uint32_t nbits);
+
     bool isAnyConnected();
     int getNumConnectedPools();
 
-    virtual void loadSettings() { /* NOP */};
+    virtual void getManagerInfoJson(JsonObject &obj);
+
+    virtual void loadSettings();
 
 
     // abstract
@@ -87,4 +100,6 @@ class StratumManager {
     virtual int getNextActivePool() = 0;
 
     virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax) = 0;
+
+    virtual void checkForBestDiff(int pool, double diff, uint32_t nbits) = 0;
 };

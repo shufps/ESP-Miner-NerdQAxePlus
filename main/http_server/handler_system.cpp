@@ -112,8 +112,12 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
     doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
     doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
-    doc["poolMode"]           = Config::getPoolMode();
-    doc["poolBalance"]    = Config::getPoolBalance();
+
+    JsonObject stratum_obj = doc["stratum"].to<JsonObject>();
+
+    if (STRATUM_MANAGER) {
+        STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
+    }
 
     // asic temps
     {
@@ -355,7 +359,7 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     SYSTEM_MODULE.loadSettings();
 
     if (STRATUM_MANAGER) {
-        STRATUM_MANAGER->loadSettings();
+        STRATUM_MANAGER->loadSettings(); // TODO
     }
 
     return ESP_OK;

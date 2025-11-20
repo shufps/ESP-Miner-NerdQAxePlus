@@ -31,7 +31,6 @@
 #define NVS_CONFIG_AUTO_FAN_POLARITY "autofanpol"
 #define NVS_CONFIG_AUTO_FAN_SPEED "autofanspeed"
 #define NVS_CONFIG_FAN_SPEED "fanspeed"
-#define NVS_CONFIG_BEST_DIFF "bestdiff"
 #define NVS_CONFIG_SELF_TEST "selftest"
 #define NVS_CONFIG_AUTO_SCREEN_OFF "autoscreenoff"
 #define NVS_CONFIG_OVERHEAT_TEMP "overheat_temp"
@@ -55,10 +54,14 @@
 
 #define NVS_CONFIG_SWARM "swarmconfig"
 
-#define NVS_TOTAL_FOUND_BLOCKS "totalblocks"
-
 #define NVS_CONFIG_VR_FREQUENCY "vr_frequency"
 
+// device global stats
+#define NVS_TOTAL_FOUND_BLOCKS "totalblocks"
+#define NVS_CONFIG_BEST_DIFF "bestdiff"
+
+
+// OTP
 #define NVS_CONFIG_OTP_SECRET "otp_secret"
 #define NVS_CONFIG_OTP_ENABLED "otp_enabled"
 #define NVS_CONFIG_OTP_LAST_STEP "otp_last_step"

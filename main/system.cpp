@@ -25,6 +25,7 @@
 #include "influx_task.h"
 #include "history.h"
 #include "boards/board.h"
+#include "utils.h"
 
 static const char* TAG = "SystemModule";
 
@@ -145,105 +146,11 @@ int System::get_wifi_rssi()
     }
 }
 
-double System::calculateNetworkDifficulty(uint32_t nBits) {
-    uint32_t mantissa = nBits & 0x007fffff;  // Extract the mantissa from nBits
-    uint8_t exponent = (nBits >> 24) & 0xff;  // Extract the exponent from nBits
-
-    double target = (double)mantissa * pow(256, (exponent - 3));  // Calculate the target value
-    double difficulty = (pow(2, 208) * 65535) / target;  // Calculate the difficulty
-
-    return difficulty;
-}
-
 float System::getCurrentHashrate() {
     if (m_board->hasHashrateCounter()) {
         return HASHRATE_MONITOR.getSmoothedTotalChipHashrate();
     }
     return getCurrentHashrate10m();
-}
-
-void System::checkForBestDiff(double diff, uint32_t nbits, int pool) {
-    if ((uint64_t)diff > m_bestSessionNonceDiff) {
-        m_bestSessionNonceDiff = (uint64_t)diff;
-        suffixString((uint64_t)diff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
-    }
-
-    double networkDiff = calculateNetworkDifficulty(nbits);
-    if (diff > networkDiff) {
-        m_foundBlocks++;
-        ESP_LOGI(TAG, "FOUND BLOCK!!! %f > %f", diff, networkDiff);
-
-        // increase total found blocks counter
-        m_totalFoundBlocks++;
-        Config::setTotalFoundBlocks(m_totalFoundBlocks);
-
-        discordAlerter.sendBlockFoundAlert(diff, networkDiff);
-    }
-
-    if ((uint64_t)diff <= m_bestNonceDiff) {
-        return;
-    }
-    m_bestNonceDiff = (uint64_t)diff;
-
-    Config::setBestDiff(m_bestNonceDiff);
-
-    // Make the best_nonce_diff into a string
-    suffixString((uint64_t)diff, m_bestDiffString, DIFF_STRING_SIZE, 0);
-
-    ESP_LOGI(TAG, "Network diff: %f", networkDiff);
-}
-
-void System::suffixString(uint64_t val, char* buf, size_t bufSize, int sigDigits) {
-    const double kKilo = 1000.0;
-    const uint64_t kKiloUll = 1000ull;
-    const uint64_t kMegaUll = 1000000ull;
-    const uint64_t kGigaUll = 1000000000ull;
-    const uint64_t kTeraUll = 1000000000000ull;
-    const uint64_t kPetaUll = 1000000000000000ull;
-    const uint64_t kExaUll = 1000000000000000000ull;
-    char suffix[2] = "";
-    bool decimal = true;
-    double dval;
-
-    if (val >= kExaUll) {
-        val /= kPetaUll;
-        dval = (double)val / kKilo;
-        strcpy(suffix, "E");
-    } else if (val >= kPetaUll) {
-        val /= kTeraUll;
-        dval = (double)val / kKilo;
-        strcpy(suffix, "P");
-    } else if (val >= kTeraUll) {
-        val /= kGigaUll;
-        dval = (double)val / kKilo;
-        strcpy(suffix, "T");
-    } else if (val >= kGigaUll) {
-        val /= kMegaUll;
-        dval = (double)val / kKilo;
-        strcpy(suffix, "G");
-    } else if (val >= kMegaUll) {
-        val /= kKiloUll;
-        dval = (double)val / kKilo;
-        strcpy(suffix, "M");
-    } else if (val >= kKiloUll) {
-        dval = (double)val / kKilo;
-        strcpy(suffix, "k");
-    } else {
-        dval = val;
-        decimal = false;
-    }
-
-    if (!sigDigits) {
-        if (decimal)
-            snprintf(buf, bufSize, "%.3g%s", dval, suffix);
-        else
-            snprintf(buf, bufSize, "%d%s", (unsigned int)dval, suffix);
-    } else {
-        int nDigits = sigDigits - 1 - (dval > 0.0 ? floor(log10(dval)) : 0);
-        //snprintf(buf, bufSize, "%*.*f%s", sigDigits + 1, nDigits, dval, suffix);
-        if (nDigits < 0) nDigits = 0;
-        snprintf(buf, bufSize, "%.*f%s", nDigits, dval, suffix);
-    }
 }
 
 esp_reset_reason_t System::showLastResetReason() {
@@ -380,8 +287,6 @@ void System::countDuplicateHWNonces() {
 }
 
 void System::notifyMiningStarted() {}
-
-void System::notifyNewNtime(uint32_t ntime) {}
 
 void System::notifyFoundNonce(double poolDiff, int asicNr) {
     // we only build the nonce distribution here

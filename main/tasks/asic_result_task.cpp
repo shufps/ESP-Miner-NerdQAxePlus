@@ -10,6 +10,7 @@
 #include "boards/board.h"
 
 #include "simple_ring64.hpp"
+#include "utils.h"
 
 static const char *TAG = "asic_result";
 
@@ -82,7 +83,7 @@ void ASIC_result_task(void *pvParameters)
 
         // get best known session diff
         char bestDiffString[16];
-        System::suffixString(SYSTEM_MODULE.getBestSessionNonceDiff(), bestDiffString, sizeof(bestDiffString), 3);
+        suffixString(SYSTEM_MODULE.getBestSessionNonceDiff(), bestDiffString, sizeof(bestDiffString), 3);
 
         const char *pool_str = job->pool_id ? "Sec" : "Pri";
 
@@ -109,7 +110,10 @@ void ASIC_result_task(void *pvParameters)
             SYSTEM_MODULE.notifyFoundNonce((double) job->asic_diff, asic_result.asic_nr);
         }
 
-        SYSTEM_MODULE.checkForBestDiff(nonce_diff, job->target, job->pool_id);
+        STRATUM_MANAGER->checkForBestDiff(job->pool_id, nonce_diff, job->target);
+
+        STRATUM_MANAGER->checkForFoundBlock(job->pool_id, nonce_diff, job->target);
+
 
         free_bm_job(job);
     }

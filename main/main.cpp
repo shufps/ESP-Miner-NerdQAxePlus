@@ -146,24 +146,23 @@ void initWatchdog()
     }
 }
 
-bool initStratumManager() {
+StratumManager* initStratumManager() {
     int mode = (int) Config::getPoolMode();
-    int balance = (int) Config::getPoolBalance();
 
+    StratumManager *manager = nullptr;
     switch (mode) {
     case 0:
-        STRATUM_MANAGER = new StratumManagerFallback();
-        return true;
-    case 1:
-        STRATUM_MANAGER = new StratumManagerDualPool(balance);
-        return true;
-    default:
-        // won't crash, won't do anything either
+        manager = new StratumManagerFallback();
         break;
+    case 1:
+        manager = new StratumManagerDualPool();
+        break;
+    default:
+        ESP_LOGE(TAG, "invalid pool mode %d", (int) mode);
+        return nullptr;
     }
 
-    ESP_LOGE(TAG, "invalid pool mode %d", (int) mode);
-    return false;
+    return manager;
 }
 
 // Custom calloc function that allocates from PSRAM
@@ -302,7 +301,15 @@ extern "C" void app_main(void)
 
         TaskHandle_t stratum_manager_handle;
 
-        (void)initStratumManager();
+        STRATUM_MANAGER = initStratumManager();
+
+        if (!STRATUM_MANAGER) {
+            ESP_LOGE(TAG, "stratumManager is null! main task suspended.");
+            vTaskSuspend(NULL);
+        }
+
+        STRATUM_MANAGER->loadSettings();
+
 
         xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, &stratum_manager_handle);
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);

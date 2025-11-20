@@ -80,6 +80,8 @@ const defaultInfo: ISystemInfo = {
   defaultTheme: "cosmic",
   shutdown: false,
 
+  pools: null,
+
   poolMode: 0,
   poolBalance: 50,
   numConnected: 0,

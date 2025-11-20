@@ -1,11 +1,12 @@
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>
-#include <pthread.h>
 
+#include "create_jobs_task.h"
 #include "macros.h"
 #include "stratum_manager_fallback.h"
-#include "create_jobs_task.h"
+#include "utils.h"
 
 StratumManagerFallback::StratumManagerFallback() : StratumManager(PoolMode::FAILOVER), m_selected(PRIMARY)
 {
@@ -22,6 +23,8 @@ const char *StratumManagerFallback::getResolvedIpForSelected() const
 
 void StratumManagerFallback::reconnectTimerCallback(int index)
 {
+    PThreadGuard lock(m_mutex);
+
     // failover mode:
     if (index == PRIMARY) {
         // primary is always allowed to reconnect
@@ -111,5 +114,44 @@ uint32_t StratumManagerFallback::selectAsicDiff(int pool, uint32_t poolDiff, uin
 
 bool StratumManagerFallback::acceptsNotifyFrom(int pool)
 {
-    return pool == m_selected;
+    return (pool == m_selected);
 }
+
+void StratumManagerFallback::loadSettings()
+{
+    PThreadGuard lock(m_mutex);
+
+    StratumManager::loadSettings();
+};
+
+
+void StratumManagerFallback::checkForBestDiff(int pool, double diff, uint32_t nbits)
+{
+    PThreadGuard lock(m_mutex);
+
+    if ((uint64_t) diff > m_bestSessionDiff) {
+        m_bestSessionDiff = (uint64_t) diff;
+    }
+
+    StratumManager::checkForBestDiff(pool, diff, nbits);
+}
+
+void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
+    PThreadGuard lock(m_mutex);
+
+    StratumManager::getManagerInfoJson(obj);
+
+    obj["usingFallback"] = isUsingFallback();
+
+    JsonArray arr = obj["pools"].to<JsonArray>();
+
+    // Objekt IM Array erzeugen, nicht lokal
+    JsonObject pool = arr.add<JsonObject>();
+
+    pool["connected"] = m_stratumTasks[m_selected]->m_isConnected;
+    //pool["ping"] =
+    pool["accepted"] = m_accepted;
+    pool["rejected"] = m_rejected;
+    //pool["bestDiff"] = ...
+}
+

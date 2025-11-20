@@ -8,7 +8,7 @@
 #include "nvs_config.h"
 #include "stratum_manager_dual_pool.h"
 
-StratumManagerDualPool::StratumManagerDualPool(int balance) : StratumManager(PoolMode::DUAL), m_primary_pct(balance)
+StratumManagerDualPool::StratumManagerDualPool() : StratumManager(PoolMode::DUAL)
 {
     // NOP
 }
@@ -21,13 +21,15 @@ const char *StratumManagerDualPool::getResolvedIpForSelected() const
 
 void StratumManagerDualPool::reconnectTimerCallback(int index)
 {
+    PThreadGuard lock(m_mutex);
+
     // dual pool: both pools always try to stay alive
     m_stratumTasks[index]->connect();
 }
 
 void StratumManagerDualPool::connectedCallback(int index)
 {
-    return;
+    // NOP
 }
 
 void StratumManagerDualPool::disconnectedCallback(int index)
@@ -92,15 +94,11 @@ uint32_t StratumManagerDualPool::selectAsicDiff(int pool, uint32_t poolDiff, uin
     if (pool < 0 || pool >= 2) {
         return asicMax;
     }
-/*
+
     if (poolDiff < asicMin) {
-        if (!pool) {
-            m_errorFlags |= ErrorFlags::POOLDIFF_0;
-        } else {
-            m_errorFlags |= ErrorFlags::POOLDIFF_1;
-        }
+        m_poolDiffErr[pool] = true;
     }
-*/
+
     poolDiffs[pool] = poolDiff;
 
     uint32_t minDiff = std::min(poolDiffs[0], poolDiffs[1]);
@@ -124,7 +122,6 @@ void StratumManagerDualPool::loadSettings()
 {
     PThreadGuard lock(m_mutex);
 
-    // call parent
     StratumManager::loadSettings();
 
     // set new percentage and reset error
@@ -134,3 +131,38 @@ void StratumManagerDualPool::loadSettings()
         m_error_accum = 0; // reset dithering to avoid drift from old config
     }
 };
+
+void StratumManagerDualPool::checkForBestDiff(int pool, double diff, uint32_t nbits)
+{
+    PThreadGuard lock(m_mutex);
+
+    if (pool < 0 || pool >= 2) {
+        return;
+    }
+
+    if ((uint64_t) diff > m_bestSessionDiff[pool]) {
+        m_bestSessionDiff[pool] = (uint64_t) diff;
+    }
+
+    StratumManager::checkForBestDiff(pool, diff, nbits);
+}
+
+void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
+{
+    PThreadGuard lock(m_mutex);
+
+    StratumManager::getManagerInfoJson(obj);
+
+    JsonArray arr = obj["pools"].to<JsonArray>();
+
+    for (int i = 0; i < 2; i++) {
+        JsonObject pool = arr.add<JsonObject>();
+
+        pool["connected"] = m_stratumTasks[i]->m_isConnected;
+        pool["poolDiffErr"] = m_poolDiffErr[i];
+        pool["accepted"] = m_accepted[i];
+        pool["rejected"] = m_rejected[i];
+        pool["bestDiff"] = m_bestSessionDiff[i];
+        //pool["ping"] =
+    }
+}
