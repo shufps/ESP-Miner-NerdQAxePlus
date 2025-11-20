@@ -6,7 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "utils.h"
+#include "mining_utils.h"
 #include "serial.h"
 #include "asic.h"
 #include "crc.h"
