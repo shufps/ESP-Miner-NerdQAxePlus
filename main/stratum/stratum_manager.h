@@ -8,6 +8,7 @@
 #include "ArduinoJson.h"
 
 #include "stratum_task.h"
+#include "../tasks/ping_task.h"
 
 #define DIFF_STRING_SIZE 12
 
@@ -15,7 +16,8 @@
  * @brief StratumManager handles pool selection, connection management, and failover.
  */
 class StratumManager {
-    friend StratumTask; ///< Allows StratumTask to access private members
+    friend StratumTask;
+    friend PingTask;
   public:
     enum Selected
     {
@@ -39,6 +41,7 @@ class StratumManager {
     uint64_t m_lastSubmitResponseTimestamp;              ///< Timestamp of last submitted share response
 
     StratumTask *m_stratumTasks[2]{};                      ///< Primary and secondary Stratum tasks
+    PingTask *m_pingTasks[2]{};
 
     uint32_t m_totalFoundBlocks = 0;
     uint32_t m_foundBlocks = 0;
@@ -101,7 +104,7 @@ class StratumManager {
 
 
     // abstract
-    virtual const char *getResolvedIpForSelected() const = 0;
+    virtual const char *getResolvedIpForPool(int pool) const;
     virtual bool isUsingFallback() = 0;
 
     // Get information about the currently selected pool
@@ -144,4 +147,12 @@ class StratumManager {
 
     virtual uint32_t getPoolDifficulty() = 0;
 
+    virtual int getCompatPingPoolIndex() = 0;
+
+    PingTask *getPingTask(int i) {
+        return m_pingTasks[i];
+    }
 };
+
+double get_last_ping_rtt();
+double get_recent_ping_loss();

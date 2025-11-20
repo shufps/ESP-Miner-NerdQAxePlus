@@ -30,10 +30,8 @@ StratumManager::StratumManager(PoolMode poolmode) : m_poolmode(poolmode), m_last
     m_stratumTasks[0] = nullptr;
     m_stratumTasks[1] = nullptr;
 
-    // Set the best diff string
     suffixString(0, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
     suffixString(0, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
-
 }
 
 void StratumManager::connect(int index)
@@ -83,8 +81,12 @@ void StratumManager::task()
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
         m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
-        xTaskCreate(m_stratumTasks[i]->taskWrapper, (i == 0 ? "stratum task (primary)" : "stratum task (secondary)"), 8192,
+        xTaskCreate(m_stratumTasks[i]->taskWrapper, (i == 0) ? "stratum task (pri)" : "stratum task (sec)", 8192,
                     (void *) m_stratumTasks[i], 5, NULL);
+
+        m_pingTasks[i] = new PingTask(this, i);
+        xTaskCreate(m_pingTasks[i]->ping_task_wrapper, (i == 0) ? "ping task (pri)" : "ping task (sec)", 4096,
+                    (void *) m_pingTasks[i], 1, NULL);
     }
 
     if (m_poolmode == PoolMode::DUAL) {
@@ -256,7 +258,8 @@ void StratumManager::submitShare(int pool, const char *jobid, const char *extran
     m_stratumTasks[pool]->submitShare(jobid, extranonce_2, ntime, nonce, version);
 }
 
-void StratumManager::loadSettings() {
+void StratumManager::loadSettings()
+{
     m_totalBestDiff = Config::getBestDiff();
     m_totalFoundBlocks = Config::getTotalFoundBlocks();
 
@@ -269,7 +272,7 @@ void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
         return;
     }
     m_totalBestDiff = (uint64_t) diff;
-    suffixString((uint64_t)diff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
+    suffixString((uint64_t) diff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
 
     Config::setBestDiff(m_totalBestDiff);
 }
@@ -297,4 +300,32 @@ void StratumManager::checkForFoundBlock(int pool, double diff, uint32_t nbits)
     Config::setTotalFoundBlocks(m_totalFoundBlocks);
 
     discordAlerter.sendBlockFoundAlert(diff, networkDiff);
+}
+
+const char *StratumManager::getResolvedIpForPool(int pool) const
+{
+    if (!m_stratumTasks[pool]) {
+        return nullptr;
+    }
+    return m_stratumTasks[pool]->getResolvedIp();
+}
+
+double get_last_ping_rtt()
+{
+    if (!STRATUM_MANAGER) {
+        return 0.0;
+    }
+    int idx = STRATUM_MANAGER->getCompatPingPoolIndex();
+    PingTask *task = STRATUM_MANAGER->getPingTask(idx); // kleiner Getter
+    return task ? task->get_last_ping_rtt() : 0.0;
+}
+
+double get_recent_ping_loss()
+{
+    if (!STRATUM_MANAGER) {
+        return 0.0;
+    }
+    int idx = STRATUM_MANAGER->getCompatPingPoolIndex();
+    PingTask *task = STRATUM_MANAGER->getPingTask(idx);
+    return task ? task->get_recent_ping_loss() : 0.0;
 }

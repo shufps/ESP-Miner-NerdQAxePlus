@@ -174,6 +174,7 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
         pool["accepted"] = m_accepted[i];
         pool["rejected"] = m_rejected[i];
         pool["bestDiff"] = m_bestSessionDiff[i];
-        //pool["ping"] =
+        pool["pingRtt"]  = m_pingTasks[i]->get_last_ping_rtt();
+        pool["pingLoss"] = m_pingTasks[i]->get_recent_ping_loss();
     }
 }
