@@ -45,9 +45,8 @@ class StratumManager {
 
     // Difficulty tracking (compatibility)
     uint64_t m_totalBestDiff = 0;                       // Best nonce difficulty found
-    uint64_t m_bestSessionDiff = 0;
-    char m_totalBestDiffString[DIFF_STRING_SIZE]{0};        // String representation of the best difficulty
-    char m_bestSessionDiffString[DIFF_STRING_SIZE]{0}; // String representation of the best session difficulty
+    char m_totalBestDiffString[DIFF_STRING_SIZE]{};        // String representation of the best difficulty
+    char m_bestSessionDiffString[DIFF_STRING_SIZE]{}; // String representation of the best session difficulty
 
     bool m_initialized = false;
 
@@ -135,9 +134,7 @@ class StratumManager {
         return m_totalBestDiffString;
     }
 
-    uint64_t getBestSessionDiff() {
-        return m_bestSessionDiff;
-    }
+    virtual uint64_t getBestSessionDiff() = 0;
 
     const char *getBestSessionDiffString() {
         return m_bestSessionDiffString;

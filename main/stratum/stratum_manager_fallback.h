@@ -9,8 +9,8 @@ class StratumManagerFallback : public StratumManager {
     int m_selected = 0;
     uint64_t m_accepted = 0;
     uint64_t m_rejected = 0;
-    uint64_t m_bestSessionDiff = 0;
     uint32_t m_poolDifficulty = 0;
+    uint64_t m_bestSessionDiff = 0;
 
     virtual void reconnectTimerCallback(int index);
     virtual void connectedCallback(int index);
@@ -70,5 +70,9 @@ class StratumManagerFallback : public StratumManager {
     virtual bool isUsingFallback()
     {
         return m_selected == StratumManager::Selected::SECONDARY;
+    }
+
+    virtual uint64_t getBestSessionDiff() {
+        return m_bestSessionDiff;
     }
 };
