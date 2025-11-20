@@ -80,7 +80,22 @@ const defaultInfo: ISystemInfo = {
   defaultTheme: "cosmic",
   shutdown: false,
 
-  pools: null,
+  stratum: {
+    poolMode: 0, // prim/fb
+    //poolBalance: 100,
+    usingFallback: false,
+    totalBestDiff: 0,
+    pools: [{
+      connected: false,
+      poolDiffErr: false,
+      poolDifficulty: 0,
+      accepted: 0,
+      rejected: 0,
+      bestDiff: 0,
+      pingRtt: 0,
+      pingLoss: 0,
+    }],
+  },
 
   poolMode: 0,
   poolBalance: 50,

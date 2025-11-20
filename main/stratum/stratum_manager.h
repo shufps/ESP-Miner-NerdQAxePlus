@@ -102,10 +102,12 @@ class StratumManager {
 
     virtual void loadSettings();
 
+    virtual bool isUsingFallback() {
+        return false;
+    }
 
     // abstract
     virtual const char *getResolvedIpForPool(int pool) const;
-    virtual bool isUsingFallback() = 0;
 
     // Get information about the currently selected pool
     virtual const char *getCurrentPoolHost() = 0;

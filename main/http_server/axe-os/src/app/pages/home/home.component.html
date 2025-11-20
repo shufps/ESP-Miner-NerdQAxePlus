@@ -19,8 +19,14 @@
             <nb-card-body>
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <div class="font-weight-bold text-lg">
+                  <div *ngIf="info.stratum.poolMode == 0" class="font-weight-bold text-lg">
                     {{ info.hashRate | number: '1.2-2' }}
+                    <small>{{ 'UNITS.HASHRATE' | translate }}</small>
+                  </div>
+                  <div *ngIf="info.stratum.poolMode == 1" class="font-weight-bold text-lg">
+                    {{ info.hashRate * info.stratum.poolBalance / 100.0 | number: '1.2-2' }}
+                    <small>{{ 'UNITS.HASHRATE' | translate }}</small>&nbsp;/&nbsp;
+                    {{ info.hashRate * (100.0 - info.stratum.poolBalance) / 100.0 | number: '1.2-2' }}
                     <small>{{ 'UNITS.HASHRATE' | translate }}</small>
                   </div>
                 </div>
@@ -54,17 +60,28 @@
             <nb-card-body>
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <div class="font-weight-bold text-lg">{{ info.sharesAccepted }}</div>
+                  <div *ngIf="info.stratum.poolMode == 0">
+                    <div class="font-weight-bold text-lg">{{ info.stratum.pools[0].accepted }}</div>
+                  </div>
+                  <div *ngIf="info.stratum.poolMode == 1">
+                    <div class="font-weight-bold text-lg">{{ info.stratum.pools[0].accepted }}&nbsp;/&nbsp;{{
+                      info.stratum.pools[1].accepted }}</div>
+                  </div>
                 </div>
                 <div class="d-flex align-items-center justify-content-center bg-blue-100 rounded-circle"
                   style="width: 2.5rem; height: 2.5rem;">
                   <nb-icon icon="navigation-2-outline" pack="eva" class="blue-500"></nb-icon>
                 </div>
               </div>
-              <span class="text-danger">{{ info.sharesRejected }}</span>
+              <span *ngIf="info.stratum.poolMode == 0" class="text-danger">{{ info.stratum.pools[0].rejected }}</span>
+              <span *ngIf="info.stratum.poolMode == 1" class="text-danger">{{ info.stratum.pools[0].rejected
+                }}&nbsp;/&nbsp;{{ info.stratum.pools[1].rejected }}</span>
               <span class="text-hint">&nbsp;{{ 'HOME.REJECTED' | translate }}</span>&nbsp;
-              <span class="text-hint">
-                ({{ (info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2' }}%)
+              <span *ngIf="info.stratum.poolMode == 0" class="text-hint">
+                ({{ rejectRate(0) | number: '1.2-2' }}%)
+              </span>
+              <span *ngIf="info.stratum.poolMode == 1" class="text-hint">
+                ({{ rejectRate(0) | number: '1.2-2' }}%&nbsp;/&nbsp;{{ rejectRate(1) | number: '1.2-2' }}%)
               </span>
             </nb-card-body>
           </nb-card>
@@ -113,7 +130,10 @@
                   <nb-icon icon="star" pack="eva" class="orange-500"></nb-icon>
                 </div>
               </div>
-              <span class="font-weight-bold">{{ info.bestSessionDiff }}</span>
+              <span *ngIf="info.stratum.poolMode == 0" class="font-weight-bold">{{ info.stratum.pools[0].bestDiff |
+                humanReadable}}</span>
+              <span *ngIf="info.stratum.poolMode == 1" class="font-weight-bold">{{ info.stratum.pools[0].bestDiff |
+                humanReadable}}&nbsp;/&nbsp;{{ info.stratum.pools[1].bestDiff | humanReadable}}</span>
               <span class="text-hint">&nbsp;{{ 'HOME.BEST_DIFF_BOOT' | translate }}</span>
             </nb-card-body>
           </nb-card>

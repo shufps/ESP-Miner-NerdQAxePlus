@@ -164,12 +164,16 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
 
     StratumManager::getManagerInfoJson(obj);
 
+    // dual pool specific
+    obj["poolBalance"] = Config::getPoolBalance();
+
     JsonArray arr = obj["pools"].to<JsonArray>();
 
     for (int i = 0; i < 2; i++) {
         JsonObject pool = arr.add<JsonObject>();
 
         pool["connected"] = m_stratumTasks[i]->m_isConnected;
+        pool["poolDifficulty"] = m_poolDifficulty[i];
         pool["poolDiffErr"] = m_poolDiffErr[i];
         pool["accepted"] = m_accepted[i];
         pool["rejected"] = m_rejected[i];
