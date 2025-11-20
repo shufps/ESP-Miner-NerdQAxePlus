@@ -35,15 +35,8 @@ System::System() {
 
 void System::initSystem() {
     m_screenPage = 0;
-    m_sharesAccepted = 0;
-    m_sharesRejected = 0;
-    m_duplicateHWNonces = 0;
-    m_bestNonceDiff = Config::getBestDiff();
-    m_bestSessionNonceDiff = 0;
     m_startTime = esp_timer_get_time();
     m_startupDone = false;
-    m_poolErrors = 0;
-    m_poolDifficulty = 8192;
 
     m_stratumConfig[0] = {
         true,
@@ -63,19 +56,12 @@ void System::initSystem() {
         Config::isStratumFallbackEnonceSubscribe(),
     };
 
-    m_foundBlocks = 0;
-    m_totalFoundBlocks = Config::getTotalFoundBlocks();
-
     // Initialize overheat flag
     m_boardError = Board::Error::NONE;
 
     // Initialize shown overlay flag and last error code
     m_showsOverlay = false;
     m_currentErrorCode = 0;
-
-    // Set the best diff string
-    suffixString(m_bestNonceDiff, m_bestDiffString, DIFF_STRING_SIZE, 0);
-    suffixString(m_bestSessionNonceDiff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
 
     // Clear the ssid string
     memset(m_ssid, 0, sizeof(m_ssid));
@@ -108,7 +94,6 @@ void System::loadSettings() {
 }
 
 void System::updateHashrate() {}
-void System::updateShares() {}
 void System::updateBestDiff() {}
 void System::clearDisplay() {}
 void System::updateSystemInfo() {}
@@ -258,11 +243,13 @@ void System::task() {
             showError(Board::errorToStr(m_boardError), m_errorCode);
         }
 
+        uint32_t foundBlocks = STRATUM_MANAGER->getFoundBlocks();
+
         // trigger the overlay only once when block is found
-        if (m_foundBlocks != lastFoundBlocks && m_foundBlocks) {
+        if (foundBlocks != lastFoundBlocks && foundBlocks) {
             m_display->showFoundBlockOverlay();
         }
-        lastFoundBlocks = m_foundBlocks;
+        lastFoundBlocks = foundBlocks;
 
         m_display->updateGlobalState();
         m_display->updateCurrentSettings();
@@ -272,24 +259,6 @@ void System::task() {
     }
 }
 
-void System::notifyAcceptedShare() {
-    ++m_sharesAccepted;
-    updateShares();
-}
-
-void System::notifyRejectedShare() {
-    ++m_sharesRejected;
-    updateShares();
-}
-
-void System::countDuplicateHWNonces() {
-    ++m_duplicateHWNonces;
-}
-
 void System::notifyMiningStarted() {}
 
-void System::notifyFoundNonce(double poolDiff, int asicNr) {
-    // we only build the nonce distribution here
-    m_history->pushShare(asicNr);
-}
 

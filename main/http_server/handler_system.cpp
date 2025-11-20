@@ -17,6 +17,8 @@ static const char *TAG = "http_system";
 
 #define VR_FREQUENCY_ENABLED
 
+uint64_t getDuplicateHWNonces();
+
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
 {
@@ -92,30 +94,32 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["hashRate_10m"]       = history->getCurrentHashrate10m();
     doc["hashRate_1h"]        = history->getCurrentHashrate1h();
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
-    doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
-    doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
     doc["coreVoltage"]        = board->getAsicVoltageMillis();
     doc["defaultCoreVoltage"] = board->getDefaultAsicVoltageMillis();
     doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
-    doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
-    doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
-    doc["duplicateHWNonces"]  = SYSTEM_MODULE.getDuplicateHWNonces();
-    doc["isUsingFallbackStratum"] = !STRATUM_MANAGER ? false : STRATUM_MANAGER->isUsingFallback();
-    doc["isStratumConnected"] = !STRATUM_MANAGER ? false : STRATUM_MANAGER->isAnyConnected();
-    doc["numConnected"]       = !STRATUM_MANAGER ? 0 : STRATUM_MANAGER->getNumConnectedPools();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["manualFanSpeed"]     = Config::getFanSpeed();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["recentpingloss"]     = get_recent_ping_loss();
-    doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
-    doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
-    doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
     doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
+    doc["duplicateHWNonces"]  = getDuplicateHWNonces();
 
     JsonObject stratum_obj = doc["stratum"].to<JsonObject>();
 
-    if (STRATUM_MANAGER) {
+    if (STRATUM_MANAGER && STRATUM_MANAGER->isInitialized()) {
+        // kept for compatibility
+        doc["poolDifficulty"]     = STRATUM_MANAGER->getPoolDifficulty();
+        doc["foundBlocks"]        = STRATUM_MANAGER->getFoundBlocks();
+        doc["totalFoundBlocks"]   = STRATUM_MANAGER->getTotalFoundBlocks();
+        doc["sharesAccepted"]     = STRATUM_MANAGER->getSharesAccepted();
+        doc["sharesRejected"]     = STRATUM_MANAGER->getSharesRejected();
+        doc["bestDiff"]           = STRATUM_MANAGER->getBestDiffString();
+        doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiffString();
+        doc["isUsingFallbackStratum"] = STRATUM_MANAGER->isUsingFallback();
+        doc["isStratumConnected"] = STRATUM_MANAGER->isAnyConnected();
+        doc["numConnected"]       = STRATUM_MANAGER->getNumConnectedPools();
+
         STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
     }
 

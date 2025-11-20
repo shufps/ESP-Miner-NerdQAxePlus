@@ -22,24 +22,11 @@ class System {
   protected:
     int64_t m_startTime; // System start time (in milliseconds)
 
-    // Share statistics
-    uint64_t m_sharesAccepted;    // Number of accepted shares
-    uint64_t m_sharesRejected;    // Number of rejected shares
-    uint64_t m_duplicateHWNonces; // Numer of duplicates - counted with HW difficulty
-
     // Display and UI
     int m_screenPage;   // Current screen page (for OLED or other displays)
     char m_oledBuf[20]; // Buffer to hold OLED display information
 
-    // Difficulty tracking
-    uint64_t m_bestNonceDiff;                       // Best nonce difficulty found
-    char m_bestDiffString[DIFF_STRING_SIZE];        // String representation of the best difficulty
-    uint64_t m_bestSessionNonceDiff;                // Best nonce difficulty for the current session
-    char m_bestSessionDiffString[DIFF_STRING_SIZE]; // String representation of the best session difficulty
-
     // System status flags
-    int m_foundBlocks;      // Counter number of found blocks
-    int m_totalFoundBlocks; // Counter of all found blocks
     bool m_startupDone;     // Flag to indicate if system startup is complete
 
     // Network and connection info
@@ -51,10 +38,7 @@ class System {
 
     StratumConfig m_stratumConfig[2];
 
-    uint32_t m_poolDifficulty; // Current pool difficulty
-
     // Error tracking
-    int m_poolErrors = 0;      // Count of errors related to the mining pool
     Board::Error m_boardError; // Flag to indicate if the system is overheated
     uint32_t m_errorCode = 0x00000000;
 
@@ -81,7 +65,6 @@ class System {
     // Internal helper methods for system management
     void initSystem();                                 // Initialize system components
     void updateHashrate();                             // Update the hashrate
-    void updateShares();                               // Update share statistics
     void updateBestDiff();                             // Update the best difficulty found
     void clearDisplay();                               // Clear the display
     void updateSystemInfo();                           // Update system information
@@ -106,45 +89,12 @@ class System {
     void hideError();
 
     // Notification methods to update share statistics
-    void notifyAcceptedShare();                                        // Notify system of an accepted share
-    void notifyRejectedShare();                                        // Notify system of a rejected share
-    void notifyFoundNonce(double poolDiff, int asicNr);                // Notify system of a found nonce
-    void checkForBestDiff(double foundDiff, uint32_t nbits, int pool); // Check if the found difficulty is the best so far
     void notifyMiningStarted();                                        // Notify system that mining has started
-
-    void countDuplicateHWNonces();
 
     // WiFi related
     const char *getMacAddress();
     int get_wifi_rssi();
 
-    // Getter methods for retrieving statistics
-    uint64_t getSharesRejected() const
-    {
-        return m_sharesRejected;
-    }
-    uint64_t getSharesAccepted() const
-    {
-        return m_sharesAccepted;
-    }
-
-    uint64_t getDuplicateHWNonces() const
-    {
-        return m_duplicateHWNonces;
-    }
-
-    const char *getBestDiffString() const
-    {
-        return m_bestDiffString;
-    }
-    const char *getBestSessionDiffString() const
-    {
-        return m_bestSessionDiffString;
-    }
-    uint64_t getBestSessionNonceDiff() const
-    {
-        return m_bestSessionNonceDiff;
-    }
     int64_t getStartTime() const
     {
         return m_startTime;
@@ -170,23 +120,6 @@ class System {
     StratumConfig *getStratumConfig(uint8_t index)
     {
         return &m_stratumConfig[index];
-    }
-
-    void setPoolDifficulty(uint32_t difficulty)
-    {
-        m_poolDifficulty = difficulty;
-    }
-    uint32_t getPoolDifficulty() const
-    {
-        return m_poolDifficulty;
-    }
-    void incPoolErrors()
-    {
-        ++m_poolErrors;
-    }
-    int getPoolErrors() const
-    {
-        return m_poolErrors;
     }
 
     void setBoardError(Board::Error error, uint32_t code)
@@ -222,18 +155,6 @@ class System {
     void setSsid(const char *ssid)
     {
         strncpy(m_ssid, ssid, sizeof(m_ssid));
-    }
-
-    // Count of found blocks sind reboot
-    int getFoundBlocks() const
-    {
-        return m_foundBlocks;
-    }
-
-    // Count of total found blocks
-    int getTotalFoundBlocks() const
-    {
-        return m_totalFoundBlocks;
     }
 
     // Startup status setter

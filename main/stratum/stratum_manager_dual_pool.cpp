@@ -7,6 +7,7 @@
 #include "macros.h"
 #include "nvs_config.h"
 #include "stratum_manager_dual_pool.h"
+#include "utils.cpp"
 
 StratumManagerDualPool::StratumManagerDualPool() : StratumManager(PoolMode::DUAL)
 {
@@ -43,7 +44,7 @@ void StratumManagerDualPool::disconnectedCallback(int index)
 int StratumManagerDualPool::getNextActivePool()
 {
     PThreadGuard lock(m_mutex);
-    int secondary_pct = 100 - m_primary_pct;
+    int secondary_pct = 100 - m_balance;
 
     bool valid0 = m_stratumTasks[0] && m_stratumTasks[0]->m_validNotify;
     bool valid1 = m_stratumTasks[1] && m_stratumTasks[1]->m_validNotify;
@@ -126,8 +127,8 @@ void StratumManagerDualPool::loadSettings()
 
     // set new percentage and reset error
     int new_pct = Config::getPoolBalance();
-    if (new_pct != m_primary_pct) {
-        m_primary_pct = new_pct;
+    if (new_pct != m_balance) {
+        m_balance = new_pct;
         m_error_accum = 0; // reset dithering to avoid drift from old config
     }
 };
@@ -142,6 +143,7 @@ void StratumManagerDualPool::checkForBestDiff(int pool, double diff, uint32_t nb
 
     if ((uint64_t) diff > m_bestSessionDiff[pool]) {
         m_bestSessionDiff[pool] = (uint64_t) diff;
+        suffixString(std::max(m_bestSessionDiff[0], m_bestSessionDiff[1]), m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
     }
 
     StratumManager::checkForBestDiff(pool, diff, nbits);
@@ -150,6 +152,10 @@ void StratumManagerDualPool::checkForBestDiff(int pool, double diff, uint32_t nb
 void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
 {
     PThreadGuard lock(m_mutex);
+
+    if (!isInitialized()) {
+        return;
+    }
 
     StratumManager::getManagerInfoJson(obj);
 

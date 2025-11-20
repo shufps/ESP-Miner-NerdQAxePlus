@@ -789,7 +789,7 @@ void DisplayDriver::updateHashrate(System *module, float power)
     lv_label_set_text(m_ui->ui_lbPower, strData); // Actualiza el label
 }
 
-void DisplayDriver::updateShares(System *module)
+void DisplayDriver::updateShares(StratumManager *module)
 {
     char strData[20];
 
@@ -927,7 +927,7 @@ void DisplayDriver::updateGlobalState()
     lv_label_set_text(m_ui->ui_lbVinput, strData); // Update label
 
     updateTime(&SYSTEM_MODULE);
-    updateShares(&SYSTEM_MODULE);
+    updateShares(STRATUM_MANAGER);
     updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.getPower());
     updateBTCprice();
     updateGlobalMiningStats();
