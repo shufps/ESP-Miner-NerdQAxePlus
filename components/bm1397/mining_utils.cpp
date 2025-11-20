@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "mining_utils.h"
 
 #include <stdio.h>
 #include <string.h>
