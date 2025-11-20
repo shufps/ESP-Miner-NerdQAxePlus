@@ -38,8 +38,6 @@ class StratumManagerFallback : public StratumManager {
     virtual const char *getCurrentPoolHost();
     virtual int getCurrentPoolPort();
 
-    virtual const char *getResolvedIpForSelected() const;
-
     virtual int getNextActivePool();
 
     void loadSettings();
@@ -70,6 +68,10 @@ class StratumManagerFallback : public StratumManager {
     virtual bool isUsingFallback()
     {
         return m_selected == StratumManager::Selected::SECONDARY;
+    }
+
+    virtual int getCompatPingPoolIndex() {
+        return m_selected;
     }
 
     virtual uint64_t getBestSessionDiff() {

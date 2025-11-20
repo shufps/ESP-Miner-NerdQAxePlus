@@ -81,6 +81,11 @@ class StratumManagerDualPool : public StratumManager {
         return m_stratumTasks[0]->m_poolErrors + m_stratumTasks[1]->m_poolErrors;
     }
 
+    virtual int getCompatPingPoolIndex() {
+        return (m_balance >= 50) ? 0 : 1;
+    }
+
+
     virtual bool isUsingFallback()
     {
         // not applicable

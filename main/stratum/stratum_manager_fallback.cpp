@@ -13,14 +13,6 @@ StratumManagerFallback::StratumManagerFallback() : StratumManager(PoolMode::FAIL
     // NOP
 }
 
-const char *StratumManagerFallback::getResolvedIpForSelected() const
-{
-    if (!m_stratumTasks[m_selected]) {
-        return nullptr;
-    }
-    return m_stratumTasks[m_selected]->getResolvedIp();
-}
-
 void StratumManagerFallback::reconnectTimerCallback(int index)
 {
     PThreadGuard lock(m_mutex);
@@ -154,9 +146,10 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
     JsonObject pool = arr.add<JsonObject>();
 
     pool["connected"] = m_stratumTasks[m_selected]->m_isConnected;
-    //pool["ping"] =
     pool["accepted"] = m_accepted;
     pool["rejected"] = m_rejected;
-    //pool["bestDiff"] = ...
+    pool["pingRtt"]  = m_pingTasks[m_selected]->get_last_ping_rtt();
+    pool["pingLoss"] = m_pingTasks[m_selected]->get_recent_ping_loss();
+    pool["bestDiff"] = m_bestSessionDiff;
 }
 
