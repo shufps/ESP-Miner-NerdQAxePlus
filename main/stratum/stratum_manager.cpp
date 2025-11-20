@@ -280,9 +280,8 @@ void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
 void StratumManager::getManagerInfoJson(JsonObject &obj)
 {
     obj["poolMode"] = Config::getPoolMode();
-    obj["poolBalance"] = Config::getPoolBalance();
 
-    // obj["totalBestDiff"] =
+    obj["totalBestDiff"] = m_totalBestDiff;
 }
 
 void StratumManager::checkForFoundBlock(int pool, double diff, uint32_t nbits)

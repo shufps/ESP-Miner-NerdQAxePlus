@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { DateAgoPipe } from './date-ago.pipe';
 import { ANSIPipe } from './ansi.pipe';
 import { HashSuffixPipe } from './hash-suffix.pipe';
+import { HumanReadablePipe } from './human-readable';
 
 @NgModule({
   declarations: [
     DateAgoPipe,
     ANSIPipe,
-    HashSuffixPipe
+    HashSuffixPipe,
+    HumanReadablePipe
   ],
   imports: [
     CommonModule
@@ -17,6 +19,7 @@ import { HashSuffixPipe } from './hash-suffix.pipe';
     DateAgoPipe,
     ANSIPipe,
     HashSuffixPipe,
+    HumanReadablePipe
   ]
 })
 export class PipesModule { }

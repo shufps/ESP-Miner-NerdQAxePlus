@@ -138,6 +138,7 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
 
     StratumManager::getManagerInfoJson(obj);
 
+    // fallback specific
     obj["usingFallback"] = isUsingFallback();
 
     JsonArray arr = obj["pools"].to<JsonArray>();
@@ -146,6 +147,8 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
     JsonObject pool = arr.add<JsonObject>();
 
     pool["connected"] = m_stratumTasks[m_selected]->m_isConnected;
+    pool["poolDifficulty"] = m_poolDifficulty;
+    pool["poolDiffErr"] = false;
     pool["accepted"] = m_accepted;
     pool["rejected"] = m_rejected;
     pool["pingRtt"]  = m_pingTasks[m_selected]->get_last_ping_rtt();

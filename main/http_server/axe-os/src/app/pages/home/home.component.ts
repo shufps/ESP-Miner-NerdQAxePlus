@@ -635,6 +635,15 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     window.location.reload();
   }
 
+  public rejectRate(id: number) {
+    const rejected = this._info.stratum.pools[id].rejected;
+    const accepted = this._info.stratum.pools[id].accepted;
+
+    if (accepted == 0 && rejected == 0) {
+      return 0.0;
+    }
+    return rejected / (accepted + rejected) * 100;
+  }
 
 }
 
