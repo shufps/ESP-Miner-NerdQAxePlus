@@ -7,7 +7,7 @@
 #include "macros.h"
 #include "nvs_config.h"
 #include "stratum_manager_dual_pool.h"
-#include "utils.cpp"
+#include "utils.h"
 
 StratumManagerDualPool::StratumManagerDualPool() : StratumManager(PoolMode::DUAL)
 {
@@ -30,7 +30,12 @@ void StratumManagerDualPool::reconnectTimerCallback(int index)
 
 void StratumManagerDualPool::connectedCallback(int index)
 {
-    // NOP
+    PThreadGuard lock(m_mutex);
+
+    // reset poolDiffErr
+    if (index >= 0 && index < 2) {
+        m_poolDiffErr[index] = false;
+    }
 }
 
 void StratumManagerDualPool::disconnectedCallback(int index)
