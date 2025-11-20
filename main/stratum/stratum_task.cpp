@@ -44,8 +44,7 @@ int is_socket_connected(int socket)
 }
 
 StratumTask::StratumTask(StratumManager *manager, int index, StratumConfig *config)
-    : m_manager(manager), m_config(config), m_index(index), m_sock(-1), m_isConnected(false), m_stopFlag(false), m_firstJob(true),
-      m_validNotify(false), m_reconnectTimer(nullptr)
+    : m_manager(manager), m_config(config), m_index(index)
 {
     if (config->primary) {
         m_tag = "stratum task (Pri)";
@@ -387,8 +386,7 @@ void StratumTask::task()
         stratumLoop();
 
         // track pool errors
-        // TODO: move this into the manager and mutex it
-        SYSTEM_MODULE.incPoolErrors();
+        m_poolErrors++;
 
         // shutdown and reconnect
         ESP_LOGE(m_tag, "Shutdown socket ...");

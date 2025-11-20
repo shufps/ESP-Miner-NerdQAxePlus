@@ -16,6 +16,16 @@ static const char *TAG = "asic_result";
 
 static SimpleRing64<32> s_seen_keys;
 
+static uint64_t duplicateHWNonces = 0;
+
+static void countDuplicateHWNonces() {
+    duplicateHWNonces++;
+}
+
+uint64_t getDuplicateHWNonces() {
+    return duplicateHWNonces;
+}
+
 // Combine nonce + version into a single 64-bit key
 static inline uint64_t make_key(uint32_t nonce, uint32_t version)
 {
@@ -83,7 +93,7 @@ void ASIC_result_task(void *pvParameters)
 
         // get best known session diff
         char bestDiffString[16];
-        suffixString(SYSTEM_MODULE.getBestSessionNonceDiff(), bestDiffString, sizeof(bestDiffString), 3);
+        suffixString(STRATUM_MANAGER->getBestSessionDiff(), bestDiffString, sizeof(bestDiffString), 3);
 
         const char *pool_str = job->pool_id ? "Sec" : "Pri";
 
@@ -96,18 +106,13 @@ void ASIC_result_task(void *pvParameters)
         bool duplicate = !s_seen_keys.insert_if_absent(key);
         if (duplicate) {
             ESP_LOGW(TAG, "(%s) duplicate share detected!", pool_str);
-            SYSTEM_MODULE.countDuplicateHWNonces();
+            countDuplicateHWNonces();
         }
 
         // send duplicates to the server (they will get rejected and counted as rejected)
         if (nonce_diff > job->pool_diff) {
             STRATUM_MANAGER->submitShare(job->pool_id, job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
                                     asic_result.rolled_version ^ job->version);
-        }
-
-        // don't count duplicate to the local hashrate
-        if (nonce_diff > job->asic_diff && !duplicate) {
-            SYSTEM_MODULE.notifyFoundNonce((double) job->asic_diff, asic_result.asic_nr);
         }
 
         STRATUM_MANAGER->checkForBestDiff(job->pool_id, nonce_diff, job->target);

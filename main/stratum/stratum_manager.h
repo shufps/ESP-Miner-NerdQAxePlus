@@ -9,6 +9,8 @@
 
 #include "stratum_task.h"
 
+#define DIFF_STRING_SIZE 12
+
 /**
  * @brief StratumManager handles pool selection, connection management, and failover.
  */
@@ -28,6 +30,7 @@ class StratumManager {
     };
 
   protected:
+
     const char *m_tag = "stratum-manager"; ///< Debug tag for logging
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER; ///< Mutex for thread safety
@@ -37,8 +40,16 @@ class StratumManager {
 
     StratumTask *m_stratumTasks[2]{};                      ///< Primary and secondary Stratum tasks
 
-    int m_totalFoundBlocks;
-    uint64_t m_totalBestDiff;
+    uint32_t m_totalFoundBlocks = 0;
+    uint32_t m_foundBlocks = 0;
+
+    // Difficulty tracking (compatibility)
+    uint64_t m_totalBestDiff = 0;                       // Best nonce difficulty found
+    uint64_t m_bestSessionDiff = 0;
+    char m_totalBestDiffString[DIFF_STRING_SIZE]{0};        // String representation of the best difficulty
+    char m_bestSessionDiffString[DIFF_STRING_SIZE]{0}; // String representation of the best session difficulty
+
+    bool m_initialized = false;
 
     PoolMode getPoolMode() const
     {
@@ -70,6 +81,7 @@ class StratumManager {
 
     virtual void acceptedShare(int pool) = 0;
     virtual void rejectedShare(int pool) = 0;
+    virtual void setPoolDifficulty(int pool, uint32_t diff) = 0;
 
   public:
     StratumManager(PoolMode mode);
@@ -102,4 +114,37 @@ class StratumManager {
     virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax) = 0;
 
     virtual void checkForBestDiff(int pool, double diff, uint32_t nbits) = 0;
+
+    bool isInitialized() {
+        return m_initialized;
+    }
+
+    // compatibility
+    virtual uint64_t getSharesAccepted() = 0;
+    virtual uint64_t getSharesRejected() = 0;
+
+    uint32_t getTotalFoundBlocks() {
+        return m_totalFoundBlocks;
+    }
+
+    uint32_t getFoundBlocks() {
+        return m_foundBlocks;
+    }
+
+    const char* getBestDiffString() {
+        return m_totalBestDiffString;
+    }
+
+    uint64_t getBestSessionDiff() {
+        return m_bestSessionDiff;
+    }
+
+    const char *getBestSessionDiffString() {
+        return m_bestSessionDiffString;
+    }
+
+    virtual int getPoolErrors() = 0;
+
+    virtual uint32_t getPoolDifficulty() = 0;
+
 };

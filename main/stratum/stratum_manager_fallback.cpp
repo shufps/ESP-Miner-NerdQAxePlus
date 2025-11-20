@@ -131,6 +131,7 @@ void StratumManagerFallback::checkForBestDiff(int pool, double diff, uint32_t nb
 
     if ((uint64_t) diff > m_bestSessionDiff) {
         m_bestSessionDiff = (uint64_t) diff;
+        suffixString((uint64_t)diff, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
     }
 
     StratumManager::checkForBestDiff(pool, diff, nbits);
@@ -138,6 +139,10 @@ void StratumManagerFallback::checkForBestDiff(int pool, double diff, uint32_t nb
 
 void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
     PThreadGuard lock(m_mutex);
+
+    if (!isInitialized()) {
+        return;
+    }
 
     StratumManager::getManagerInfoJson(obj);
 

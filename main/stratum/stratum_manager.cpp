@@ -29,6 +29,11 @@ StratumManager::StratumManager(PoolMode poolmode) : m_poolmode(poolmode), m_last
 {
     m_stratumTasks[0] = nullptr;
     m_stratumTasks[1] = nullptr;
+
+    // Set the best diff string
+    suffixString(0, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
+    suffixString(0, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
+
 }
 
 void StratumManager::connect(int index)
@@ -89,6 +94,8 @@ void StratumManager::task()
         connect(PRIMARY);
     }
 
+    m_initialized = true;
+
     // Watchdog Task Loop (optional, if needed)
     while (1) {
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
@@ -136,6 +143,11 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     StratumTask *selected = m_stratumTasks[pool];
 
+    if (!selected) {
+        ESP_LOGE(m_tag, "stratum task is null");
+        return;
+    }
+
     const char *tag = selected->getTag();
 
     // we keep the m_stratum_api_v1_message in the class
@@ -165,7 +177,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     }
 
     case MINING_SET_DIFFICULTY: {
-        SYSTEM_MODULE.setPoolDifficulty(m_stratum_api_v1_message.new_difficulty);
+        setPoolDifficulty(pool, m_stratum_api_v1_message.new_difficulty);
         if (create_job_set_difficulty(pool, m_stratum_api_v1_message.new_difficulty)) {
             ESP_LOGI(tag, "Set stratum difficulty: %ld", m_stratum_api_v1_message.new_difficulty);
         }
@@ -203,11 +215,9 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
         if (m_stratum_api_v1_message.response_success) {
             ESP_LOGI(tag, "message result accepted");
             acceptedShare(pool);
-            SYSTEM_MODULE.notifyAcceptedShare();
         } else {
             ESP_LOGW(tag, "message result rejected");
             rejectedShare(pool);
-            SYSTEM_MODULE.notifyRejectedShare();
         }
         m_lastSubmitResponseTimestamp = esp_timer_get_time();
         break;
@@ -234,6 +244,10 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 void StratumManager::submitShare(int pool, const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                                  const uint32_t version)
 {
+    if (!m_stratumTasks[pool]) {
+        ESP_LOGE(m_tag, "stratum task is null");
+        return;
+    }
     // send to the selected pool
     if (!m_stratumTasks[pool]->m_isConnected) {
         ESP_LOGE(m_tag, "selected pool not connected");
@@ -245,6 +259,8 @@ void StratumManager::submitShare(int pool, const char *jobid, const char *extran
 void StratumManager::loadSettings() {
     m_totalBestDiff = Config::getBestDiff();
     m_totalFoundBlocks = Config::getTotalFoundBlocks();
+
+    suffixString(m_totalBestDiff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
 }
 
 void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
@@ -253,6 +269,8 @@ void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
         return;
     }
     m_totalBestDiff = (uint64_t) diff;
+    suffixString((uint64_t)diff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
+
     Config::setBestDiff(m_totalBestDiff);
 }
 
@@ -274,6 +292,7 @@ void StratumManager::checkForFoundBlock(int pool, double diff, uint32_t nbits)
     ESP_LOGI(m_tag, "FOUND BLOCK!!! %f > %f", diff, networkDiff);
 
     // increase total found blocks counter
+    m_foundBlocks++;
     m_totalFoundBlocks++;
     Config::setTotalFoundBlocks(m_totalFoundBlocks);
 

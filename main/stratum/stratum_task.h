@@ -34,19 +34,20 @@ class StratumTask {
     friend StratumManagerDualPool;
 
   protected:
-    StratumManager *m_manager; ///< Reference to the StratumManager
-    StratumConfig *m_config;   ///< Stratum configuration for the task
-    int m_index;               ///< Index of the Stratum task (0 = primary, 1 = secondary)
+    StratumManager *m_manager = nullptr; ///< Reference to the StratumManager
+    StratumConfig *m_config = nullptr;   ///< Stratum configuration for the task
+    int m_index = 0;                     ///< Index of the Stratum task (0 = primary, 1 = secondary)
 
-    StratumApi m_stratumAPI; ///< API instance for Stratum communication
-    const char *m_tag;       ///< Debug tag for logging
+    StratumApi m_stratumAPI;     ///< API instance for Stratum communication
+    const char *m_tag = nullptr; ///< Debug tag for logging
 
-    int m_sock; ///< Socket for the Stratum connection
+    int m_sock = -1; ///< Socket for the Stratum connection
 
-    bool m_isConnected; ///< Connection state flag
-    bool m_stopFlag;    ///< Stop flag for the task
-    bool m_firstJob;
-    bool m_validNotify; // flag if the mining notify is valid
+    bool m_isConnected = false; ///< Connection state flag
+    bool m_stopFlag = false;    ///< Stop flag for the task
+    bool m_firstJob = true;
+    bool m_validNotify = false; // flag if the mining notify is valid
+    int m_poolErrors = 0;
 
     // Connection and network-related methods
     bool isWifiConnected();                                                      ///< Check if Wi-Fi is connected
