@@ -35,6 +35,11 @@ class StratumManagerDualPool : public StratumManager {
         m_rejected[pool]++;
     }
 
+    virtual int getPoolMode() {
+        return 1;
+    }
+
+
   public:
     StratumManagerDualPool();
 

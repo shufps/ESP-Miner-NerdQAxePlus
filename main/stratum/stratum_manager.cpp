@@ -279,7 +279,9 @@ void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
 
 void StratumManager::getManagerInfoJson(JsonObject &obj)
 {
-    obj["poolMode"] = Config::getPoolMode();
+    // we need the currently active mode not the one from the settings
+    obj["poolMode"] = getPoolMode();
+
 
     obj["totalBestDiff"] = m_totalBestDiff;
 }
