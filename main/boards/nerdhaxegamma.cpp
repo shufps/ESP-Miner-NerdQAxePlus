@@ -23,6 +23,7 @@ NerdHaxeGamma::NerdHaxeGamma() : NerdQaxePlus2() {
 
     m_asicMaxDifficulty = 4096;
     m_asicMinDifficulty = 1024;
+    m_asicMinDifficultyDualPool = 256;
 
 #ifdef NERDHAXEGAMMA
     m_theme = new ThemeNerdhaxegamma();

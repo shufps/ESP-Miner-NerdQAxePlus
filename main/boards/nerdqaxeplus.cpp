@@ -59,6 +59,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
 
     m_asicMaxDifficulty = 1024;
     m_asicMinDifficulty = 256;
+    m_asicMinDifficultyDualPool = 128;
 
 #ifdef NERDQAXEPLUS
     m_theme = new ThemeNerdqaxeplus();

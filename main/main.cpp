@@ -33,7 +33,8 @@
 #include "otp/otp.h"
 #include "ping_task.h"
 #include "serial.h"
-#include "stratum_task.h"
+#include "stratum/stratum_manager_fallback.h"
+#include "stratum/stratum_manager_dual_pool.h"
 #include "system.h"
 #include "wifi_health.h"
 #include "guards.h"
@@ -45,7 +46,7 @@ System SYSTEM_MODULE;
 PowerManagementTask POWER_MANAGEMENT_MODULE;
 HashrateMonitor HASHRATE_MONITOR;
 
-StratumManager STRATUM_MANAGER;
+StratumManager *STRATUM_MANAGER = nullptr;
 APIsFetcher APIs_FETCHER;
 FactoryOTAUpdate FACTORY_OTA_UPDATER;
 
@@ -142,6 +143,19 @@ void initWatchdog()
     esp_err_t result = esp_task_wdt_init(&wdt_config);
     if (result != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize watchdog: %d\n", result);
+    }
+}
+
+StratumManager* newStratumManager() {
+    int mode = (int) Config::getPoolMode();
+    switch (mode) {
+    case 0:
+        return new StratumManagerFallback();
+    case 1:
+        return new StratumManagerDualPool();
+    default:
+        ESP_LOGE(TAG, "invalid pool mode %d", (int) mode);
+        return nullptr;
     }
 }
 
@@ -242,6 +256,15 @@ extern "C" void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(60 * 60 * 1000));
     }
 
+    STRATUM_MANAGER = newStratumManager();
+
+    if (!STRATUM_MANAGER) {
+        ESP_LOGE(TAG, "stratumManager is null! main task suspended.");
+        vTaskSuspend(NULL);
+    }
+
+    STRATUM_MANAGER->loadSettings();
+
     xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
     xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
 
@@ -279,16 +302,13 @@ extern "C" void app_main(void)
         }
         POWER_MANAGEMENT_MODULE.unlock();
 
-        TaskHandle_t stratum_manager_handle;
-
-        xTaskCreate(STRATUM_MANAGER.taskWrapper, "stratum manager", 8192, (void *) &STRATUM_MANAGER, 5, &stratum_manager_handle);
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
         xTaskCreate(APIs_FETCHER.taskWrapper, "apis ticker", 4096, (void *) &APIs_FETCHER, 5, NULL);
-        xTaskCreate(ping_task, "ping task", 4096, NULL, 1, NULL);
         xTaskCreate(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
         xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 4096, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
+        xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, NULL);
 
         if (board->hasHashrateCounter()) {
             HASHRATE_MONITOR.start(board, board->getAsics());

@@ -1,8 +1,7 @@
-import { HttpClient, HttpEventType } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of, switchMap } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
-
+import { Observable, EMPTY } from 'rxjs';
+import { map, switchMap, expand, scan, takeWhile, last } from 'rxjs/operators';
 
 interface GithubAsset {
   id: number;
@@ -42,36 +41,89 @@ export enum UpdateStatus {
 })
 export class GithubUpdateService {
 
+  private readonly baseReleasesUrl =
+    'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases';
+
   constructor(
     private httpClient: HttpClient
   ) { }
 
+  /** Fetch a single page of releases */
+  private fetchReleasePage(page: number, perPage = 50): Observable<GithubRelease[]> {
+    const url = `${this.baseReleasesUrl}?per_page=${perPage}&page=${page}`;
+    return this.httpClient.get<GithubRelease[]>(url);
+  }
 
-  /** Fetch releases with optional inclusion of pre-releases / -rc */
+  /**
+   * Fetch releases of ONE type (stable or prerelease) until we have
+   * at least `targetCount` items or there are no more pages.
+   */
+  private loadReleasesOfType(
+    includePrereleases: boolean,
+    targetCount = 10,
+    maxPages = 10,
+    perPage = 50
+  ): Observable<GithubRelease[]> {
+    const isStable = (r: GithubRelease) =>
+      !r.prerelease && !r.tag_name.includes('-rc');
+
+    const isPre = (r: GithubRelease) =>
+      r.prerelease || r.tag_name.includes('-rc');
+
+    const matchesType = includePrereleases ? isPre : isStable;
+
+    // start with page 1
+    return this.fetchReleasePage(1, perPage).pipe(
+      expand((releases, index) => {
+        const nextPage = index + 2; // index starts at 0 (page 1)
+        const isLastPage = releases.length < perPage;
+        const reachedMaxPages = nextPage > maxPages;
+
+        if (isLastPage || reachedMaxPages) {
+          return EMPTY;
+        }
+
+        return this.fetchReleasePage(nextPage, perPage);
+      }),
+      // accumulate only matching releases
+      scan((acc, releases) => {
+        const filtered = releases.filter(matchesType);
+        return acc.concat(filtered);
+      }, [] as GithubRelease[]),
+      // solange weiter sammeln, bis wir genug haben
+      takeWhile(acc => acc.length < targetCount, true),
+      // am Ende letztes akkumuliertes Array liefern
+      last(),
+      // auf gewünschte Anzahl begrenzen
+      map(acc => acc.slice(0, targetCount))
+    );
+  }
+
+  /**
+   * Fetch either:
+   *  - up to 10 stable releases (includePrereleases = false)
+   *  - up to 10 prereleases (includePrereleases = true)
+   *
+   * Es werden mehrere Seiten geladen, bis genug Releases vom gewünschten Typ
+   * gefunden wurden oder keine Releases mehr da sind.
+   */
   public getReleases(includePrereleases = false): Observable<GithubRelease[]> {
-    const all$ = this.httpClient.get<GithubRelease[]>(
-      'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases'
-    );
-
     const latest$ = this.httpClient.get<GithubRelease>(
-      'https://api.github.com/repos/shufps/ESP-Miner-NerdQAxePlus/releases/latest'
+      `${this.baseReleasesUrl}/latest`
     );
 
-    return all$.pipe(
+    const selected$ = this.loadReleasesOfType(includePrereleases, 10, 10, 50);
+
+    return selected$.pipe(
       switchMap((releases: GithubRelease[]) =>
         latest$.pipe(
-          map((latest) => {
-            const filtered = includePrereleases
-              ? releases
-              : releases.filter(r => !r.prerelease && !r.tag_name.includes('-rc'));
-
-            // mark the latest release
-            return filtered.slice(0, 10).map(r => ({
+          map((latest) =>
+            releases.map(r => ({
               ...r,
               body: r.body || '',
-              isLatest: r.id === latest.id,
-            }));
-          })
+              isLatest: !includePrereleases && r.id === latest.id
+            }))
+          )
         )
       )
     );

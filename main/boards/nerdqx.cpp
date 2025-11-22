@@ -59,8 +59,9 @@ NerdQX::NerdQX() : NerdQaxePlus2() {
     m_maxVin = 12.7;
     m_minVin = 11.7;
 
-    m_asicMinDifficulty = 2048;
-    m_asicMaxDifficulty = 8192;
+    m_asicMaxDifficulty = 4096;
+    m_asicMinDifficulty = 1024;
+    m_asicMinDifficultyDualPool = 256;
 
 #ifdef NERDQX
     m_theme = new ThemeNerdqx();

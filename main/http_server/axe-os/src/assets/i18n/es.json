@@ -63,7 +63,8 @@
     "HASHRATE_1M": "Hashrate (1 min)",
     "HASHRATE_10M": "Hashrate (10 min)",
     "HASHRATE_1H": "Hashrate (1 h)",
-    "HASHRATE_1D": "Hashrate (1 d)"
+    "HASHRATE_1D": "Hashrate (1 d)",
+    "SHARE_TOO_SMALL": "Porcentaje para este pool demasiado bajo!"
   },
   "PERFORMANCE": {
     "TITLE": "Rendimiento",
@@ -128,7 +129,13 @@
     "DEFAULT": "predeterminado",
     "TIME_FORMAT": "Formato de Hora",
     "TIME_FORMAT_24H": "Formato 24 horas",
-    "TIME_FORMAT_12H": "Formato 12 horas (AM/PM)"
+    "TIME_FORMAT_12H": "Formato 12 horas (AM/PM)",
+    "POOL_MODE": "Modo de pool",
+    "POOL_MODE_FAILOVER": "Failover (primario/secundario)",
+    "POOL_MODE_DUAL": "Pool dual",
+    "POOL_BALANCE": "Balance de pool",
+    "POOL_BALANCE_HINT": "Distribuye trabajos entre el pool primario y el secundario, p. ej., 70/30.",
+    "STRATUM": "Configuración de Stratum"
   },
   "SYSTEM": {
     "TITLE": "Información del Sistema",
