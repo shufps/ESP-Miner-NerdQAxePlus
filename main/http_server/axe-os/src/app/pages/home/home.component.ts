@@ -536,6 +536,11 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   public poolBadgeStatus(): string {
     const stratum = this._info.stratum;
+
+    if (stratum === undefined) {
+      return "warning";
+    }
+
     const pool = stratum.pools[0];
 
     if (!pool.connected) {
@@ -557,6 +562,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   public poolBadgeLabel(): string {
     const stratum = this._info.stratum;
+
+    if (stratum === undefined) {
+      return this.translateService.instant('HOME.DISCONNECTED');
+    }
     const pool = stratum.pools[0];
 
     if (!pool.connected) {
@@ -620,8 +629,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     // failover logic, "current" pool
     if (i === undefined) {
-      const useFallback = !!stratum.usingFallback;
-      const base = stratum.pools[useFallback ? 1 : 0];
+      const useFallback = stratum?.usingFallback ?? false;
+      const base = stratum?.pools[useFallback ? 1 : 0] ?? {};
 
       return {
         ...base,
@@ -643,7 +652,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   public getPoolCardIndices(): (0 | 1 | undefined)[] {
-    return this._info.stratum.activePoolMode === 0 ? [undefined] : [0, 1];
+    return (this._info.stratum?.activePoolMode ?? 0) === 0 ? [undefined] : [0, 1];
   }
 
 
@@ -688,8 +697,14 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   public rejectRate(id: number) {
-    const rejected = this._info.stratum.pools[id].rejected;
-    const accepted = this._info.stratum.pools[id].accepted;
+    const stratum = this._info.stratum;
+
+    if (stratum === undefined) {
+      return 0;
+    }
+
+    const rejected = stratum.pools[id].rejected;
+    const accepted = stratum.pools[id].accepted;
 
     if (accepted == 0 && rejected == 0) {
       return 0.0;
