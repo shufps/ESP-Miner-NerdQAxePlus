@@ -107,21 +107,16 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
     JsonObject stratum_obj = doc["stratum"].to<JsonObject>();
 
-    if (STRATUM_MANAGER && STRATUM_MANAGER->isInitialized()) {
-        // kept for compatibility
-        doc["poolDifficulty"]     = STRATUM_MANAGER->getPoolDifficulty();
-        doc["foundBlocks"]        = STRATUM_MANAGER->getFoundBlocks();
-        doc["totalFoundBlocks"]   = STRATUM_MANAGER->getTotalFoundBlocks();
-        doc["sharesAccepted"]     = STRATUM_MANAGER->getSharesAccepted();
-        doc["sharesRejected"]     = STRATUM_MANAGER->getSharesRejected();
-        doc["bestDiff"]           = STRATUM_MANAGER->getBestDiffString();
-        doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiffString();
-        doc["isUsingFallbackStratum"] = STRATUM_MANAGER->isUsingFallback();
-        doc["isStratumConnected"] = STRATUM_MANAGER->isAnyConnected();
-        doc["numConnected"]       = STRATUM_MANAGER->getNumConnectedPools();
+    // kept for swarm compatibility
+    doc["poolDifficulty"]     = STRATUM_MANAGER->getPoolDifficulty();
+    doc["foundBlocks"]        = STRATUM_MANAGER->getFoundBlocks();
+    doc["totalFoundBlocks"]   = STRATUM_MANAGER->getTotalFoundBlocks();
+    doc["sharesAccepted"]     = STRATUM_MANAGER->getSharesAccepted();
+    doc["sharesRejected"]     = STRATUM_MANAGER->getSharesRejected();
+    doc["bestDiff"]           = STRATUM_MANAGER->getBestDiffString();
+    doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiffString();
 
-        STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
-    }
+    STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
 
     // asic temps
     {

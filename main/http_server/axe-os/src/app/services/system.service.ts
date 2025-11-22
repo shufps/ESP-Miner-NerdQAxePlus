@@ -55,8 +55,6 @@ const defaultInfo: ISystemInfo = {
   fallbackStratumPort: 3333,
   fallbackStratumUser: "",
   fallbackStratumEnonceSubscribe: 0,
-  isUsingFallbackStratum: false,
-  isStratumConnected: false,
   frequency: 485,
   defaultFrequency: 485,
   version: "2.0",
@@ -82,6 +80,7 @@ const defaultInfo: ISystemInfo = {
 
   stratum: {
     poolMode: 0, // prim/fb
+    activePoolMode: 0,
     //poolBalance: 100,
     usingFallback: false,
     totalBestDiff: 0,
@@ -96,10 +95,6 @@ const defaultInfo: ISystemInfo = {
       pingLoss: 0,
     }],
   },
-
-  poolMode: 0,
-  poolBalance: 50,
-  numConnected: 0,
 
   otp: false,
 

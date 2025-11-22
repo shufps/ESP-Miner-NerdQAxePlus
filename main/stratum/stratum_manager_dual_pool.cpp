@@ -156,10 +156,6 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
 {
     PThreadGuard lock(m_mutex);
 
-    if (!isInitialized()) {
-        return;
-    }
-
     StratumManager::getManagerInfoJson(obj);
 
     // dual pool specific
@@ -170,13 +166,13 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
     for (int i = 0; i < 2; i++) {
         JsonObject pool = arr.add<JsonObject>();
 
-        pool["connected"] = m_stratumTasks[i]->m_isConnected;
+        pool["connected"] = m_stratumTasks[i] ? m_stratumTasks[i]->m_isConnected : false;
         pool["poolDifficulty"] = m_poolDifficulty[i];
         pool["poolDiffErr"] = m_poolDiffErr[i];
         pool["accepted"] = m_accepted[i];
         pool["rejected"] = m_rejected[i];
+        pool["pingRtt"]  = m_pingTasks[i] ? m_pingTasks[i]->get_last_ping_rtt() : 0;
+        pool["pingLoss"] = m_pingTasks[i] ? m_pingTasks[i]->get_recent_ping_loss() : 0;
         pool["bestDiff"] = m_bestSessionDiff[i];
-        pool["pingRtt"]  = m_pingTasks[i]->get_last_ping_rtt();
-        pool["pingLoss"] = m_pingTasks[i]->get_recent_ping_loss();
     }
 }
