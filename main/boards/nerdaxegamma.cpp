@@ -51,6 +51,7 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
 
     m_asicMaxDifficulty = 2048;
     m_asicMinDifficulty = 512;
+    m_asicMinDifficultyDualPool = 256;
 
 #ifdef NERDAXEGAMMA
     m_theme = new ThemeNerdaxegamma();

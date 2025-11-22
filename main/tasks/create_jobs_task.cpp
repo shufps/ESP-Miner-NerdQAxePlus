@@ -231,7 +231,7 @@ void *create_jobs_task(void *pvParameters)
     }
 
     uint32_t last_asic_diff = 0;
-    uint32_t last_ntime = 0;
+    uint32_t last_ntime[2]{0};
     uint64_t last_submit_time = 0;
     uint32_t extranonce_2 = 0;
 
@@ -275,8 +275,8 @@ void *create_jobs_task(void *pvParameters)
                 continue;
             }
 
-            if (last_ntime != mi->current_job->ntime) {
-                last_ntime = mi->current_job->ntime;
+            if (last_ntime[active_pool] != mi->current_job->ntime) {
+                last_ntime[active_pool] = mi->current_job->ntime;
                 ESP_LOGI(TAG, "(%s) New Work Received %s", active_pool_str, mi->current_job->job_id);
             }
 
@@ -303,8 +303,7 @@ void *create_jobs_task(void *pvParameters)
             next_job->extranonce2 = strdup(extranonce_2_str);
             next_job->pool_diff = mi->active_stratum_difficulty;
             next_job->pool_id = active_pool;
-            next_job->asic_diff = STRATUM_MANAGER->selectAsicDiff(active_pool, mi->active_stratum_difficulty,
-                                                                  board->getAsicMinDifficulty(), board->getAsicMaxDifficulty());
+            next_job->asic_diff = STRATUM_MANAGER->selectAsicDiff(active_pool, mi->active_stratum_difficulty);
         } // mutex
 
         // set asic difficulty

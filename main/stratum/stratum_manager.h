@@ -117,7 +117,7 @@ class StratumManager {
 
     virtual int getNextActivePool() = 0;
 
-    virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax) = 0;
+    virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff) = 0;
 
     virtual void checkForBestDiff(int pool, double diff, uint32_t nbits) = 0;
 

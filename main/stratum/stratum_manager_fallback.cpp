@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include "global_state.h"
 #include "create_jobs_task.h"
 #include "macros.h"
 #include "stratum_manager_fallback.h"
@@ -99,8 +100,13 @@ int StratumManagerFallback::getCurrentPoolPort()
     return m_stratumTasks[m_selected]->getPort();
 }
 
-uint32_t StratumManagerFallback::selectAsicDiff(int pool, uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax)
+uint32_t StratumManagerFallback::selectAsicDiff(int pool, uint32_t poolDiff)
 {
+    Board *board = SYSTEM_MODULE.getBoard();
+    uint32_t asicMax = board->getAsicMaxDifficulty();
+    uint32_t asicMin = board->getAsicMinDifficulty();
+
+    Asic *asics = board->getAsics();
     return std::max(std::min(poolDiff, asicMax), asicMin);
 }
 
@@ -139,7 +145,6 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
 
     JsonArray arr = obj["pools"].to<JsonArray>();
 
-    // Objekt IM Array erzeugen, nicht lokal
     JsonObject pool = arr.add<JsonObject>();
 
     pool["connected"] = m_stratumTasks[m_selected] ? m_stratumTasks[m_selected]->m_isConnected : false;

@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include "global_state.h"
 #include "create_jobs_task.h"
 #include "macros.h"
 #include "nvs_config.h"
@@ -92,8 +93,12 @@ int StratumManagerDualPool::getCurrentPoolPort()
     return 0;
 }
 
-uint32_t StratumManagerDualPool::selectAsicDiff(int pool, uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax)
+uint32_t StratumManagerDualPool::selectAsicDiff(int pool, uint32_t poolDiff)
 {
+    Board *board = SYSTEM_MODULE.getBoard();
+    uint32_t asicMax = board->getAsicMaxDifficulty();
+    uint32_t asicMin = board->getAsicMinDifficultyDualPool();
+
     static uint32_t poolDiffs[2] = {0xffffffffu, 0xffffffffu};
 
     // shouldn't happen

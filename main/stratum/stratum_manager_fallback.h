@@ -46,7 +46,7 @@ class StratumManagerFallback : public StratumManager {
 
     void loadSettings();
 
-    virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff, uint32_t asicMin, uint32_t asicMax);
+    virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff);
 
     virtual void checkForBestDiff(int pool, double diff, uint32_t nbits);
 
