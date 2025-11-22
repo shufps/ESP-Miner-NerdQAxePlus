@@ -281,6 +281,7 @@ void History::pushShare(int asic_nr)
     lock();
 
     m_distribution.addShare(asic_nr);
+    m_distribution.toLog();
 
     unlock();
 }

@@ -201,4 +201,8 @@ class System {
     {
         return m_startupDone;
     }
+
+    void pushShare(int nr) {
+        m_history->pushShare(nr);
+    }
 };

@@ -113,6 +113,10 @@ void ASIC_result_task(void *pvParameters)
             countDuplicateHWNonces();
         }
 
+        if (!duplicate && nonce_diff >= board->getAsicMaxDifficulty()) {
+            SYSTEM_MODULE.pushShare(asic_result.asic_nr);
+        }
+
         // send duplicates to the server (they will get rejected and counted as rejected)
         if (nonce_diff >= job->pool_diff) {
             STRATUM_MANAGER->submitShare(job->pool_id, job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
