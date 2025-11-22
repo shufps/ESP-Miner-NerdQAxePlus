@@ -536,7 +536,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   public poolBadgeStatus(): string {
     const stratum = this._info.stratum;
-    const pool = stratum.pool[0];
+    const pool = stratum.pools[0];
 
     if (!pool.connected) {
       return 'danger';
@@ -557,7 +557,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   public poolBadgeLabel(): string {
     const stratum = this._info.stratum;
-    const pool = stratum.pool[0];
+    const pool = stratum.pools[0];
 
     if (!pool.connected) {
       return this.translateService.instant('HOME.DISCONNECTED');
@@ -577,7 +577,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return `Pool ${i + 1} (${percent} %)`;
   }
 
-  public dualPoolBadgeTooltip(i: number) {
+  public dualPoolBadgeTooltip(i: 0 | 1) {
     const stratum = this._info.stratum;
     const pool = stratum.pools[i];
     const connected = pool.connected;
@@ -594,7 +594,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return this.translateService.instant('HOME.DISCONNECTED');;
   }
 
-  public dualPoolBadgeStatus(i: number) {
+  public dualPoolBadgeStatus(i: 0 | 1) {
     const pool = this._info.stratum.pools[i];
     const connected = pool.connected;
     const diffErr = pool.poolDiffErr;
@@ -610,7 +610,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return "danger";
   }
 
-  public getPoolHashrate(i: number) {
+  public getPoolHashrate(i: 0 | 1) {
     const stratum = this._info.stratum;
     return this._info.hashrate * ((i == 0) ? stratum.poolBalance : (100 - stratum.poolBalance)) / 100.0;
   }

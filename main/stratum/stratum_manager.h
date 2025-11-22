@@ -85,6 +85,8 @@ class StratumManager {
     virtual void rejectedShare(int pool) = 0;
     virtual void setPoolDifficulty(int pool, uint32_t diff) = 0;
 
+    virtual int getPoolMode() = 0;
+
   public:
     StratumManager(PoolMode mode);
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution

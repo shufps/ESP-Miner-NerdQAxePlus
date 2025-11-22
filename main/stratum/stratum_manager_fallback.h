@@ -32,6 +32,10 @@ class StratumManagerFallback : public StratumManager {
         m_rejected++;
     }
 
+    virtual int getPoolMode() {
+        return 0;
+    }
+
   public:
     StratumManagerFallback();
 
