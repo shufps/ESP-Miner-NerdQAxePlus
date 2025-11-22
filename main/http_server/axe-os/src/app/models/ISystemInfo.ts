@@ -49,8 +49,6 @@ export interface ISystemInfo {
     fallbackStratumPort: number,
     fallbackStratumUser: string,
     fallbackStratumEnonceSubscribe: number,
-    isUsingFallbackStratum: boolean,
-    isStratumConnected: boolean,
     stratumDifficulty: number,
     poolDifficulty: number,
     frequency: number,
@@ -72,9 +70,6 @@ export interface ISystemInfo {
     vrFrequency: number,
     shutdown: boolean,
 
-    poolMode: number,
-    poolBalance: number,
-    numConnected: number,
     stratum: IStratum,
 
     defaultTheme: string,

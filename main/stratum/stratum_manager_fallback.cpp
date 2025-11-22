@@ -132,10 +132,6 @@ void StratumManagerFallback::checkForBestDiff(int pool, double diff, uint32_t nb
 void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
     PThreadGuard lock(m_mutex);
 
-    if (!isInitialized()) {
-        return;
-    }
-
     StratumManager::getManagerInfoJson(obj);
 
     // fallback specific
@@ -146,13 +142,13 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
     // Objekt IM Array erzeugen, nicht lokal
     JsonObject pool = arr.add<JsonObject>();
 
-    pool["connected"] = m_stratumTasks[m_selected]->m_isConnected;
+    pool["connected"] = m_stratumTasks[m_selected] ? m_stratumTasks[m_selected]->m_isConnected : false;
     pool["poolDifficulty"] = m_poolDifficulty;
     pool["poolDiffErr"] = false;
     pool["accepted"] = m_accepted;
     pool["rejected"] = m_rejected;
-    pool["pingRtt"]  = m_pingTasks[m_selected]->get_last_ping_rtt();
-    pool["pingLoss"] = m_pingTasks[m_selected]->get_recent_ping_loss();
+    pool["pingRtt"]  = m_pingTasks[m_selected] ? m_pingTasks[m_selected]->get_last_ping_rtt() : 0;
+    pool["pingLoss"] = m_pingTasks[m_selected] ? m_pingTasks[m_selected]->get_recent_ping_loss() : 0;
     pool["bestDiff"] = m_bestSessionDiff;
 }
 

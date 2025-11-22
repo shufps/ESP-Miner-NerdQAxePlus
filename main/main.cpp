@@ -148,8 +148,6 @@ void initWatchdog()
 
 StratumManager* newStratumManager() {
     int mode = (int) Config::getPoolMode();
-
-    StratumManager *manager = nullptr;
     switch (mode) {
     case 0:
         return new StratumManagerFallback();
@@ -304,15 +302,13 @@ extern "C" void app_main(void)
         }
         POWER_MANAGEMENT_MODULE.unlock();
 
-        TaskHandle_t stratum_manager_handle;
-
-        xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, &stratum_manager_handle);
         xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
         xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
         xTaskCreate(APIs_FETCHER.taskWrapper, "apis ticker", 4096, (void *) &APIs_FETCHER, 5, NULL);
         xTaskCreate(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
         xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 4096, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
+        xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, NULL);
 
         if (board->hasHashrateCounter()) {
             HASHRATE_MONITOR.start(board, board->getAsics());

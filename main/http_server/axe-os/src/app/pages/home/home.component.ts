@@ -269,7 +269,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         info.vrTemp = parseFloat(info.vrTemp.toFixed(1));
         info.overheat_temp = parseFloat(info.overheat_temp.toFixed(1));
 
-        this.isDualPool = info.poolMode == 1;
+        this.isDualPool = (info.stratum?.activePoolMode ?? 0) === 1;
         const chipTemps = info?.asicTemps ?? [];
         this.hasChipTemps =
           Array.isArray(chipTemps) &&
@@ -643,7 +643,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   public getPoolCardIndices(): (0 | 1 | undefined)[] {
-    return this._info.stratum.poolMode === 0 ? [undefined] : [0, 1];
+    return this._info.stratum.activePoolMode === 0 ? [undefined] : [0, 1];
   }
 
 

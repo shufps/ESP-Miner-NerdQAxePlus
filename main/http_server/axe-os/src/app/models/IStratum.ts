@@ -16,6 +16,7 @@ export interface IPool {
 
 export interface IStratum {
     poolMode: number,
+    activePoolMode: number,
     poolBalance?: number, // dual-pool only
     usingFallback?: boolean, // prim/fb only
     totalBestDiff: number,
