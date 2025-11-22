@@ -10,6 +10,7 @@ import { NbThemeService } from '@nebular/theme';
 import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { LocalStorageService } from '../../services/local-storage.service';
+import { IPool } from 'src/app/models/IStratum';
 
 @Component({
   selector: 'app-home',
@@ -294,7 +295,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     );
   }
 
-  private getQuickLink(stratumURL: string, stratumUser: string): string | undefined {
+  public getQuickLink(stratumURL: string, stratumUser: string): string | undefined {
     const address = stratumUser.split('.')[0];
 
     if (stratumURL.includes('public-pool.io')) {
@@ -534,66 +535,117 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   public poolBadgeStatus(): string {
-    const mode = this._info.poolMode;          // 0 = Failover, 1 = Dual
-    const connected = this._info.numConnected ?? 0;
+    const stratum = this._info.stratum;
+    const pool = stratum.pool[0];
 
-    if (!this._info.isStratumConnected) {
+    if (!pool.connected) {
       return 'danger';
     }
 
     // Failover mode: same behavior as before
-    if (mode === 0) {
-      return this._info.isUsingFallbackStratum ? 'warning' : 'success';
-    }
+    return stratum.usingFallback ? 'warning' : 'success';
+  }
 
-    // Dual mode
-    if (mode === 1) {
-      if (connected >= 2) {
-        // both pools online
-        return 'success';
-      } else if (connected === 1) {
-        // only one of the two online -> warn
-        return 'warning';
-      } else {
-        // should not happen
-        return 'danger';
-      }
-    }
+  public getPoolPercent(idx: 0 | 1): number {
+    const balance = this._info.stratum.poolBalance ?? 50;
+    return idx === 0 ? balance : 100 - balance;
+  }
 
-    return 'basic';
+  public showPoolBadge(idx: 0 | 1): boolean {
+    return this.getPoolPercent(idx) > 0;
   }
 
   public poolBadgeLabel(): string {
-    const mode = this._info.poolMode;
-    const balance = this._info.poolBalance;
-    const connected = this._info.numConnected ?? 0;
+    const stratum = this._info.stratum;
+    const pool = stratum.pool[0];
 
-    if (mode === 0) {
-      if (!this._info.isStratumConnected) {
-        return this.translateService.instant('HOME.DISCONNECTED');
-      }
-      return this._info.isUsingFallbackStratum
-        ? this.translateService.instant('HOME.FALLBACK_POOL')
-        : this.translateService.instant('HOME.PRIMARY_POOL');
+    if (!pool.connected) {
+      return this.translateService.instant('HOME.DISCONNECTED');
     }
-
-    if (mode === 1) {
-      if (!this._info.isStratumConnected) {
-        return this.translateService.instant('HOME.DISCONNECTED');
-      }
-
-      const primary = balance ?? 50;
-      const secondary = 100 - primary;
-
-      return this.translateService.instant('HOME.DUAL_POOL_BALANCE_WITH_STATUS', {
-        primary,
-        secondary,
-        connected,
-      });
-    }
-
-    return '';
+    return stratum.usingFallback
+      ? this.translateService.instant('HOME.FALLBACK_POOL')
+      : this.translateService.instant('HOME.PRIMARY_POOL');
   }
+
+  public dualPoolBadgeLabel(i: number) {
+    const stratum = this._info.stratum;
+
+    const percent = (i == 0) ? stratum.poolBalance : (100 - stratum.poolBalance);
+    if (percent == 100) {
+      return `Pool ${i + 1}`;
+    }
+    return `Pool ${i + 1} (${percent.toFixed(2)} %)`;
+  }
+
+  public dualPoolBadgeTooltip(i: number) {
+    const stratum = this._info.stratum;
+    const pool = stratum.pools[i];
+    const connected = pool.connected;
+    const diffErr = pool.poolDiffErr;
+
+    if (diffErr) {
+      return this.translateService.instant('HOME.SHARE_TOO_SMALL');
+    }
+
+    if (connected) {
+      return this.translateService.instant('HOME.CONNECTED');
+    }
+
+    return this.translateService.instant('HOME.DISCONNECTED');;
+  }
+
+  public dualPoolBadgeStatus(i: number) {
+    const pool = this._info.stratum.pools[i];
+    const connected = pool.connected;
+    const diffErr = pool.poolDiffErr;
+
+    if (diffErr) {
+      return "warning";
+    }
+
+    if (connected) {
+      return "success";
+    }
+
+    return "danger";
+  }
+
+  public getPoolHashrate(i: number) {
+    const stratum = this._info.stratum;
+    return this._info.hashrate * ((i == 0) ? stratum.poolBalance : (100 - stratum.poolBalance)) / 100.0;
+  }
+
+  public getPoolInfo(i?: 0 | 1): IPool {
+    const stratum = this._info.stratum;
+
+    // failover logic, "current" pool
+    if (i === undefined) {
+      const useFallback = !!stratum.usingFallback;
+      const base = stratum.pools[useFallback ? 1 : 0];
+
+      return {
+        ...base,
+        host: useFallback ? this._info.fallbackStratumURL : this._info.stratumURL,
+        port: useFallback ? this._info.fallbackStratumPort : this._info.stratumPort,
+        user: useFallback ? this._info.fallbackStratumUser : this._info.stratumUser,
+      };
+    }
+
+    // explicit pool 0 / 1 (dual pool)
+    const base = stratum.pools[i];
+
+    return {
+      ...base,
+      host: i === 0 ? this._info.stratumURL : this._info.fallbackStratumURL,
+      port: i === 0 ? this._info.stratumPort : this._info.fallbackStratumPort,
+      user: i === 0 ? this._info.stratumUser : this._info.fallbackStratumUser,
+    };
+  }
+
+  public getPoolCardIndices(): (0 | 1 | undefined)[] {
+    return this._info.stratum.poolMode === 0 ? [undefined] : [0, 1];
+  }
+
 
   // edge case where chart data in the browser is not consistent
   // this happens when adding new charts

@@ -64,7 +64,7 @@
     "HASHRATE_10M": "Hashrate (10 min)",
     "HASHRATE_1H": "Hashrate (1 std)",
     "HASHRATE_1D": "Hashrate (1 Tag)",
-    "DUAL_POOL_BALANCE_WITH_STATUS": "Dual Pool {{primary}}/{{secondary}} ({{connected}}/2 online)"
+    "SHARE_TOO_SMALL": "Anteil für diesen Pool zu klein!"
   },
   "PERFORMANCE": {
     "TITLE": "Leistung",

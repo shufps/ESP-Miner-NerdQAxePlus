@@ -56,14 +56,14 @@
                 <div class="form-row" *ngIf="form.controls['poolMode'].value === 1">
                     <label class="form-label">
                         {{ 'SETTINGS.POOL_BALANCE' | translate }}<br />
-                        (P: {{ form.controls['poolBalance'].value }}% /
-                        S: {{ 100 - form.controls['poolBalance'].value }}%)
+                        ({{ form.controls['poolBalance'].value }}% /
+                        {{ 100 - form.controls['poolBalance'].value }}%)
                     </label>
                     <div class="form-control-wrapper">
                         <div class="progress-wrap">
-                            <input type="range" class="progress" formControlName="poolBalance" min="0" max="100"
-                                step="5" />
-                            <div class="progress-foreground" [style.width.%]="form.controls['poolBalance'].value">
+                            <input type="range" class="progress" formControlName="poolBalance" min="1" max="99"
+                                step="1" />
+                            <div class="progress-foreground" style="width: 100%;">
                             </div>
                         </div>
                         <small class="text-hint">
@@ -78,7 +78,7 @@
             </nb-card-body>
 
             <nb-tabset>
-                <nb-tab [tabTitle]="'SETTINGS.PRIMARY_STRATUM_POOL' | translate">
+                <nb-tab [tabTitle]="poolTabHeader(0)">
                     <nb-card-body>
                         <div class="form-row">
                             <label for="stratumURL" class="form-label">{{ 'SETTINGS.STRATUM_HOST' | translate
@@ -125,7 +125,7 @@
                 </nb-tab>
 
                 <nb-tab
-                    [tabTitle]="((form?.get('poolMode')?.value === 1) ? 'SETTINGS.SECONDARY_STRATUM_POOL' : 'SETTINGS.FALLBACK_STRATUM_POOL'  ) | translate">
+                    [tabTitle]="poolTabHeader(1)">
                     <nb-card-body>
                         <div class="form-row">
                             <label for="fallbackStratumURL" class="form-label">{{ 'SETTINGS.STRATUM_HOST' | translate
