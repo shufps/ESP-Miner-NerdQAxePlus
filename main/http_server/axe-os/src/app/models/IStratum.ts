@@ -7,6 +7,11 @@ export interface IPool {
     bestDiff: number,
     pingRtt: number,
     pingLoss: number,
+    // for compatibility reasons only transient here
+    // to not have duplicated data in the info endpoint
+    host?: string,
+    port?: number,
+    user?: string,
 };
 
 export interface IStratum {

@@ -9,6 +9,7 @@ import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
 import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 import { TranslateService } from '@ngx-translate/core';
+import { IStratum } from 'src/app/models/IStratum';
 
 enum SupportLevel { Safe = 0, Advanced = 1, Pro = 2 }
 
@@ -47,9 +48,10 @@ export class EditComponent implements OnInit {
   public otpEnabled = false;
   private pendingTotp: string | undefined;
 
-  // NEW: the “raw” options from the /asic endpoint
   private asicFrequencyValues: number[] = [];
   private asicVoltageValues: number[] = [];
+
+  private stratum : IStratum = null;
 
   private rebootRequiredFields = new Set<string>([
     'flipscreen',
@@ -92,6 +94,9 @@ export class EditComponent implements OnInit {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(({ info, asic }) => {
         this.originalSettings = structuredClone(info);
+
+        // nasty work around
+        this.originalSettings["poolMode"] = info.stratum.poolMode;
 
         this.otpEnabled = !!info.otp;
 
@@ -225,6 +230,8 @@ export class EditComponent implements OnInit {
           ]],
           otpEnabled: [info.otp],
         });
+
+        this.stratum = info.stratum;
 
         this.form.controls['autofanspeed'].valueChanges
           .pipe(startWith(this.form.controls['autofanspeed'].value))
@@ -477,6 +484,16 @@ export class EditComponent implements OnInit {
           this.toastrService.danger('Error.', `Could not save. ${err.message}`);
         }
       });
+  }
+
+  public poolTabHeader(i: 0 | 1) {
+    if (this.form?.get("poolMode")?.value == 0) {
+      if (i == 0) {
+        return this.translate.instant('SETTINGS.PRIMARY_STRATUM_POOL');
+      }
+      return this.translate.instant('SETTINGS.SECONDARY_STRATUM_POOL');
+    }
+    return `Pool ${i + 1}`;
   }
 }
 

@@ -101,9 +101,7 @@ uint32_t StratumManagerDualPool::selectAsicDiff(int pool, uint32_t poolDiff, uin
         return asicMax;
     }
 
-    if (poolDiff < asicMin) {
-        m_poolDiffErr[pool] = true;
-    }
+    m_poolDiffErr[pool] = poolDiff < asicMin;
 
     poolDiffs[pool] = poolDiff;
 
