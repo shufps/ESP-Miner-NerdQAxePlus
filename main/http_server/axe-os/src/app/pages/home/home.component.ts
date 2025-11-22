@@ -574,7 +574,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     if (percent == 100) {
       return `Pool ${i + 1}`;
     }
-    return `Pool ${i + 1} (${percent.toFixed(2)} %)`;
+    return `Pool ${i + 1} (${percent} %)`;
   }
 
   public dualPoolBadgeTooltip(i: number) {
