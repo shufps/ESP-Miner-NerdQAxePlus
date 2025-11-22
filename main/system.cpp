@@ -186,6 +186,8 @@ void System::checkForBestDiff(double diff, uint32_t nbits) {
     m_bestNonceDiff = (uint64_t)diff;
 
     Config::setBestDiff(m_bestNonceDiff);
+    Config::flush_nvs_changes();
+    ESP_LOGI(TAG, "New best diff flushed to NVS");
 
     // Make the best_nonce_diff into a string
     suffixString((uint64_t)diff, m_bestDiffString, DIFF_STRING_SIZE, 0);

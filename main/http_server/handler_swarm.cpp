@@ -39,6 +39,8 @@ esp_err_t PATCH_update_swarm(httpd_req_t *req)
     buf[total_len] = '\0';
 
     Config::setSwarmConfig(buf);
+    Config::flush_nvs_changes();  // Ensure Swarm config is written to flash
+    ESP_LOGI(TAG, "Swarm config flushed to NVS");
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }

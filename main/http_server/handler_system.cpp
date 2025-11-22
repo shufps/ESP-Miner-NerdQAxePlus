@@ -335,6 +335,10 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
 
     doc.clear();
 
+    // Apply all changes to NVS in one go
+    Config::flush_nvs_changes();
+    ESP_LOGI(TAG, "Configuration changes flushed to NVS");
+
     // Signal the end of the response
     httpd_resp_send_chunk(req, NULL, 0);
 

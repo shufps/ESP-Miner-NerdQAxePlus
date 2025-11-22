@@ -191,6 +191,9 @@ extern "C" void app_main(void)
     // shows and saves last reset reason
     esp_reset_reason_t reason = SYSTEM_MODULE.showLastResetReason();
 
+    // initialize cache and mutex for config
+    Config::init_cache();
+
     // migrate config
     Config::migrate_config();
 
@@ -226,7 +229,6 @@ extern "C" void app_main(void)
     // fan and serial and load settings from nvs
     board->loadSettings();
     board->initBoard();
-
 
     SYSTEM_MODULE.setBoard(board);
 
