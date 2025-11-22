@@ -94,3 +94,23 @@ export interface ISystemInfo {
 
     otp: boolean,
 }
+
+// fields swam is using
+export interface ISwarmInfo {
+    power: number,
+    voltage: number,
+    temp: number,
+    vrTemp: number,
+    bestDiff: string,
+    bestSessionDiff: string,
+    hostname: string,
+    hostip: string,
+    sharesAccepted: number,
+    sharesRejected: number,
+    uptimeSeconds: number,
+    asicCount: number,
+    ASICModel: eASICModel,
+    deviceModel: string,
+    poolDifficulty: number,
+    version: string,
+}
