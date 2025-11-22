@@ -491,7 +491,7 @@ export class EditComponent implements OnInit {
       if (i == 0) {
         return this.translate.instant('SETTINGS.PRIMARY_STRATUM_POOL');
       }
-      return this.translate.instant('SETTINGS.SECONDARY_STRATUM_POOL');
+      return this.translate.instant('SETTINGS.FALLBACK_POOL');
     }
     return `Pool ${i + 1}`;
   }
