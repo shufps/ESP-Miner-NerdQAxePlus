@@ -266,20 +266,24 @@ void StratumManager::loadSettings(bool reconnect)
 
     suffixString(m_totalBestDiff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
 
+    // init with the reconnect flag from the child class
+    bool requiresReconnect[2] = {reconnect, reconnect};
+
+    // load and compare config
     for (int i=0; i<2; i++) {
         StratumConfig tmp = StratumConfig::read(i);
         if (!m_stratumConfig[i].isEqual(tmp)) {
-            reconnect = true;
+            requiresReconnect[i] = true;
         }
         m_stratumConfig[i] = tmp; // deep copy!
 
     }
 
-    if (!reconnect) {
-        return;
-    }
-
+    // reconnect the pools with changed configs
     for (int i=0;i<2;i++) {
+        if (!requiresReconnect[i]) {
+            continue;
+        }
         // trigger a reconnect
         if (m_stratumTasks[i]) {
             m_stratumTasks[i]->triggerReconnect();

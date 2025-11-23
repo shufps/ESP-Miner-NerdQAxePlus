@@ -81,7 +81,7 @@ void ASIC_result_task(void *pvParameters)
 
         bm_job *job = asicJobs.getClone(asic_job_id);
         if (!job) {
-            ESP_LOGI(TAG, "Invalid job id found, 0x%02X", asic_job_id);
+            //ESP_LOGI(TAG, "Invalid job id found, 0x%02X", asic_job_id);
             continue;
         }
 

@@ -55,7 +55,7 @@ int is_socket_connected(int socket)
 StratumTask::StratumTask(StratumManager *manager, int index)
     : m_manager(manager), m_index(index)
 {
-    if (m_config.isPrimary()) {
+    if (!index) {
         m_tag = "stratum task (Pri)";
     } else {
         m_tag = "stratum task (Sec)";

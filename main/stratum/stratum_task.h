@@ -32,7 +32,7 @@ class StratumTask {
 
     int m_sock = -1; ///< Socket for the Stratum connection
 
-    bool m_stopFlag = false;    ///< Stop flag for the task
+    bool m_stopFlag = true;    ///< Stop flag for the task
     bool m_firstJob = true;
     bool m_validNotify = false; // flag if the mining notify is valid
     int m_poolErrors = 0;
