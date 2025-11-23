@@ -256,20 +256,21 @@ const StratumConfig StratumManager::getStratumConfig(int i) {
     PThreadGuard lock(m_mutex);
 
     // returns a copy via copy constructor
-    return m_stratumTasks[i]->m_config;
+    return m_stratumConfig[i];
 }
 
-void StratumManager::loadSettings()
+void StratumManager::loadSettings(bool reconnect)
 {
-    PThreadGuard lock(m_mutex);
-
     m_totalBestDiff = Config::getBestDiff();
     m_totalFoundBlocks = Config::getTotalFoundBlocks();
 
     for (int i=0; i<2; i++) {
         StratumConfig tmp = StratumConfig::read(i);
-        if (!m_stratumConfig[i].isEqual(tmp)) {
-            m_stratumConfig[i] = tmp; // deep copy!
+        if (!reconnect && m_stratumConfig[i].isEqual(tmp)) {
+            continue;
+        }
+        m_stratumConfig[i] = tmp; // deep copy!
+        if (m_stratumTasks[i]) {
             m_stratumTasks[i]->triggerReconnect();
         }
     }
@@ -278,10 +279,9 @@ void StratumManager::loadSettings()
 }
 
 void StratumManager::saveSettings(const JsonDocument &doc) {
-    // ensure consistency!
-    PThreadGuard lock(m_mutex);
-
-    // Update settings if each key exists in the JSON object.
+    if (doc["poolMode"].is<uint16_t>()) {
+        Config::setPoolMode(doc["poolMode"].as<uint16_t>());
+    }
     if (doc["stratumURL"].is<const char*>()) {
         Config::setStratumURL(doc["stratumURL"].as<const char*>());
     }

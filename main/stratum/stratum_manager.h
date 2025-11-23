@@ -103,11 +103,12 @@ class StratumManager {
     bool isAnyConnected();
     int getNumConnectedPools();
 
-    void saveSettings(const JsonDocument &doc);
 
     virtual void getManagerInfoJson(JsonObject &obj);
 
-    virtual void loadSettings();
+    virtual void loadSettings() = 0;
+    virtual void loadSettings(bool reconnect);
+    virtual void saveSettings(const JsonDocument &doc);
 
     virtual bool isUsingFallback() {
         return false;

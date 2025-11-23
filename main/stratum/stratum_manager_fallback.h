@@ -44,13 +44,15 @@ class StratumManagerFallback : public StratumManager {
 
     virtual int getNextActivePool();
 
-    void loadSettings();
 
     virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff);
 
     virtual void checkForBestDiff(int pool, double diff, uint32_t nbits);
 
     virtual void getManagerInfoJson(JsonObject &obj);
+
+    virtual void loadSettings();
+    virtual void saveSettings(const JsonDocument &doc);
 
     // aggregated compatibility methos
     virtual uint64_t getSharesAccepted() {

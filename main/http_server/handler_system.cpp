@@ -306,14 +306,6 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
 #endif
 
-    if (doc["poolMode"].is<uint16_t>()) {
-        Config::setPoolMode(doc["poolMode"].as<uint16_t>());
-    }
-
-    if (doc["poolBalance"].is<uint16_t>()) {
-        Config::setPoolBalance(doc["poolBalance"].as<uint16_t>());
-    }
-
     // save stratum settings
     STRATUM_MANAGER->saveSettings(doc);
 

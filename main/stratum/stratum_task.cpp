@@ -358,6 +358,9 @@ void StratumTask::taskWrapper(void *pvParameters)
 
 void StratumTask::task()
 {
+    // get config
+    m_config = m_manager->getStratumConfig(m_index);
+
     // Start the reconnect timer
     startReconnectTimer();
 
