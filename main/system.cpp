@@ -217,8 +217,6 @@ void System::task() {
 
     m_display->miningScreen();
 
-    uint8_t countCycle = 10;
-
     char lastIpAddress[20] = {0};
 
     // show initial 0.0.0.0

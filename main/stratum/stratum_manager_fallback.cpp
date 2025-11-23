@@ -106,7 +106,6 @@ uint32_t StratumManagerFallback::selectAsicDiff(int pool, uint32_t poolDiff)
     uint32_t asicMax = board->getAsicMaxDifficulty();
     uint32_t asicMin = board->getAsicMinDifficulty();
 
-    Asic *asics = board->getAsics();
     return std::max(std::min(poolDiff, asicMax), asicMin);
 }
 

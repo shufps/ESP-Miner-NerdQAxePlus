@@ -26,7 +26,7 @@ pthread_mutex_t current_stratum_job_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 class MiningInfo {
   public:
-    mining_notify *current_job;
+    mining_notify *current_job = nullptr;
 
     char *extranonce_str = nullptr;
     int extranonce_2_len = 0;
@@ -49,13 +49,13 @@ class MiningInfo {
         version_mask = mask;
     }
 
-    bool set_difficulty(uint32_t diffituly)
+    bool set_difficulty(uint32_t difficulty)
     {
         // new difficulty?
-        bool is_new = stratum_difficulty != diffituly;
+        bool is_new = stratum_difficulty != difficulty;
 
         // set difficulty
-        stratum_difficulty = diffituly;
+        stratum_difficulty = difficulty;
         return is_new;
     }
 
@@ -141,8 +141,7 @@ void create_job_set_version_mask(int pool, uint32_t mask)
 bool create_job_set_difficulty(int pool, uint32_t difficulty)
 {
     PThreadGuard g(current_stratum_job_mutex);
-    bool is_new = miningInfo[pool].set_difficulty(difficulty);
-    return is_new;
+    return miningInfo[pool].set_difficulty(difficulty);
 }
 
 void create_job_set_enonce(int pool, char *enonce, int enonce2_len)
@@ -157,10 +156,15 @@ void set_next_enonce(int pool, char *enonce, int enonce2_len)
     miningInfo[pool].set_next_enonce(enonce, enonce2_len);
 }
 
-void create_job_mining_notify(int pool, mining_notify *notify)
+void create_job_mining_notify(int pool, mining_notify *notify, bool abandonWork)
 {
     {
         PThreadGuard g(current_stratum_job_mutex);
+        // clear jobs for pool
+        if (abandonWork) {
+            int deleted = asicJobs.cleanJobs(pool);
+            ESP_LOGI(TAG, "%d jobs deleted from queue %d", deleted, pool);
+        }
         miningInfo[pool].create_job_mining_notify(notify);
     }
     trigger_job_creation();
@@ -171,41 +175,6 @@ void create_job_invalidate(int pool)
     PThreadGuard g(current_stratum_job_mutex);
     miningInfo[pool].invalidate();
 }
-
-/*
-int pick_pool_dual_dithered(int primary_pct)
-{
-    int secondary_pct = 100 - primary_pct;
-
-    bool valid0 = miningInfo[PRIMARY].current_job->ntime != 0;
-    bool valid1 = miningInfo[SECONDARY].current_job->ntime != 0;
-
-    // fast paths: only one pool has valid work
-    if (valid0 && !valid1) {
-        s_error_accum = 0; // reset drift so wir nicht "Schuld" ansammeln
-        return PRIMARY;
-    }
-    if (!valid0 && valid1) {
-        s_error_accum = 0;
-        return SECONDARY;
-    }
-    if (!valid0 && !valid1) {
-        // nobody valid -> doesn't matter, but don't explode error
-        s_error_accum = 0;
-        return PRIMARY;
-    }
-
-    // dithering logic
-    s_error_accum += secondary_pct; // accumulate pressure for SECONDARY
-
-    if (s_error_accum >= 100) {
-        // time to give SECONDARY a turn
-        s_error_accum -= 100;
-        return SECONDARY;
-    }
-    return PRIMARY;
-}
-*/
 
 void *create_jobs_task(void *pvParameters)
 {
@@ -230,7 +199,6 @@ void *create_jobs_task(void *pvParameters)
         return NULL;
     }
 
-    uint32_t last_asic_diff = 0;
     uint32_t last_ntime[2]{0};
     uint64_t last_submit_time = 0;
     uint32_t extranonce_2 = 0;

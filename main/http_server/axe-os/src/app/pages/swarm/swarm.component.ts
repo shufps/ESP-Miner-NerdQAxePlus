@@ -442,4 +442,12 @@ export class SwarmComponent implements OnInit, OnDestroy {
     })
     .sort((a, b) => a.label.localeCompare(b.label));
   }
+
+  public isDualPoolEntry(axe: any): boolean {
+    return !!axe?.stratum
+      && axe.stratum.poolMode === 1
+      && Array.isArray(axe.stratum.pools)
+      && axe.stratum.pools.length >= 2;
+  }
+
 }

@@ -91,9 +91,13 @@
         </thead>
         <tbody>
           <ng-container *ngFor="let axe of swarm">
-            <tr>
+            @let dualPool = isDualPoolEntry(axe);
+            @let p0 = axe.stratum?.pools[0];
+            @let p1 = axe.stratum?.pools[1];
+            <tr class="base-row">
               <!-- IP with swarmColor dot -->
-              <td>
+
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <a [href]="'http://' + axe.IP" target="_blank">
                   <span class="swarm-dot" [style.background]="axe.swarmColor || 'blue'"></span>
                   {{ axe.IP }}
@@ -140,9 +144,10 @@
               <!-- Best Diff with Best Session Diff tooltip -->
               <td>
                 <div>{{ axe.bestDiff }}</div>
-                <div [nbTooltip]="'UPDATE.BEST_SESSION_DIFF' | translate" tooltipPosition="top" class="text-sm">
+                <div *ngIf="!dualPool" [nbTooltip]="'UPDATE.BEST_SESSION_DIFF' | translate" tooltipPosition="top" class="text-sm">
                   {{ axe.bestSessionDiff }}
                 </div>
+                <div *ngIf="dualPool" class="text-sm">&nbsp;</div>
               </td>
 
               <!-- Version -->
@@ -169,6 +174,22 @@
                   <nb-icon icon="trash-2-outline"></nb-icon>
                 </button>
               </td>
+            </tr>
+            <tr *ngIf="dualPool" class="dual-pool-2nd-row text-hint">
+              @let hr = axe.hashRate * 1000000000;
+              @let hr1 = hr * axe.stratum.poolBalance / 100;
+              @let hr2 = hr * (100 - axe.stratum.poolBalance) / 100;
+              <td>{{ hr1 | humanReadable }} / {{ hr2 | humanReadable }}</td>
+              <td>&nbsp;</td>
+              <td>{{ p0.accepted }} / {{ p1.accepted }}<br>{{ p0.rejected }} / {{ p1.rejected }}</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>{{ p0.poolDifficulty }} / {{ p1.poolDifficulty }}</td>
+              <td>{{ p0.bestDiff | humanReadable }} / {{ p1.bestDiff | humanReadable }}</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
             </tr>
           </ng-container>
         </tbody>

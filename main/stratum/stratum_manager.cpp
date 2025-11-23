@@ -118,12 +118,6 @@ void StratumManager::task()
     }
 }
 
-void StratumManager::cleanQueue()
-{
-    ESP_LOGI(m_tag, "Clean Jobs: clearing queue");
-    asicJobs.cleanJobs();
-}
-
 void StratumManager::freeStratumV1Message(StratumApiV1Message *message)
 {
     if (!message) {
@@ -165,16 +159,14 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     switch (m_stratum_api_v1_message.method) {
     case MINING_NOTIFY: {
-        // abandon work clears the asic job list
-        // also clear on first job
-        if (selected->m_firstJob || m_stratum_api_v1_message.should_abandon_work) {
-            cleanQueue();
-            selected->m_firstJob = false;
-        }
-        create_job_mining_notify(pool, m_stratum_api_v1_message.mining_notification);
+        create_job_mining_notify(pool, m_stratum_api_v1_message.mining_notification,
+                                 m_stratum_api_v1_message.should_abandon_work || selected->m_firstJob);
+
         if (m_stratum_api_v1_message.mining_notification->ntime) {
             m_stratumTasks[pool]->m_validNotify = true;
         }
+
+        selected->m_firstJob = false;
         break;
     }
 
@@ -281,7 +273,6 @@ void StratumManager::getManagerInfoJson(JsonObject &obj)
 {
     obj["poolMode"] = Config::getPoolMode();
     obj["activePoolMode"] = getPoolMode();
-
 
     obj["totalBestDiff"] = m_totalBestDiff;
 }
