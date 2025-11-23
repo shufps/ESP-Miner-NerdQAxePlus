@@ -73,21 +73,37 @@
 
     <nb-card-body *ngIf="swarm.length; else empty">
       <table class="swarm-table">
+        @let dp = hasDualPoolRows();
         <thead>
           <tr>
             <th>{{ 'SWARM.IP_ADDRESS' | translate }}</th>
-            <th>{{ 'SWARM.HASH_RATE' | translate }}</th>
+            <th [colSpan]="dp ? 2 : 1">{{ 'SWARM.HASH_RATE' | translate }}</th>
             <th>{{ 'SWARM.UPTIME' | translate }}</th>
-            <th>{{ 'SWARM.SHARES' | translate }}</th>
+            <th [colSpan]="dp ? 2 : 1">{{ 'SWARM.SHARES' | translate }}</th>
             <th>{{ 'SWARM.POWER' | translate }}</th>
             <th>{{ 'SWARM.TEMP' | translate }}</th>
-            <th>{{ 'SWARM.POOL_DIFF' | translate }}</th>
-            <th>{{ 'SWARM.BEST_DIFF' | translate }}</th>
+            <th [colSpan]="dp ? 2 : 1">{{ 'SWARM.POOL_DIFF' | translate }}</th>
+            <th [colSpan]="dp ? 2 : 1">{{ 'SWARM.BEST_DIFF' | translate }}</th>
             <th>{{ 'SWARM.VERSION' | translate }}</th>
             <th>&nbsp;</th>
             <th>&nbsp;</th>
             <th>&nbsp;</th>
           </tr>
+          <tr *ngIf="dp" class="dual-pool-header">
+            <td></td>
+            <td>Pool 1</td><td>Pool 2</td>
+            <td></td>
+            <td>Pool 1</td><td>Pool 2</td>
+            <td></td>
+            <td></td>
+            <td>Pool 1</td><td>Pool 2</td>
+            <td>Pool 1</td><td>Pool 2</td>
+            <td></td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+          </tr>
+
         </thead>
         <tbody>
           <ng-container *ngFor="let axe of swarm">
@@ -106,13 +122,13 @@
               </td>
 
               <!-- Hash Rate -->
-              <td>{{ axe.hashRate * 1000000000 | hashSuffix }}</td>
+              <td [colSpan]="dp ? 2 : 1">{{ axe.hashRate * 1000000000 | hashSuffix }}</td>
 
               <!-- Uptime -->
-              <td>{{ axe.uptimeSeconds | dateAgo: {intervals: 2} }}</td>
+              <td [rowSpan]="dualPool ? 2 : 1">{{ axe.uptimeSeconds | dateAgo: {intervals: 2} }}</td>
 
               <!-- Shares (Accepted & Rejected) -->
-              <td>
+              <td [colSpan]="dp ? 2 : 1">
                 <div [nbTooltip]="'UPDATE.SHARES_ACCEPTED' | translate" tooltipPosition="top">
                   {{ axe.sharesAccepted | number:'1.0-0' }}
                 </div>
@@ -122,10 +138,10 @@
               </td>
 
               <!-- Power -->
-              <td>{{ axe.power | number:'1.1-1' }} <small>W</small></td>
+              <td [rowSpan]="dualPool ? 2 : 1">{{ axe.power | number:'1.1-1' }} <small>W</small></td>
 
               <!-- Temperature (with VR temp if available) -->
-              <td>
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <div [ngClass]="{'text-orange-500': axe.temp > 68}">
                   {{ axe.temp | number:'1.0-1' }}°<small>C</small>
                 </div>
@@ -139,10 +155,10 @@
               </td>
 
               <!-- Stratum Pool Diff -->
-              <td>{{ axe.poolDifficulty | number:'1.0-0' }}</td>
+              <td [colSpan]="dp ? 2 : 1">{{ axe.poolDifficulty | number:'1.0-0' }}</td>
 
               <!-- Best Diff with Best Session Diff tooltip -->
-              <td>
+              <td [colSpan]="dp ? 2 : 1">
                 <div>{{ axe.bestDiff }}</div>
                 <div *ngIf="!dualPool" [nbTooltip]="'UPDATE.BEST_SESSION_DIFF' | translate" tooltipPosition="top" class="text-sm">
                   {{ axe.bestSessionDiff }}
@@ -151,10 +167,10 @@
               </td>
 
               <!-- Version -->
-              <td>{{ axe.version }}</td>
+              <td [rowSpan]="dualPool ? 2 : 1">{{ axe.version }}</td>
 
               <!-- Action Buttons -->
-              <td>
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <button nbButton status="warning" size="small"
                         (click)="edit(axe)"
                         [nbTooltip]="axe.supportsAsicApi ? ('UPDATE.EDIT_SETTINGS' | translate) : ('UPDATE.FIRMWARE_UPDATE_REQUIRED' | translate)"
@@ -162,34 +178,32 @@
                   <nb-icon icon="edit-outline"></nb-icon>
                 </button>
               </td>
-              <td>
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <button nbButton status="danger" size="small" (click)="restart(axe)"
                   [nbTooltip]="'UPDATE.RESTART_DEVICE' | translate" tooltipPosition="top">
                   <nb-icon icon="sync-outline"></nb-icon>
                 </button>
               </td>
-              <td>
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <button nbButton status="basic" size="small" (click)="remove(axe)"
                 [nbTooltip]="'UPDATE.REMOVE_FROM_LIST' | translate" tooltipPosition="top">
                   <nb-icon icon="trash-2-outline"></nb-icon>
                 </button>
               </td>
             </tr>
-            <tr *ngIf="dualPool" class="dual-pool-2nd-row text-hint">
+            <tr *ngIf="dualPool" class="dual-pool-2nd-row">
               @let hr = axe.hashRate * 1000000000;
               @let hr1 = hr * axe.stratum.poolBalance / 100;
               @let hr2 = hr * (100 - axe.stratum.poolBalance) / 100;
-              <td>{{ hr1 | humanReadable }} / {{ hr2 | humanReadable }}</td>
-              <td>&nbsp;</td>
-              <td>{{ p0.accepted }} / {{ p1.accepted }}<br>{{ p0.rejected }} / {{ p1.rejected }}</td>
-              <td>&nbsp;</td>
-              <td>&nbsp;</td>
-              <td>{{ p0.poolDifficulty }} / {{ p1.poolDifficulty }}</td>
-              <td>{{ p0.bestDiff | humanReadable }} / {{ p1.bestDiff | humanReadable }}</td>
-              <td>&nbsp;</td>
-              <td>&nbsp;</td>
-              <td>&nbsp;</td>
-              <td>&nbsp;</td>
+              <td class="shrink">{{ hr1 | hashSuffix }}</td>
+              <td class="shrink">{{ hr2 | hashSuffix }}</td>
+
+              <td class="shrink">{{ p0.accepted }}<br/>{{ p0.rejected }}</td>
+              <td class="shrink">{{ p1.accepted }}<br>{{ p1.rejected }}</td>
+              <td class="shrink">{{ p0.poolDifficulty }}</td>
+              <td class="shrink">{{ p1.poolDifficulty }}</td>
+              <td class="shrink">{{ p0.bestDiff | humanReadable }}</td>
+              <td class="shrink">{{ p1.bestDiff | humanReadable }}</td>
             </tr>
           </ng-container>
         </tbody>

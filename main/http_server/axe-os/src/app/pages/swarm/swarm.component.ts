@@ -96,7 +96,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
     this.form.reset();
   }
 
-  private startRefreshInterval(): void {
+  private startRefreshInterval(): void {/*
     this.refreshIntervalRef = window.setInterval(() => {
       if (!this.scanning && !this.isRefreshing) {
         this.refreshIntervalTime--;
@@ -104,7 +104,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
           this.refreshList();
         }
       }
-    }, 1000);
+    }, 1000);*/
   }
 
   private ipToInt(ip: string): number {
@@ -450,4 +450,12 @@ export class SwarmComponent implements OnInit, OnDestroy {
       && axe.stratum.pools.length >= 2;
   }
 
+  public hasDualPoolRows(): boolean {
+    for (const axe of this.swarm) {
+      if (axe.stratum !== undefined) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
