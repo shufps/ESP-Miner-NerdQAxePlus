@@ -16,7 +16,7 @@ bool StratumConfig::isEqual(const StratumConfig &other)
     ret = ret && (!strcmp(m_host, other.m_host));
     ret = ret && (m_port == other.m_port);
     ret = ret && (!strcmp(m_user, other.m_user));
-    ret = ret && (!strcmp(m_user, other.m_password));
+    ret = ret && (!strcmp(m_password, other.m_password));
     ret = ret && (m_enonceSub == other.m_enonceSub);
     return ret;
 }

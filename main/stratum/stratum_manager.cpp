@@ -264,13 +264,22 @@ void StratumManager::loadSettings(bool reconnect)
     m_totalBestDiff = Config::getBestDiff();
     m_totalFoundBlocks = Config::getTotalFoundBlocks();
 
+    suffixString(m_totalBestDiff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
+
     for (int i=0; i<2; i++) {
         StratumConfig tmp = StratumConfig::read(i);
-        if (!reconnect && m_stratumConfig[i].isEqual(tmp)) {
-            continue;
+        if (!m_stratumConfig[i].isEqual(tmp)) {
+            reconnect = true;
         }
         m_stratumConfig[i] = tmp; // deep copy!
 
+    }
+
+    if (!reconnect) {
+        return;
+    }
+
+    for (int i=0;i<2;i++) {
         // trigger a reconnect
         if (m_stratumTasks[i]) {
             m_stratumTasks[i]->triggerReconnect();
@@ -281,8 +290,6 @@ void StratumManager::loadSettings(bool reconnect)
             m_pingTasks[i]->reset();
         }
     }
-
-    suffixString(m_totalBestDiff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
 }
 
 void StratumManager::saveSettings(const JsonDocument &doc) {

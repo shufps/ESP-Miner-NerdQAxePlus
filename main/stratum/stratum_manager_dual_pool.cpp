@@ -2,7 +2,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>
-
+#include "esp_log.h"
 #include "global_state.h"
 #include "create_jobs_task.h"
 #include "macros.h"

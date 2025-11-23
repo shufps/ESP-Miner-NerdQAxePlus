@@ -287,6 +287,7 @@ export class EditComponent implements OnInit {
     form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
     if (form.wifiPass === '*****') delete form.wifiPass;
     if (form.stratumPassword === '*****') delete form.stratumPassword;
+    if (form.fallbackStratumPassword === '*****') delete form.fallbackStratumPassword;
 
     form.stratum_keep = form.stratum_keep ? 1 : 0;
 
