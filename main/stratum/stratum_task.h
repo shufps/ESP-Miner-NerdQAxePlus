@@ -7,23 +7,12 @@
 #include "lwip/inet.h"
 
 #include "stratum_api.h"
+#include "stratum_config.h"
 
 class StratumManager;
 class StratumManagerFallback;
 class StratumManagerDualPool;
 
-/**
- * @brief Configuration structure for Stratum pools
- */
-typedef struct
-{
-    bool primary;         ///< Indicates if this is the primary pool
-    const char *host;     ///< Stratum pool hostname
-    int port;             ///< Stratum pool port
-    const char *user;     ///< Stratum user credentials
-    const char *password; ///< Stratum password credentials
-    bool enonceSub;       ///< Flag is enonce subscription is enabled
-} StratumConfig;
 
 /**
  * @brief Stratum Task handles the connection and communication with a Stratum pool.
@@ -35,7 +24,7 @@ class StratumTask {
 
   protected:
     StratumManager *m_manager = nullptr; ///< Reference to the StratumManager
-    StratumConfig *m_config = nullptr;   ///< Stratum configuration for the task
+    StratumConfig m_config;
     int m_index = 0;                     ///< Index of the Stratum task (0 = primary, 1 = secondary)
 
     StratumApi m_stratumAPI;     ///< API instance for Stratum communication
@@ -43,7 +32,7 @@ class StratumTask {
 
     int m_sock = -1; ///< Socket for the Stratum connection
 
-    bool m_stopFlag = false;    ///< Stop flag for the task
+    bool m_stopFlag = true;    ///< Stop flag for the task
     bool m_firstJob = true;
     bool m_validNotify = false; // flag if the mining notify is valid
     int m_poolErrors = 0;
@@ -98,11 +87,11 @@ class StratumTask {
     }
     const char *getHost()
     {
-        return m_config ? m_config->host : "-";
+        return m_config.getHost() ? m_config.getHost() : "-";
     }
     int getPort()
     {
-        return m_config ? m_config->port : 0;
+        return m_config.getPort();
     }
     const char *getResolvedIp() const
     {
@@ -110,6 +99,6 @@ class StratumTask {
     }
 
   public:
-    StratumTask(StratumManager *manager, int index, StratumConfig *config);
+    StratumTask(StratumManager *manager, int index);
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
 };

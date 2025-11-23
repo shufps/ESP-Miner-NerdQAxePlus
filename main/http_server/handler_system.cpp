@@ -229,37 +229,6 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         return err;
     }
 
-    // Update settings if each key exists in the JSON object.
-    if (doc["stratumURL"].is<const char*>()) {
-        Config::setStratumURL(doc["stratumURL"].as<const char*>());
-    }
-    if (doc["stratumUser"].is<const char*>()) {
-        Config::setStratumUser(doc["stratumUser"].as<const char*>());
-    }
-    if (doc["stratumPassword"].is<const char*>()) {
-        Config::setStratumPass(doc["stratumPassword"].as<const char*>());
-    }
-    if (doc["stratumPort"].is<uint16_t>()) {
-        Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
-    }
-    if (doc["stratumEnonceSubscribe"].is<bool>()) {
-        Config::setStratumEnonceSubscribe(doc["stratumEnonceSubscribe"].as<bool>());
-    }
-    if (doc["fallbackStratumURL"].is<const char*>()) {
-        Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
-    }
-    if (doc["fallbackStratumUser"].is<const char*>()) {
-        Config::setStratumFallbackUser(doc["fallbackStratumUser"].as<const char*>());
-    }
-    if (doc["fallbackStratumPassword"].is<const char*>()) {
-        Config::setStratumFallbackPass(doc["fallbackStratumPassword"].as<const char*>());
-    }
-    if (doc["fallbackStratumPort"].is<uint16_t>()) {
-        Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
-    }
-    if (doc["fallbackStratumEnonceSubscribe"].is<bool>()) {
-        Config::setStratumFallbackEnonceSubscribe(doc["fallbackStratumEnonceSubscribe"].as<bool>());
-    }
     if (doc["ssid"].is<const char*>()) {
         Config::setWifiSSID(doc["ssid"].as<const char*>());
     }
@@ -337,13 +306,8 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
 #endif
 
-    if (doc["poolMode"].is<uint16_t>()) {
-        Config::setPoolMode(doc["poolMode"].as<uint16_t>());
-    }
-
-    if (doc["poolBalance"].is<uint16_t>()) {
-        Config::setPoolBalance(doc["poolBalance"].as<uint16_t>());
-    }
+    // save stratum settings
+    STRATUM_MANAGER->saveSettings(doc);
 
     doc.clear();
 
@@ -357,9 +321,8 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     // reload settings of system module (and display)
     SYSTEM_MODULE.loadSettings();
 
-    if (STRATUM_MANAGER) {
-        STRATUM_MANAGER->loadSettings(); // TODO
-    }
+    // reload settings, trigger reconnect if stratum config changed
+    STRATUM_MANAGER->loadSettings();
 
     return ESP_OK;
 }

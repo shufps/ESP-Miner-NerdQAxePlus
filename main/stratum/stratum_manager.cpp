@@ -21,6 +21,7 @@
 #include "stratum_task.h"
 #include "system.h"
 
+#include "stratum_config.h"
 #include "stratum_manager.h"
 #include "utils.h"
 
@@ -80,7 +81,7 @@ void StratumManager::task()
 
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
-        m_stratumTasks[i] = new StratumTask(this, i, system->getStratumConfig(i));
+        m_stratumTasks[i] = new StratumTask(this, i);
         xTaskCreate(m_stratumTasks[i]->taskWrapper, (i == 0) ? "stratum task (pri)" : "stratum task (sec)", 8192,
                     (void *) m_stratumTasks[i], 5, NULL);
 
@@ -250,13 +251,88 @@ void StratumManager::submitShare(int pool, const char *jobid, const char *extran
     m_stratumTasks[pool]->submitShare(jobid, extranonce_2, ntime, nonce, version);
 }
 
-void StratumManager::loadSettings()
+// --- stratum config related; mutexed
+const StratumConfig StratumManager::getStratumConfig(int i) {
+    PThreadGuard lock(m_mutex);
+
+    // returns a copy via copy constructor
+    return m_stratumConfig[i];
+}
+
+void StratumManager::loadSettings(bool reconnect)
 {
     m_totalBestDiff = Config::getBestDiff();
     m_totalFoundBlocks = Config::getTotalFoundBlocks();
 
     suffixString(m_totalBestDiff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
+
+    // init with the reconnect flag from the child class
+    bool requiresReconnect[2] = {reconnect, reconnect};
+
+    // load and compare config
+    for (int i=0; i<2; i++) {
+        StratumConfig tmp = StratumConfig::read(i);
+        if (!m_stratumConfig[i].isEqual(tmp)) {
+            requiresReconnect[i] = true;
+        }
+        m_stratumConfig[i] = tmp; // deep copy!
+
+    }
+
+    // reconnect the pools with changed configs
+    for (int i=0;i<2;i++) {
+        if (!requiresReconnect[i]) {
+            continue;
+        }
+        // trigger a reconnect
+        if (m_stratumTasks[i]) {
+            m_stratumTasks[i]->triggerReconnect();
+        }
+
+        // reset ping stats
+        if (m_pingTasks[i]) {
+            m_pingTasks[i]->reset();
+        }
+    }
 }
+
+void StratumManager::saveSettings(const JsonDocument &doc) {
+    if (doc["poolMode"].is<uint16_t>()) {
+        Config::setPoolMode(doc["poolMode"].as<uint16_t>());
+    }
+    if (doc["stratumURL"].is<const char*>()) {
+        Config::setStratumURL(doc["stratumURL"].as<const char*>());
+    }
+    if (doc["stratumUser"].is<const char*>()) {
+        Config::setStratumUser(doc["stratumUser"].as<const char*>());
+    }
+    if (doc["stratumPassword"].is<const char*>()) {
+        Config::setStratumPass(doc["stratumPassword"].as<const char*>());
+    }
+    if (doc["stratumPort"].is<uint16_t>()) {
+        Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
+    }
+    if (doc["stratumEnonceSubscribe"].is<bool>()) {
+        Config::setStratumEnonceSubscribe(doc["stratumEnonceSubscribe"].as<bool>());
+    }
+    if (doc["fallbackStratumURL"].is<const char*>()) {
+        Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
+    }
+    if (doc["fallbackStratumUser"].is<const char*>()) {
+        Config::setStratumFallbackUser(doc["fallbackStratumUser"].as<const char*>());
+    }
+    if (doc["fallbackStratumPassword"].is<const char*>()) {
+        Config::setStratumFallbackPass(doc["fallbackStratumPassword"].as<const char*>());
+    }
+    if (doc["fallbackStratumPort"].is<uint16_t>()) {
+        Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
+    }
+    if (doc["fallbackStratumEnonceSubscribe"].is<bool>()) {
+        Config::setStratumFallbackEnonceSubscribe(doc["fallbackStratumEnonceSubscribe"].as<bool>());
+    }
+}
+
+// ---
 
 void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
 {
@@ -302,6 +378,8 @@ const char *StratumManager::getResolvedIpForPool(int pool) const
     return m_stratumTasks[pool]->getResolvedIp();
 }
 
+
+
 double get_last_ping_rtt()
 {
     if (!STRATUM_MANAGER) {
@@ -321,3 +399,4 @@ double get_recent_ping_loss()
     PingTask *task = STRATUM_MANAGER->getPingTask(idx);
     return task ? task->get_recent_ping_loss() : 0.0;
 }
+

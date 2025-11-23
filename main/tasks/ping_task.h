@@ -1,6 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <pthread.h>
 
 class StratumManager;
 
@@ -31,6 +32,7 @@ struct PingStats
 
 class PingTask {
   protected:
+    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
     int m_pool = 0;
     PingHistory *m_ping_history = nullptr;
     double m_last_ping_rtt_ms = 0.0;
@@ -53,6 +55,7 @@ class PingTask {
         }
     }
 
+    void reset();
     void ping_task();
     static void ping_task_wrapper(void *pvParameters);
 

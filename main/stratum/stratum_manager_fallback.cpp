@@ -118,8 +118,14 @@ void StratumManagerFallback::loadSettings()
 {
     PThreadGuard lock(m_mutex);
 
-    StratumManager::loadSettings();
+    StratumManager::loadSettings(false);
 };
+
+void StratumManagerFallback::saveSettings(const JsonDocument &doc) {
+    PThreadGuard lock(m_mutex);
+
+    StratumManager::saveSettings(doc);
+}
 
 
 void StratumManagerFallback::checkForBestDiff(int pool, double diff, uint32_t nbits)

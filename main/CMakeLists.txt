@@ -44,6 +44,7 @@ SRCS
     "./http_server/handler_file.cpp"
     "./http_server/handler_ota_factory.cpp"
     "./self_test/self_test.cpp"
+    "./stratum/stratum_config.cpp"
     "./stratum/stratum_task.cpp"
     "./stratum/stratum_manager.cpp"
     "./stratum/stratum_manager_fallback.cpp"

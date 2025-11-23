@@ -2,7 +2,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>
-
+#include "esp_log.h"
 #include "global_state.h"
 #include "create_jobs_task.h"
 #include "macros.h"
@@ -131,21 +131,26 @@ void StratumManagerDualPool::loadSettings()
 {
     PThreadGuard lock(m_mutex);
 
-    StratumManager::loadSettings();
+    uint16_t newBalance = Config::getPoolBalance();
 
-    // set new percentage and reset error
-    int new_pct = Config::getPoolBalance();
-    if (new_pct != m_balance) {
-        m_balance = new_pct;
-        m_error_accum = 0; // reset dithering to avoid drift from old config
-        if (m_stratumTasks[0]) {
-            m_stratumTasks[0]->triggerReconnect();
-        }
-        if (m_stratumTasks[1]) {
-            m_stratumTasks[1]->triggerReconnect();
-        }
+    bool reconnect = false;
+    if (m_balance != newBalance) {
+        m_balance = newBalance;
+        m_error_accum = 0;
+        reconnect = true;
     }
+
+    StratumManager::loadSettings(reconnect);
 };
+
+void StratumManagerDualPool::saveSettings(const JsonDocument &doc) {
+    PThreadGuard lock(m_mutex);
+
+    if (doc["poolBalance"].is<uint16_t>()) {
+        Config::setPoolBalance(doc["poolBalance"].as<uint16_t>());
+    }
+    StratumManager::saveSettings(doc);
+}
 
 void StratumManagerDualPool::checkForBestDiff(int pool, double diff, uint32_t nbits)
 {
