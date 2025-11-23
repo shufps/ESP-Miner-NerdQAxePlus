@@ -96,7 +96,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
     this.form.reset();
   }
 
-  private startRefreshInterval(): void {/*
+  private startRefreshInterval(): void {
     this.refreshIntervalRef = window.setInterval(() => {
       if (!this.scanning && !this.isRefreshing) {
         this.refreshIntervalTime--;
@@ -104,7 +104,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
           this.refreshList();
         }
       }
-    }, 1000);*/
+    }, 1000);
   }
 
   private ipToInt(ip: string): number {
