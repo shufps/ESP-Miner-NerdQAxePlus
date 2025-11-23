@@ -43,11 +43,13 @@ class StratumTask {
 
     int m_sock = -1; ///< Socket for the Stratum connection
 
-    bool m_isConnected = false; ///< Connection state flag
     bool m_stopFlag = false;    ///< Stop flag for the task
     bool m_firstJob = true;
     bool m_validNotify = false; // flag if the mining notify is valid
     int m_poolErrors = 0;
+
+    volatile bool m_isConnected = false; ///< Connection state flag
+    volatile bool m_reconnect = false;
 
     // Connection and network-related methods
     bool isWifiConnected();                                                      ///< Check if Wi-Fi is connected
@@ -67,6 +69,8 @@ class StratumTask {
     void reconnectTimerCallback(TimerHandle_t xTimer);               ///< Handles reconnection logic
     void startReconnectTimer();                                      ///< Starts the reconnect timer
     void stopReconnectTimer();                                       ///< Stops the reconnect timer
+
+    void triggerReconnect();
 
     // Connection event callbacks
     void connectedCallback();    ///< Called when a pool successfully connects

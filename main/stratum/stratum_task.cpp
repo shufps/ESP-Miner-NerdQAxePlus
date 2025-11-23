@@ -21,6 +21,15 @@
 #include "stratum_task.h"
 #include "system.h"
 
+#define ESP_LOGIE(b, tag, fmt, ...)                                                                                                \
+    do {                                                                                                                           \
+        if (b) {                                                                                                                   \
+            ESP_LOGI(tag, fmt, ##__VA_ARGS__);                                                                                     \
+        } else {                                                                                                                   \
+            ESP_LOGE(tag, fmt, ##__VA_ARGS__);                                                                                     \
+        }                                                                                                                          \
+    } while (0)
+
 // fallback can nicely be tested with netcat
 // mkfifo /tmp/ncpipe
 // nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
@@ -223,8 +232,13 @@ void StratumTask::stratumLoop()
             break;
         }
         line = m_stratumAPI.receiveJsonRpcLine(m_sock);
-        if (!line) {
+        if (!line && !m_reconnect) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
+            break;
+        }
+
+        if (m_reconnect) {
+            ESP_LOGI(m_tag, "reconnect requested ...");
             break;
         }
 
@@ -272,7 +286,18 @@ void StratumTask::connect()
 void StratumTask::disconnect()
 {
     m_stopFlag = true;
+    if (m_sock >= 0) {
+        shutdown(m_sock, SHUT_RDWR);
+    }
 }
+
+void StratumTask::triggerReconnect() {
+    m_reconnect = true;
+    if (m_sock >= 0) {
+        shutdown(m_sock, SHUT_RDWR);
+    }
+}
+
 
 void StratumTask::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
 {
@@ -341,6 +366,12 @@ void StratumTask::task()
             ESP_LOGW(m_tag, "suspended");
             vTaskSuspend(NULL);
         }
+
+        if (m_reconnect) {
+            // TODO load new config
+            m_reconnect = false;
+        }
+
         // do we have a stratum host configured?
         // we do it here because we could reload the config after
         // it was updated on the UI and settings
@@ -385,20 +416,32 @@ void StratumTask::task()
         // stratum loop
         stratumLoop();
 
+        // delete jobs for this pool
+        // this is safe because it's mutexed
+        asicJobs.cleanJobs(m_index);
+
         // track pool errors
-        m_poolErrors++;
+        // reconnect request is not an error
+        if (!m_reconnect) {
+            m_poolErrors++;
+        }
 
         // shutdown and reconnect
-        ESP_LOGE(m_tag, "Shutdown socket ...");
+        ESP_LOGIE(m_reconnect, m_tag, "Shutdown socket ...");
         shutdown(m_sock, SHUT_RDWR);
-        close(m_sock);
 
-        // mark invalid
-        m_sock = -1;
+        if (m_sock >= 0) {
+            close(m_sock);
+            m_sock = -1;
+        }
 
         disconnectedCallback();
         m_isConnected = false;
 
+        // skip reconnect delay
+        if (m_reconnect) {
+            continue;
+        }
         vTaskDelay(pdMS_TO_TICKS(10000)); // Delay before attempting to reconnect
     }
     vTaskDelete(NULL);

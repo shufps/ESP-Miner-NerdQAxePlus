@@ -138,6 +138,12 @@ void StratumManagerDualPool::loadSettings()
     if (new_pct != m_balance) {
         m_balance = new_pct;
         m_error_accum = 0; // reset dithering to avoid drift from old config
+        if (m_stratumTasks[0]) {
+            m_stratumTasks[0]->triggerReconnect();
+        }
+        if (m_stratumTasks[1]) {
+            m_stratumTasks[1]->triggerReconnect();
+        }
     }
 };
 
