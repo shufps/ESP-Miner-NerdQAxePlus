@@ -131,7 +131,16 @@ void StratumManagerDualPool::loadSettings()
 {
     PThreadGuard lock(m_mutex);
 
-    StratumManager::loadSettings((m_balance != Config::getPoolBalance()));
+    uint16_t newBalance = Config::getPoolBalance();
+
+    bool reconnect = false;
+    if (m_balance != newBalance) {
+        m_balance = newBalance;
+        m_error_accum = 0;
+        reconnect = true;
+    }
+
+    StratumManager::loadSettings(reconnect);
 };
 
 void StratumManagerDualPool::saveSettings(const JsonDocument &doc) {

@@ -192,39 +192,51 @@ void PingTask::ping_task()
     }
 
     while (true) {
-        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
-            ESP_LOGW(m_tag, "suspended");
-            vTaskSuspend(NULL);
+        {
+            PThreadGuard g(m_mutex);
+            if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+                ESP_LOGW(m_tag, "suspended");
+                vTaskSuspend(NULL);
+            }
+
+            if (!m_manager || !m_manager->isConnected(m_pool)) { // helper public machen
+                vTaskDelay(pdMS_TO_TICKS(10000));
+                continue;
+            }
+
+            StratumConfig cfg = m_manager->getStratumConfig(m_pool);
+            const char *hostname = cfg.getHost() ? cfg.getHost() : nullptr;
+            const char *ip_str = m_manager->getResolvedIpForPool(m_pool);
+
+            if (!hostname || !ip_str) {
+                ESP_LOGE(m_tag, "No resolved IP for current hostname");
+                vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
+                continue;
+            }
+
+            PingResult result = perform_ping(ip_str, hostname);
+
+            ESP_LOGI(m_tag, "--- %s ping statistics ---", hostname);
+            double loss_current = 100.0 * (PING_COUNT - result.replies) / (double) PING_COUNT;
+            ESP_LOGI(m_tag, "%u packets transmitted, %u packets received, %.1f%% packet loss", PING_COUNT, result.replies,
+                    loss_current);
+            if (result.success) {
+                ESP_LOGI(m_tag, "round-trip min/avg/max = %.2f/%.2f/%.2f ms", result.min_rtt_ms, result.avg_rtt_ms, result.max_rtt_ms);
+            }
+            record_ping_result(PING_COUNT, result.replies);
+            ESP_LOGI(m_tag, "Recent %d-min packet loss: %.1f%%", HISTORY_WINDOW_SEC / 60, 100.0 * get_recent_packet_loss());
         }
-
-        if (!m_manager || !m_manager->isConnected(m_pool)) { // helper public machen
-            vTaskDelay(pdMS_TO_TICKS(10000));
-            continue;
-        }
-
-        StratumConfig cfg = m_manager->getStratumConfig(m_pool);
-        const char *hostname = cfg.getHost() ? cfg.getHost() : nullptr;
-        const char *ip_str = m_manager->getResolvedIpForPool(m_pool);
-
-        if (!hostname || !ip_str) {
-            ESP_LOGE(m_tag, "No resolved IP for current hostname");
-            vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
-            continue;
-        }
-
-        PingResult result = perform_ping(ip_str, hostname);
-
-        ESP_LOGI(m_tag, "--- %s ping statistics ---", hostname);
-        double loss_current = 100.0 * (PING_COUNT - result.replies) / (double) PING_COUNT;
-        ESP_LOGI(m_tag, "%u packets transmitted, %u packets received, %.1f%% packet loss", PING_COUNT, result.replies,
-                 loss_current);
-        if (result.success) {
-            ESP_LOGI(m_tag, "round-trip min/avg/max = %.2f/%.2f/%.2f ms", result.min_rtt_ms, result.avg_rtt_ms, result.max_rtt_ms);
-        }
-        record_ping_result(PING_COUNT, result.replies);
-        ESP_LOGI(m_tag, "Recent %d-min packet loss: %.1f%%", HISTORY_WINDOW_SEC / 60, 100.0 * get_recent_packet_loss());
         vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
     }
+}
+
+void PingTask::reset() {
+    PThreadGuard g(m_mutex);
+
+    memset(m_ping_history, 0, HISTORY_SIZE * sizeof(PingHistory));
+    m_history_index = 0;
+    m_history_count = 0;
+    m_last_ping_rtt_ms = 0;
 }
 
 // Provide latest average RTT to other modules

@@ -270,8 +270,15 @@ void StratumManager::loadSettings(bool reconnect)
             continue;
         }
         m_stratumConfig[i] = tmp; // deep copy!
+
+        // trigger a reconnect
         if (m_stratumTasks[i]) {
             m_stratumTasks[i]->triggerReconnect();
+        }
+
+        // reset ping stats
+        if (m_pingTasks[i]) {
+            m_pingTasks[i]->reset();
         }
     }
 
