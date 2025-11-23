@@ -202,8 +202,8 @@ void PingTask::ping_task()
             continue;
         }
 
-        const StratumConfig *cfg = SYSTEM_MODULE.getStratumConfig(m_pool);
-        const char *hostname = cfg ? cfg->host : nullptr;
+        StratumConfig cfg = m_manager->getStratumConfig(m_pool);
+        const char *hostname = cfg.getHost() ? cfg.getHost() : nullptr;
         const char *ip_str = m_manager->getResolvedIpForPool(m_pool);
 
         if (!hostname || !ip_str) {

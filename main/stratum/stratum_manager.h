@@ -42,6 +42,7 @@ class StratumManager {
 
     StratumTask *m_stratumTasks[2]{};                      ///< Primary and secondary Stratum tasks
     PingTask *m_pingTasks[2]{};
+    StratumConfig m_stratumConfig[2]{};
 
     uint32_t m_totalFoundBlocks = 0;
     uint32_t m_foundBlocks = 0;
@@ -57,6 +58,8 @@ class StratumManager {
     {
         return m_poolmode;
     }
+
+    const StratumConfig getStratumConfig(int i);
 
     // Helper methods for connection management
     void connect(int index);     ///< Connect to a specified pool (0 = primary, 1 = secondary)
@@ -99,6 +102,8 @@ class StratumManager {
 
     bool isAnyConnected();
     int getNumConnectedPools();
+
+    void saveSettings(const JsonDocument &doc);
 
     virtual void getManagerInfoJson(JsonObject &obj);
 

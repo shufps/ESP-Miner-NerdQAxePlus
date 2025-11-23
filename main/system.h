@@ -36,8 +36,6 @@ class System {
     char *m_hostname;
     char m_ipAddress[IP4ADDR_STRLEN_MAX] = "0.0.0.0";
 
-    StratumConfig m_stratumConfig[2];
-
     // Error tracking
     Board::Error m_boardError; // Flag to indicate if the system is overheated
     uint32_t m_errorCode = 0x00000000;
@@ -116,11 +114,6 @@ class System {
     }
 
     float getCurrentHashrate();
-
-    StratumConfig *getStratumConfig(uint8_t index)
-    {
-        return &m_stratumConfig[index];
-    }
 
     void setBoardError(Board::Error error, uint32_t code)
     {
