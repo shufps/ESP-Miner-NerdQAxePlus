@@ -1,6 +1,6 @@
 #include "mining.h"
 #include "mbedtls/sha256.h"
-#include "utils.h"
+#include "mining_utils.h"
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>

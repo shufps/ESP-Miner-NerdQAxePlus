@@ -75,6 +75,7 @@ public:
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
+    uint32_t m_asicMinDifficultyDualPool;
     uint32_t m_asicMaxDifficulty;
 
     // Voltage regulator max temperature
@@ -179,6 +180,11 @@ public:
     uint32_t getAsicMinDifficulty()
     {
         return m_asicMinDifficulty;
+    };
+
+    uint32_t getAsicMinDifficultyDualPool()
+    {
+        return m_asicMinDifficultyDualPool;
     };
 
     bool isInitialized()

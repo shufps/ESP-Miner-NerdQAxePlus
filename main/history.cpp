@@ -89,22 +89,22 @@ float History::getHashrate1dSample(int index)
 
 double History::getCurrentHashrate1m()
 {
-    return m_avg1m.getGh();
+    return m_avg1m.getGhDisplay();
 }
 
 double History::getCurrentHashrate10m()
 {
-    return m_avg10m.getGh();
+    return m_avg10m.getGhDisplay();
 }
 
 double History::getCurrentHashrate1h()
 {
-    return m_avg1h.getGh();
+    return m_avg1h.getGhDisplay();
 }
 
 double History::getCurrentHashrate1d()
 {
-    return m_avg1d.getGh();
+    return m_avg1d.getGhDisplay();
 }
 
 uint32_t History::getRateSample(int index)
@@ -281,6 +281,7 @@ void History::pushShare(int asic_nr)
     lock();
 
     m_distribution.addShare(asic_nr);
+    m_distribution.toLog();
 
     unlock();
 }

@@ -17,6 +17,8 @@ static const char *TAG = "http_system";
 
 #define VR_FREQUENCY_ENABLED
 
+uint64_t getDuplicateHWNonces();
+
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
 {
@@ -92,25 +94,29 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["hashRate_10m"]       = history->getCurrentHashrate10m();
     doc["hashRate_1h"]        = history->getCurrentHashrate1h();
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
-    doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
-    doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
     doc["coreVoltage"]        = board->getAsicVoltageMillis();
     doc["defaultCoreVoltage"] = board->getDefaultAsicVoltageMillis();
     doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
-    doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
-    doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
-    doc["duplicateHWNonces"]  = SYSTEM_MODULE.getDuplicateHWNonces();
-    doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
-    doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["manualFanSpeed"]     = Config::getFanSpeed();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["recentpingloss"]     = get_recent_ping_loss();
-    doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
-    doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
-    doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
     doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
+    doc["duplicateHWNonces"]  = getDuplicateHWNonces();
+
+    JsonObject stratum_obj = doc["stratum"].to<JsonObject>();
+
+    // kept for swarm compatibility
+    doc["poolDifficulty"]     = STRATUM_MANAGER->getPoolDifficulty();
+    doc["foundBlocks"]        = STRATUM_MANAGER->getFoundBlocks();
+    doc["totalFoundBlocks"]   = STRATUM_MANAGER->getTotalFoundBlocks();
+    doc["sharesAccepted"]     = STRATUM_MANAGER->getSharesAccepted();
+    doc["sharesRejected"]     = STRATUM_MANAGER->getSharesRejected();
+    doc["bestDiff"]           = STRATUM_MANAGER->getBestDiffString();
+    doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiffString();
+
+    STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
 
     // asic temps
     {
@@ -223,37 +229,6 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         return err;
     }
 
-    // Update settings if each key exists in the JSON object.
-    if (doc["stratumURL"].is<const char*>()) {
-        Config::setStratumURL(doc["stratumURL"].as<const char*>());
-    }
-    if (doc["stratumUser"].is<const char*>()) {
-        Config::setStratumUser(doc["stratumUser"].as<const char*>());
-    }
-    if (doc["stratumPassword"].is<const char*>()) {
-        Config::setStratumPass(doc["stratumPassword"].as<const char*>());
-    }
-    if (doc["stratumPort"].is<uint16_t>()) {
-        Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
-    }
-    if (doc["stratumEnonceSubscribe"].is<bool>()) {
-        Config::setStratumEnonceSubscribe(doc["stratumEnonceSubscribe"].as<bool>());
-    }
-    if (doc["fallbackStratumURL"].is<const char*>()) {
-        Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
-    }
-    if (doc["fallbackStratumUser"].is<const char*>()) {
-        Config::setStratumFallbackUser(doc["fallbackStratumUser"].as<const char*>());
-    }
-    if (doc["fallbackStratumPassword"].is<const char*>()) {
-        Config::setStratumFallbackPass(doc["fallbackStratumPassword"].as<const char*>());
-    }
-    if (doc["fallbackStratumPort"].is<uint16_t>()) {
-        Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
-    }
-    if (doc["fallbackStratumEnonceSubscribe"].is<bool>()) {
-        Config::setStratumFallbackEnonceSubscribe(doc["fallbackStratumEnonceSubscribe"].as<bool>());
-    }
     if (doc["ssid"].is<const char*>()) {
         Config::setWifiSSID(doc["ssid"].as<const char*>());
     }
@@ -331,7 +306,8 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
 #endif
 
-
+    // save stratum settings
+    STRATUM_MANAGER->saveSettings(doc);
 
     doc.clear();
 
@@ -344,6 +320,9 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
 
     // reload settings of system module (and display)
     SYSTEM_MODULE.loadSettings();
+
+    // reload settings, trigger reconnect if stratum config changed
+    STRATUM_MANAGER->loadSettings();
 
     return ESP_OK;
 }

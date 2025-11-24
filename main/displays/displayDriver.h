@@ -8,6 +8,7 @@
 #include "ui_helpers.h"
 #include "button.h"
 #include "ui_ipc.h"
+#include "stratum/stratum_manager.h"
 
 /* INCLUDES ------------------------------------------------------------------*/
 
@@ -158,7 +159,7 @@ class DisplayDriver {
     lv_obj_t *initTDisplayS3(); // Initialize the TDisplay S3
 
     void updateHashrate(System *module, float power);               // Update the hashrate display
-    void updateShares(System *module);                              // Update the shares information on the display
+    void updateShares(StratumManager *module);                              // Update the shares information on the display
     void updateTime(System *module);                                // Update the time display
     void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
 

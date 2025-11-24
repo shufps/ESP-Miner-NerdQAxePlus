@@ -25,9 +25,9 @@ class PowerManagementTask {
     SemaphoreHandle_t m_mutex;
     TimerHandle_t m_timer;
 
-    char m_logBuffer[256]{0};
+    char m_logBuffer[256]{};
     uint16_t m_fanPerc;
-    uint16_t m_fanRPM[2]{0};
+    uint16_t m_fanRPM[2]{};
     float m_chipTempMax;
     float m_vrTemp;
     float m_voltage;

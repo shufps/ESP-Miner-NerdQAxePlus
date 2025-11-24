@@ -61,6 +61,7 @@ NerdAxe::NerdAxe() : Board() {
 
     m_asicMaxDifficulty = 256;
     m_asicMinDifficulty = 64;
+    m_asicMinDifficultyDualPool = 32;
 
 #ifdef NERDAXE
     m_theme = new ThemeNerdaxe();

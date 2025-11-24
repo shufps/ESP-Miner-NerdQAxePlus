@@ -19,8 +19,14 @@
             <nb-card-body>
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <div class="font-weight-bold text-lg">
+                  <div *ngIf="!isDualPool" class="font-weight-bold text-lg">
                     {{ info.hashRate | number: '1.2-2' }}
+                    <small>{{ 'UNITS.HASHRATE' | translate }}</small>
+                  </div>
+                  <div *ngIf="isDualPool" class="font-weight-bold text-lg">
+                    {{ getPoolHashrate(0) | number: '1.2-2' }}
+                    <small>{{ 'UNITS.HASHRATE' | translate }}</small>&nbsp;/&nbsp;
+                    {{ getPoolHashrate(1) | number: '1.2-2' }}
                     <small>{{ 'UNITS.HASHRATE' | translate }}</small>
                   </div>
                 </div>
@@ -45,33 +51,53 @@
             <nb-card-header style="position: relative;">
               <div class="d-flex justify-content-between align-items-center">
                 <span class="text-hint">{{ 'HOME.SHARES' | translate }}</span>
-                <nb-badge [text]="
-            !info.isStratumConnected
-              ? ('HOME.DISCONNECTED' | translate)
-              : (info.isUsingFallbackStratum ? ('HOME.FALLBACK_POOL' | translate) : ('HOME.PRIMARY_POOL' | translate))
-          " [status]="
-            !info.isStratumConnected
-              ? 'danger'
-              : (info.isUsingFallbackStratum ? 'warning' : 'success')
-          " size="small" position="top end" style="margin-top:5px;">
-                </nb-badge>
+                <ng-container *ngIf="!isDualPool">
+                  <nb-badge class="badge-no-select" [text]="poolBadgeLabel()" [status]="poolBadgeStatus()" size="small"
+                    position="top end" style="margin-top:5px;">
+                  </nb-badge>
+                </ng-container>
+                <ng-container *ngIf="isDualPool">
+                  <div class="pool-badges">
+                    <nb-badge *ngIf="showPoolBadge(0)" class="badge-no-select" [text]="dualPoolBadgeLabel(0)"
+                      [status]="dualPoolBadgeStatus(0)" size="small" position="top end"
+                      style="width:80px; margin-top:5px; margin-right: 90px;" [nbTooltip]="dualPoolBadgeTooltip(0)">
+                    </nb-badge>
+                    <nb-badge *ngIf="showPoolBadge(1)" class="badge-no-select" [text]="dualPoolBadgeLabel(1)"
+                      [status]="dualPoolBadgeStatus(1)" size="small" position="top end"
+                      style="width:80px; margin-top:5px;" [nbTooltip]="dualPoolBadgeTooltip(1)">
+                    </nb-badge>
+                  </div>
+                </ng-container>
+
               </div>
             </nb-card-header>
 
             <nb-card-body>
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <div class="font-weight-bold text-lg">{{ info.sharesAccepted }}</div>
+                  <div *ngIf="!isDualPool">
+                    <div class="font-weight-bold text-lg">{{ info.stratum?.pools[0].accepted }}</div>
+                  </div>
+                  <div *ngIf="isDualPool">
+                    <div class="font-weight-bold text-lg">{{ info.stratum?.pools[0].accepted }}&nbsp;/&nbsp;{{
+                      info.stratum?.pools[1].accepted }}</div>
+                  </div>
                 </div>
                 <div class="d-flex align-items-center justify-content-center bg-blue-100 rounded-circle"
                   style="width: 2.5rem; height: 2.5rem;">
                   <nb-icon icon="navigation-2-outline" pack="eva" class="blue-500"></nb-icon>
                 </div>
               </div>
-              <span class="text-danger">{{ info.sharesRejected }}</span>
+              <span *ngIf="!isDualPool" class="text-danger">{{ info.stratum?.pools[0].rejected
+                }}</span>
+              <span *ngIf="isDualPool" class="text-danger">{{ info.stratum?.pools[0].rejected
+                }}&nbsp;/&nbsp;{{ info.stratum?.pools[1].rejected }}</span>
               <span class="text-hint">&nbsp;{{ 'HOME.REJECTED' | translate }}</span>&nbsp;
-              <span class="text-hint">
-                ({{ (info.sharesRejected / (info.sharesAccepted + info.sharesRejected) * 100) | number: '1.2-2' }}%)
+              <span *ngIf="!isDualPool" class="text-hint">
+                ({{ rejectRate(0) | number: '1.2-2' }}%)
+              </span>
+              <span *ngIf="isDualPool" class="text-hint">
+                ({{ rejectRate(0) | number: '1.2-2' }}%&nbsp;/&nbsp;{{ rejectRate(1) | number: '1.2-2' }}%)
               </span>
             </nb-card-body>
           </nb-card>
@@ -120,7 +146,12 @@
                   <nb-icon icon="star" pack="eva" class="orange-500"></nb-icon>
                 </div>
               </div>
-              <span class="font-weight-bold">{{ info.bestSessionDiff }}</span>
+              <span *ngIf="!isDualPool" class="font-weight-bold">{{ info.stratum?.pools[0].bestDiff
+                |
+                humanReadable}}</span>
+              <span *ngIf="isDualPool" class="font-weight-bold">{{ info.stratum?.pools[0].bestDiff
+                |
+                humanReadable}}&nbsp;/&nbsp;{{ info.stratum?.pools[1].bestDiff | humanReadable}}</span>
               <span class="text-hint">&nbsp;{{ 'HOME.BEST_DIFF_BOOT' | translate }}</span>
             </nb-card-body>
           </nb-card>
@@ -240,103 +271,115 @@
 
 
       <!-- Pool Information & Uptime Row -->
-      <!-- Pool Information Row -->
       <div class="row mt-3 d-flex align-items-stretch">
-        <!-- Pool Information Card -->
-        <div class="col-12 col-lg-6">
-          <!-- Connected? -->
-          <ng-container *ngIf="info.isStratumConnected; else disconnected">
-            <nb-card class="h-100">
-              <nb-card-header>
-                <span class="text-hint">
-                  {{ 'POOL_INFO.TITLE' | translate }} ({{ info.isUsingFallbackStratum ? ('POOL_INFO.FALLBACK' |
-                  translate) : ('POOL_INFO.PRIMARY' | translate) }})
-                </span>
-              </nb-card-header>
+        <div class="col-12 col-lg-6" *ngFor="let idx of getPoolCardIndices()">
+          @let poolInfo = getPoolInfo(idx);
+          @let usingFallback = info.stratum?.usingFallback;
 
-              <nb-card-body class="no-scroll">
+          <nb-card class="h-100">
+            <nb-card-header>
+              <span *ngIf="!isDualPool" class="text-hint">
+                {{ 'POOL_INFO.TITLE' | translate }}
+                (
+                {{ usingFallback ? ('POOL_INFO.FALLBACK' | translate)
+                : ('POOL_INFO.PRIMARY' | translate) }}
+                )
+              </span>
+              <span *ngIf="isDualPool" class="text-hint">
+                Pool {{ idx + 1 }}
+              </span>
+            </nb-card-header>
+
+            <nb-card-body class="no-scroll">
+              <!-- Optional: pro Pool "disconnected" anzeigen -->
+              <ng-container *ngIf="poolInfo.connected; else poolDisconnected">
+
+                <!-- Host -->
                 <div class="row flex-nowrap">
                   <div class="col-fixed-width">
                     <span class="text-hint">{{ 'POOL_INFO.HOST' | translate }}:</span>
                   </div>
                   <div class="col break-all">
-                    <a [href]="info.isUsingFallbackStratum ? (fallbackQuickLink$ | async) || info.fallbackStratumURL : (quickLink$ | async)"
-                      target="_blank">
-                      {{ info.isUsingFallbackStratum ? info.fallbackStratumURL : info.stratumURL }}
+                    <a [href]="getQuickLink(poolInfo.host, poolInfo.user)" target="_blank">
+                      {{ poolInfo.host }}
                     </a>
                   </div>
                 </div>
 
+                <!-- Port -->
                 <div class="row flex-nowrap">
                   <div class="col-fixed-width">
                     <span class="text-hint">{{ 'POOL_INFO.PORT' | translate }}:</span>
                   </div>
                   <div class="col">
-                    {{ info.isUsingFallbackStratum ? info.fallbackStratumPort : info.stratumPort }}
+                    {{ poolInfo.port }}
                   </div>
                 </div>
+
+                <!-- User (ellipsis-magic) -->
                 <div class="row flex-nowrap">
                   <div class="col-fixed-width">
                     <span class="text-hint">{{ 'POOL_INFO.USER' | translate }}:</span>
                   </div>
                   <div class="col">
-                    @let currentStratumUser = info.isUsingFallbackStratum ? info.fallbackStratumUser : info.stratumUser;
-                    @let currentStratumUserLength = currentStratumUser.length;
-
-                    <div class="ellipsis-magic" [title]="currentStratumUser">
+                    <div class="ellipsis-magic" [title]="poolInfo.user">
                       <span class="start">
-                        {{ currentStratumUser.substring(0, currentStratumUserLength - 20) }}
+                        {{ poolInfo.user.substring(0, poolInfo.user.length - 20) }}
                       </span>
                       <span class="end">
-                        {{ currentStratumUser.substring(currentStratumUserLength - 20) }}
+                        {{ poolInfo.user.substring(poolInfo.user.length - 20) }}
                       </span>
                     </div>
                   </div>
                 </div>
+
+                <!-- Ping -->
                 <div class="row flex-nowrap">
                   <div class="col-fixed-width">
                     <span class="text-hint">{{ 'POOL_INFO.PING' | translate }}:</span>
                   </div>
                   <div class="col">
-                    {{ info.lastpingrtt !== undefined ? info.lastpingrtt.toFixed(2) + ' ' + ('PERFORMANCE.MS' |
-                    translate) + ' (' + ('PERFORMANCE.AVG' | translate) + ')' : 'n/a' }}
+                    {{ poolInfo.pingRtt !== undefined && poolInfo.pingRtt !== null
+                    ? (poolInfo.pingRtt.toFixed(2) + ' ' + ('PERFORMANCE.MS' | translate)
+                    + ' (' + ('PERFORMANCE.AVG' | translate) + ')')
+                    : 'n/a' }}
                   </div>
                 </div>
 
+                <!-- Loss -->
                 <div class="row flex-nowrap">
                   <div class="col-fixed-width">
                     <span class="text-hint">{{ 'POOL_INFO.LOSS' | translate }}:</span>
                   </div>
                   <div class="col">
-                    {{ info.recentpingloss !== undefined ? (info.recentpingloss * 100).toFixed(2) + ' %' : 'n/a' }}
+                    {{ poolInfo.pingLoss !== undefined && poolInfo.pingLoss !== null
+                    ? (poolInfo.pingLoss * 100).toFixed(2) + ' %'
+                    : 'n/a' }}
                   </div>
                 </div>
+
+                <!-- Difficulty -->
                 <div class="row flex-nowrap">
                   <div class="col-fixed-width">
                     <span class="text-hint">{{ 'POOL_INFO.DIFF' | translate }}:</span>
                   </div>
                   <div class="col">
-                    {{ info.poolDifficulty }}
+                    {{ poolInfo.poolDifficulty ?? 'n/a' }}
                   </div>
                 </div>
-              </nb-card-body>
-            </nb-card>
-          </ng-container>
 
-          <!-- Disconnected -->
-          <ng-template #disconnected>
-            <nb-card class="h-100">
-              <nb-card-header>
-                <span class="text-hint">{{ 'POOL_INFO.TITLE' | translate }}</span>
-              </nb-card-header>
-              <nb-card-body>
+              </ng-container>
+
+              <!-- Card-Inhalt, falls genau dieser Pool nicht verbunden ist -->
+              <ng-template #poolDisconnected>
                 <nb-alert status="danger" size="small" class="mb-0">
-                  Stratum not connected. Pool info unavailable.
+                  Stratum not connected for this pool.
                 </nb-alert>
-              </nb-card-body>
-            </nb-card>
-          </ng-template>
+              </ng-template>
+            </nb-card-body>
+          </nb-card>
         </div>
       </div>
     </div>
   </div>
+</div>

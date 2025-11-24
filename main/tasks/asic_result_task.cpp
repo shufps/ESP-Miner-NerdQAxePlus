@@ -10,10 +10,21 @@
 #include "boards/board.h"
 
 #include "simple_ring64.hpp"
+#include "utils.h"
 
 static const char *TAG = "asic_result";
 
 static SimpleRing64<32> s_seen_keys;
+
+static uint64_t duplicateHWNonces = 0;
+
+static void countDuplicateHWNonces() {
+    duplicateHWNonces++;
+}
+
+uint64_t getDuplicateHWNonces() {
+    return duplicateHWNonces;
+}
 
 // Combine nonce + version into a single 64-bit key
 static inline uint64_t make_key(uint32_t nonce, uint32_t version)
@@ -70,7 +81,7 @@ void ASIC_result_task(void *pvParameters)
 
         bm_job *job = asicJobs.getClone(asic_job_id);
         if (!job) {
-            ESP_LOGI(TAG, "Invalid job id found, 0x%02X", asic_job_id);
+            //ESP_LOGI(TAG, "Invalid job id found, 0x%02X", asic_job_id);
             continue;
         }
 
@@ -82,32 +93,40 @@ void ASIC_result_task(void *pvParameters)
 
         // get best known session diff
         char bestDiffString[16];
-        System::suffixString(SYSTEM_MODULE.getBestSessionNonceDiff(), bestDiffString, sizeof(bestDiffString), 3);
+        suffixString(STRATUM_MANAGER->getBestSessionDiff(), bestDiffString, sizeof(bestDiffString), 3);
+
+        const char *pool_str = job->pool_id ? "Sec" : "Pri";
 
         // log the ASIC response, including pool and best session difficulty using human-readable SI formatting
-        ESP_LOGI(TAG, "Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 "; Extranonce2 %s diff %.1f/%lu/%s",
-            asic_job_id, asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce, job->extranonce2,
-            nonce_diff, job->pool_diff, bestDiffString);
+        // we only show responses >= maxAsicDifficulty to avoid spamming the log
+        // change for dual pool because the pool with lower % can reduce asic HW difficulty
+        if (nonce_diff >= board->getAsicMaxDifficulty() || nonce_diff >= job->pool_diff) {
+            ESP_LOGI(TAG, "(%s) Job ID: %02X AsicNr: %d Ver: %08" PRIX32 " Nonce %08" PRIX32 "; Extranonce2 %s diff %.1f/%lu/%s",
+                pool_str, asic_job_id, asic_result.asic_nr, asic_result.rolled_version, asic_result.nonce, job->extranonce2,
+                nonce_diff, job->pool_diff, bestDiffString);
+        }
 
         uint64_t key = make_key(asic_result.nonce, asic_result.rolled_version);
         bool duplicate = !s_seen_keys.insert_if_absent(key);
         if (duplicate) {
-            ESP_LOGW(TAG, "duplicate share detected!");
-            SYSTEM_MODULE.countDuplicateHWNonces();
+            ESP_LOGW(TAG, "(%s) duplicate share detected!", pool_str);
+            countDuplicateHWNonces();
+        }
+
+        if (!duplicate && nonce_diff >= board->getAsicMaxDifficulty()) {
+            SYSTEM_MODULE.pushShare(asic_result.asic_nr);
         }
 
         // send duplicates to the server (they will get rejected and counted as rejected)
-        if (nonce_diff > job->pool_diff) {
-            STRATUM_MANAGER.submitShare(job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
+        if (nonce_diff >= job->pool_diff) {
+            STRATUM_MANAGER->submitShare(job->pool_id, job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
                                     asic_result.rolled_version ^ job->version);
         }
 
-        // don't count duplicate to the local hashrate
-        if (nonce_diff > job->asic_diff && !duplicate) {
-            SYSTEM_MODULE.notifyFoundNonce((double) job->asic_diff, asic_result.asic_nr);
-        }
+        STRATUM_MANAGER->checkForBestDiff(job->pool_id, nonce_diff, job->target);
 
-        SYSTEM_MODULE.checkForBestDiff(nonce_diff, job->target);
+        STRATUM_MANAGER->checkForFoundBlock(job->pool_id, nonce_diff, job->target);
+
 
         free_bm_job(job);
     }

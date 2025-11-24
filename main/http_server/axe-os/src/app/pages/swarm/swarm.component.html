@@ -9,8 +9,9 @@
           <!-- Input group container -->
           <div class="input-group" style="flex: 1; display: flex; flex-flow: nowrap;">
             <input nbInput id="manualAddIp" formControlName="manualAddIp" type="text"
-                   [placeholder]="'UPDATE.ENTER_IP_ADDRESS' | translate" style="flex: 1; width: 100%;" />
-            <button nbButton status="primary" (click)="add()" [disabled]="form.invalid">{{ 'UPDATE.ADD' | translate }}</button>
+              [placeholder]="'UPDATE.ENTER_IP_ADDRESS' | translate" style="flex: 1; width: 100%;" />
+            <button nbButton status="primary" (click)="add()" [disabled]="form.invalid">{{ 'UPDATE.ADD' | translate
+              }}</button>
           </div>
         </div>
       </form>
@@ -26,7 +27,8 @@
           {{ scanning ? ('UPDATE.SCANNING' | translate) : ('UPDATE.AUTOMATIC_SCAN' | translate) }}
         </button>
         <button nbButton status="info" (click)="refreshList()" [disabled]="scanning || isRefreshing">
-          {{ isRefreshing ? ('UPDATE.REFRESHING' | translate) : (('UPDATE.REFRESH_LIST' | translate) + ' (' + refreshIntervalTime + ')') }}
+          {{ isRefreshing ? ('UPDATE.REFRESHING' | translate) : (('UPDATE.REFRESH_LIST' | translate) + ' (' +
+          refreshIntervalTime + ')') }}
         </button>
       </div>
 
@@ -34,10 +36,9 @@
       <div class="mt-3 mt-md-0 time-slider">
         <label for="refresh-interval">{{ 'UPDATE.REFRESH_INTERVAL' | translate }}:</label>
         <div class="progress-wrap mx-2">
-          <input id="refresh-interval" type="range" class="progress" [formControl]="refreshIntervalControl"
-                 [min]="5" [max]="30" step="1" />
-          <div class="progress-foreground"
-               [style.width.%]="((refreshIntervalControl.value - 5) / 25) * 100">
+          <input id="refresh-interval" type="range" class="progress" [formControl]="refreshIntervalControl" [min]="5"
+            [max]="30" step="1" />
+          <div class="progress-foreground" [style.width.%]="((refreshIntervalControl.value - 5) / 25) * 100">
           </div>
         </div>
         <span>{{ refreshTimeSet }}s</span>
@@ -73,27 +74,51 @@
 
     <nb-card-body *ngIf="swarm.length; else empty">
       <table class="swarm-table">
+        @let dp = hasDualPoolRows();
         <thead>
           <tr>
             <th>{{ 'SWARM.IP_ADDRESS' | translate }}</th>
-            <th>{{ 'SWARM.HASH_RATE' | translate }}</th>
+            <th [colSpan]="dp ? 2 : 1">{{ 'SWARM.HASH_RATE' | translate }}</th>
             <th>{{ 'SWARM.UPTIME' | translate }}</th>
-            <th>{{ 'SWARM.SHARES' | translate }}</th>
+            <th [colSpan]="dp ? 2 : 1">{{ 'SWARM.SHARES' | translate }}</th>
             <th>{{ 'SWARM.POWER' | translate }}</th>
             <th>{{ 'SWARM.TEMP' | translate }}</th>
-            <th>{{ 'SWARM.POOL_DIFF' | translate }}</th>
-            <th>{{ 'SWARM.BEST_DIFF' | translate }}</th>
+            <th [colSpan]="dp ? 2 : 1">{{ 'SWARM.POOL_DIFF' | translate }}</th>
+            <th [colSpan]="dp ? 2 : 1">{{ 'SWARM.BEST_DIFF' | translate }}</th>
             <th>{{ 'SWARM.VERSION' | translate }}</th>
             <th>&nbsp;</th>
             <th>&nbsp;</th>
             <th>&nbsp;</th>
           </tr>
+          <tr *ngIf="dp" class="dual-pool-header">
+            <td></td>
+            <td>Pool 1</td>
+            <td>Pool 2</td>
+            <td></td>
+            <td>Pool 1</td>
+            <td>Pool 2</td>
+            <td></td>
+            <td></td>
+            <td>Pool 1</td>
+            <td>Pool 2</td>
+            <td>Pool 1</td>
+            <td>Pool 2</td>
+            <td></td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+          </tr>
+
         </thead>
         <tbody>
           <ng-container *ngFor="let axe of swarm">
-            <tr>
+            @let dualPool = isDualPoolEntry(axe);
+            @let p0 = axe.stratum?.pools[0];
+            @let p1 = axe.stratum?.pools[1];
+            <tr class="base-row">
               <!-- IP with swarmColor dot -->
-              <td>
+
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <a [href]="'http://' + axe.IP" target="_blank">
                   <span class="swarm-dot" [style.background]="axe.swarmColor || 'blue'"></span>
                   {{ axe.IP }}
@@ -102,13 +127,13 @@
               </td>
 
               <!-- Hash Rate -->
-              <td>{{ axe.hashRate * 1000000000 | hashSuffix }}</td>
+              <td [colSpan]="dp ? 2 : 1">{{ axe.hashRate * 1000000000 | hashSuffix }}</td>
 
               <!-- Uptime -->
-              <td>{{ axe.uptimeSeconds | dateAgo: {intervals: 2} }}</td>
+              <td [rowSpan]="dualPool ? 2 : 1">{{ axe.uptimeSeconds | dateAgo: {intervals: 2} }}</td>
 
               <!-- Shares (Accepted & Rejected) -->
-              <td>
+              <td [colSpan]="dp ? 2 : 1">
                 <div [nbTooltip]="'UPDATE.SHARES_ACCEPTED' | translate" tooltipPosition="top">
                   {{ axe.sharesAccepted | number:'1.0-0' }}
                 </div>
@@ -118,58 +143,77 @@
               </td>
 
               <!-- Power -->
-              <td>{{ axe.power | number:'1.1-1' }} <small>W</small></td>
+              <td [rowSpan]="dualPool ? 2 : 1">{{ axe.power | number:'1.1-1' }} <small>W</small></td>
 
               <!-- Temperature (with VR temp if available) -->
-              <td>
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <div [ngClass]="{'text-orange-500': axe.temp > 68}">
                   {{ axe.temp | number:'1.0-1' }}°<small>C</small>
                 </div>
-                <div *ngIf="axe.vrTemp"
-                     [nbTooltip]="'UPDATE.VOLTAGE_REGULATOR_TEMPERATURE' | translate"
-                     tooltipPosition="top"
-                     [ngClass]="{'text-orange-500': axe.vrTemp > 90}"
-                     class="text-sm">
+                <div *ngIf="axe.vrTemp" [nbTooltip]="'UPDATE.VOLTAGE_REGULATOR_TEMPERATURE' | translate"
+                  tooltipPosition="top" [ngClass]="{'text-orange-500': axe.vrTemp > 90}" class="text-sm">
                   {{ axe.vrTemp | number:'1.0-1' }}°<small>C</small>
                 </div>
               </td>
 
               <!-- Stratum Pool Diff -->
-              <td>{{ axe.poolDifficulty | number:'1.0-0' }}</td>
+              <td [colSpan]="dp ? 2 : 1">{{ axe.poolDifficulty | number:'1.0-0' }}</td>
 
               <!-- Best Diff with Best Session Diff tooltip -->
-              <td>
+              <td [colSpan]="dp ? 2 : 1">
                 <div>{{ axe.bestDiff }}</div>
-                <div [nbTooltip]="'UPDATE.BEST_SESSION_DIFF' | translate" tooltipPosition="top" class="text-sm">
+                <div *ngIf="!dualPool" [nbTooltip]="'UPDATE.BEST_SESSION_DIFF' | translate" tooltipPosition="top"
+                  class="text-sm">
                   {{ axe.bestSessionDiff }}
                 </div>
+                <div *ngIf="dualPool" class="text-sm">&nbsp;</div>
               </td>
 
               <!-- Version -->
-              <td>{{ axe.version }}</td>
+              <td [rowSpan]="dualPool ? 2 : 1">{{ axe.version }}</td>
 
               <!-- Action Buttons -->
-              <td>
-                <button nbButton status="warning" size="small"
-                        (click)="edit(axe)"
-                        [nbTooltip]="axe.supportsAsicApi ? ('UPDATE.EDIT_SETTINGS' | translate) : ('UPDATE.FIRMWARE_UPDATE_REQUIRED' | translate)"
-                        tooltipPosition="top">
+              <td [rowSpan]="dualPool ? 2 : 1">
+                <button nbButton status="warning" size="small" (click)="edit(axe)"
+                  [nbTooltip]="axe.supportsAsicApi ? ('UPDATE.EDIT_SETTINGS' | translate) : ('UPDATE.FIRMWARE_UPDATE_REQUIRED' | translate)"
+                  tooltipPosition="top">
                   <nb-icon icon="edit-outline"></nb-icon>
                 </button>
               </td>
-              <td>
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <button nbButton status="danger" size="small" (click)="restart(axe)"
                   [nbTooltip]="'UPDATE.RESTART_DEVICE' | translate" tooltipPosition="top">
                   <nb-icon icon="sync-outline"></nb-icon>
                 </button>
               </td>
-              <td>
+              <td [rowSpan]="dualPool ? 2 : 1">
                 <button nbButton status="basic" size="small" (click)="remove(axe)"
-                [nbTooltip]="'UPDATE.REMOVE_FROM_LIST' | translate" tooltipPosition="top">
+                  [nbTooltip]="'UPDATE.REMOVE_FROM_LIST' | translate" tooltipPosition="top">
                   <nb-icon icon="trash-2-outline"></nb-icon>
                 </button>
               </td>
             </tr>
+            <tr *ngIf="dualPool" class="dual-pool-2nd-row">
+              @let c0 = isPoolConnected(axe, 0);
+              @let c1 = isPoolConnected(axe, 1);
+              @let e0 = c0 ? '' : 'text-danger';
+              @let e1 = c1 ? '' : 'text-danger';
+              <td class="shrink {{ e0 }}">{{ getActivePoolHashrate(axe, 0) | hashSuffix }}</td>
+              <td class="shrink {{ e1 }}">{{ getActivePoolHashrate(axe, 1) | hashSuffix }}</td>
+              <td class="shrink {{ e0 }}">
+                {{ c0 ? p0.accepted : 0 }}<br />
+                {{ c0 ? p0.rejected : 0 }}
+              </td>
+              <td class="shrink {{ e1 }}">
+                {{ c1 ? p1.accepted : 0 }}<br />
+                {{ c1 ? p1.rejected : 0 }}
+              </td>
+              <td class="shrink {{ e0 }}">{{ c0 ? p0.poolDifficulty : 0 }}</td>
+              <td class="shrink {{ e1 }}">{{ c1 ? p1.poolDifficulty : 0 }}</td>
+              <td class="shrink {{ e0 }}">{{ (c0 ? p0.bestDiff : 0) | humanReadable }}</td>
+              <td class="shrink {{ e1 }}">{{ (c1 ? p1.bestDiff : 0) | humanReadable }}</td>
+            </tr>
+
           </ng-container>
         </tbody>
       </table>

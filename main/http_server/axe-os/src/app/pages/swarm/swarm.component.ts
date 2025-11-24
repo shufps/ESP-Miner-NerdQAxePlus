@@ -442,4 +442,48 @@ export class SwarmComponent implements OnInit, OnDestroy {
     })
     .sort((a, b) => a.label.localeCompare(b.label));
   }
+
+  public isDualPoolEntry(axe: any): boolean {
+    return !!axe?.stratum
+      && axe.stratum.poolMode === 1
+      && Array.isArray(axe.stratum.pools)
+      && axe.stratum.pools.length >= 2;
+  }
+
+  public hasDualPoolRows(): boolean {
+    for (const axe of this.swarm) {
+      if (axe.stratum !== undefined) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public getActivePoolHashrate(axe, i: 0 | 1) {
+    const balance = this.getActiveBalance(axe, i);
+    return axe.hashRate * balance * 10000000;
+  }
+
+  public getActiveBalance(axe, i: 0 | 1) {
+    const stratum = axe.stratum;
+    const connected = stratum.pools.map(p => p.connected);
+    const balance = stratum.poolBalance;
+
+    // If neither pool is connected
+    if (!connected[0] && !connected[1]) {
+      return 0;
+    }
+
+    // If both pools are connected
+    if (connected[0] && connected[1]) {
+      return i === 0 ? balance : 100 - balance;
+    }
+
+    // Only one pool is connected → return 100 for that pool, 0 for the other
+    return connected[i] ? 100 : 0;
+  }
+
+  public isPoolConnected(axe, i: 0 | 1) {
+    return axe.stratum.pools[i].connected;
+  }
 }

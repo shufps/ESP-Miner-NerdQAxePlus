@@ -55,8 +55,6 @@ const defaultInfo: ISystemInfo = {
   fallbackStratumPort: 3333,
   fallbackStratumUser: "",
   fallbackStratumEnonceSubscribe: 0,
-  isUsingFallbackStratum: false,
-  isStratumConnected: false,
   frequency: 485,
   defaultFrequency: 485,
   version: "2.0",
@@ -79,6 +77,24 @@ const defaultInfo: ISystemInfo = {
   vrFrequency: 25000,
   defaultTheme: "cosmic",
   shutdown: false,
+
+  stratum: {
+    poolMode: 0, // prim/fb
+    activePoolMode: 0,
+    //poolBalance: 100,
+    usingFallback: false,
+    totalBestDiff: 0,
+    pools: [{
+      connected: false,
+      poolDiffErr: false,
+      poolDifficulty: 0,
+      accepted: 0,
+      rejected: 0,
+      bestDiff: 0,
+      pingRtt: 0,
+      pingLoss: 0,
+    }],
+  },
 
   otp: false,
 

@@ -16,8 +16,6 @@
 
 static const char *TAG = "http_otp";
 
-static bool enrollmengActive = false;
-
 esp_err_t POST_create_otp(httpd_req_t *req)
 {
     // close connection when out of scope

@@ -789,7 +789,7 @@ void DisplayDriver::updateHashrate(System *module, float power)
     lv_label_set_text(m_ui->ui_lbPower, strData); // Actualiza el label
 }
 
-void DisplayDriver::updateShares(System *module)
+void DisplayDriver::updateShares(StratumManager *module)
 {
     char strData[20];
 
@@ -822,14 +822,14 @@ void DisplayDriver::updateCurrentSettings()
 {
     PThreadGuard lock(m_lvglMutex);
     char strData[20];
-    if (m_ui->ui_SettingsScreen == NULL)
+    if (m_ui->ui_SettingsScreen == NULL || !STRATUM_MANAGER)
         return;
 
     Board *board = SYSTEM_MODULE.getBoard();
 
-    lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER.getCurrentPoolHost()); // Update label
+    lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER->getCurrentPoolHost()); // Update label
 
-    snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER.getCurrentPoolPort());
+    snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER->getCurrentPoolPort());
     lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%d", board->getAsicFrequency());
@@ -927,7 +927,7 @@ void DisplayDriver::updateGlobalState()
     lv_label_set_text(m_ui->ui_lbVinput, strData); // Update label
 
     updateTime(&SYSTEM_MODULE);
-    updateShares(&SYSTEM_MODULE);
+    updateShares(STRATUM_MANAGER);
     updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.getPower());
     updateBTCprice();
     updateGlobalMiningStats();

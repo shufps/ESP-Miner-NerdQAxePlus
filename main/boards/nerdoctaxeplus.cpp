@@ -13,6 +13,7 @@ NerdOctaxePlus::NerdOctaxePlus() : NerdQaxePlus() {
 
     m_asicMaxDifficulty = 2048;
     m_asicMinDifficulty = 512;
+    m_asicMinDifficultyDualPool = 256;
 
     m_maxPin = 130.0;
     m_minPin = 70.0;

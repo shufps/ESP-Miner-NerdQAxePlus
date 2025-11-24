@@ -25,6 +25,7 @@ NerdEko::NerdEko() : NerdQaxePlus2()
 
     m_asicMaxDifficulty = 8192;
     m_asicMinDifficulty = 2048;
+    m_asicMinDifficultyDualPool = 256;
 
 #ifdef NERDEKO
     m_theme = new ThemeNerdeko();

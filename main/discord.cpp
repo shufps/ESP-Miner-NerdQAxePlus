@@ -10,6 +10,7 @@
 
 #include "global_state.h"
 #include "macros.h"
+#include "utils.h"
 
 static const char *TAG = "discord";
 
@@ -142,8 +143,8 @@ bool DiscordAlerter::sendBlockFoundAlert(double diff, double networkDiff)
 
     char diffStr[DIFF_STRING_SIZE];
     char netStr[DIFF_STRING_SIZE];
-    SYSTEM_MODULE.suffixString((uint64_t)diff,        diffStr, DIFF_STRING_SIZE, 0);
-    SYSTEM_MODULE.suffixString((uint64_t)networkDiff, netStr,  DIFF_STRING_SIZE, 0);
+    suffixString((uint64_t)diff,        diffStr, DIFF_STRING_SIZE, 0);
+    suffixString((uint64_t)networkDiff, netStr,  DIFF_STRING_SIZE, 0);
 
     char base[192];
     snprintf(base, sizeof(base) - 1,
