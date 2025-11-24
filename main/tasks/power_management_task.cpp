@@ -186,23 +186,6 @@ void PowerManagementTask::task()
     // use manual invert polarity setting
     bool invert = board->isInvertFanPolarityEnabled();
 
-    // and overwrite it if auto detection is enabled and
-    // test was conclusive
-    if (board->isAutoFanPolarityEnabled()) {
-        lock();
-        switch (board->guessFanPolarity()) {
-            case POLARITY_NORMAL:
-                invert = false;
-                break;
-            case POLARITY_INVERTED:
-                invert = true;
-                break;
-            case POLARITY_UNKNOWN:
-                // nop, we couldn't detect it
-                break;
-        }
-        unlock();
-    }
     board->setFanPolarity(invert);
 
     // pointer to pid settings

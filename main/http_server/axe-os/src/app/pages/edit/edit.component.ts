@@ -61,7 +61,6 @@ export class EditComponent implements OnInit {
     'wifiPass',
     'wifiStatus',
     'invertfanpolarity',
-    'autofanpolarity',
     'stratumDifficulty',
     'stratum_keep',
     'poolMode',
@@ -209,7 +208,6 @@ export class EditComponent implements OnInit {
             Validators.required
           ]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
-          autofanpolarity: [info.autofanpolarity == 1, [Validators.required]],
           manualFanSpeed: [info.manualFanSpeed, [Validators.required]],
           overheat_temp: [info.overheat_temp, [
             Validators.min(40),
