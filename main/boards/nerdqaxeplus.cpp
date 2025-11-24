@@ -92,7 +92,6 @@ bool NerdQaxePlus::initBoard()
 
     EMC2302_init(m_fanInvertPolarity);
     setFanSpeed(m_fanPerc);
-    setFanSpeed(m_fanPerc);
 
     // configure gpios
     gpio_pad_select_gpio(TPS53647_EN_PIN);
@@ -218,7 +217,7 @@ bool NerdQaxePlus::setVoltage(float core_voltage)
     return m_tps->set_vout(core_voltage);
 }
 
-void NerdQaxePlus::setFanSpeedCh(int channel, float perc) {
+void NerdQaxePlus::setFanSpeedCh(int channel, int perc) {
     EMC2302_set_fan_speed(channel, perc);
 }
 

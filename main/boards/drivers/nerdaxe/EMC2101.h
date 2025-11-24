@@ -161,7 +161,7 @@ typedef enum
     EMC2101_RATE_32_HZ,   ///< 32_HZ
 } emc2101_rate_t;
 
-void EMC2101_set_fan_speed(float);
+void EMC2101_set_fan_speed(int);
 // void EMC2101_read(void);
 uint16_t EMC2101_get_fan_speed(void);
 bool EMC2101_init(bool);

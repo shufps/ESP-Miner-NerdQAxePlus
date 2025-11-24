@@ -368,19 +368,19 @@ void PowerManagementTask::task()
             case 0:
                 // manual
                 m_fanPerc = Config::getFanSpeed();
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
+                board->setFanSpeed(m_fanPerc);
                 break;
             case 2:
                 // pid
                 m_fanPerc = (uint16_t) roundf(pid_output);
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
+                board->setFanSpeed(m_fanPerc);
                 //ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
                 //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
                 break;
             default:
                 ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual mode 100%%.", temp_control_mode);
                 m_fanPerc = 100;
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
+                board->setFanSpeed(m_fanPerc);
         }
         unlock();
         // uint64_t end = esp_timer_get_time();

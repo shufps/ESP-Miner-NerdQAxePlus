@@ -202,7 +202,7 @@ bool NerdAxe::setVoltage(float core_voltage)
     return true;
 }
 
-void NerdAxe::setFanSpeedCh(int channel, float perc) {
+void NerdAxe::setFanSpeedCh(int channel, int perc) {
     if (channel == 0) {
         EMC2101_set_fan_speed(perc);
     }

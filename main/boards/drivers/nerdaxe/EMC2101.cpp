@@ -1,6 +1,6 @@
 #include "esp_log.h"
 #include <stdio.h>
-
+#include <math.h>
 #include "EMC2101.h"
 
 static const char * TAG = "EMC2101";
@@ -28,15 +28,14 @@ bool EMC2101_set_fan_polarity(bool invert) {
 }
 
 // takes a fan speed percent
-void EMC2101_set_fan_speed(float percent)
+void EMC2101_set_fan_speed(int percent)
 {
-    uint8_t speed;
+    int value = (int) roundf((float) percent * 0.63f);
 
-    if (percent < 0) percent = 0;
-    if (percent > 100) percent = 100;
+    value = (value > 63) ? 63 : value;
+    value = (value < 0) ? 0 : value;
 
-    speed = (uint8_t) (63.0 * percent);
-    esp_err_t err = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_REG_FAN_SETTING, speed);
+    esp_err_t err = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_REG_FAN_SETTING, (uint8_t) value);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "error setting fan speed");
     }

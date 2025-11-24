@@ -1,25 +1,29 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-
+#include "math.h"
 #include "esp_log.h"
 
 #include "EMC2302.h"
 
 const char *TAG = "emc2302";
 
-esp_err_t EMC2302_set_fan_speed(int channel, float percent)
+esp_err_t EMC2302_set_fan_speed(int channel, int percent)
 {
-    int value = (int) (percent * 255.0 + 0.5);
+    int value = (int) roundf((float) percent * 2.55f);
+
     value = (value > 255) ? 255 : value;
+    value = (value < 0) ? 0 : value;
 
     // 0: fan2, 1: fan1
     uint8_t base = !channel ? EMC2302_FAN2 : EMC2302_FAN1;
 
-    esp_err_t err;
-
-    ESP_LOGI(TAG, "setting fan %d speed to %.2f%% (0x%02x)", channel, percent * 100.0, value);
-    return i2c_master_register_write_byte(EMC2302_ADDR, base + EMC2302_OFS_FAN_SETTING, (uint8_t) value);
+    ESP_LOGE(TAG, "%d %d", percent, value);
+    esp_err_t err = i2c_master_register_write_byte(EMC2302_ADDR, base + EMC2302_OFS_FAN_SETTING, (uint8_t) value);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error writing fan speed (ch %d, perc %d)", channel, percent);
+    }
+    return err;
 }
 
 esp_err_t EMC2302_get_fan_speed(int channel, uint16_t *dst)
@@ -34,11 +38,13 @@ esp_err_t EMC2302_get_fan_speed(int channel, uint16_t *dst)
     // use channel 2 that is closed to the CPU cooler
     err = i2c_master_register_read(EMC2302_ADDR, base + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1);
     if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error reading tach msb (ch %d)", channel);
         *dst = 0;
         return err;
     }
     err = i2c_master_register_read(EMC2302_ADDR, base + EMC2302_OFS_TACH_READING_LSB, &tach_lsb, 1);
     if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error reading tach lsb (ch %d)", channel);
         *dst = 0;
         return err;
     }

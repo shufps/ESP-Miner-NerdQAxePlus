@@ -134,8 +134,8 @@ bool Board::selfTest(){
 
 FanPolarityGuess Board::guessFanPolarity() {
     const int settleTimeMs = 2000;
-    const float lowPWM = 0.40f;
-    const float highPWM = 0.60f;
+    const int lowPWM = 40;
+    const int highPWM = 60;
     const float similarityThreshold = 0.90f; // ≥90% match = too similar to tell
 
     uint16_t rpmLow = 0, rpmHigh = 0;
@@ -143,24 +143,24 @@ FanPolarityGuess Board::guessFanPolarity() {
     // bring it to run at a safe setting
     ESP_LOGI("polarity", "set 50%%");
     setFanPolarity(false);
-    setFanSpeed(0.5f);
+    setFanSpeed(50);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
 
     // Test low speed
     setFanSpeed(lowPWM);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
     getFanSpeedCh(0, &rpmLow);
-    ESP_LOGI("polarity", "set %.2f%% read: %d", lowPWM, rpmLow);
+    ESP_LOGI("polarity", "set %d%% read: %d", lowPWM, rpmLow);
 
     // Test high speed
     setFanSpeed(highPWM);
     vTaskDelay(pdMS_TO_TICKS(settleTimeMs));
     getFanSpeedCh(0, &rpmHigh);
-    ESP_LOGI("polarity", "set %.2f%% read: %d", highPWM, rpmHigh);
+    ESP_LOGI("polarity", "set %d%% read: %d", highPWM, rpmHigh);
 
     // Reset to mid-range to be safe
     ESP_LOGI("polarity", "set 50%%");
-    setFanSpeed(0.5f);
+    setFanSpeed(50);
 
     // No signal at all? Can't tell.
     if (rpmLow == 0 && rpmHigh == 0) {
@@ -232,4 +232,11 @@ bool Board::validateFrequency(float frequency) {
         return false;
     }
     return true;
+}
+
+void Board::setFanSpeed(int perc) {
+    ESP_LOGI(TAG, "setting fan speed to %d%%", perc);
+    for (int i=0;i<getNumFans();i++) {
+        setFanSpeedCh(i, perc);
+    }
 }
