@@ -174,9 +174,6 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
 
     StratumManager::getManagerInfoJson(obj);
 
-    // dual pool specific
-    obj["poolBalance"] = Config::getPoolBalance();
-
     JsonArray arr = obj["pools"].to<JsonArray>();
 
     for (int i = 0; i < 2; i++) {

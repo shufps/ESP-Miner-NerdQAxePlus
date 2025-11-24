@@ -353,6 +353,11 @@ void StratumManager::getManagerInfoJson(JsonObject &obj)
     obj["poolMode"] = Config::getPoolMode();
     obj["activePoolMode"] = getPoolMode();
 
+    // this belongs to dual pool but we need it here for the web UI
+    // running at pri/fb mode and switching to dual pool wouldn't
+    // return the config value until next boot
+    obj["poolBalance"] = Config::getPoolBalance();
+
     obj["totalBestDiff"] = m_totalBestDiff;
 }
 
