@@ -458,4 +458,32 @@ export class SwarmComponent implements OnInit, OnDestroy {
     }
     return false;
   }
+
+  public getActivePoolHashrate(axe, i: 0 | 1) {
+    const balance = this.getActiveBalance(axe, i);
+    return axe.hashRate * balance * 10000000;
+  }
+
+  public getActiveBalance(axe, i: 0 | 1) {
+    const stratum = axe.stratum;
+    const connected = stratum.pools.map(p => p.connected);
+    const balance = stratum.poolBalance;
+
+    // If neither pool is connected
+    if (!connected[0] && !connected[1]) {
+      return 0;
+    }
+
+    // If both pools are connected
+    if (connected[0] && connected[1]) {
+      return i === 0 ? balance : 100 - balance;
+    }
+
+    // Only one pool is connected → return 100 for that pool, 0 for the other
+    return connected[i] ? 100 : 0;
+  }
+
+  public isPoolConnected(axe, i: 0 | 1) {
+    return axe.stratum.pools[i].connected;
+  }
 }

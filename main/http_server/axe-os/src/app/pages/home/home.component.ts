@@ -576,13 +576,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       : this.translateService.instant('HOME.PRIMARY_POOL');
   }
 
-  public dualPoolBadgeLabel(i: number) {
-    const stratum = this._info.stratum;
-
-    const percent = (i == 0) ? stratum.poolBalance : (100 - stratum.poolBalance);
-    if (percent == 100) {
-      return `Pool ${i + 1}`;
-    }
+  public dualPoolBadgeLabel(i: 0 | 1) {
+    const percent = this.getActiveBalance(i);
     return `Pool ${i + 1} (${percent} %)`;
   }
 
@@ -620,9 +615,29 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   public getPoolHashrate(i: 0 | 1) {
-    const stratum = this._info.stratum;
-    return this._info.hashrate * ((i == 0) ? stratum.poolBalance : (100 - stratum.poolBalance)) / 100.0;
+    const balance = this.getActiveBalance(i);
+    return this._info.hashRate * balance / 100.0;
   }
+
+  public getActiveBalance(i: 0 | 1) {
+    const stratum = this._info.stratum;
+    const connected = stratum.pools.map(p => p.connected);
+    const balance = stratum.poolBalance;
+
+    // If neither pool is connected
+    if (!connected[0] && !connected[1]) {
+      return 0;
+    }
+
+    // If both pools are connected
+    if (connected[0] && connected[1]) {
+      return i === 0 ? balance : 100 - balance;
+    }
+
+    // Only one pool is connected → return 100 for that pool, 0 for the other
+    return connected[i] ? 100 : 0;
+  }
+
 
   public getPoolInfo(i?: 0 | 1): IPool {
     const stratum = this._info.stratum;

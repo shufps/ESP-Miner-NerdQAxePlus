@@ -24,9 +24,9 @@
                     <small>{{ 'UNITS.HASHRATE' | translate }}</small>
                   </div>
                   <div *ngIf="isDualPool" class="font-weight-bold text-lg">
-                    {{ info.hashRate * info.stratum?.poolBalance / 100.0 | number: '1.2-2' }}
+                    {{ getPoolHashrate(0) | number: '1.2-2' }}
                     <small>{{ 'UNITS.HASHRATE' | translate }}</small>&nbsp;/&nbsp;
-                    {{ info.hashRate * (100.0 - info.stratum?.poolBalance) / 100.0 | number: '1.2-2' }}
+                    {{ getPoolHashrate(1) | number: '1.2-2' }}
                     <small>{{ 'UNITS.HASHRATE' | translate }}</small>
                   </div>
                 </div>
