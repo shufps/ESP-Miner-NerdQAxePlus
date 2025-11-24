@@ -6,7 +6,8 @@
 
 #define NVS_CONFIG_NAMESPACE "main"
 
-namespace Config {
+namespace Config
+{
 
 static const char *TAG = "nvs_config";
 
@@ -136,7 +137,8 @@ void nvs_config_set_u64(const char *key, const uint64_t value)
     nvs_close(handle);
 }
 
-void migrate_config() {
+void migrate_config()
+{
     // overwrite previously allowed 0 value to disable
     // over-temp shutdown
     uint16_t asic_overheat_temp = Config::getOverheatTemp();
@@ -168,18 +170,20 @@ void migrate_config() {
             // disable invert fan polarity because if it was set it would be
             // certainly wrong
             setInvertFanPolarity(false);
-            version++;
             break;
         }
         default: {
             ESP_LOGE(TAG, "unknown config version: %d", version);
-            break;
+            return;
         }
         }
-        // set new config
+
+        // increase version and
+        version++;
+
+        // store it
         setConfigVersion(version);
     }
 }
 
-}
-
+} // namespace Config
