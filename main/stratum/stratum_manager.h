@@ -38,11 +38,11 @@ class StratumManager {
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER; ///< Mutex for thread safety
     StratumApiV1Message m_stratum_api_v1_message;        ///< API message handler
     PoolMode m_poolmode;                                 // default FAILOVER
-    uint64_t m_lastSubmitResponseTimestamp;              ///< Timestamp of last submitted share response
+    uint64_t m_lastSubmitResponseTimestamp = 0;              ///< Timestamp of last submitted share response
 
     StratumTask *m_stratumTasks[2]{};                      ///< Primary and secondary Stratum tasks
     PingTask *m_pingTasks[2]{};
-    StratumConfig m_stratumConfig[2]{};
+    StratumConfig *m_stratumConfig[2]{};
 
     uint32_t m_totalFoundBlocks = 0;
     uint32_t m_foundBlocks = 0;
@@ -59,7 +59,7 @@ class StratumManager {
         return m_poolmode;
     }
 
-    const StratumConfig getStratumConfig(int i);
+    void copyConfigInto(int pool, StratumConfig *dst);
 
     // Helper methods for connection management
     void connect(int index);     ///< Connect to a specified pool (0 = primary, 1 = secondary)

@@ -191,6 +191,7 @@ void PingTask::ping_task()
         return;
     }
 
+    StratumConfig* cfg = new StratumConfig(m_pool);
     while (true) {
         {
             PThreadGuard g(m_mutex);
@@ -204,8 +205,9 @@ void PingTask::ping_task()
                 continue;
             }
 
-            StratumConfig cfg = m_manager->getStratumConfig(m_pool);
-            const char *hostname = cfg.getHost() ? cfg.getHost() : nullptr;
+            // get a guaranteed consistent copy of the config
+            m_manager->copyConfigInto(m_pool, cfg);
+            const char *hostname = cfg->getHost();
             const char *ip_str = m_manager->getResolvedIpForPool(m_pool);
 
             if (!hostname || !ip_str) {

@@ -24,7 +24,7 @@ class StratumTask {
 
   protected:
     StratumManager *m_manager = nullptr; ///< Reference to the StratumManager
-    StratumConfig m_config;
+    StratumConfig *m_config = nullptr;
     int m_index = 0;                     ///< Index of the Stratum task (0 = primary, 1 = secondary)
 
     StratumApi m_stratumAPI;     ///< API instance for Stratum communication
@@ -87,11 +87,17 @@ class StratumTask {
     }
     const char *getHost()
     {
-        return m_config.getHost() ? m_config.getHost() : "-";
+        if (!m_config || !m_config->getHost()) {
+            return "-";
+        }
+        return m_config->getHost();
     }
     int getPort()
     {
-        return m_config.getPort();
+        if (!m_config) {
+            return 0;
+        }
+        return m_config->getPort();
     }
     const char *getResolvedIp() const
     {

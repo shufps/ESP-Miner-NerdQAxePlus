@@ -26,10 +26,13 @@
 #include "utils.h"
 
 // ------------  stratum manager
-StratumManager::StratumManager(PoolMode poolmode) : m_poolmode(poolmode), m_lastSubmitResponseTimestamp(0)
+StratumManager::StratumManager(PoolMode poolmode) : m_poolmode(poolmode)
 {
     m_stratumTasks[0] = nullptr;
     m_stratumTasks[1] = nullptr;
+
+    m_stratumConfig[0] = new StratumConfig(0);
+    m_stratumConfig[1] = new StratumConfig(1);
 
     suffixString(0, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
     suffixString(0, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
@@ -252,11 +255,13 @@ void StratumManager::submitShare(int pool, const char *jobid, const char *extran
 }
 
 // --- stratum config related; mutexed
-const StratumConfig StratumManager::getStratumConfig(int i) {
+void StratumManager::copyConfigInto(int pool, StratumConfig *dst) {
     PThreadGuard lock(m_mutex);
-
-    // returns a copy via copy constructor
-    return m_stratumConfig[i];
+    if (!m_stratumConfig[pool]) {
+        ESP_LOGE(m_tag, "config is null!");
+        return;
+    }
+    m_stratumConfig[pool]->copyInto(dst);
 }
 
 void StratumManager::loadSettings(bool reconnect)
@@ -271,12 +276,10 @@ void StratumManager::loadSettings(bool reconnect)
 
     // load and compare config
     for (int i=0; i<2; i++) {
-        StratumConfig tmp = StratumConfig::read(i);
-        if (!m_stratumConfig[i].isEqual(tmp)) {
+        bool changed = m_stratumConfig[i]->reload();
+        if (changed) {
             requiresReconnect[i] = true;
         }
-        m_stratumConfig[i] = tmp; // deep copy!
-
     }
 
     // reconnect the pools with changed configs

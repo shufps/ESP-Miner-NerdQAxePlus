@@ -162,8 +162,7 @@ void create_job_mining_notify(int pool, mining_notify *notify, bool abandonWork)
         PThreadGuard g(current_stratum_job_mutex);
         // clear jobs for pool
         if (abandonWork) {
-            int deleted = asicJobs.cleanJobs(pool);
-            ESP_LOGI(TAG, "%d jobs deleted from queue %d", deleted, pool);
+            asicJobs.cleanJobs(pool);
         }
         miningInfo[pool].create_job_mining_notify(notify);
     }
@@ -174,6 +173,7 @@ void create_job_invalidate(int pool)
 {
     PThreadGuard g(current_stratum_job_mutex);
     miningInfo[pool].invalidate();
+    asicJobs.cleanJobs(pool);
 }
 
 void *create_jobs_task(void *pvParameters)
