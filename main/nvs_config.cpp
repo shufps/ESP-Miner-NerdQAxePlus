@@ -165,8 +165,8 @@ void migrate_config() {
     while (version < CURRENT_CONFIG_VERSION) {
         switch (version) {
         case 0: {
-            // disable invert fan polarity because if set it would be
-            // wrong 99.99%
+            // disable invert fan polarity because if it was set it would be
+            // certainly wrong
             setInvertFanPolarity(false);
             version++;
             break;
