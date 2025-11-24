@@ -7,13 +7,6 @@
 #include "nvs_config.h"
 #include "../pid/PID_v1_bc.h"
 
-enum FanPolarityGuess {
-    POLARITY_UNKNOWN,
-    POLARITY_NORMAL,
-    POLARITY_INVERTED
-};
-
-
 class Board {
 public:
     enum Error {
@@ -83,7 +76,6 @@ public:
 
     // fans
     bool m_fanInvertPolarity;
-    bool m_fanAutoPolarity;
     float m_fanPerc;
 
     // flip screen
@@ -135,7 +127,6 @@ public:
         }
     }
     virtual void getFanSpeedCh(int channel, uint16_t *rpm) = 0;
-    FanPolarityGuess guessFanPolarity();
 
     virtual int getNumFans() { return m_numFans; }
 
@@ -281,11 +272,6 @@ public:
     bool isInvertFanPolarityEnabled()
     {
         return m_fanInvertPolarity;
-    }
-
-    bool isAutoFanPolarityEnabled()
-    {
-        return m_fanAutoPolarity;
     }
 
     PidSettings *getPidSettings() {

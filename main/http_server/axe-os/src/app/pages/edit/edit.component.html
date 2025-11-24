@@ -341,10 +341,6 @@
                     </div>
                 </div>
                 <div class="form-row" *ngIf="supportLevel >= 1">
-                    <nb-checkbox formControlName="autofanpolarity">{{ 'FAN.AUTODETECT_POLARITY' | translate }}
-                        <small>({{ 'FAN.AUTODETECT_RECOMMENDED' | translate }})</small></nb-checkbox>
-                </div>
-                <div class="form-row" *ngIf="supportLevel >= 1">
                     <nb-checkbox formControlName="invertfanpolarity">{{ 'FAN.INVERT_POLARITY' | translate
                         }}</nb-checkbox>
                 </div>

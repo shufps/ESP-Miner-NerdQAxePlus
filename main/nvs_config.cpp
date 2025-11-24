@@ -152,6 +152,33 @@ void migrate_config() {
         setTempControlMode(0);
         setFanSpeed(100);
     }
+
+    // migrations
+    uint16_t version = getConfigVersion();
+    if (version >= CURRENT_CONFIG_VERSION) {
+        ESP_LOGI(TAG, "config version %d found", version);
+        return;
+    }
+
+    ESP_LOGW(TAG, "migrating config from %d to %d", version, CURRENT_CONFIG_VERSION);
+
+    while (version < CURRENT_CONFIG_VERSION) {
+        switch (version) {
+        case 0: {
+            // disable invert fan polarity because if set it would be
+            // wrong 99.99%
+            setInvertFanPolarity(false);
+            version++;
+            break;
+        }
+        default: {
+            ESP_LOGE(TAG, "unknown config version: %d", version);
+            break;
+        }
+        }
+        // set new config
+        setConfigVersion(version);
+    }
 }
 
 }
