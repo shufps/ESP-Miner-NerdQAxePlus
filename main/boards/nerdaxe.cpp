@@ -44,7 +44,7 @@ NerdAxe::NerdAxe() : Board() {
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1200;
     // m_absMaxAsicFrequency = 650;
     // m_absMaxAsicVoltageMillis = 1400;
-    m_fanInvertPolarity = true;
+    m_fanInvertPolarity = false;
     m_fanPerc = 100;
     m_flipScreen = true;
     m_numTempSensors = 1;

@@ -34,7 +34,7 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
     // m_absMaxAsicFrequency = 750;
     // m_absMaxAsicVoltageMillis = 1300;
     m_initVoltageMillis = 1150;
-    m_fanInvertPolarity = true;
+    m_fanInvertPolarity = false;
     m_fanPerc = 100;
     m_flipScreen = true;
     m_vr_maxTemp = TPS546_THROTTLE_TEMP; //Set max voltage regulator temp
