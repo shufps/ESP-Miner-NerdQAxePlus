@@ -162,7 +162,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
     doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
-    doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::getTempControlMode();
     doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
 #ifdef VR_FREQUENCY_ENABLED
@@ -270,9 +269,6 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
     if (doc["invertfanpolarity"].is<bool>()) {
         Config::setInvertFanPolarity(doc["invertfanpolarity"].as<bool>());
-    }
-    if (doc["autofanpolarity"].is<bool>()) {
-        Config::setAutoFanPolarity(doc["autofanpolarity"].as<bool>());
     }
     if (doc["autofanspeed"].is<uint16_t>()) {
         Config::setTempControlMode(doc["autofanspeed"].as<uint16_t>());
