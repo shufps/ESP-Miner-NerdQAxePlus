@@ -15,12 +15,6 @@ StratumManagerDualPool::StratumManagerDualPool() : StratumManager(PoolMode::DUAL
     // NOP
 }
 
-const char *StratumManagerDualPool::getResolvedIpForSelected() const
-{
-    // what to do? is used for ping TODO
-    return nullptr;
-}
-
 void StratumManagerDualPool::reconnectTimerCallback(int index)
 {
     PThreadGuard lock(m_mutex);
@@ -81,16 +75,28 @@ int StratumManagerDualPool::getNextActivePool()
     return PRIMARY;
 }
 
-const char *StratumManagerDualPool::getCurrentPoolHost()
+const char *StratumManagerDualPool::getPoolHost(int pool)
 {
-    // TODO
-    return "-";
+    if (!m_stratumConfig[pool]) {
+        return "-";
+    }
+    return m_stratumConfig[pool]->getHost();
 }
 
-int StratumManagerDualPool::getCurrentPoolPort()
+int StratumManagerDualPool::getPoolPort(int pool)
 {
-    // TODO
-    return 0;
+    if (!m_stratumConfig[pool]) {
+        return 0;
+    }
+    return m_stratumConfig[pool]->getPort();
+}
+
+uint64_t StratumManagerDualPool::getSharesAccepted(int pool) {
+    return m_accepted[pool];
+}
+
+uint64_t StratumManagerDualPool::getSharesRejected(int pool) {
+    return m_rejected[pool];
 }
 
 uint32_t StratumManagerDualPool::selectAsicDiff(int pool, uint32_t poolDiff)
@@ -125,6 +131,30 @@ uint32_t StratumManagerDualPool::selectAsicDiff(int pool, uint32_t poolDiff)
 bool StratumManagerDualPool::acceptsNotifyFrom(int pool)
 {
     return true;
+}
+
+int StratumManagerDualPool::getActivePoolBalance(int pool)
+{
+    if (!m_stratumTasks[0] || !m_stratumTasks[1]) {
+        return 0;
+    }
+
+    if (!isConnected(0) && !isConnected(1)) {
+        return 0;
+    }
+
+    if (isConnected(0) && isConnected(1)) {
+        return pool == 0 ? m_balance : 100 - m_balance;
+    }
+
+    return isConnected(pool) ? 100 : 0;
+
+}
+
+float StratumManagerDualPool::getActivePoolHashrate(int pool)
+{
+    int balance = getActivePoolBalance(pool);
+    return SYSTEM_MODULE.getCurrentHashrate() * (float) balance / 100.0f;
 }
 
 void StratumManagerDualPool::loadSettings()

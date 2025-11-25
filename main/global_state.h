@@ -11,6 +11,8 @@
 #include "tasks/asic_jobs.h"
 #include "tasks/power_management_task.h"
 #include "stratum/stratum_manager.h"
+#include "stratum/stratum_manager_dual_pool.h"
+#include "stratum/stratum_manager_fallback.h"
 #include "tasks/apis_task.h"
 
 #include "boards/nerdqaxeplus.h"

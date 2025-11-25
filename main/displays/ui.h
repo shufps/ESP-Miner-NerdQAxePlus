@@ -52,6 +52,7 @@ protected:
     lv_obj_t *ui_Image4 = nullptr;
     lv_obj_t *ui_lbIPSet = nullptr;
     lv_obj_t *ui_lbVcoreSet = nullptr;
+    lv_obj_t *ui_lbPoolNr = nullptr;
     lv_obj_t *ui_lbFreqSet = nullptr;
     lv_obj_t *ui_lbFanSet = nullptr;
     lv_obj_t *ui_lbPoolSet = nullptr;

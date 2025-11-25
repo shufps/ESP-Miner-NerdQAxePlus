@@ -205,6 +205,8 @@ void System::task() {
     m_display->updateIpAddress(m_ipAddress);
     int lastFoundBlocks = 0;
 
+    int toggle = 1;
+
     while (1) {
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
@@ -231,8 +233,11 @@ void System::task() {
         }
         lastFoundBlocks = foundBlocks;
 
-        m_display->updateGlobalState();
-        m_display->updateCurrentSettings();
+        // toggle
+        toggle = 1-toggle;
+
+        m_display->updateGlobalState(toggle);
+        m_display->updateCurrentSettings(toggle);
         m_display->refreshScreen();
 
         vTaskDelay(pdMS_TO_TICKS(5000));

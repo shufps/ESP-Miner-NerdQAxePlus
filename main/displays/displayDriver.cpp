@@ -43,6 +43,14 @@ static inline int32_t elapsed_ms(int64_t start_us, int64_t now) {
     return static_cast<int32_t>((now - start_us) / 1000);
 }
 
+static void formatHashrate(char *buf, int len, float hashrate) {
+    if (hashrate >= 10000.0) {
+        snprintf(buf, len, "%d", (int) (hashrate + 0.5f));
+    } else {
+        snprintf(buf, len, "%.1f", hashrate);
+    }
+}
+
 DisplayDriver::DisplayDriver() {
     m_animationsEnabled = false;
     m_lastKeypressTime = 0;
@@ -771,22 +779,29 @@ lv_obj_t *DisplayDriver::initTDisplayS3(void)
     return scr;
 }
 
-void DisplayDriver::updateHashrate(System *module, float power)
+void DisplayDriver::updateHashrate(System *module, StratumManager* manager, float power, int pool)
 {
     char strData[20];
+    char strDataActive[20];
 
-    float efficiency = power / (module->getCurrentHashrate() / 1000.0);
-    float hashrate = module->getCurrentHashrate();
-
-    // >= 10T doesn't fit on the screen with a decimal place
-    if (hashrate >= 10000.0) {
-        snprintf(strData, sizeof(strData), "%d", (int) (hashrate + 0.5f));
-    } else {
-        snprintf(strData, sizeof(strData), "%.1f", hashrate);
-    }
+    float efficiency = power / (SYSTEM_MODULE.getCurrentHashrate() / 1000.0);
+    float hashrate = SYSTEM_MODULE.getCurrentHashrate();
+    formatHashrate(strData, sizeof(strData), hashrate);
 
     lv_label_set_text(m_ui->ui_lbHashrate, strData);    // Update hashrate
-    lv_label_set_text(m_ui->ui_lbHashrateSet, strData); // Update hashrate
+
+    // let it toggle on the pool view page
+    if (manager->isDualPool()) {
+        auto *m = static_cast<StratumManagerDualPool*>(manager);
+        float activeHashrate = m->getActivePoolHashrate(pool);
+        formatHashrate(strDataActive, sizeof(strDataActive), activeHashrate);
+        lv_label_set_text(m_ui->ui_lbHashrateSet, strDataActive); // Update hashrate
+    }
+
+    if (manager->isFallback()) {
+        lv_label_set_text(m_ui->ui_lbHashrateSet, strData); // Update hashrate
+    }
+
     lv_label_set_text(m_ui->ui_lblHashPrice, strData);  // Update hashrate
 
     snprintf(strData, sizeof(strData), "%.1f", efficiency);
@@ -796,16 +811,24 @@ void DisplayDriver::updateHashrate(System *module, float power)
     lv_label_set_text(m_ui->ui_lbPower, strData); // Actualiza el label
 }
 
-void DisplayDriver::updateShares(StratumManager *module)
+void DisplayDriver::updateShares(StratumManager *manager, int pool)
 {
     char strData[20];
 
-    snprintf(strData, sizeof(strData), "%lld/%lld", module->getSharesAccepted(), module->getSharesRejected());
-    lv_label_set_text(m_ui->ui_lbShares, strData); // Update shares
+    if (manager->isDualPool()) {
+        auto *manager = static_cast<StratumManagerDualPool*>(STRATUM_MANAGER);
+        snprintf(strData, sizeof(strData), "%lld/%lld", manager->getSharesAccepted(pool), manager->getSharesRejected(pool));
+        lv_label_set_text(m_ui->ui_lbShares, strData); // Update shares
+    }
 
-    snprintf(strData, sizeof(strData), "%s", module->getBestDiffString());
-    lv_label_set_text(m_ui->ui_lbBestDifficulty, module->getBestDiffString());    // Update Bestdifficulty
-    lv_label_set_text(m_ui->ui_lbBestDifficultySet, module->getBestDiffString()); // Update Bestdifficulty
+    if (manager->isFallback()) {
+        auto *manager = static_cast<StratumManagerFallback*>(STRATUM_MANAGER);
+        snprintf(strData, sizeof(strData), "%lld/%lld", manager->getSharesAccepted(), manager->getSharesRejected());
+        lv_label_set_text(m_ui->ui_lbShares, strData); // Update shares
+    }
+
+    lv_label_set_text(m_ui->ui_lbBestDifficulty, manager->getBestDiffString());    // Update Bestdifficulty
+    lv_label_set_text(m_ui->ui_lbBestDifficultySet, manager->getBestDiffString()); // Update Bestdifficulty
 }
 void DisplayDriver::updateTime(System *module)
 {
@@ -825,7 +848,7 @@ void DisplayDriver::updateTime(System *module)
     lv_label_set_text(m_ui->ui_lbTime, strData); // Update label
 }
 
-void DisplayDriver::updateCurrentSettings()
+void DisplayDriver::updateCurrentSettings(int pool)
 {
     PThreadGuard lock(m_lvglMutex);
     char strData[20];
@@ -834,10 +857,22 @@ void DisplayDriver::updateCurrentSettings()
 
     Board *board = SYSTEM_MODULE.getBoard();
 
-    lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER->getCurrentPoolHost()); // Update label
+    if (STRATUM_MANAGER->isDualPool()) {
+        auto *manager = static_cast<StratumManagerDualPool*>(STRATUM_MANAGER);
+        snprintf(strData, sizeof(strData), "%s", manager->getPoolHost(pool));
+        lv_label_set_text(m_ui->ui_lbPoolSet, strData); // Update label
+        snprintf(strData, sizeof(strData), "%d", manager->getPoolPort(pool));
+        lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
+        snprintf(strData, sizeof(strData), "%d", pool + 1);
+        lv_label_set_text(m_ui->ui_lbPoolNr, strData);
+    }
 
-    snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER->getCurrentPoolPort());
-    lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
+    if (STRATUM_MANAGER->isFallback()) {
+        auto *manager = static_cast<StratumManagerFallback*>(STRATUM_MANAGER);
+        lv_label_set_text(m_ui->ui_lbPoolSet, manager->getCurrentPoolHost()); // Update label
+        snprintf(strData, sizeof(strData), "%d", manager->getCurrentPoolPort());
+        lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
+    }
 
     snprintf(strData, sizeof(strData), "%d", board->getAsicFrequency());
     lv_label_set_text(m_ui->ui_lbFreqSet, strData); // Update label
@@ -906,7 +941,7 @@ void DisplayDriver::updateGlobalMiningStats(void)
     lv_label_set_text(m_ui->ui_lblhighFee, strData); // Update label
 }
 
-void DisplayDriver::updateGlobalState()
+void DisplayDriver::updateGlobalState(int pool)
 {
     PThreadGuard lock(m_lvglMutex);
     char strData[20];
@@ -934,8 +969,8 @@ void DisplayDriver::updateGlobalState()
     lv_label_set_text(m_ui->ui_lbVinput, strData); // Update label
 
     updateTime(&SYSTEM_MODULE);
-    updateShares(STRATUM_MANAGER);
-    updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.getPower());
+    updateShares(STRATUM_MANAGER, pool);
+    updateHashrate(&SYSTEM_MODULE, STRATUM_MANAGER, POWER_MANAGEMENT_MODULE.getPower(), pool);
     updateBTCprice();
     updateGlobalMiningStats();
 

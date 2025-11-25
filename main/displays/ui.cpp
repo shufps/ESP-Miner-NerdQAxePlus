@@ -298,6 +298,18 @@ void UI::settingsScreenInit(void)
     lv_obj_set_style_text_align(ui_lbBestDifficultySet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbBestDifficultySet, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    ui_lbPoolNr = lv_label_create(ui_SettingsScreen);
+    lv_obj_set_width(ui_lbPoolNr, LV_SIZE_CONTENT);  /// 1
+    lv_obj_set_height(ui_lbPoolNr, LV_SIZE_CONTENT); /// 1
+    lv_obj_set_x(ui_lbPoolNr, 210);
+    lv_obj_set_y(ui_lbPoolNr, -46);
+    lv_obj_set_align(ui_lbPoolNr, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_lbPoolNr, "");
+    lv_obj_set_style_text_color(ui_lbPoolNr, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lbPoolNr, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui_lbPoolNr, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbPoolNr, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
+
     ui_lbVcoreSet = lv_label_create(ui_SettingsScreen);
     lv_obj_set_width(ui_lbVcoreSet, LV_SIZE_CONTENT);  /// 1
     lv_obj_set_height(ui_lbVcoreSet, LV_SIZE_CONTENT); /// 1
