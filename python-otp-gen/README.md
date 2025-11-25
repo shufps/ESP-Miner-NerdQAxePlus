@@ -53,6 +53,9 @@ The script prints to the console:
 
 At the same time, a small window opens with the QR code so you can scan it with your TOTP app.
 
+<img width="383" height="422" alt="image" src="https://github.com/user-attachments/assets/e8b23181-6094-4ec0-ba70-fe1870959116" />
+
+
 Example Output
 --------------
 
