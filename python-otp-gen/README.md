@@ -44,7 +44,7 @@ Interactive mode (prompts for issuer & account):
 
 Non-interactive (no prompts):
 
-    python generate_totp_qr.py --issuer "NerdQX" --account "nerdqaxeplus2-B43A"
+    python generate_totp_qr.py --issuer "NerdQAxe" --account "nerdqaxeplus2-B43A"
 
 The script prints to the console:
 
@@ -58,16 +58,17 @@ Example Output
 
 ```
 === TOTP Secret (Base32) ===
-S3IFAIHUMGLB6SYAPXHTDESUJI2CVZNN
+Z24R33BWOPGD6JQOJP7B5F2NWEEKRDFA
 
 === otpauth:// URI ===
-otpauth://totp/NerdQX:nerdqaxeplus2-B43A?secret=S3IFAIHUMGLB6SYAPXHTDESUJI2CVZNN&issuer=NerdQX
+otpauth://totp/NerdQAxe:nerdqaxeplus2-B43A?secret=Z24R33BWOPGD6JQOJP7B5F2NWEEKRDFA&issuer=NerdQAxe
+
 ```
 
 The Base32 TOTP secret can be used in the `config.cvs` like:
 ```
 # TOTP secret
-otp_secret,data,string,S3IFAIHUMGLB6SYAPXHTDESUJI2CVZNN
+otp_secret,data,string,Z24R33BWOPGD6JQOJP7B5F2NWEEKRDFA
 
 # Enable TOTP
 otp_enabled,data,u16,1
