@@ -53,6 +53,27 @@ The script prints to the console:
 
 At the same time, a small window opens with the QR code so you can scan it with your TOTP app.
 
+Example Output
+--------------
+
+```
+=== TOTP Secret (Base32) ===
+S3IFAIHUMGLB6SYAPXHTDESUJI2CVZNN
+
+=== otpauth:// URI ===
+otpauth://totp/NerdQX:nerdqaxeplus2-B43A?secret=S3IFAIHUMGLB6SYAPXHTDESUJI2CVZNN&issuer=NerdQX
+```
+
+The Base32 TOTP secret can be used in the `config.cvs` like:
+```
+# TOTP secret
+otp_secret,data,string,S3IFAIHUMGLB6SYAPXHTDESUJI2CVZNN
+
+# Enable TOTP
+otp_enabled,data,u16,1
+```
+
+
 Make the script directly executable on Linux (optional)
 -------------------------------------------------------
 
