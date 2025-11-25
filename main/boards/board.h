@@ -95,6 +95,7 @@ public:
     Asic *m_asics = nullptr;
 
     bool m_isInitialized = false;
+    bool m_isBuckInitialized = false;
 
   public:
     Board();
@@ -182,6 +183,11 @@ public:
     {
         return m_isInitialized;
     };
+
+    bool isBuckInitialized()
+    {
+        return m_isBuckInitialized;
+    }
 
     virtual Asic *getAsics()
     {

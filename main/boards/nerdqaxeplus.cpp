@@ -150,6 +150,8 @@ bool NerdQaxePlus::initAsics()
     // wait 500ms
     vTaskDelay(pdMS_TO_TICKS(500));
 
+    m_isBuckInitialized = true;
+
     // release reset pin
     gpio_set_level(BM1368_RST_PIN, 1);
 

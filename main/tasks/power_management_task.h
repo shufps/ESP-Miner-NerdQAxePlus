@@ -35,11 +35,14 @@ class PowerManagementTask {
     float m_current;
     bool m_shutdown = false;
     PID *m_pid;
+    Board* m_board = nullptr;
 
     void checkCoreVoltageChanged();
     void checkAsicFrequencyChanged();
     void checkPidSettingsChanged();
     void checkVrFrequencyChanged();
+    void readAndPublishPowerTelemetry();
+    void applyAsicSettings();
     void task();
 
     bool startTimer();
