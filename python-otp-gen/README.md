@@ -1,6 +1,21 @@
 TOTP Generator with QR Code
 ===========================
 
+> ⚠️ Security disclaimer
+>
+> This script is intentionally a **convenience hack** for larger fleets where
+> maintaining a unique TOTP secret per device would be too painful in practice,
+> and where the likely result would be that TOTP gets disabled entirely.
+>
+> All devices in such a fleet can share the **same TOTP secret**, which makes
+> rollout and recovery much easier, but also means that if this secret is ever
+> compromised, **every device using it is affected**.
+>
+> For environments with higher security requirements, you should use
+> **per-device TOTP secrets** and a more rigorous provisioning process instead
+> of this shared-secret approach.
+
+
 This small Python tool creates:
 
 - a random TOTP secret (Base32),
