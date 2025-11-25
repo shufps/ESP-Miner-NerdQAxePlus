@@ -863,6 +863,8 @@ void DisplayDriver::updateCurrentSettings(int pool)
         lv_label_set_text(m_ui->ui_lbPoolSet, strData); // Update label
         snprintf(strData, sizeof(strData), "%d", manager->getPoolPort(pool));
         lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
+        snprintf(strData, sizeof(strData), "%d", pool + 1);
+        lv_label_set_text(m_ui->ui_lbPoolNr, strData);
     }
 
     if (STRATUM_MANAGER->isFallback()) {
