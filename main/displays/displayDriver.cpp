@@ -172,6 +172,7 @@ void DisplayDriver::startShutdownCountdown() {
     if (m_shutdownCountdownActive) return;
 
     m_shutdownCountdownActive = true;
+    m_isActiveOverlay = true;
     m_shutdownStartTime = esp_timer_get_time();
 
     lv_obj_t* scr = lv_scr_act();
@@ -213,6 +214,7 @@ void DisplayDriver::hideShutdownCountdown() {
         m_shutdownLabel = nullptr;
     }
     m_shutdownCountdownActive = false;
+    m_isActiveOverlay = false;
 }
 
 
@@ -493,6 +495,11 @@ void DisplayDriver::processButtons(Button &btn1, Button &btn2, int64_t tnow,
     uint32_t evt1 = btn1.getEvent();
     uint32_t evt2 = btn2.getEvent();
     bool bothPressed = (evt1 & BTN_EVENT_PRESSED) && (evt2 & BTN_EVENT_PRESSED);
+    bool anyPressed = (evt1 & BTN_EVENT_PRESSED) || (evt2 & BTN_EVENT_PRESSED);
+
+    if (anyPressed) {
+        m_lastKeypressTime = tnow;
+    }
 
     // Ignore all button events within 200ms of both released
     if (esp_timer_get_time() < m_buttonIgnoreUntil_us) {

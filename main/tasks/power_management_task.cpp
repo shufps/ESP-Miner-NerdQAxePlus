@@ -1,35 +1,38 @@
+#include <algorithm>
 #include <math.h>
 #include <string.h>
-#include <algorithm>
 
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "periodic.hpp"
 #include "mining.h"
+#include "periodic.hpp"
 
-#include "serial.h"
-#include "global_state.h"
-#include "nvs_config.h"
-#include "influx_task.h"
 #include "boards/board.h"
+#include "global_state.h"
+#include "influx_task.h"
+#include "nvs_config.h"
+#include "serial.h"
 
 #define POLL_RATE 2000
 
 static const char *TAG = "power_management";
 
-PowerManagementTask::PowerManagementTask() {
+PowerManagementTask::PowerManagementTask()
+{
     m_mutex = xSemaphoreCreateRecursiveMutex();
 }
 
-void PowerManagementTask::taskWrapper(void *pvParameters) {
-    PowerManagementTask* powerManagementTask = (PowerManagementTask*) pvParameters;
+void PowerManagementTask::taskWrapper(void *pvParameters)
+{
+    PowerManagementTask *powerManagementTask = (PowerManagementTask *) pvParameters;
     powerManagementTask->task();
 }
 
-void PowerManagementTask::restart() {
+void PowerManagementTask::restart()
+{
     ESP_LOGW(TAG, "Shutdown requested ...");
     // stops the main task
     lock();
@@ -45,71 +48,69 @@ void PowerManagementTask::restart() {
     unlock();
 }
 
-void PowerManagementTask::shutdown() {
+void PowerManagementTask::shutdown()
+{
     lock();
-    Board* board = SYSTEM_MODULE.getBoard();
-    if (board) {
+    if (m_board) {
         m_shutdown = true;
-        board->shutdown();
+        m_board->shutdown();
     }
     unlock();
 }
 
-uint16_t PowerManagementTask::getFanRPM(int channel) {
-     Board* board = SYSTEM_MODULE.getBoard();
-    if (!board || channel < 0 || channel >= board->getNumFans()) {
+uint16_t PowerManagementTask::getFanRPM(int channel)
+{
+    if (!m_board || channel < 0 || channel >= m_board->getNumFans()) {
         return 0;
     }
     return m_fanRPM[channel];
 }
 
-void PowerManagementTask::checkCoreVoltageChanged() {
+void PowerManagementTask::checkCoreVoltageChanged()
+{
     static uint16_t last_core_voltage = 0;
 
-    Board* board = SYSTEM_MODULE.getBoard();
-
-    uint16_t core_voltage = board->getAsicVoltageMillis();
+    uint16_t core_voltage = m_board->getAsicVoltageMillis();
 
     if (core_voltage != last_core_voltage) {
         ESP_LOGI(TAG, "setting new vcore voltage to %umV", core_voltage);
-        board->setVoltage((float) core_voltage / 1000.0);
+        m_board->setVoltage((float) core_voltage / 1000.0);
         last_core_voltage = core_voltage;
     }
 }
 
-void PowerManagementTask::checkAsicFrequencyChanged() {
+void PowerManagementTask::checkAsicFrequencyChanged()
+{
     static uint16_t last_asic_frequency = 0;
 
-    Board* board = SYSTEM_MODULE.getBoard();
-
-    uint16_t asic_frequency = board->getAsicFrequency();
+    uint16_t asic_frequency = m_board->getAsicFrequency();
 
     if (asic_frequency != last_asic_frequency) {
         ESP_LOGI(TAG, "setting new asic frequency to %uMHz", asic_frequency);
-        if (!board->setAsicFrequency((float) asic_frequency)) {
+        if (!m_board->setAsicFrequency((float) asic_frequency)) {
             ESP_LOGE(TAG, "pll setting not found for %uMHz", asic_frequency);
         }
         last_asic_frequency = asic_frequency;
     }
 }
 
-void PowerManagementTask::checkVrFrequencyChanged() {
+void PowerManagementTask::checkVrFrequencyChanged()
+{
     static uint32_t lastVrFrequency = 0;
-    Board *board = SYSTEM_MODULE.getBoard();
 
-    uint32_t vrFrequency = board->getVrFrequency();
+    uint32_t vrFrequency = m_board->getVrFrequency();
     if (vrFrequency != lastVrFrequency) {
-        board->setVrFrequency(vrFrequency);
+        m_board->setVrFrequency(vrFrequency);
         ESP_LOGI(TAG, "setting version rolling frequency to %luHz", vrFrequency);
         lastVrFrequency = vrFrequency;
     }
 }
 
-void PowerManagementTask::checkPidSettingsChanged() {
+void PowerManagementTask::checkPidSettingsChanged()
+{
     static PidSettings oldPidSettings = {0, 0, 0, 0};
 
-    Board* board = SYSTEM_MODULE.getBoard();
-    PidSettings *pidSettings = board->getPidSettings();
+    PidSettings *pidSettings = m_board->getPidSettings();
 
     // we can use memcmp because we have a packed struct
     if (memcmp(pidSettings, &oldPidSettings, sizeof(PidSettings)) != 0) {
@@ -121,23 +122,23 @@ void PowerManagementTask::checkPidSettingsChanged() {
 
         m_pid->SetTunings(pidP, pidI, pidD);
         m_pid->SetTarget((float) pidSettings->targetTemp);
-        ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pid->GetTarget(), m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());        oldPidSettings = *pidSettings;
+        ESP_LOGI(TAG, "temp: %.2f p:%.2f i:%.2f d:%.2f", m_pid->GetTarget(), m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
+        oldPidSettings = *pidSettings;
     }
 }
 
-void PowerManagementTask::logChipTemps() {
+void PowerManagementTask::logChipTemps()
+{
     size_t offset = 0;
 
-    Board* board = SYSTEM_MODULE.getBoard();
-
     // no chip temp to report
-    if (board->getMaxChipTemp() == 0.0f) {
+    if (m_board->getMaxChipTemp() == 0.0f) {
         return;
     }
 
     // Iterate through each ASIC and append its count to the log message
-    for (int i = 0; i < board->getAsicCount(); i++) {
-        offset += snprintf(m_logBuffer + offset, sizeof(m_logBuffer) - offset, "%.2f°C / ", board->getChipTemp(i));
+    for (int i = 0; i < m_board->getAsicCount(); i++) {
+        offset += snprintf(m_logBuffer + offset, sizeof(m_logBuffer) - offset, "%.2f°C / ", m_board->getChipTemp(i));
     }
     if (offset >= 2) {
         m_logBuffer[offset - 2] = 0; // remove trailing slash
@@ -149,22 +150,24 @@ void PowerManagementTask::logChipTemps() {
 void PowerManagementTask::create_job_timer(TimerHandle_t xTimer)
 {
     // Retrieve 'this' pointer from timer ID
-    PowerManagementTask *task = (PowerManagementTask*) pvTimerGetTimerID(xTimer);
+    PowerManagementTask *task = (PowerManagementTask *) pvTimerGetTimerID(xTimer);
     if (!task) {
         return;
     }
     task->trigger();
 }
 
-void PowerManagementTask::trigger() {
+void PowerManagementTask::trigger()
+{
     pthread_mutex_lock(&m_loop_mutex);
     pthread_cond_signal(&m_loop_cond);
     pthread_mutex_unlock(&m_loop_mutex);
 }
 
-bool PowerManagementTask::startTimer() {
+bool PowerManagementTask::startTimer()
+{
     // Create the timer
-    m_timer = xTimerCreate(TAG, pdMS_TO_TICKS(POLL_RATE), pdTRUE, (void*) this, create_job_timer);
+    m_timer = xTimerCreate(TAG, pdMS_TO_TICKS(POLL_RATE), pdTRUE, (void *) this, create_job_timer);
 
     if (m_timer == NULL) {
         ESP_LOGE(TAG, "Failed to create timer");
@@ -179,17 +182,75 @@ bool PowerManagementTask::startTimer() {
     return true;
 }
 
+void PowerManagementTask::readAndPublishPowerTelemetry()
+{
+    if (!m_board->isBuckInitialized()) {
+        return;
+    }
+
+    static Periodic every_15s(sec_to_us(15), /*start_immediately=*/true);
+
+    // request buck telemetry
+    if (every_15s.due()) {
+        m_board->requestBuckTelemtry();
+    }
+
+    float vin = m_board->getVin();
+    float iin = m_board->getIin();
+    float pin = m_board->getPin();
+    float pout = m_board->getPout();
+    float vout = m_board->getVout();
+    float iout = m_board->getIout();
+
+    m_vrTemp = m_board->getVRTemp();
+
+    ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f", vin, iin, pin, vout, iout,
+             pout, m_vrTemp);
+
+    influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
+
+    // currently only implemented for boards with TPS536x7
+    uint32_t status = 0;
+    Board::Error error = m_board->getFault(&status);
+    if (error != Board::Error::NONE) {
+        SYSTEM_MODULE.setBoardError(error, status);
+        m_board->setVoltage(0.0);
+    }
+
+    m_voltage = vin * 1000.0;
+    m_current = iin * 1000.0;
+    m_power = pin;
+}
+
+void PowerManagementTask::applyAsicSettings()
+{
+    // don't change frequency or voltage if
+    // asics haven't been initialized
+    if (!m_board->isInitialized()) {
+        return;
+    }
+
+    // check if asic voltage changed
+    checkCoreVoltageChanged();
+
+    // check if asic frequency changed
+    checkAsicFrequencyChanged();
+
+    // check if version rolling frequency changed
+    checkVrFrequencyChanged();
+}
+
 void PowerManagementTask::task()
 {
-    Board* board = SYSTEM_MODULE.getBoard();
+    m_board = SYSTEM_MODULE.getBoard();
 
     // use manual invert polarity setting
-    bool invert = board->isInvertFanPolarityEnabled();
+    bool invert = m_board->isInvertFanPolarityEnabled();
 
-    board->setFanPolarity(invert);
+    m_board->setFanPolarity(invert);
 
     // pointer to pid settings
-    PidSettings *pidSettings = board->getPidSettings();
+    PidSettings *pidSettings = m_board->getPidSettings();
 
     float pid_input = 0.0;
     float pid_output = 0.0;
@@ -209,15 +270,13 @@ void PowerManagementTask::task()
     vTaskDelay(pdMS_TO_TICKS(1000));
     startTimer();
 
-    Periodic every_15s(sec_to_us(15), /*start_immediately=*/true);
-
-    //uint64_t last_time = esp_timer_get_time();
+    // uint64_t last_time = esp_timer_get_time();
     while (1) {
         pthread_mutex_lock(&m_loop_mutex);
         pthread_cond_wait(&m_loop_cond, &m_loop_mutex); // Wait for the timer
         pthread_mutex_unlock(&m_loop_mutex);
 
-        //uint64_t start = esp_timer_get_time();
+        // uint64_t start = esp_timer_get_time();
         lock();
 
         if (m_shutdown) {
@@ -235,68 +294,28 @@ void PowerManagementTask::task()
             asic_overheat_temp = 70;
         }
 
-        // don't change frequency or voltage if
-        // asics haven't been initialized
-        if (board->isInitialized()) {
-            // check if asic voltage changed
-            checkCoreVoltageChanged();
-
-            // check if asic frequency changed
-            checkAsicFrequencyChanged();
-
-            // check if version rolling frequency changed
-            checkVrFrequencyChanged();
-        }
+        applyAsicSettings();
 
         // check if pid settings changed
         checkPidSettingsChanged();
 
         // request chip temps
-        board->requestChipTemps();
+        m_board->requestChipTemps();
 
         logChipTemps();
 
-        // request buck telemetry
-        if (every_15s.due()) {
-            board->requestBuckTelemtry();
-        }
+        readAndPublishPowerTelemetry();
 
-        float vin = board->getVin();
-        float iin = board->getIin();
-        float pin = board->getPin();
-        float pout = board->getPout();
-        float vout = board->getVout();
-        float iout = board->getIout();
-
-        m_vrTemp = board->getVRTemp();
-
-        ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f",
-            vin, iin, pin, vout, iout, pout, m_vrTemp);
-
-        influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
-
-        // currently only implemented for boards with TPS536x7
-        uint32_t status = 0;
-        Board::Error error = board->getFault(&status);
-        if (error != Board::Error::NONE) {
-            SYSTEM_MODULE.setBoardError(error, status);
-            board->setVoltage(0.0);
-        }
-
-        m_voltage = vin * 1000.0;
-        m_current = iin * 1000.0;
-        m_power = pin;
-
-        for (int i=0;i<board->getNumFans();i++) {
-            board->getFanSpeedCh(i, &m_fanRPM[i]);
+        for (int i = 0; i < m_board->getNumFans(); i++) {
+            m_board->getFanSpeedCh(i, &m_fanRPM[i]);
         }
         influx_set_fan(m_fanPerc, (float) m_fanRPM[0], m_fanPerc, (float) m_fanRPM[1]);
 
         // collect temperatures
         // get the max of all asic measuring temp sensors
         float tmp1075Max = 0.0f;
-        for (int i=0; i < board->getNumTempSensors(); i++) {
-            float tmp = board->getTemperature(i);
+        for (int i = 0; i < m_board->getNumTempSensors(); i++) {
+            float tmp = m_board->getTemperature(i);
             if (tmp) {
                 ESP_LOGI(TAG, "Temperature %d: %.2f C", i, tmp);
             }
@@ -305,7 +324,7 @@ void PowerManagementTask::task()
 
         // get max temp of all chips
         // returns 0 if not available on the hardware
-        float intChipTempMax = board->getMaxChipTemp();
+        float intChipTempMax = m_board->getMaxChipTemp();
 
 #ifdef NERDQAXEPLUS
         // NQ+ needs special care - the reading of chip internal temp sensors is way
@@ -323,22 +342,19 @@ void PowerManagementTask::task()
         influx_task_set_temperature(m_chipTempMax, m_vrTemp);
 
         float vr_maxTemp = asic_overheat_temp;
-        if(board->getVrMaxTemp()) {
-            vr_maxTemp = board->getVrMaxTemp();
+        if (m_board->getVrMaxTemp()) {
+            vr_maxTemp = m_board->getVrMaxTemp();
         }
 
-        if (asic_overheat_temp &&
-            (m_chipTempMax > asic_overheat_temp || m_vrTemp > vr_maxTemp)) {
-            uint32_t status = ((uint32_t) m_chipTempMax << 24) |
-                ((uint32_t) asic_overheat_temp << 16) |
-                ((uint32_t) m_vrTemp << 8) |
-                ((uint32_t) vr_maxTemp << 8);
+        if (asic_overheat_temp && (m_chipTempMax > asic_overheat_temp || m_vrTemp > vr_maxTemp)) {
+            uint32_t status = ((uint32_t) m_chipTempMax << 24) | ((uint32_t) asic_overheat_temp << 16) |
+                              ((uint32_t) m_vrTemp << 8) | ((uint32_t) vr_maxTemp << 8);
 
             // over temperature
             SYSTEM_MODULE.setBoardError(Board::Error::TEMP_FAULT, status);
 
             // disables the buck
-            board->setVoltage(0.0);
+            m_board->setVoltage(0.0);
             ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
         }
 
@@ -348,22 +364,22 @@ void PowerManagementTask::task()
         m_pid->Compute();
 
         switch (temp_control_mode) {
-            case 0:
-                // manual
-                m_fanPerc = Config::getFanSpeed();
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
-                break;
-            case 2:
-                // pid
-                m_fanPerc = (uint16_t) roundf(pid_output);
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
-                //ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
-                //ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
-                break;
-            default:
-                ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual mode 100%%.", temp_control_mode);
-                m_fanPerc = 100;
-                board->setFanSpeed((float) m_fanPerc / 100.0f);
+        case 0:
+            // manual
+            m_fanPerc = Config::getFanSpeed();
+            m_board->setFanSpeed((float) m_fanPerc / 100.0f);
+            break;
+        case 2:
+            // pid
+            m_fanPerc = (uint16_t) roundf(pid_output);
+            m_board->setFanSpeed((float) m_fanPerc / 100.0f);
+            // ESP_LOGI(TAG, "PID: Temp: %.1f°C, SetPoint: %.1f°C, Output: %.1f%%", pid_input, pid_target, pid_output);
+            // ESP_LOGI(TAG, "p:%.2f i:%.2f d:%.2f", m_pid->GetKp(), m_pid->GetKi(), m_pid->GetKd());
+            break;
+        default:
+            ESP_LOGE(TAG, "invalid temp control mode: %d. Defaulting to manual mode 100%%.", temp_control_mode);
+            m_fanPerc = 100;
+            m_board->setFanSpeed((float) m_fanPerc / 100.0f);
         }
         unlock();
         // uint64_t end = esp_timer_get_time();
