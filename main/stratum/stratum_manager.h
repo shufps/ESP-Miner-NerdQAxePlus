@@ -103,6 +103,8 @@ class StratumManager {
     bool isAnyConnected();
     int getNumConnectedPools();
 
+    virtual bool isDualPool() const { return false; }
+    virtual bool isFallback() const { return false; }
 
     virtual void getManagerInfoJson(JsonObject &obj);
 
@@ -116,10 +118,6 @@ class StratumManager {
 
     // abstract
     virtual const char *getResolvedIpForPool(int pool) const;
-
-    // Get information about the currently selected pool
-    virtual const char *getCurrentPoolHost() = 0;
-    virtual int getCurrentPoolPort() = 0;
 
     virtual int getNextActivePool() = 0;
 

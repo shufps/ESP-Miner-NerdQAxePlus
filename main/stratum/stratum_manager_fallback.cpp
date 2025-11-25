@@ -86,18 +86,18 @@ int StratumManagerFallback::getNextActivePool()
 
 const char *StratumManagerFallback::getCurrentPoolHost()
 {
-    if (!m_stratumTasks[m_selected]) {
+    if (!m_stratumConfig[m_selected]) {
         return "-";
     }
-    return m_stratumTasks[m_selected]->getHost();
+    return m_stratumConfig[m_selected]->getHost();
 }
 
 int StratumManagerFallback::getCurrentPoolPort()
 {
-    if (!m_stratumTasks[m_selected]) {
+    if (!m_stratumConfig[m_selected]) {
         return 0;
     }
-    return m_stratumTasks[m_selected]->getPort();
+    return m_stratumConfig[m_selected]->getPort();
 }
 
 uint32_t StratumManagerFallback::selectAsicDiff(int pool, uint32_t poolDiff)

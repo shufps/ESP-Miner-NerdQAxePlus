@@ -50,14 +50,14 @@ class StratumManagerDualPool : public StratumManager {
         return m_poolDiffErr[i];
     }
 
-    virtual const char *getCurrentPoolHost();
-    virtual int getCurrentPoolPort();
-
-    virtual const char *getResolvedIpForSelected() const;
+    virtual const char *getPoolHost(int pool);
+    virtual int getPoolPort(int pool);
 
     virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff);
 
     virtual int getNextActivePool();
+
+    bool isDualPool() const override { return true; }
 
     virtual void checkForBestDiff(int pool, double diff, uint32_t nbits);
 
@@ -66,7 +66,13 @@ class StratumManagerDualPool : public StratumManager {
     virtual void loadSettings();
     virtual void saveSettings(const JsonDocument &doc);
 
-    // aggregated compatibility methos
+    virtual uint64_t getSharesAccepted(int pool);
+    virtual uint64_t getSharesRejected(int pool);
+
+    float getActivePoolHashrate(int pool);
+    int getActivePoolBalance(int pool);
+
+    // aggregated
     virtual uint64_t getSharesAccepted() {
         return m_accepted[0] + m_accepted[1];
     }
