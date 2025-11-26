@@ -115,6 +115,7 @@ class DisplayDriver {
     int64_t m_shutdownStartTime;
     lv_obj_t* m_shutdownLabel;
     int64_t m_buttonIgnoreUntil_us;
+    bool m_screenAnimationRunning = false;
 
     UI *m_ui;
 
@@ -174,6 +175,7 @@ class DisplayDriver {
     void processButtons(Button &btn1, Button &btn2, int64_t tnow, bool &btn1Press, bool &btn2Press, bool &btnBothLongPress);
     uint32_t handleLvglTick(int32_t &elapsed_Ani_cycles);
 
+    void safe_screen_change(lv_obj_t * new_scr, lv_scr_load_anim_t anim_type, uint32_t speed, uint32_t delay);
   public:
     // Constructor
     DisplayDriver();
@@ -192,6 +194,10 @@ class DisplayDriver {
     void logMessage(const char *message);                           // Log a message to the display
     void waitForSplashs();
     void loadSettings();                                            // (re)load settings
+
+    void setScreenAnimationRunning(bool state) {
+      m_screenAnimationRunning = state;
+    }
 
     UiState getState() {
       return m_state;

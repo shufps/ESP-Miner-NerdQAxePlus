@@ -275,6 +275,12 @@ void DisplayDriver::lvglTimerTaskWrapper(void *param) {
     display->lvglTimerTask(NULL);
 }
 
+void DisplayDriver::safe_screen_change(lv_obj_t * new_scr, lv_scr_load_anim_t anim_type, uint32_t speed, uint32_t delay)
+{
+    m_screenAnimationRunning = true;
+    _ui_screen_change(new_scr, anim_type, speed, delay);
+
+}
 
 bool DisplayDriver::enterState(UiState s, int64_t now)
 {
@@ -299,7 +305,7 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
     case UiState::Splash2:
         ESP_LOGI(TAG, "enter state splash2");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        safe_screen_change(m_ui->ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         if (m_ui->ui_Splash1) { lv_obj_clean(m_ui->ui_Splash1); m_ui->ui_Splash1 = NULL; }
         break;
 
@@ -311,47 +317,47 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
     case UiState::Portal:
         ESP_LOGI(TAG, "enter state portal");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        safe_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         break;
 
     case UiState::Mining:
         ESP_LOGI(TAG, "enter state mining");
         enableLvglAnimations(true);
         if (previousState == UiState::GlobalStats) {
-            _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+            safe_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         } else {
-            _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+            safe_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         }
         break;
 
     case UiState::SettingsScreen:
         ESP_LOGI(TAG, "enter state settings screen");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        safe_screen_change(m_ui->ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         break;
 
     case UiState::BTCScreen:
         ESP_LOGI(TAG, "enter state btc screen");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        safe_screen_change(m_ui->ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         break;
 
     case UiState::GlobalStats:
         ESP_LOGI(TAG, "enter state global stats");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        safe_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         break;
     case UiState::ShowQR:
         ESP_LOGI(TAG, "enter qr state");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_qrScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        safe_screen_change(m_ui->ui_qrScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         break;
     case UiState::PowerOff:
         if (!m_ui->ui_PowerOffScreen) {
             m_ui->powerOffScreenInit();
         }
         enableLvglAnimations(false);
-        _ui_screen_change(m_ui->ui_PowerOffScreen, LV_SCR_LOAD_ANIM_NONE, 0, 0);
+        safe_screen_change(m_ui->ui_PowerOffScreen, LV_SCR_LOAD_ANIM_NONE, 0, 0);
         POWER_MANAGEMENT_MODULE.shutdown();
         break;
     }
@@ -623,6 +629,13 @@ void DisplayDriver::lvglTimerTask(void *param)
         // --- Handle buttons ---
         bool btn1Press = false, btn2Press = false, btnBothLongPress = false;
         processButtons(btn1, btn2, tnow, btn1Press, btn2Press, btnBothLongPress);
+
+        // animation is running, ignore buttons
+        if (m_screenAnimationRunning) {
+            btn1Press = false;
+            btn2Press = false;
+            btnBothLongPress = false;
+        }
 
         // --- Handle queued UI messages ---
         handleUiQueueMessages(msg, tnow);
@@ -1053,7 +1066,7 @@ void DisplayDriver::init(Board* board)
     lv_obj_t *scr = initTDisplayS3();
 
     m_ui = new UI();
-    m_ui->init(board);
+    m_ui->init(board, this);
     // manual_lvgl_update();
 
     // startUpdateScreenTask(); //Start screen update task

@@ -18,6 +18,11 @@ static const char *TAG="ui";
 
 ///////////////////// FUNCTIONS ////////////////////
 
+void on_screen_loaded(lv_event_t * e)
+{
+    DisplayDriver* driver = static_cast<DisplayDriver*>(lv_event_get_user_data(e));
+    driver->setScreenAnimationRunning(false);
+}
 
 ///////////////////// SCREENS ////////////////////
 
@@ -95,6 +100,7 @@ void UI::portalScreenInit(void)
     lv_obj_set_style_text_opa(ui_lbSSID, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbSSID, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbSSID, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_event_cb(ui_PortalScreen, on_screen_loaded, LV_EVENT_SCREEN_LOADED, m_display);
 
     // lv_obj_add_event_cb(ui_Splash2, ui_event_Splash2, LV_EVENT_ALL, NULL);
 
@@ -258,6 +264,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_opa(ui_lbASIC, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbASIC, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbASIC, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_event_cb(ui_MiningScreen, on_screen_loaded, LV_EVENT_SCREEN_LOADED, m_display);
 
     // lv_obj_add_event_cb(ui_MiningScreen, ui_event_MiningScreen, LV_EVENT_ALL, NULL);
 }
@@ -393,6 +400,7 @@ void UI::settingsScreenInit(void)
     lv_obj_set_style_text_opa(ui_lbPortSet, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbPortSet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lbPortSet, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_event_cb(ui_SettingsScreen, on_screen_loaded, LV_EVENT_SCREEN_LOADED, m_display);
 }
 
 void UI::logScreenInit(void)
@@ -475,6 +483,7 @@ void UI::bTCScreenInit(void)
     lv_obj_set_style_text_opa(ui_lblTempPrice, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lblTempPrice, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lblTempPrice, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_event_cb(ui_BTCScreen, on_screen_loaded, LV_EVENT_SCREEN_LOADED, m_display);
 }
 
 void UI::globalStatsScreenInit(void)
@@ -585,6 +594,7 @@ void UI::globalStatsScreenInit(void)
     lv_obj_set_style_text_opa(ui_lblhighFee, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lblhighFee, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lblhighFee, &ui_font_OpenSansBold13, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_event_cb(ui_GlobalStats, on_screen_loaded, LV_EVENT_SCREEN_LOADED, m_display);
 
 }
 void UI::createQRScreen(uint8_t *buf, int size) {
@@ -639,6 +649,7 @@ void UI::createQRScreen(uint8_t *buf, int size) {
 
         // Align label relative to the parent (screen)
         lv_obj_align(label, LV_ALIGN_LEFT_MID, 10, 0); // start in left half, 10 px margin
+        lv_obj_add_event_cb(ui_qrScreen, on_screen_loaded, LV_EVENT_SCREEN_LOADED, m_display);
     }
 
     // white background
@@ -676,6 +687,7 @@ void UI::powerOffScreenInit(void)
     lv_obj_t *img = lv_img_create(ui_PowerOffScreen);
     lv_img_set_src(img, &ui_img_safe_png);
     lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);  // Center of screen
+    lv_obj_add_event_cb(ui_PowerOffScreen, on_screen_loaded, LV_EVENT_SCREEN_LOADED, m_display);
 }
 
 
@@ -776,10 +788,11 @@ void UI::hideImageOverlay()
     }
 }
 
-void UI::init(Board* board)
+void UI::init(Board* board, DisplayDriver *display)
 {
     m_board = board;
     m_theme = board->getTheme();
+    m_display = display;
 
     lv_disp_t *dispp = lv_disp_get_default();
     lv_theme_t *m_theme =
