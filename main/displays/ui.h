@@ -84,6 +84,7 @@ protected:
 
     Board* m_board;
     Theme* m_theme;
+    DisplayDriver *m_display;
 
     lv_color_t* m_qr_canvas_buf = nullptr;
     int         m_qr_canvas_w   = 0;   // == height
@@ -103,7 +104,7 @@ protected:
 public:
     UI();
 
-    void init(Board* board);
+    void init(Board* board, DisplayDriver* display);
 
     void miningScreenInit(void);
     void settingsScreenInit(void);
