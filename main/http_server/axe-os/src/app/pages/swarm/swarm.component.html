@@ -63,7 +63,7 @@
     <nb-card class="text-center mb-0" style="flex: 1;">
       <nb-card-body>
         <span class="text-start">{{ 'SWARM.BEST_DIFF' | translate }}</span>
-        <span class="text-primary fw-bold">{{ totals.bestDiff === '0.00' ? 0 : totals.bestDiff }}</span>
+        <span class="text-primary fw-bold">{{ totals.bestDiff | humanReadable }}</span>
       </nb-card-body>
     </nb-card>
   </div>
@@ -161,10 +161,10 @@
 
               <!-- Best Diff with Best Session Diff tooltip -->
               <td [colSpan]="dp ? 2 : 1">
-                <div>{{ axe.bestDiff }}</div>
+                <div>{{ axe.bestDiff | humanReadable }}</div>
                 <div *ngIf="!dualPool" [nbTooltip]="'UPDATE.BEST_SESSION_DIFF' | translate" tooltipPosition="top"
                   class="text-sm">
-                  {{ axe.bestSessionDiff }}
+                  {{ axe.bestSessionDiff | humanReadable}}
                 </div>
                 <div *ngIf="dualPool" class="text-sm">&nbsp;</div>
               </td>

@@ -30,7 +30,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
   public refreshIntervalTime = 30;
   public refreshTimeSet = 30;
 
-  public totals: { hashRate: number, power: number, bestDiff: string } = { hashRate: 0, power: 0, bestDiff: '0' };
+  public totals: { hashRate: number, power: number, bestDiff: number } = { hashRate: 0, power: 0, bestDiff: 0 };
 
   public isRefreshing = false;
 
@@ -163,8 +163,8 @@ export class SwarmComponent implements OnInit, OnDestroy {
                 supportsAsicApi,
               };
 
-              merged["bestDiff"] = this.normalizeDiff(merged["bestDiff"]);
-              merged["bestSessionDiff"] = this.normalizeDiff(merged["bestSessionDiff"]);
+              merged["bestDiff"] = this.convertBestDiffToNumber(merged["bestDiff"]);
+              merged["bestSessionDiff"] = this.convertBestDiffToNumber(merged["bestSessionDiff"]);
 
               if (!merged['swarmColor']) merged['swarmColor'] = 'blue';
               return merged;
@@ -222,8 +222,8 @@ export class SwarmComponent implements OnInit, OnDestroy {
         };
         if (!merged['swarmColor']) merged['swarmColor'] = 'blue';
 
-        merged["bestDiff"] = this.normalizeDiff(merged["bestDiff"]);
-        merged["bestSessionDiff"] = this.normalizeDiff(merged["bestSessionDiff"]);
+        merged["bestDiff"] = this.convertBestDiffToNumber(merged["bestDiff"]);
+        merged["bestSessionDiff"] = this.convertBestDiffToNumber(merged["bestSessionDiff"]);
 
         this.swarm.push(merged);
         this.swarm = this.swarm.sort(this.sortByIp.bind(this));
@@ -300,8 +300,8 @@ export class SwarmComponent implements OnInit, OnDestroy {
               supportsAsicApi,
             };
             if (!merged['swarmColor']) merged['swarmColor'] = existingDevice?.swarmColor ?? 'blue';
-            merged["bestDiff"] = this.normalizeDiff(merged["bestDiff"]);
-            merged["bestSessionDiff"] = this.normalizeDiff(merged["bestSessionDiff"]);
+            merged["bestDiff"] = this.convertBestDiffToNumber(merged["bestDiff"]);
+            merged["bestSessionDiff"] = this.convertBestDiffToNumber(merged["bestSessionDiff"]);
             return merged;
           }),
           catchError(error => {
@@ -346,33 +346,11 @@ export class SwarmComponent implements OnInit, OnDestroy {
     return this.ipToInt(a.IP) - this.ipToInt(b.IP);
   }
 
-  private normalizeDiff(value: string | number): string {
-    let strValue = String(value).trim();
 
-    // If it's not purely numeric, return as-is
-    if (!/^[\d.]+$/.test(strValue)) {
-      return strValue;
+  private convertBestDiffToNumber(bestDiff: string | number): number {
+    if (typeof bestDiff === 'number') {
+      return bestDiff;
     }
-
-    // Convert to number
-    const num = parseFloat(strValue);
-    if (!isFinite(num) || isNaN(num)) return '0.00';
-
-    // Define SI units
-    const units = ['', 'K', 'M', 'G', 'T', 'P', 'E'];
-    let unitIndex = 0;
-    let scaled = num;
-
-    // Iteratively scale down
-    while (scaled >= 1000 && unitIndex < units.length - 1) {
-      scaled /= 1000;
-      unitIndex++;
-    }
-
-    return `${scaled.toFixed(2)}${units[unitIndex]}`;
-  }
-
-  private convertBestDiffToNumber(bestDiff: string): number {
     if (!bestDiff || typeof bestDiff !== 'string') return 0;
     const value = parseFloat(bestDiff);
     if (isNaN(value)) return 0;
@@ -386,15 +364,6 @@ export class SwarmComponent implements OnInit, OnDestroy {
     }
   }
 
-  private formatBestDiff(value: number): string {
-    if (!isFinite(value) || isNaN(value)) return '0.00';
-    if (value >= 1_000_000_000_000) return `${(value / 1_000_000_000_000).toFixed(2)}T`;
-    if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}G`;
-    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-    if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
-    return value.toFixed(2);
-  }
-
   private calculateTotals() {
     this.totals.hashRate = this.swarm.reduce((sum, axe) => sum + (axe.hashRate || 0), 0);
     this.totals.power = this.swarm.reduce((sum, axe) => sum + (axe.power || 0), 0);
@@ -403,8 +372,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
       .map(axe => this.convertBestDiffToNumber(axe.bestDiff))
       .filter(v => !isNaN(v) && isFinite(v));
 
-    const maxDiff = numericDiffs.length > 0 ? Math.max(...numericDiffs) : 0;
-    this.totals.bestDiff = this.formatBestDiff(maxDiff);
+    this.totals.bestDiff = numericDiffs.length > 0 ? Math.max(...numericDiffs) : 0;
   }
 
   hasModel(model: string): string {

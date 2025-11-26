@@ -145,6 +145,10 @@ class StratumManager {
         return m_totalBestDiffString;
     }
 
+    uint64_t getBestDiff() {
+        return m_totalBestDiff;
+    }
+
     virtual uint64_t getBestSessionDiff() = 0;
 
     const char *getBestSessionDiffString() {
