@@ -113,8 +113,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["totalFoundBlocks"]   = STRATUM_MANAGER->getTotalFoundBlocks();
     doc["sharesAccepted"]     = STRATUM_MANAGER->getSharesAccepted();
     doc["sharesRejected"]     = STRATUM_MANAGER->getSharesRejected();
-    doc["bestDiff"]           = STRATUM_MANAGER->getBestDiffString();
-    doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiffString();
+    doc["bestDiff"]           = STRATUM_MANAGER->getBestDiff();
+    doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiff();
 
     STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
 
