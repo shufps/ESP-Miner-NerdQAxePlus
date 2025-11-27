@@ -268,7 +268,7 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         Config::setInvertScreen(doc["invertscreen"].as<bool>());
     }
     if (doc["invertfanpolarity"].is<bool>()) {
-        Config::setInvertFanPolarity(doc["invertfanpolarity"].as<bool>());
+        Config::setFanPolarity(doc["invertfanpolarity"].as<bool>());
     }
     if (doc["autofanspeed"].is<uint16_t>()) {
         Config::setTempControlMode(doc["autofanspeed"].as<uint16_t>());
