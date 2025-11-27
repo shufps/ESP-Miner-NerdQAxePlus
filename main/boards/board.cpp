@@ -39,7 +39,7 @@ void Board::loadSettings()
     }
 
     m_asicJobIntervalMs = Config::getAsicJobInterval(m_asicJobIntervalMs);
-    m_fanInvertPolarity = Config::isInvertFanPolarityEnabled(m_fanInvertPolarity);
+    m_fanInvertPolarity = Config::isFanPolarity(m_fanInvertPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
     m_vrFrequency = Config::getVrFrequency(m_defaultVrFrequency);
 

@@ -340,9 +340,8 @@
                         <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" />
                     </div>
                 </div>
-                <div class="form-row" *ngIf="supportLevel >= 1">
-                    <nb-checkbox formControlName="invertfanpolarity">{{ 'FAN.INVERT_POLARITY' | translate
-                        }}</nb-checkbox>
+                <div class="form-row" *ngIf="supportLevel >= 2">
+                    <nb-checkbox formControlName="invertfanpolarity">{{ 'FAN.INVERT_POLARITY' | translate }}</nb-checkbox>
                 </div>
 
             </nb-card-body>
