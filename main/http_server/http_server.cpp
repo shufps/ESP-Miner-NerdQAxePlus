@@ -104,8 +104,10 @@ static void http_close_cb(void* hd, int sockfd)
     if (sockfd == websocket_fd) {
         ESP_LOGI(TAG, "Socket %d closed, resetting websocket logging", sockfd);
         websocket_reset();
-    } else {
-        close(sockfd);
+        return;
+    }
+    if (sockfd >= 0) {
+        (void)close(sockfd);
     }
 }
 
