@@ -79,6 +79,11 @@ static esp_err_t set_cache_control(httpd_req_t *req, const char *filepath)
     // default: ~30 days
     const char *cache = CACHE_POLICY_CACHE;
 
+    // don't cache the index.html
+    if (CHECK_FILE_EXTENSION(filepath, ".html")) {
+        cache = CACHE_POLICY_NO_CACHE;
+    }
+
     // Fonts etc. can be cached "forever"
     if (CHECK_FILE_EXTENSION(filepath, ".woff2") ||
         CHECK_FILE_EXTENSION(filepath, ".png") ) {
@@ -88,6 +93,28 @@ static esp_err_t set_cache_control(httpd_req_t *req, const char *filepath)
     // Set cache header
     return httpd_resp_set_hdr(req, "Cache-Control", cache);
 }
+
+static bool is_asset_request(const char *uri)
+{
+    const char *ext = strrchr(uri, '.');
+    if (!ext) {
+        // no extension - we assume it's a page
+        return false;
+    }
+
+    return (
+        strcmp(ext, ".js")  == 0 ||
+        strcmp(ext, ".css") == 0 ||
+        strcmp(ext, ".png") == 0 ||
+        strcmp(ext, ".jpg") == 0 ||
+        strcmp(ext, ".jpeg") == 0 ||
+        strcmp(ext, ".svg") == 0 ||
+        strcmp(ext, ".ico") == 0 ||
+        strcmp(ext, ".woff2") == 0 ||
+        strcmp(ext, ".json") == 0
+    );
+}
+
 
 static esp_err_t redirect_portal(httpd_req_t *req)
 {
@@ -164,8 +191,15 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
     if (fd < 0) {
         ESP_LOGE(TAG, "Failed to open file: %s, errno: %d", filepath, errno);
         if (errno == ENOENT) {
-            // If asset not found, treat it like a captive portal / SPA redirect
-            return redirect_portal(req);
+            // asset vs page
+            if (is_asset_request(uri_clean)) {
+                // asset missing -> 404 and no portal redirection
+                httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Not found");
+                return ESP_OK;
+            } else {
+                // portal redirection
+                return redirect_portal(req);
+            }
         } else {
             return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open file");
         }
