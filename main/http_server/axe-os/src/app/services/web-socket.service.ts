@@ -1,19 +1,34 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 
 @Injectable({
   providedIn: 'root'
 })
-export class WebsocketService {
+export class WebsocketService implements OnDestroy {
 
-  public ws$: WebSocketSubject<string>;
+  private socket$?: WebSocketSubject<string>;
 
-  constructor() {
-    this.ws$ = webSocket({
-      url: `ws://${window.location.host}/api/ws`,
-      deserializer: (e: MessageEvent) => { return e.data }
-    });
+  public connect(): WebSocketSubject<string> {
+    // Create socket if not present or already closed
+    if (!this.socket$ || this.socket$.closed) {
+      this.socket$ = webSocket<string>({
+        url: `ws://${window.location.host}/api/ws`,
+        deserializer: (e: MessageEvent) => e.data
+      });
+    }
+    return this.socket$;
   }
 
+  public close(): void {
+    // Ensure underlying websocket is really closed
+    if (this.socket$ && !this.socket$.closed) {
+      // complete() schickt Close-Frame und schließt den Socket
+      this.socket$.complete();
+    }
+    this.socket$ = undefined;
+  }
 
+  ngOnDestroy(): void {
+    this.close();
+  }
 }
