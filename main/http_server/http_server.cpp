@@ -32,6 +32,8 @@ static const char *TAG = "http_server";
 
 httpd_handle_t http_server = NULL;
 
+extern int websocket_fd;
+
 /* Function for stopping the webserver */
 /*
 static void stop_webserver(httpd_handle_t server)
@@ -96,6 +98,17 @@ static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
     return ESP_OK;
 }
 
+static void http_close_cb(void* hd, int sockfd)
+{
+    // If our websocket socket is being closed, reset logging
+    if (sockfd == websocket_fd) {
+        ESP_LOGI(TAG, "Socket %d closed, resetting websocket logging", sockfd);
+        websocket_reset();
+    } else {
+        close(sockfd);
+    }
+}
+
 esp_err_t start_rest_server(void * pvParameters)
 {
     const char *base_path = "";
@@ -130,7 +143,7 @@ esp_err_t start_rest_server(void * pvParameters)
     config.keep_alive_enable = false;
     config.recv_wait_timeout = 5;
     config.send_wait_timeout = 5;
-    config.close_fn = NULL;
+    config.close_fn = http_close_cb;
 
 
     ESP_LOGI(TAG, "Starting HTTP Server");
