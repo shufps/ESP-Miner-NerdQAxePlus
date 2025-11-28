@@ -189,15 +189,16 @@ esp_err_t rest_common_get_handler(httpd_req_t *req)
     // Try open file
     int fd = open(filepath, O_RDONLY, 0);
     if (fd < 0) {
-        ESP_LOGE(TAG, "Failed to open file: %s, errno: %d", filepath, errno);
         if (errno == ENOENT) {
             // asset vs page
             if (is_asset_request(uri_clean)) {
                 // asset missing -> 404 and no portal redirection
+                ESP_LOGE(TAG, "Failed to open file: %s, errno: %d", filepath, errno);
                 httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Not found");
                 return ESP_OK;
             } else {
                 // portal redirection
+                ESP_LOGE(TAG, "page not found: %s", uri_clean);
                 return redirect_portal(req);
             }
         } else {
