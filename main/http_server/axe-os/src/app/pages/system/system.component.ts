@@ -15,20 +15,16 @@ import { LoadingService } from '../../services/loading.service';
   styleUrl: './system.component.scss'
 })
 export class SystemComponent implements OnDestroy, AfterViewChecked {
-
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
   public info$: Observable<ISystemInfo>;
 
   public logs: string[] = [];
   public logFilterText: string = '';
+  public showLogs = false;
+  public stopScroll = false;
+  public logoPrefix: string = '';
 
   private websocketSubscription?: Subscription;
-
-  public showLogs = false;
-
-  public stopScroll: boolean = false;
-
-  public logoPrefix : string = "";
 
   constructor(
     private websocketService: WebsocketService,
@@ -38,18 +34,14 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
     private loadingService: LoadingService,
     private translateService: TranslateService,
     private otpAuth: OtpAuthService,
-  ){
-
+  ) {
     this.logoPrefix = themeService.currentTheme === 'default' ? '' : '_dark';
 
-
     this.info$ = interval(5000).pipe(
-      startWith(() => this.systemService.getInfo(0)),
-      switchMap(() => {
-        return this.systemService.getInfo(0)
-      }),
+      startWith(0),
+      switchMap(() => this.systemService.getInfo(0)),
       map(info => {
-        info.power = parseFloat(info.power.toFixed(1))
+        info.power = parseFloat(info.power.toFixed(1));
         info.voltage = parseFloat((info.voltage / 1000).toFixed(1));
         info.current = parseFloat((info.current / 1000).toFixed(1));
         info.coreVoltageActual = parseFloat((info.coreVoltageActual / 1000).toFixed(2));
@@ -61,38 +53,45 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
 
     this.themeService.onThemeChange()
       .subscribe(themeName => {
-        console.log(themeName);
         this.logoPrefix = themeName.name === 'default' ? '' : '_dark';
-      }
-    );
+      });
   }
-
 
   ngOnDestroy(): void {
-    this.websocketSubscription?.unsubscribe();
+    this.cleanupWebsocket();
   }
+
+  private cleanupWebsocket(): void {
+    // Unsubscribe from messages
+    this.websocketSubscription?.unsubscribe();
+    this.websocketSubscription = undefined;
+
+    // And force-close underlying socket
+    this.websocketService.close();
+  }
+
   public toggleLogs() {
     this.showLogs = !this.showLogs;
 
     if (this.showLogs) {
-      this.websocketSubscription = this.websocketService.ws$.subscribe({
+      this.websocketSubscription = this.websocketService.connect().subscribe({
         next: (val) => {
-	  const valStr = String(val);
-	  if (!this.logFilterText || val.toLowerCase().includes(this.logFilterText.toLowerCase())) {
-           this.logs.push(val);
-           if (this.logs.length > 256) {
-            this.logs.shift();
-           }
-	  }
+          const valStr = String(val);
+          if (!this.logFilterText || valStr.toLowerCase().includes(this.logFilterText.toLowerCase())) {
+            this.logs.push(valStr);
+            if (this.logs.length > 256) {
+              this.logs.shift();
+            }
+          }
         }
-      })
+      });
     } else {
-      this.websocketSubscription?.unsubscribe();
+      this.cleanupWebsocket();
     }
   }
 
   ngAfterViewChecked(): void {
-    if(this.stopScroll == true){
+    if (this.stopScroll == true) {
       return;
     }
     if (this.scrollContainer?.nativeElement != null) {
@@ -110,7 +109,7 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
         switchMap(({ totp }: EnsureOtpResult) =>
           this.systemService.restart("", totp).pipe(
             // drop session on reboot
-            tap(() => {}),
+            tap(() => { }),
             this.loadingService.lockUIUntilComplete()
           )
         ),

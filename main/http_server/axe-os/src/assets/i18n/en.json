@@ -20,7 +20,8 @@
     "SUBMIT": "Submit",
     "ERROR": "Error",
     "SUCCESS": "Success",
-    "JUST_NOW": "Just now"
+    "JUST_NOW": "Just now",
+    "SHUTDOWN": "Miner has been shut down."
   },
   "NAVIGATION": {
     "HOME": "Home",
@@ -59,9 +60,11 @@
     "IDLE": "Idle",
     "PRIMARY_POOL": "Primary Pool",
     "FALLBACK_POOL": "Fallback Pool",
-    "HASHRATE_10M": "Hashrate 10m",
-    "HASHRATE_1H": "Hashrate 1h",
-    "HASHRATE_1D": "Hashrate 1d"
+    "HASHRATE_1M": "Hashrate (1 m)",
+    "HASHRATE_10M": "Hashrate (10 m)",
+    "HASHRATE_1H": "Hashrate (1 h)",
+    "HASHRATE_1D": "Hashrate (1 d)",
+    "SHARE_TOO_SMALL": "Share for this pool too small!"
   },
   "PERFORMANCE": {
     "TITLE": "Performance",
@@ -126,7 +129,13 @@
     "DEFAULT": "default",
     "TIME_FORMAT": "Time Format",
     "TIME_FORMAT_24H": "24-hour format",
-    "TIME_FORMAT_12H": "12-hour format (AM/PM)"
+    "TIME_FORMAT_12H": "12-hour format (AM/PM)",
+    "POOL_MODE": "Pool Mode",
+    "POOL_MODE_FAILOVER": "Failover (Primary/Fallback)",
+    "POOL_MODE_DUAL": "Dual Pool",
+    "POOL_BALANCE": "Pool Balance",
+    "POOL_BALANCE_HINT": "Distributes jobs between the primary and secondary pool, e.g., 70/30.",
+    "STRATUM": "Stratum Settings"
   },
   "SYSTEM": {
     "TITLE": "System Information",
@@ -479,20 +488,20 @@
     "LOCAL_ONLY": "Designed for local LAN use (no HTTPS). Do not expose to the internet.",
     "OTP_HINT_ENROLLMENT": "Start enrollment to display a QR code on the device. Scan it with your authenticator (e.g., Authy/Google Authenticator), then enter the 6-digit code to enable OTP. Disabling also requires a valid code. Designed for local LAN only (no HTTPS).",
     "OTP_NUDGE_TITLE": "Please consider enabling OTP",
-    "OTP_NUDGE_TEXT": "It helps mitigate opportunistic and automated attacks and adds a basic layer of real cryptographic protection to this web interface.",
+    "OTP_NUDGE_TEXT": "The web interface is unprotected – enable OTP for additional security.",
     "OTP_TITLE": "OTP required",
     "OTP_FW_HINT": "Enter the 6-digit code to start the firmware update.",
     "OTP_HINT": "Enter the 6-digit code to continue.",
     "OTP_DISABLE_HINT": "Enter the 6-digit code to disable OTP.",
     "OTP_ENABLE_HINT": "Enter the 6-digit code to enable OTP.",
-    "OTP_REMEMBER": "Remember this device for 24h",
+    "OTP_REMEMBER": "Remember this browser for 24h",
     "SESSION": "Session",
     "SESSION_STATUS": "Session Status",
-    "THIS_DEVICE_TRUSTED": "This device is trusted (24h)",
-    "FORGET_THIS_DEVICE": "Forget this device",
-    "FORGET_THIS_DEVICE_HELP": "Ends the 24-hour trust for this device. The local session token is removed—next protected action will require a 6-digit code again.",
-    "THIS_DEVICE_FORGOTTEN": "This device has been forgotten.",
-    "NO_TRUSTED_DEVICE_HELP": "No trusted session on this device. Protected actions will ask for a 6-digit code until you choose “Remember this device”.",
+    "THIS_DEVICE_TRUSTED": "This browser is trusted (24h)",
+    "FORGET_THIS_DEVICE": "Forget this browser",
+    "FORGET_THIS_DEVICE_HELP": "Ends the 24-hour trust for this browser. The local session token is removed — the next protected action will require a 6-digit code again.",
+    "THIS_DEVICE_FORGOTTEN": "This browser has been forgotten.",
+    "NO_TRUSTED_DEVICE_HELP": "No trusted session in this browser. Protected actions will ask for a 6-digit code until you choose “Remember this browser”.",
     "NOT_TRUSTED": "Not trusted"
   }
 }

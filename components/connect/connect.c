@@ -188,8 +188,15 @@ esp_netif_t *wifi_init_sta(const char *wifi_ssid, const char *wifi_pass)
     };
     strncpy((char *) wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));
     wifi_sta_config.sta.ssid[sizeof(wifi_sta_config.sta.ssid) - 1] = '\0';
-    strncpy((char *) wifi_sta_config.sta.password, wifi_pass, 63);
-    wifi_sta_config.sta.password[63] = '\0';
+
+    strncpy((char *) wifi_sta_config.sta.password, wifi_pass, sizeof(wifi_sta_config.sta.password) - 1);
+    wifi_sta_config.sta.password[sizeof(wifi_sta_config.sta.password) - 1] = '\0';
+
+    // If password is empty → allow connecting to OPEN WiFi networks
+    if (wifi_sta_config.sta.password[0] == '\0') {
+        wifi_sta_config.sta.threshold.authmode = WIFI_AUTH_OPEN;  // allow open networks
+        ESP_LOGI(TAG, "WiFi password empty, using WIFI_AUTH_OPEN");
+    }
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_sta_config));
 

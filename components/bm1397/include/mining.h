@@ -21,6 +21,9 @@ typedef struct
     // is limited to [ASIC_MIN_DIFFICULTY...ASIC_MAX_DIFFICULTY]
     uint32_t asic_diff;
 
+    // pool ID
+    int pool_id;
+
     char *jobid;
     char *extranonce2;
 } bm_job;

@@ -21,8 +21,8 @@ static const char *TAG = "history";
 // define for wrapped access of psram
 #define WRAP(a) ((a) & (HISTORY_MAX_SAMPLES - 1))
 
-
-NonceDistribution::NonceDistribution() {
+NonceDistribution::NonceDistribution()
+{
     // NOP
 }
 
@@ -34,7 +34,8 @@ void NonceDistribution::init(int numAsics)
     }
 }
 
-void NonceDistribution::addShare(int asicNr) {
+void NonceDistribution::addShare(int asicNr)
+{
     if (m_distribution && asicNr < m_numAsics) {
         m_distribution[asicNr]++;
     }
@@ -61,10 +62,14 @@ void NonceDistribution::toLog()
     ESP_LOGI(TAG, "nonce distribution: %s", buffer);
 }
 
-
 uint64_t History::getTimestampSample(int index)
 {
     return m_timestamps[WRAP(index)];
+}
+
+float History::getHashrate1mSample(int index)
+{
+    return m_hashrate1m[WRAP(index)];
 }
 
 float History::getHashrate10mSample(int index)
@@ -84,27 +89,27 @@ float History::getHashrate1dSample(int index)
 
 double History::getCurrentHashrate1m()
 {
-    return m_avg1m.getGh();
+    return m_avg1m.getGhDisplay();
 }
 
 double History::getCurrentHashrate10m()
 {
-    return m_avg10m.getGh();
+    return m_avg10m.getGhDisplay();
 }
 
 double History::getCurrentHashrate1h()
 {
-    return m_avg1h.getGh();
+    return m_avg1h.getGhDisplay();
 }
 
 double History::getCurrentHashrate1d()
 {
-    return m_avg1d.getGh();
+    return m_avg1d.getGhDisplay();
 }
 
-uint32_t History::getShareSample(int index)
+uint32_t History::getRateSample(int index)
 {
-    return m_shares[WRAP(index)];
+    return m_rates[WRAP(index)];
 }
 
 uint64_t History::getCurrentTimestamp()
@@ -125,21 +130,26 @@ void History::unlock()
 
 bool History::isAvailable()
 {
-    return m_shares && m_timestamps && m_hashrate10m && m_hashrate1h && m_hashrate1d;
+    return m_rates && m_timestamps && m_hashrate1m && m_hashrate10m && m_hashrate1h && m_hashrate1d;
 }
 
-History::History() : m_avg1m(this, 60llu * 1000llu), m_avg10m(this, 600llu * 1000llu), m_avg1h(this, 3600llu * 1000llu), m_avg1d(this, 86400llu * 1000llu)
+History::History()
+    : m_avg1m(this, 60llu * 1000llu, HR_INTERVAL), m_avg10m(this, 600llu * 1000llu, HR_INTERVAL), m_avg1h(this, 3600llu * 1000llu, HR_INTERVAL),
+      m_avg1d(this, 86400llu * 1000llu, HR_INTERVAL)
 {
     // NOP
 }
 
 bool History::init(int num_asics)
 {
-    m_shares = (uint32_t *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(uint32_t));
-    m_timestamps = (uint64_t *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(uint64_t));
-    m_hashrate10m = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
-    m_hashrate1h = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
-    m_hashrate1d = (float *) MALLOC(HISTORY_MAX_SAMPLES * sizeof(float));
+    m_rates = (uint32_t *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(uint32_t));
+    m_timestamps = (uint64_t *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(uint64_t));
+    m_hashrate1m = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+    m_hashrate10m = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+    m_hashrate1h = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+    m_hashrate1d = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+
+    ESP_LOGI(TAG, "History size %d samples", (int) HISTORY_MAX_SAMPLES);
 
     m_distribution.init(num_asics);
 
@@ -161,63 +171,72 @@ void History::getTimestamps(uint64_t *first, uint64_t *last, int *num_samples)
     *num_samples = _num_samples;
 }
 
-HistoryAvg::HistoryAvg(History *history, uint64_t timespan)
+HistoryAvg::HistoryAvg(History *history, uint64_t timespan, uint32_t samplePeriodMs)
+    : m_timespan(timespan), m_samplePeriodMs(samplePeriodMs), m_history(history)
 {
-    m_history = history;
-    m_timespan = timespan;
+    // NOP
 }
 
-// move avg window and track and adjust the total sum of all shares in the
-// desired time window. Calculates GH.
-// calculates incrementally without "scanning" the entire time span
+// Call on each push to include new samples and trim the left edge
 void HistoryAvg::update()
 {
-    // Catch up with the latest sample and update diffsum
-    uint64_t lastTimestamp = 0;
-    while (lastTimestamp = m_history->getTimestampSample(m_lastSample), m_lastSample + 1 < m_history->getNumSamples()) {
+    // 1) Pull in newly arrived samples on the right edge
+    const int histCount = m_history->getNumSamples();
+    while (m_lastSample + 1 < histCount) {
         m_lastSample++;
-        m_diffSum += (uint64_t) m_history->getShareSample(m_lastSample);
+        m_numSamples++;
+        m_sumRates += (int64_t) m_history->getRateSample(m_lastSample);
     }
 
-    // adjust the window on the older side
-    // we move the lower window bound until the next sample would be out of
-    // the desired timespan.
-    while (m_firstSample + 1 < m_lastSample && lastTimestamp - m_history->getTimestampSample(m_firstSample + 1) >= m_timespan) {
-        m_diffSum -= (uint64_t) m_history->getShareSample(m_firstSample);
+    if (m_lastSample < 0 || m_numSamples <= 0) {
+        // No data yet
+        m_timestamp = 0;
+        m_avgGh = 0.0;
+        m_avgGhDisplay = 0.0;
+        m_preliminary = true;
+        return;
+    }
+
+    const uint64_t lastTs = m_history->getTimestampSample(m_lastSample);
+
+    // 2) Trim from the left while the first sample is too old for the time window
+    //    Keep the window such that (lastTs - firstTs) < m_timespan whenever possible.
+    while (m_firstSample < m_lastSample && lastTs - m_history->getTimestampSample(m_firstSample) >= m_timespan) {
+        m_sumRates -= (int64_t) m_history->getRateSample(m_firstSample);
+        m_numSamples--;
         m_firstSample++;
     }
 
-    uint64_t firstTimestamp = m_history->getTimestampSample(m_firstSample);
+    const uint64_t firstTs = m_history->getTimestampSample(m_firstSample);
+    const uint64_t covered = (lastTs >= firstTs) ? (lastTs - firstTs) : 0;
 
-    // Check for overflow in diffsum
-    if (m_diffSum >> 63ull) {
-        ESP_LOGE(TAG, "Error in hashrate calculation: diffsum overflowed");
-        return;
+    // Consider the window "filled" once we effectively have >= timespan coverage.
+    // Add one samplePeriod as tolerance to account for discrete sampling.
+    const bool filled = (covered + m_samplePeriodMs) >= m_timespan;
+
+    // preliminary only while the window is not filled yet
+    m_preliminary = !filled;
+
+    // Unbiased average over actual samples in the window (Q10 -> GH/s)
+    const int denom = (m_numSamples > 0) ? m_numSamples : 1;
+    const double avg_q10 = (double) m_sumRates / (double) denom;
+    m_avgGh = avg_q10 / 1024.0; // -> GH/s
+
+    // Display ("ramping") average: only damp while preliminary
+    if (m_preliminary) {
+        // scale by coverage ratio with the same tolerance
+        double fill = (double) (covered + m_samplePeriodMs) / (double) m_timespan;
+        if (fill > 1.0)
+            fill = 1.0;
+        m_avgGhDisplay = m_avgGh * fill;
+    } else {
+        m_avgGhDisplay = m_avgGh;
     }
 
-    // Prevent division by zero
-    if (lastTimestamp == firstTimestamp) {
-        ESP_LOGW(TAG, "Timestamps are equal; cannot compute average.");
-        return;
-    }
-
-    // Calculate the average hash rate
-    uint64_t duration = (lastTimestamp - firstTimestamp);
-
-    // preliminary means that it's not the real hashrate because
-    // it's ramping up slowly
-    m_preliminary = duration < m_timespan;
-
-    // clamp duration to a minimum value of avg->timespan
-    duration = (m_timespan > duration) ? m_timespan : duration;
-
-    m_avg = (double) (m_diffSum << 32llu) / ((double) duration / 1.0e3);
-    m_avgGh = m_avg / 1.0e9;
-    m_timestamp = lastTimestamp;
+    m_timestamp = lastTs;
 }
-
-
-void History::pushShare(uint32_t diff, uint64_t timestamp, int asic_nr)
+// push a measured instantaneous hashrate (GH/s)
+void History::pushRate(float rateGh, uint64_t timestamp)
 {
     if (!isAvailable()) {
         ESP_LOGW(TAG, "PSRAM not initialized");
@@ -225,32 +244,46 @@ void History::pushShare(uint32_t diff, uint64_t timestamp, int asic_nr)
     }
 
     lock();
-    m_shares[WRAP(m_numSamples)] = diff;
+
+    // sanity check
+    if (!isfinite(rateGh) || rateGh < 0.0f)
+        rateGh = 0.0f;
+
+    // store rate sample and timestamp
+    m_rates[WRAP(m_numSamples)] = (uint32_t) (rateGh * 1024.0); // -> Q22.10
     m_timestamps[WRAP(m_numSamples)] = timestamp;
     m_numSamples++;
 
+    // update all windows
     m_avg1m.update();
     m_avg10m.update();
     m_avg1h.update();
     m_avg1d.update();
 
-    m_hashrate10m[WRAP(m_numSamples - 1)] = m_avg10m.getGh();
-    m_hashrate1h[WRAP(m_numSamples - 1)] = m_avg1h.getGh();
-    m_hashrate1d[WRAP(m_numSamples - 1)] = m_avg1d.getGh();
-
-    m_distribution.addShare(asic_nr);
+    // write per-sample windowed averages for export
+    m_hashrate1m[WRAP(m_numSamples - 1)] = m_avg1m.getGhDisplay();
+    m_hashrate10m[WRAP(m_numSamples - 1)] = m_avg10m.getGhDisplay();
+    m_hashrate1h[WRAP(m_numSamples - 1)] = m_avg1h.getGhDisplay();
+    m_hashrate1d[WRAP(m_numSamples - 1)] = m_avg1d.getGhDisplay();
 
     unlock();
 
-    char preliminary_1m = (m_avg1m.isPreliminary()) ? '*' : ' ';
-    char preliminary_10m = (m_avg10m.isPreliminary()) ? '*' : ' ';
-    char preliminary_1h = (m_avg1h.isPreliminary()) ? '*' : ' ';
-    char preliminary_1d = (m_avg1d.isPreliminary()) ? '*' : ' ';
+    char p1 = (m_avg1m.isPreliminary()) ? '*' : ' ';
+    char p2 = (m_avg10m.isPreliminary()) ? '*' : ' ';
+    char p3 = (m_avg1h.isPreliminary()) ? '*' : ' ';
+    char p4 = (m_avg1d.isPreliminary()) ? '*' : ' ';
+    ESP_LOGI(TAG, "hashrate: 1m:%.3fGH%c 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", m_avg1m.getGh(), p1, m_avg10m.getGh(), p2,
+             m_avg1h.getGh(), p3, m_avg1d.getGh(), p4);
+}
 
-    ESP_LOGI(TAG, "hashrate: 1m:%.3fGH%c 10m:%.3fGH%c 1h:%.3fGH%c 1d:%.3fGH%c", m_avg1m.getGh(), preliminary_1m, m_avg10m.getGh(), preliminary_10m, m_avg1h.getGh(),
-             preliminary_1h, m_avg1d.getGh(), preliminary_1d);
+void History::pushShare(int asic_nr)
+{
+    lock();
 
+    m_distribution.addShare(asic_nr);
     m_distribution.toLog();
+
+    unlock();
 }
 
 // successive approximation in a wrapped ring buffer with
@@ -297,34 +330,36 @@ int History::searchNearestTimestamp(int64_t timestamp)
 
 
 // Helper: fills a JsonObject with history data using ArduinoJson
-void History::exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp) {
+void History::exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp,
+                                uint64_t current_timestamp)
+{
     // Ensure consistency
     lock();
 
     int64_t rel_start = (int64_t) start_timestamp - (int64_t) current_timestamp;
-    int64_t rel_end   = (int64_t) end_timestamp - (int64_t) current_timestamp;
+    int64_t rel_end = (int64_t) end_timestamp - (int64_t) current_timestamp;
 
     // Get current system timestamp (in ms)
     uint64_t sys_timestamp = esp_timer_get_time() / 1000ULL;
     int64_t sys_start = (int64_t) sys_timestamp + rel_start;
-    int64_t sys_end   = (int64_t) sys_timestamp + rel_end;
+    int64_t sys_end = (int64_t) sys_timestamp + rel_end;
 
     int start_index = searchNearestTimestamp(sys_start);
-    int end_index   = searchNearestTimestamp(sys_end);
+    int end_index = searchNearestTimestamp(sys_end);
     int num_samples = end_index - start_index + 1;
 
-    if (!isAvailable() || start_index == -1 || end_index == -1 ||
-        num_samples <= 0 || (end_index < start_index)) {
+    if (!isAvailable() || start_index == -1 || end_index == -1 || num_samples <= 0 || (end_index < start_index)) {
         ESP_LOGW(TAG, "Invalid history indices or history not (yet) available");
         // If the data is invalid, return an empty object
         num_samples = 0;
     }
 
     // Create arrays for history samples using the new method
+    JsonArray hashrate_1m = json_history["hashrate_1m"].to<JsonArray>();
     JsonArray hashrate_10m = json_history["hashrate_10m"].to<JsonArray>();
-    JsonArray hashrate_1h  = json_history["hashrate_1h"].to<JsonArray>();
-    JsonArray hashrate_1d  = json_history["hashrate_1d"].to<JsonArray>();
-    JsonArray timestamps   = json_history["timestamps"].to<JsonArray>();
+    JsonArray hashrate_1h = json_history["hashrate_1h"].to<JsonArray>();
+    JsonArray hashrate_1d = json_history["hashrate_1d"].to<JsonArray>();
+    JsonArray timestamps = json_history["timestamps"].to<JsonArray>();
 
     for (int i = start_index; i < start_index + num_samples; i++) {
         uint64_t sample_timestamp = getTimestampSample(i);
@@ -332,9 +367,10 @@ void History::exportHistoryData(JsonObject &json_history, uint64_t start_timesta
             continue;
         }
         // Multiply by 100.0 and cast to int as in the original code
-        hashrate_10m.add((int)(getHashrate10mSample(i) * 100.0));
-        hashrate_1h.add((int)(getHashrate1hSample(i) * 100.0));
-        hashrate_1d.add((int)(getHashrate1dSample(i) * 100.0));
+        hashrate_1m.add((int) (getHashrate1mSample(i) * 100.0));
+        hashrate_10m.add((int) (getHashrate10mSample(i) * 100.0));
+        hashrate_1h.add((int) (getHashrate1hSample(i) * 100.0));
+        hashrate_1d.add((int) (getHashrate1dSample(i) * 100.0));
         timestamps.add((int64_t) sample_timestamp - sys_start);
     }
 

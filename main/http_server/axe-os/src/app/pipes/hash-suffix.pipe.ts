@@ -11,29 +11,31 @@ export class HashSuffixPipe implements PipeTransform {
     return this._this.transform(value);
   }
 
-  public transform(value: number): string {
-
-    if (value == null || value < 0) {
+  // Reusable SI formatter with K/M/G/T/P/E
+  public transform(value: number, digits: number = 2): string {
+    // Handle NaN / Infinity early
+    if (!Number.isFinite(value)) {
       return '0';
     }
 
-    const suffixes = [' H/s', ' KH/s', ' MH/s', ' GH/s', ' TH/s', ' PH/s', ' EH/s'];
+    const suffixes = ['H/s', 'kH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s']; // 10^0 ... 10^18
+    const negative = value < 0;
+    let abs = Math.abs(value);
+    let idx = 0;
 
-    let power = Math.floor(Math.log10(value) / 3);
-    if (power < 0) {
-      power = 0;
-    }
-    const scaledValue = value / Math.pow(1000, power);
-    const suffix = suffixes[power];
-
-    if (scaledValue < 10) {
-      return scaledValue.toFixed(2) + suffix;
-    } else if (scaledValue < 100) {
-      return scaledValue.toFixed(1) + suffix;
+    // Iterate up through units in 1000 steps
+    while (abs >= 1000 && idx < suffixes.length - 1) {
+      abs /= 1000;
+      idx++;
     }
 
-    return scaledValue.toFixed(0) + suffix;
+    // Optional: trim trailing .00 / .10 etc.
+    let str = abs.toFixed(digits);
+    if (digits > 0) {
+      // remove trailing zeros and possibly trailing dot
+      str = str.replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+    }
+
+    return (negative ? '-' : '') + str + suffixes[idx];
   }
-
-
 }

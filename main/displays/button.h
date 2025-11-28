@@ -6,6 +6,7 @@
 #define BTN_EVENT_LONGPRESS  (1<<2)
 #define BTN_EVENT_FASTPRESS  (1<<3)
 #define BTN_EVENT_TIMEOUT (1<<4)
+#define BTN_EVENT_PRESSED (1<<5)
 
 class Button {
   protected:

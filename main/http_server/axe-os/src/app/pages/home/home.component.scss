@@ -52,8 +52,8 @@ nb-card-header {
 }
 
 .col-fixed-width {
-  width: 80px;
-  min-width: 80px;
+  width: 100px;
+  min-width: 100px;
   flex-shrink: 0;
 }
 .break-all {
@@ -96,3 +96,8 @@ nb-card-header {
 .icon-help-success  { color: var(--color-success-500); }
 .icon-help-warning  { color: var(--color-warning-500); }
 .icon-help-muted    { color: var(--text-hint-color); }
+
+.badge-no-select {
+  cursor: default;
+}
+

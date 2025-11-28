@@ -3,6 +3,9 @@
 #include <pthread.h>
 #include <string.h>
 
+#include "esp_heap_caps.h"
+
+#include "macros.h"
 #include "mining.h"
 
 #define MAX_ASIC_JOBS 128
@@ -40,38 +43,37 @@ public:
         memset(m_activeJobs, 0, sizeof(m_activeJobs));
     }
 
-    void cleanJobs() {
-        lock();
+    int cleanJobs(int pool) {
+        PThreadGuard g(m_validJobsLock);
+        int deleted = 0;
         for (int i = 0; i < MAX_ASIC_JOBS; i++) {
-            if (m_activeJobs[i]) {
+            if (m_activeJobs[i] && m_activeJobs[i]->pool_id == pool) {
                 free_bm_job(m_activeJobs[i]);
                 m_activeJobs[i] = 0;
+                deleted++;
             }
         }
-        unlock();
+        return deleted;
     }
 
     void storeJob(bm_job *next_job, uint8_t asic_job_id) {
-        lock();
+        PThreadGuard g(m_validJobsLock);
         // if a slot was used before free it
         if (m_activeJobs[asic_job_id]) {
             free_bm_job(m_activeJobs[asic_job_id]);
         }
         // save job into slot
         m_activeJobs[asic_job_id] = next_job;
-        unlock();
     }
 
     bm_job *getClone(uint8_t asic_job_id) {
+        PThreadGuard g(m_validJobsLock);
         // check if we have a job with this job id
-        lock();
         if (!m_activeJobs[asic_job_id]) {
-            unlock();
             return NULL;
         }
         // create a clone
         bm_job *job = cloneBmJob(m_activeJobs[asic_job_id]);
-        unlock();
 
         // and return it
         return job;

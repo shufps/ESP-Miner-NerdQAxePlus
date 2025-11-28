@@ -20,7 +20,8 @@
     "SUBMIT": "Enviar",
     "ERROR": "Error",
     "SUCCESS": "Éxito",
-    "JUST_NOW": "Ahora mismo"
+    "JUST_NOW": "Ahora mismo",
+    "SHUTDOWN": "El minero se ha apagado."
   },
   "NAVIGATION": {
     "HOME": "Inicio",
@@ -59,9 +60,11 @@
     "IDLE": "Inactivo",
     "PRIMARY_POOL": "Pool Primario",
     "FALLBACK_POOL": "Pool de Respaldo",
-    "HASHRATE_10M": "Hashrate 10min",
-    "HASHRATE_1H": "Hashrate 1h",
-    "HASHRATE_1D": "Hashrate 1d"
+    "HASHRATE_1M": "Hashrate (1 min)",
+    "HASHRATE_10M": "Hashrate (10 min)",
+    "HASHRATE_1H": "Hashrate (1 h)",
+    "HASHRATE_1D": "Hashrate (1 d)",
+    "SHARE_TOO_SMALL": "Porcentaje para este pool demasiado bajo!"
   },
   "PERFORMANCE": {
     "TITLE": "Rendimiento",
@@ -126,7 +129,13 @@
     "DEFAULT": "predeterminado",
     "TIME_FORMAT": "Formato de Hora",
     "TIME_FORMAT_24H": "Formato 24 horas",
-    "TIME_FORMAT_12H": "Formato 12 horas (AM/PM)"
+    "TIME_FORMAT_12H": "Formato 12 horas (AM/PM)",
+    "POOL_MODE": "Modo de pool",
+    "POOL_MODE_FAILOVER": "Failover (primario/secundario)",
+    "POOL_MODE_DUAL": "Pool dual",
+    "POOL_BALANCE": "Balance de pool",
+    "POOL_BALANCE_HINT": "Distribuye trabajos entre el pool primario y el secundario, p. ej., 70/30.",
+    "STRATUM": "Configuración de Stratum"
   },
   "SYSTEM": {
     "TITLE": "Información del Sistema",
@@ -479,20 +488,20 @@
     "LOCAL_ONLY": "Diseñado para uso en LAN local (sin HTTPS). No lo expongas a Internet.",
     "OTP_HINT_ENROLLMENT": "Inicia el registro para mostrar un código QR en el dispositivo. Escanéalo con tu autenticador (p. ej., Authy/Google Authenticator) y luego introduce el código de 6 dígitos para activar OTP. Para desactivar también se requiere un código válido. Diseñado solo para LAN local (sin HTTPS).",
     "OTP_NUDGE_TITLE": "Considera activar OTP",
-    "OTP_NUDGE_TEXT": "Ayuda a mitigar ataques oportunistas y automatizados y añade a esta interfaz web una capa básica de protección criptográfica real.",
+    "OTP_NUDGE_TEXT": "La interfaz web no está protegida – activa el OTP para mayor seguridad.",
     "OTP_TITLE": "Se requiere OTP",
     "OTP_FW_HINT": "Introduce el código de 6 dígitos para iniciar la actualización del firmware.",
     "OTP_HINT": "Introduce el código de 6 dígitos para continuar.",
     "OTP_DISABLE_HINT": "Introduce el código de 6 dígitos para desactivar el OTP.",
     "OTP_ENABLE_HINT": "Introduce el código de 6 dígitos para activar el OTP.",
-    "OTP_REMEMBER": "Recordar este dispositivo durante 24h",
+    "OTP_REMEMBER": "Recordar este navegador durante 24 h",
     "SESSION": "Sesión",
     "SESSION_STATUS": "Estado de la sesión",
-    "THIS_DEVICE_TRUSTED": "Este dispositivo es de confianza (24h)",
-    "FORGET_THIS_DEVICE": "Olvidar este dispositivo",
-    "FORGET_THIS_DEVICE_HELP": "Finaliza la confianza de 24h para este dispositivo. Se elimina el token de sesión local; la próxima acción protegida volverá a requerir un código de 6 dígitos.",
-    "THIS_DEVICE_FORGOTTEN": "Este dispositivo ha sido olvidado.",
-    "NO_TRUSTED_DEVICE_HELP": "No hay una sesión de confianza en este dispositivo. Las acciones protegidas pedirán un código de 6 dígitos hasta que elijas «Recordar este dispositivo».",
+    "THIS_DEVICE_TRUSTED": "Este navegador es de confianza (24 h)",
+    "FORGET_THIS_DEVICE": "Olvidar este navegador",
+    "FORGET_THIS_DEVICE_HELP": "Finaliza la confianza de 24 horas para este navegador. Se elimina el token de sesión local — la próxima acción protegida volverá a requerir un código de 6 dígitos.",
+    "THIS_DEVICE_FORGOTTEN": "Este navegador ha sido olvidado.",
+    "NO_TRUSTED_DEVICE_HELP": "No hay una sesión de confianza en este navegador. Las acciones protegidas solicitarán un código de 6 dígitos hasta que elijas « Recordar este navegador ».",
     "NOT_TRUSTED": "No de confianza"
   }
 }

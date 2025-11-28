@@ -32,6 +32,8 @@ static const char *TAG = "http_server";
 
 httpd_handle_t http_server = NULL;
 
+extern int websocket_fd;
+
 /* Function for stopping the webserver */
 /*
 static void stop_webserver(httpd_handle_t server)
@@ -47,6 +49,9 @@ static void stop_webserver(httpd_handle_t server)
 /* Recovery handler */
 static esp_err_t rest_recovery_handler(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -57,6 +62,9 @@ static esp_err_t rest_recovery_handler(httpd_req_t *req)
 
 static esp_err_t handle_options_request(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -76,6 +84,9 @@ static esp_err_t handle_options_request(httpd_req_t *req)
 // HTTP Error (404) Handler - Redirects all requests to the root page
 static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     // Set status
     httpd_resp_set_status(req, "302 Temporary Redirect");
     // Redirect to the "/" root directory
@@ -85,6 +96,19 @@ static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 
     ESP_LOGI(TAG, "Redirecting to root");
     return ESP_OK;
+}
+
+static void http_close_cb(void* hd, int sockfd)
+{
+    // If our websocket socket is being closed, reset logging
+    if (sockfd == websocket_fd) {
+        ESP_LOGI(TAG, "Socket %d closed, resetting websocket logging", sockfd);
+        websocket_reset();
+        return;
+    }
+    if (sockfd >= 0) {
+        (void)close(sockfd);
+    }
 }
 
 esp_err_t start_rest_server(void * pvParameters)
@@ -118,6 +142,11 @@ esp_err_t start_rest_server(void * pvParameters)
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
     config.stack_size = 12288;
+    config.keep_alive_enable = false;
+    config.recv_wait_timeout = 5;
+    config.send_wait_timeout = 5;
+    config.close_fn = http_close_cb;
+
 
     ESP_LOGI(TAG, "Starting HTTP Server");
     if (httpd_start(&http_server, &config) != ESP_OK) {

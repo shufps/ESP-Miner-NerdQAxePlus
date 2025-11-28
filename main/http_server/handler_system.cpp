@@ -17,9 +17,14 @@ static const char *TAG = "http_system";
 
 #define VR_FREQUENCY_ENABLED
 
+uint64_t getDuplicateHWNonces();
+
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -89,23 +94,29 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["hashRate_10m"]       = history->getCurrentHashrate10m();
     doc["hashRate_1h"]        = history->getCurrentHashrate1h();
     doc["hashRate_1d"]        = history->getCurrentHashrate1d();
-    doc["bestDiff"]           = SYSTEM_MODULE.getBestDiffString();
-    doc["bestSessionDiff"]    = SYSTEM_MODULE.getBestSessionDiffString();
     doc["coreVoltage"]        = board->getAsicVoltageMillis();
     doc["defaultCoreVoltage"] = board->getDefaultAsicVoltageMillis();
     doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
-    doc["sharesAccepted"]     = SYSTEM_MODULE.getSharesAccepted();
-    doc["sharesRejected"]     = SYSTEM_MODULE.getSharesRejected();
-    doc["duplicateHWNonces"]  = SYSTEM_MODULE.getDuplicateHWNonces();
-    doc["isUsingFallbackStratum"] = STRATUM_MANAGER.isUsingFallback();
-    doc["isStratumConnected"] = STRATUM_MANAGER.isAnyConnected();
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
+    doc["manualFanSpeed"]     = Config::getFanSpeed();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["recentpingloss"]     = get_recent_ping_loss();
-    doc["poolDifficulty"]     = SYSTEM_MODULE.getPoolDifficulty();
-    doc["foundBlocks"]        = SYSTEM_MODULE.getFoundBlocks();
-    doc["totalFoundBlocks"]   = SYSTEM_MODULE.getTotalFoundBlocks();
+    doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
+    doc["duplicateHWNonces"]  = getDuplicateHWNonces();
+
+    JsonObject stratum_obj = doc["stratum"].to<JsonObject>();
+
+    // kept for swarm compatibility
+    doc["poolDifficulty"]     = STRATUM_MANAGER->getPoolDifficulty();
+    doc["foundBlocks"]        = STRATUM_MANAGER->getFoundBlocks();
+    doc["totalFoundBlocks"]   = STRATUM_MANAGER->getTotalFoundBlocks();
+    doc["sharesAccepted"]     = STRATUM_MANAGER->getSharesAccepted();
+    doc["sharesRejected"]     = STRATUM_MANAGER->getSharesRejected();
+    doc["bestDiff"]           = STRATUM_MANAGER->getBestDiff();
+    doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiff();
+
+    STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
 
     // asic temps
     {
@@ -151,7 +162,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
     doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
-    doc["autofanpolarity"]  = board->isAutoFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::getTempControlMode();
     doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
 #ifdef VR_FREQUENCY_ENABLED
@@ -174,9 +184,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
     //ESP_LOGI(TAG, "allocs: %d, deallocs: %d, reallocs: %d", allocs, deallocs, reallocs);
 
-    // close connection to prevent clogging
-    httpd_resp_set_hdr(req, "Connection", "close");
-
     // Serialize the JSON document to a String and send it
     esp_err_t ret = sendJsonResponse(req, doc);
     doc.clear();
@@ -196,6 +203,9 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
 esp_err_t PATCH_update_settings(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -218,37 +228,6 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         return err;
     }
 
-    // Update settings if each key exists in the JSON object.
-    if (doc["stratumURL"].is<const char*>()) {
-        Config::setStratumURL(doc["stratumURL"].as<const char*>());
-    }
-    if (doc["stratumUser"].is<const char*>()) {
-        Config::setStratumUser(doc["stratumUser"].as<const char*>());
-    }
-    if (doc["stratumPassword"].is<const char*>()) {
-        Config::setStratumPass(doc["stratumPassword"].as<const char*>());
-    }
-    if (doc["stratumPort"].is<uint16_t>()) {
-        Config::setStratumPortNumber(doc["stratumPort"].as<uint16_t>());
-    }
-    if (doc["stratumEnonceSubscribe"].is<bool>()) {
-        Config::setStratumEnonceSubscribe(doc["stratumEnonceSubscribe"].as<bool>());
-    }
-    if (doc["fallbackStratumURL"].is<const char*>()) {
-        Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
-    }
-    if (doc["fallbackStratumUser"].is<const char*>()) {
-        Config::setStratumFallbackUser(doc["fallbackStratumUser"].as<const char*>());
-    }
-    if (doc["fallbackStratumPassword"].is<const char*>()) {
-        Config::setStratumFallbackPass(doc["fallbackStratumPassword"].as<const char*>());
-    }
-    if (doc["fallbackStratumPort"].is<uint16_t>()) {
-        Config::setStratumFallbackPortNumber(doc["fallbackStratumPort"].as<uint16_t>());
-    }
-    if (doc["fallbackStratumEnonceSubscribe"].is<bool>()) {
-        Config::setStratumFallbackEnonceSubscribe(doc["fallbackStratumEnonceSubscribe"].as<bool>());
-    }
     if (doc["ssid"].is<const char*>()) {
         Config::setWifiSSID(doc["ssid"].as<const char*>());
     }
@@ -289,16 +268,13 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         Config::setInvertScreen(doc["invertscreen"].as<bool>());
     }
     if (doc["invertfanpolarity"].is<bool>()) {
-        Config::setInvertFanPolarity(doc["invertfanpolarity"].as<bool>());
-    }
-    if (doc["autofanpolarity"].is<bool>()) {
-        Config::setAutoFanPolarity(doc["autofanpolarity"].as<bool>());
+        Config::setFanPolarity(doc["invertfanpolarity"].as<bool>());
     }
     if (doc["autofanspeed"].is<uint16_t>()) {
         Config::setTempControlMode(doc["autofanspeed"].as<uint16_t>());
     }
-    if (doc["fanspeed"].is<uint16_t>()) {
-        Config::setFanSpeed(doc["fanspeed"].as<uint16_t>());
+    if (doc["manualFanSpeed"].is<uint16_t>()) {
+        Config::setFanSpeed(doc["manualFanSpeed"].as<uint16_t>());
     }
     if (doc["autoscreenoff"].is<bool>()) {
         Config::setAutoScreenOff(doc["autoscreenoff"].as<bool>());
@@ -326,7 +302,8 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     }
 #endif
 
-
+    // save stratum settings
+    STRATUM_MANAGER->saveSettings(doc);
 
     doc.clear();
 
@@ -340,11 +317,17 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     // reload settings of system module (and display)
     SYSTEM_MODULE.loadSettings();
 
+    // reload settings, trigger reconnect if stratum config changed
+    STRATUM_MANAGER->loadSettings();
+
     return ESP_OK;
 }
 
 esp_err_t GET_system_asic(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -388,9 +371,6 @@ esp_err_t GET_system_asic(httpd_req_t *req)
         const auto& volts = board->getVoltageOptions();
         for (uint32_t v : volts) { arr.add(v); }
     }
-
-    // Verbindung schließen, damit nichts „hängt“
-    httpd_resp_set_hdr(req, "Connection", "close");
 
     esp_err_t ret = sendJsonResponse(req, doc);
     doc.clear();

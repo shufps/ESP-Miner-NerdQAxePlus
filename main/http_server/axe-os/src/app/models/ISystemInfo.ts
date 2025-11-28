@@ -1,5 +1,6 @@
 import { eASICModel } from './enum/eASICModel';
 import { IHistory } from '../models/IHistory';
+import { IStratum } from './IStratum';
 
 export interface ISystemInfo {
 
@@ -20,8 +21,8 @@ export interface ISystemInfo {
     hashRate_10m: number,
     hashRate_1h: number,
     hashRate_1d: number,
-    bestDiff: string,
-    bestSessionDiff: string,
+    bestDiff: number,
+    bestSessionDiff: number,
     freeHeap: number,
     freeHeapInt: number,
     coreVoltage: number,
@@ -48,17 +49,15 @@ export interface ISystemInfo {
     fallbackStratumPort: number,
     fallbackStratumUser: string,
     fallbackStratumEnonceSubscribe: number,
-    isUsingFallbackStratum: boolean,
-    isStratumConnected: boolean,
     stratumDifficulty: number,
     poolDifficulty: number,
     frequency: number,
     defaultFrequency: number,
     version: string,
     invertfanpolarity: number,
-    autofanpolarity: number,
     autofanspeed: number,
     fanspeed: number,
+    manualFanSpeed: number,
     fanrpm: number,
     coreVoltageActual: number,
     lastResetReason: string,
@@ -68,6 +67,9 @@ export interface ISystemInfo {
     stratum_keep: number,
     defaultVrFrequency?: number,
     vrFrequency: number,
+    shutdown: boolean,
+
+    stratum: IStratum,
 
     defaultTheme: string,
 
@@ -85,4 +87,24 @@ export interface ISystemInfo {
     history: IHistory
 
     otp: boolean,
+}
+
+// fields swam is using
+export interface ISwarmInfo {
+    power: number,
+    voltage: number,
+    temp: number,
+    vrTemp: number,
+    bestDiff: number,
+    bestSessionDiff: number,
+    hostname: string,
+    hostip: string,
+    sharesAccepted: number,
+    sharesRejected: number,
+    uptimeSeconds: number,
+    asicCount: number,
+    ASICModel: eASICModel,
+    deviceModel: string,
+    poolDifficulty: number,
+    version: string,
 }

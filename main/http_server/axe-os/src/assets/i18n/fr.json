@@ -20,7 +20,8 @@
     "SUBMIT": "Soumettre",
     "ERROR": "Erreur",
     "SUCCESS": "Succès",
-    "JUST_NOW": "À l'instant"
+    "JUST_NOW": "À l'instant",
+    "SHUTDOWN": "Le mineur a été arrêté."
   },
   "NAVIGATION": {
     "HOME": "Accueil",
@@ -59,9 +60,11 @@
     "IDLE": "Inactif",
     "PRIMARY_POOL": "Pool Primaire",
     "FALLBACK_POOL": "Pool de Secours",
-    "HASHRATE_10M": "Hashrate 10min",
-    "HASHRATE_1H": "Hashrate 1h",
-    "HASHRATE_1D": "Hashrate 1j"
+    "HASHRATE_1M": "Hashrate (1 min)",
+    "HASHRATE_10M": "Hashrate (10 min)",
+    "HASHRATE_1H": "Hashrate (1 h)",
+    "HASHRATE_1D": "Hashrate (1 j)",
+    "SHARE_TOO_SMALL": "Pourcentage pour ce pool trop faible!"
   },
   "PERFORMANCE": {
     "TITLE": "Performance",
@@ -126,7 +129,13 @@
     "DEFAULT": "défaut",
     "TIME_FORMAT": "Format d'Heure",
     "TIME_FORMAT_24H": "Format 24 heures",
-    "TIME_FORMAT_12H": "Format 12 heures (AM/PM)"
+    "TIME_FORMAT_12H": "Format 12 heures (AM/PM)",
+    "POOL_MODE": "Mode de pool",
+    "POOL_MODE_FAILOVER": "Failover (primaire/secours)",
+    "POOL_MODE_DUAL": "Pool double",
+    "POOL_BALANCE": "Équilibrage du pool",
+    "POOL_BALANCE_HINT": "Répartit les tâches entre le pool primaire et le pool secondaire, par ex. 70/30.",
+    "STRATUM": "Paramètres Stratum"
   },
   "SYSTEM": {
     "TITLE": "Informations Système",
@@ -479,20 +488,20 @@
     "LOCAL_ONLY": "Conçu pour une utilisation sur LAN local (sans HTTPS). Ne pas exposer à Internet.",
     "OTP_HINT_ENROLLMENT": "Lancez l’enrôlement pour afficher un QR code sur l’appareil. Scannez-le avec votre application d’authentification (p. ex. Authy/Google Authenticator), puis saisissez le code à 6 chiffres pour activer l’OTP. La désactivation nécessite également un code valide. Conçu pour un usage LAN local uniquement (sans HTTPS).",
     "OTP_NUDGE_TITLE": "Pensez à activer l’OTP",
-    "OTP_NUDGE_TEXT": "Cela aide à réduire les attaques opportunistes et automatisées et ajoute à cette interface web une couche de protection cryptographique réelle.",
+    "OTP_NUDGE_TEXT": "L’interface web n’est pas protégée – activez l’OTP pour une sécurité renforcée.",
     "OTP_TITLE": "OTP requis",
     "OTP_FW_HINT": "Saisissez le code à 6 chiffres pour démarrer la mise à jour du firmware.",
     "OTP_HINT": "Saisissez le code à 6 chiffres pour continuer.",
     "OTP_DISABLE_HINT": "Saisissez le code à 6 chiffres pour désactiver l’OTP.",
     "OTP_ENABLE_HINT": "Saisissez le code à 6 chiffres pour activer l’OTP.",
-    "OTP_REMEMBER": "Se souvenir de cet appareil pendant 24h",
+    "OTP_REMEMBER": "Se souvenir de ce navigateur pendant 24 h",
     "SESSION": "Session",
     "SESSION_STATUS": "Statut de la session",
-    "THIS_DEVICE_TRUSTED": "Cet appareil est de confiance (24h)",
-    "FORGET_THIS_DEVICE": "Oublier cet appareil",
-    "FORGET_THIS_DEVICE_HELP": "Met fin à la confiance de 24h pour cet appareil. Le jeton de session local est supprimé : la prochaine action protégée exigera à nouveau un code à 6 chiffres.",
-    "THIS_DEVICE_FORGOTTEN": "Cet appareil a été oublié.",
-    "NO_TRUSTED_DEVICE_HELP": "Aucune session de confiance sur cet appareil. Les actions protégées demanderont un code à 6 chiffres jusqu’à ce que vous choisissiez « Se souvenir de cet appareil ».",
+    "THIS_DEVICE_TRUSTED": "Ce navigateur est approuvé (24 h)",
+    "FORGET_THIS_DEVICE": "Oublier ce navigateur",
+    "FORGET_THIS_DEVICE_HELP": "Met fin à la confiance de 24 heures pour ce navigateur. Le jeton de session local est supprimé — la prochaine action protégée nécessitera à nouveau un code à 6 chiffres.",
+    "THIS_DEVICE_FORGOTTEN": "Ce navigateur a été oublié.",
+    "NO_TRUSTED_DEVICE_HELP": "Aucune session approuvée dans ce navigateur. Les actions protégées demanderont un code à 6 chiffres jusqu’à ce que vous choisissiez « Se souvenir de ce navigateur ».",
     "NOT_TRUSTED": "Non approuvé"
   }
 }

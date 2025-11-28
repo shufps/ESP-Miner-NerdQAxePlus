@@ -6,6 +6,9 @@
 #include "esp_lcd_panel_io.h"
 #include "ui.h"
 #include "ui_helpers.h"
+#include "button.h"
+#include "ui_ipc.h"
+#include "stratum/stratum_manager.h"
 
 /* INCLUDES ------------------------------------------------------------------*/
 
@@ -79,6 +82,7 @@ class DisplayDriver {
         BTCScreen,
         GlobalStats,
         ShowQR,
+        PowerOff,
         NOP
     };
 
@@ -105,6 +109,13 @@ class DisplayDriver {
 
     unsigned int m_btcPrice; // Current Bitcoin price
     uint32_t m_blockHeight; // Current Bitcoin price
+
+    // Shutdown countdown state
+    bool m_shutdownCountdownActive;
+    int64_t m_shutdownStartTime;
+    lv_obj_t* m_shutdownLabel;
+    int64_t m_buttonIgnoreUntil_us;
+    bool m_screenAnimationRunning = false;
 
     UI *m_ui;
 
@@ -148,13 +159,23 @@ class DisplayDriver {
     // Display initialization
     lv_obj_t *initTDisplayS3(); // Initialize the TDisplay S3
 
-    void updateHashrate(System *module, float power);               // Update the hashrate display
-    void updateShares(System *module);                              // Update the shares information on the display
+    void updateHashrate(System *module, StratumManager *manager, float power, int pool);               // Update the hashrate display
+    void updateShares(StratumManager *manager, int pool);                              // Update the shares information on the display
     void updateTime(System *module);                                // Update the time display
     void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
 
     void hideFoundBlockOverlay();
 
+    void startShutdownCountdown();
+    void updateShutdownCountdown();
+    void hideShutdownCountdown();
+
+    void handleAutoOffAndOverlays();
+    void handleUiQueueMessages(ui_msg_t &msg, int64_t tnow);
+    void processButtons(Button &btn1, Button &btn2, int64_t tnow, bool &btn1Press, bool &btn2Press, bool &btnBothLongPress);
+    uint32_t handleLvglTick(int32_t &elapsed_Ani_cycles);
+
+    void safe_screen_change(lv_obj_t * new_scr, lv_scr_load_anim_t anim_type, uint32_t speed, uint32_t delay);
   public:
     // Constructor
     DisplayDriver();
@@ -167,12 +188,16 @@ class DisplayDriver {
     void miningScreen();                                            // Switch to the mining screen
     void updateIpAddress(const char *ipAddressStr);                 // Update the displayed IP address
     void showFoundBlockOverlay();
-    void updateGlobalState();                                       // Update the global state on the display
-    void updateCurrentSettings();                                   // Update the current settings screen
+    void updateGlobalState(int pool);                               // Update the global state on the display
+    void updateCurrentSettings(int pool);                           // Update the current settings screen
     void refreshScreen();                                           // Refresh the display
     void logMessage(const char *message);                           // Log a message to the display
     void waitForSplashs();
     void loadSettings();                                            // (re)load settings
+
+    void setScreenAnimationRunning(bool state) {
+      m_screenAnimationRunning = state;
+    }
 
     UiState getState() {
       return m_state;

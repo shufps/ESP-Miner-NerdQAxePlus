@@ -9,6 +9,7 @@ import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
 import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 import { TranslateService } from '@ngx-translate/core';
+import { IStratum } from 'src/app/models/IStratum';
 
 enum SupportLevel { Safe = 0, Advanced = 1, Pro = 2 }
 
@@ -47,9 +48,10 @@ export class EditComponent implements OnInit {
   public otpEnabled = false;
   private pendingTotp: string | undefined;
 
-  // NEW: the “raw” options from the /asic endpoint
   private asicFrequencyValues: number[] = [];
   private asicVoltageValues: number[] = [];
+
+  private stratum : IStratum = null;
 
   private rebootRequiredFields = new Set<string>([
     'flipscreen',
@@ -58,16 +60,10 @@ export class EditComponent implements OnInit {
     'ssid',
     'wifiPass',
     'wifiStatus',
-    'stratumURL',
-    'stratumPort',
-    'stratumUser',
-    'fallbackStratumURL',
-    'fallbackStratumPort',
-    'fallbackStratumUser',
     'invertfanpolarity',
-    'autofanpolarity',
     'stratumDifficulty',
     'stratum_keep',
+    'poolMode',
   ]);
 
   @Input() uri = '';
@@ -91,6 +87,9 @@ export class EditComponent implements OnInit {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(({ info, asic }) => {
         this.originalSettings = structuredClone(info);
+
+        // nasty work around
+        this.originalSettings["poolMode"] = info.stratum?.poolMode ?? 0;
 
         this.otpEnabled = !!info.otp;
 
@@ -179,6 +178,14 @@ export class EditComponent implements OnInit {
           frequency: [info.frequency, [Validators.required]],
           jobInterval: [info.jobInterval, [Validators.required]],
           stratumDifficulty: [info.stratumDifficulty, [Validators.required, Validators.min(1)]],
+
+          poolMode: [info.stratum?.poolMode ?? 0, [Validators.required]],        // 0 = Failover, 1 = Dual
+          poolBalance: [info.stratum?.poolBalance ?? 50, [                  // Anteil PRIMARY in %
+            Validators.required,
+            Validators.min(0),
+            Validators.max(100),
+          ]],
+
           autofanspeed: [info.autofanspeed ?? 0, [Validators.required]],
           pidTargetTemp: [info.pidTargetTemp ?? 55, [
             Validators.min(30),
@@ -201,8 +208,7 @@ export class EditComponent implements OnInit {
             Validators.required
           ]],
           invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
-          autofanpolarity: [info.autofanpolarity == 1, [Validators.required]],
-          fanspeed: [info.fanspeed, [Validators.required]],
+          manualFanSpeed: [info.manualFanSpeed, [Validators.required]],
           overheat_temp: [info.overheat_temp, [
             Validators.min(40),
             Validators.max(90),
@@ -216,6 +222,8 @@ export class EditComponent implements OnInit {
           ]],
           otpEnabled: [info.otp],
         });
+
+        this.stratum = info.stratum;
 
         this.form.controls['autofanspeed'].valueChanges
           .pipe(startWith(this.form.controls['autofanspeed'].value))
@@ -231,19 +239,19 @@ export class EditComponent implements OnInit {
     const disable = (ctrl: string) => this.form.controls[ctrl]?.disable({ emitEvent: false });
 
     if (mode === 0) {
-      enable('fanspeed');
+      enable('manualFanSpeed');
       disable('pidTargetTemp');
       disable('pidP');
       disable('pidI');
       disable('pidD');
     } else if (mode === 1) {
-      disable('fanspeed');
+      disable('manualFanSpeed');
       disable('pidTargetTemp');
       disable('pidP');
       disable('pidI');
       disable('pidD');
     } else if (mode === 2) {
-      disable('fanspeed');
+      disable('manualFanSpeed');
       enable('pidTargetTemp');
       if (this.supportLevel >= 1) {
         enable('pidP');
@@ -271,6 +279,7 @@ export class EditComponent implements OnInit {
     form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
     if (form.wifiPass === '*****') delete form.wifiPass;
     if (form.stratumPassword === '*****') delete form.stratumPassword;
+    if (form.fallbackStratumPassword === '*****') delete form.fallbackStratumPassword;
 
     form.stratum_keep = form.stratum_keep ? 1 : 0;
 
@@ -300,7 +309,7 @@ export class EditComponent implements OnInit {
       }
 
       if (currentValue !== originalValue) {
-        console.log(`Mismatch on key: ${key}`, currentValue, originalValue);
+        //console.log(`Mismatch on key: ${key}`, currentValue, originalValue);
         return true;
       }
     }
@@ -468,6 +477,16 @@ export class EditComponent implements OnInit {
           this.toastrService.danger('Error.', `Could not save. ${err.message}`);
         }
       });
+  }
+
+  public poolTabHeader(i: 0 | 1) {
+    if (this.form?.get("poolMode")?.value == 0) {
+      if (i == 0) {
+        return this.translate.instant('SETTINGS.PRIMARY_STRATUM_POOL');
+      }
+      return this.translate.instant('SETTINGS.FALLBACK_STRATUM_POOL');
+    }
+    return `Pool ${i + 1}`;
   }
 }
 

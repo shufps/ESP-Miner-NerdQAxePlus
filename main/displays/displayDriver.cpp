@@ -43,6 +43,14 @@ static inline int32_t elapsed_ms(int64_t start_us, int64_t now) {
     return static_cast<int32_t>((now - start_us) / 1000);
 }
 
+static void formatHashrate(char *buf, int len, float hashrate) {
+    if (hashrate >= 10000.0) {
+        snprintf(buf, len, "%d", (int) (hashrate + 0.5f));
+    } else {
+        snprintf(buf, len, "%.1f", hashrate);
+    }
+}
+
 DisplayDriver::DisplayDriver() {
     m_animationsEnabled = false;
     m_lastKeypressTime = 0;
@@ -56,6 +64,10 @@ DisplayDriver::DisplayDriver() {
     m_isAutoScreenOffEnabled = false;
     m_tempControlMode = 0;
     m_fanSpeed = 0;
+    m_shutdownCountdownActive = false;
+    m_shutdownStartTime = 0;
+    m_shutdownLabel = nullptr;
+    m_buttonIgnoreUntil_us = 0;
 }
 
 void DisplayDriver::loadSettings() {
@@ -164,6 +176,56 @@ void DisplayDriver::checkAutoTurnOffScreen(void) {
     }
 }
 
+void DisplayDriver::startShutdownCountdown() {
+    if (m_shutdownCountdownActive) return;
+
+    m_shutdownCountdownActive = true;
+    m_isActiveOverlay = true;
+    m_shutdownStartTime = esp_timer_get_time();
+
+    lv_obj_t* scr = lv_scr_act();
+    lv_obj_t* box = lv_obj_create(scr);
+    lv_obj_set_size(box, 200, 100);
+    lv_obj_set_style_bg_color(box, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_border_width(box, 0, LV_PART_MAIN);
+    lv_obj_align(box, LV_ALIGN_CENTER, 0, 0);
+
+    m_shutdownLabel = lv_label_create(box);
+    lv_label_set_text(m_shutdownLabel, "Shutdown in 5");
+    lv_obj_set_style_text_color(m_shutdownLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_center(m_shutdownLabel);
+}
+
+void DisplayDriver::updateShutdownCountdown() {
+    if (!m_shutdownCountdownActive) return;
+
+    int elapsed = (esp_timer_get_time() - m_shutdownStartTime) / 1000000;
+    int remaining = 5 - elapsed;
+    if (remaining < 0) remaining = 0;
+
+    if (m_shutdownLabel) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "Shutdown in %d", remaining);
+        lv_label_set_text(m_shutdownLabel, buf);
+    }
+
+    // After 5s → trigger shutdown
+    if (elapsed >= 5) {
+        hideShutdownCountdown();
+        enterState(UiState::PowerOff, esp_timer_get_time());
+    }
+}
+
+void DisplayDriver::hideShutdownCountdown() {
+    if (m_shutdownLabel) {
+        lv_obj_del(lv_obj_get_parent(m_shutdownLabel));
+        m_shutdownLabel = nullptr;
+    }
+    m_shutdownCountdownActive = false;
+    m_isActiveOverlay = false;
+}
+
+
 void DisplayDriver::increaseLvglTick() {
     lv_tick_inc(TDISPLAYS3_LVGL_TICK_PERIOD_MS);
 }
@@ -213,6 +275,12 @@ void DisplayDriver::lvglTimerTaskWrapper(void *param) {
     display->lvglTimerTask(NULL);
 }
 
+void DisplayDriver::safe_screen_change(lv_obj_t * new_scr, lv_scr_load_anim_t anim_type, uint32_t speed, uint32_t delay)
+{
+    m_screenAnimationRunning = true;
+    _ui_screen_change(new_scr, anim_type, speed, delay);
+
+}
 
 bool DisplayDriver::enterState(UiState s, int64_t now)
 {
@@ -237,7 +305,7 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
     case UiState::Splash2:
         ESP_LOGI(TAG, "enter state splash2");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        safe_screen_change(m_ui->ui_Splash2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         if (m_ui->ui_Splash1) { lv_obj_clean(m_ui->ui_Splash1); m_ui->ui_Splash1 = NULL; }
         break;
 
@@ -249,40 +317,48 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
     case UiState::Portal:
         ESP_LOGI(TAG, "enter state portal");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        safe_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         break;
 
     case UiState::Mining:
         ESP_LOGI(TAG, "enter state mining");
         enableLvglAnimations(true);
         if (previousState == UiState::GlobalStats) {
-            _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+            safe_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         } else {
-            _ui_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+            safe_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         }
         break;
 
     case UiState::SettingsScreen:
         ESP_LOGI(TAG, "enter state settings screen");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        safe_screen_change(m_ui->ui_SettingsScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         break;
 
     case UiState::BTCScreen:
         ESP_LOGI(TAG, "enter state btc screen");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        safe_screen_change(m_ui->ui_BTCScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         break;
 
     case UiState::GlobalStats:
         ESP_LOGI(TAG, "enter state global stats");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
+        safe_screen_change(m_ui->ui_GlobalStats, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
         break;
     case UiState::ShowQR:
         ESP_LOGI(TAG, "enter qr state");
         enableLvglAnimations(true);
-        _ui_screen_change(m_ui->ui_qrScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        safe_screen_change(m_ui->ui_qrScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        break;
+    case UiState::PowerOff:
+        if (!m_ui->ui_PowerOffScreen) {
+            m_ui->powerOffScreenInit();
+        }
+        enableLvglAnimations(false);
+        safe_screen_change(m_ui->ui_PowerOffScreen, LV_SCR_LOAD_ANIM_NONE, 0, 0);
+        POWER_MANAGEMENT_MODULE.shutdown();
         break;
     }
     return true;
@@ -292,6 +368,11 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
 void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress)
 {
     const int ms = elapsed_ms(m_stateStart_us, now);
+
+    if (btnBothLongPress) {
+        enterState(UiState::PowerOff, now);
+        return;
+    }
 
     switch (m_state) {
     case UiState::NOP:
@@ -360,7 +441,11 @@ void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, boo
             enterState(UiState::Mining, now);
         }
         break;
+    case UiState::PowerOff:
+        // NOP
+        break;
     }
+
 }
 
 
@@ -388,125 +473,181 @@ bool DisplayDriver::ledControl(bool btn1, bool btn2) {
     return false;
 }
 
+uint32_t DisplayDriver::handleLvglTick(int32_t &elapsed_Ani_cycles)
+{
+    uint32_t wait_ms = 0;
+
+    {
+        PThreadGuard lock(m_lvglMutex);
+        increaseLvglTick();
+        wait_ms = lv_timer_handler();
+    }
+
+    if (m_animationsEnabled) {
+        const uint32_t fast_cap = 5; // ~200 FPS
+        if (++elapsed_Ani_cycles > 80) {
+            m_animationsEnabled = false;
+            elapsed_Ani_cycles = 0;
+        }
+        uint32_t sleep_ms = std::min(wait_ms, fast_cap);
+        vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+        return sleep_ms;
+    }
+
+    const uint32_t idle_cap = 50;
+    uint32_t sleep_ms = (wait_ms > 0 && wait_ms < idle_cap) ? wait_ms : idle_cap;
+    vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+    return sleep_ms;
+}
+
+void DisplayDriver::processButtons(Button &btn1, Button &btn2, int64_t tnow,
+                                   bool &btn1Press, bool &btn2Press, bool &btnBothLongPress)
+{
+    btn1.update();
+    btn2.update();
+
+    uint32_t evt1 = btn1.getEvent();
+    uint32_t evt2 = btn2.getEvent();
+    bool bothPressed = (evt1 & BTN_EVENT_PRESSED) && (evt2 & BTN_EVENT_PRESSED);
+    bool anyPressed = (evt1 & BTN_EVENT_PRESSED) || (evt2 & BTN_EVENT_PRESSED);
+
+    if (anyPressed) {
+        m_lastKeypressTime = tnow;
+    }
+
+    // Ignore all button events within 200ms of both released
+    if (esp_timer_get_time() < m_buttonIgnoreUntil_us) {
+        btn1.clearEvent();
+        btn2.clearEvent();
+        return;
+    }
+
+    // Hide overlay if active
+    if ((evt1 & BTN_EVENT_SHORTPRESS || evt2 & BTN_EVENT_SHORTPRESS) && m_isActiveOverlay) {
+        hideFoundBlockOverlay();
+        btn1.clearEvent();
+        btn2.clearEvent();
+        return;
+    }
+
+    // --- Shutdown countdown handling ---
+    if (bothPressed) {
+        if (!m_shutdownCountdownActive) {
+            startShutdownCountdown();
+        } else {
+            updateShutdownCountdown();
+        }
+        return;
+    }
+
+    if (m_shutdownCountdownActive && !bothPressed) {
+        hideShutdownCountdown();
+        m_buttonIgnoreUntil_us = esp_timer_get_time() + 200 * 1000; // 200ms ignore
+        btn1.clearEvent();
+        btn2.clearEvent();
+        return;
+    }
+
+    // Normal button events
+    if ((evt1 & BTN_EVENT_LONGPRESS) && (evt2 & BTN_EVENT_LONGPRESS)) {
+        btnBothLongPress = true;
+        btn1.clearEvent();
+        btn2.clearEvent();
+    } else {
+        if (evt1 & BTN_EVENT_SHORTPRESS) {
+            m_lastKeypressTime = tnow;
+            btn1Press = true;
+            btn1.clearEvent();
+        }
+        if (evt2 & BTN_EVENT_SHORTPRESS) {
+            m_lastKeypressTime = tnow;
+            btn2Press = true;
+            btn2.clearEvent();
+        }
+    }
+}
+
+void DisplayDriver::handleUiQueueMessages(ui_msg_t &msg, int64_t tnow)
+{
+    if (xQueueReceive(g_ui_queue, &msg, 0) != pdTRUE) return;
+
+    switch (msg.type) {
+        case UI_CMD_SHOW_QR: {
+            if (!otp.isEnrollmentActive()) {
+                ESP_LOGE(TAG, "no otp enrollment active");
+                break;
+            }
+            int size = 0;
+            uint8_t* qrBuf = otp.getQrCode(&size);
+            m_ui->createQRScreen(qrBuf, size);
+            if (m_ui->ui_qrScreen)
+                enterState(UiState::ShowQR, tnow);
+            m_isActiveOverlay = true;
+            break;
+        }
+        case UI_CMD_HIDE_QR:
+            m_isActiveOverlay = false;
+            enterState(UiState::Mining, tnow);
+            break;
+    }
+
+    if (msg.payload) {
+        free(msg.payload);
+        msg.payload = nullptr;
+    }
+}
+
+void DisplayDriver::handleAutoOffAndOverlays()
+{
+    if (m_isActiveOverlay) {
+        displayTurnOn();
+    } else if (m_isAutoScreenOffEnabled) {
+        checkAutoTurnOffScreen();
+    }
+}
+
 void DisplayDriver::lvglTimerTask(void *param)
 {
-    // Initial
     displayTurnOn();
     m_lastKeypressTime = now_us();
     enterState(UiState::Splash1, now_us());
 
-    // button animation control
     int32_t elapsed_Ani_cycles = 0;
-
     Button btn1(PIN_BUTTON_1, 5000);
     Button btn2(PIN_BUTTON_2, 5000);
-
     ui_msg_t msg;
 
     while (true) {
-        uint32_t wait_ms = 0;
         const int64_t tnow = now_us();
-        {
-            PThreadGuard lock(m_lvglMutex);
+        uint32_t wait_ms = handleLvglTick(elapsed_Ani_cycles);
 
-            increaseLvglTick();                  // typically lv_tick_inc(...)
-            wait_ms = lv_timer_handler();        // time until next scheduled LVGL job
-        }
-
-        // 2) Decide sleep time outside the lock
-        if (m_animationsEnabled) {
-            // While animations are active, cap latency aggressively
-            const uint32_t fast_cap = 5;         // ~200 FPS budget for responsiveness
-            if (++elapsed_Ani_cycles > 80) {     // ~400 ms @ 5 ms cadence
-                m_animationsEnabled = false;
-                elapsed_Ani_cycles = 0;
-            }
-            // Sleep the smaller of LVGL's request and our fast cap
-            uint32_t sleep_ms = (wait_ms > 0 && wait_ms < fast_cap) ? wait_ms : fast_cap;
-            vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            vTaskDelay(pdMS_TO_TICKS(wait_ms));
             continue;
         }
 
-        // Idle path: allow longer sleeps but keep a reasonable upper bound
-        const uint32_t idle_cap = 50;            // latency cap while idle
-        uint32_t sleep_ms = (wait_ms > 0 && wait_ms < idle_cap) ? wait_ms : idle_cap;
-        vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+        // --- Handle buttons ---
+        bool btn1Press = false, btn2Press = false, btnBothLongPress = false;
+        processButtons(btn1, btn2, tnow, btn1Press, btn2Press, btnBothLongPress);
 
-        bool btn1Press = false;
-        bool btn2Press = false;
-        bool btnBothLongPress = false;
-
-        btn1.update();
-        btn2.update();
-
-        uint32_t evt1 = btn1.getEvent();
-        uint32_t evt2 = btn2.getEvent();
-
-        // if we show the block found overlay, we hide it with any of the two buttons
-        if ((evt1 & BTN_EVENT_SHORTPRESS || evt2 & BTN_EVENT_SHORTPRESS) && m_isActiveOverlay) {
-            hideFoundBlockOverlay();
-            btn1.clearEvent();
-            btn2.clearEvent();
+        // animation is running, ignore buttons
+        if (m_screenAnimationRunning) {
+            btn1Press = false;
+            btn2Press = false;
+            btnBothLongPress = false;
         }
 
-        if ((evt1 & BTN_EVENT_LONGPRESS) && (evt2 & BTN_EVENT_LONGPRESS)) {
-            btnBothLongPress = true;
-            btn1.clearEvent();
-            btn2.clearEvent();
-        } else {
-            if (evt1 & BTN_EVENT_SHORTPRESS) {
-                m_lastKeypressTime = tnow;
-                btn1Press = true;
-                btn1.clearEvent();
-            }
+        // --- Handle queued UI messages ---
+        handleUiQueueMessages(msg, tnow);
 
-            if (evt2 & BTN_EVENT_SHORTPRESS) {
-                m_lastKeypressTime = tnow;
-                btn2Press = true;
-                btn2.clearEvent();
-            }
-        }
+        // --- Handle auto turn-off and overlays ---
+        handleAutoOffAndOverlays();
 
-        // queue to receive commands from http server context
-        if (xQueueReceive(g_ui_queue, &msg, 0) == pdTRUE) {
-            switch (msg.type) {
-                case UI_CMD_SHOW_QR: {
-                    if (!otp.isEnrollmentActive()) {
-                        ESP_LOGE(TAG, "no otp enrollment active");
-                        break;
-                    }
-                    int size = 0;
-                    uint8_t* qrBuf = otp.getQrCode(&size);
-                    m_ui->createQRScreen(qrBuf, size);
-                    if (m_ui->ui_qrScreen) {
-                        enterState(UiState::ShowQR, tnow);
-                    }
-                    m_isActiveOverlay = true;
-                    break;
-                }
-                case UI_CMD_HIDE_QR: {
-                    m_isActiveOverlay = false;
-                    enterState(UiState::Mining, tnow);
-                    break;
-                }
-            }
-            if (msg.payload) {
-                free(msg.payload);
-                msg.payload = NULL;
-            }
-        }
-
-        // Auto-Off / Overlay
-        if (m_isActiveOverlay) {
-            displayTurnOn();
-        } else if (m_isAutoScreenOffEnabled) {
-            checkAutoTurnOffScreen();
-        }
-
-        // 4) FSM update (timeouts and screen changes)
+        // --- Update FSM state ---
         updateState(tnow, btn1Press, btn2Press, btnBothLongPress);
     }
 }
+
 
 // Función para activar las actualizaciones
 void DisplayDriver::enableLvglAnimations(bool enable)
@@ -651,22 +792,29 @@ lv_obj_t *DisplayDriver::initTDisplayS3(void)
     return scr;
 }
 
-void DisplayDriver::updateHashrate(System *module, float power)
+void DisplayDriver::updateHashrate(System *module, StratumManager* manager, float power, int pool)
 {
     char strData[20];
+    char strDataActive[20];
 
-    float efficiency = power / (module->getCurrentHashrate() / 1000.0);
-    float hashrate = module->getCurrentHashrate();
-
-    // >= 10T doesn't fit on the screen with a decimal place
-    if (hashrate >= 10000.0) {
-        snprintf(strData, sizeof(strData), "%d", (int) (hashrate + 0.5f));
-    } else {
-        snprintf(strData, sizeof(strData), "%.1f", hashrate);
-    }
+    float efficiency = power / (SYSTEM_MODULE.getCurrentHashrate() / 1000.0);
+    float hashrate = SYSTEM_MODULE.getCurrentHashrate();
+    formatHashrate(strData, sizeof(strData), hashrate);
 
     lv_label_set_text(m_ui->ui_lbHashrate, strData);    // Update hashrate
-    lv_label_set_text(m_ui->ui_lbHashrateSet, strData); // Update hashrate
+
+    // let it toggle on the pool view page
+    if (manager->isDualPool()) {
+        auto *m = static_cast<StratumManagerDualPool*>(manager);
+        float activeHashrate = m->getActivePoolHashrate(pool);
+        formatHashrate(strDataActive, sizeof(strDataActive), activeHashrate);
+        lv_label_set_text(m_ui->ui_lbHashrateSet, strDataActive); // Update hashrate
+    }
+
+    if (manager->isFallback()) {
+        lv_label_set_text(m_ui->ui_lbHashrateSet, strData); // Update hashrate
+    }
+
     lv_label_set_text(m_ui->ui_lblHashPrice, strData);  // Update hashrate
 
     snprintf(strData, sizeof(strData), "%.1f", efficiency);
@@ -676,16 +824,24 @@ void DisplayDriver::updateHashrate(System *module, float power)
     lv_label_set_text(m_ui->ui_lbPower, strData); // Actualiza el label
 }
 
-void DisplayDriver::updateShares(System *module)
+void DisplayDriver::updateShares(StratumManager *manager, int pool)
 {
     char strData[20];
 
-    snprintf(strData, sizeof(strData), "%lld/%lld", module->getSharesAccepted(), module->getSharesRejected());
-    lv_label_set_text(m_ui->ui_lbShares, strData); // Update shares
+    if (manager->isDualPool()) {
+        auto *manager = static_cast<StratumManagerDualPool*>(STRATUM_MANAGER);
+        snprintf(strData, sizeof(strData), "%lld/%lld", manager->getSharesAccepted(pool), manager->getSharesRejected(pool));
+        lv_label_set_text(m_ui->ui_lbShares, strData); // Update shares
+    }
 
-    snprintf(strData, sizeof(strData), "%s", module->getBestDiffString());
-    lv_label_set_text(m_ui->ui_lbBestDifficulty, module->getBestDiffString());    // Update Bestdifficulty
-    lv_label_set_text(m_ui->ui_lbBestDifficultySet, module->getBestDiffString()); // Update Bestdifficulty
+    if (manager->isFallback()) {
+        auto *manager = static_cast<StratumManagerFallback*>(STRATUM_MANAGER);
+        snprintf(strData, sizeof(strData), "%lld/%lld", manager->getSharesAccepted(), manager->getSharesRejected());
+        lv_label_set_text(m_ui->ui_lbShares, strData); // Update shares
+    }
+
+    lv_label_set_text(m_ui->ui_lbBestDifficulty, manager->getBestDiffString());    // Update Bestdifficulty
+    lv_label_set_text(m_ui->ui_lbBestDifficultySet, manager->getBestDiffString()); // Update Bestdifficulty
 }
 void DisplayDriver::updateTime(System *module)
 {
@@ -705,19 +861,31 @@ void DisplayDriver::updateTime(System *module)
     lv_label_set_text(m_ui->ui_lbTime, strData); // Update label
 }
 
-void DisplayDriver::updateCurrentSettings()
+void DisplayDriver::updateCurrentSettings(int pool)
 {
     PThreadGuard lock(m_lvglMutex);
     char strData[20];
-    if (m_ui->ui_SettingsScreen == NULL)
+    if (m_ui->ui_SettingsScreen == NULL || !STRATUM_MANAGER)
         return;
 
     Board *board = SYSTEM_MODULE.getBoard();
 
-    lv_label_set_text(m_ui->ui_lbPoolSet, STRATUM_MANAGER.getCurrentPoolHost()); // Update label
+    if (STRATUM_MANAGER->isDualPool()) {
+        auto *manager = static_cast<StratumManagerDualPool*>(STRATUM_MANAGER);
+        snprintf(strData, sizeof(strData), "%s", manager->getPoolHost(pool));
+        lv_label_set_text(m_ui->ui_lbPoolSet, strData); // Update label
+        snprintf(strData, sizeof(strData), "%d", manager->getPoolPort(pool));
+        lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
+        snprintf(strData, sizeof(strData), "%d", pool + 1);
+        lv_label_set_text(m_ui->ui_lbPoolNr, strData);
+    }
 
-    snprintf(strData, sizeof(strData), "%d", STRATUM_MANAGER.getCurrentPoolPort());
-    lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
+    if (STRATUM_MANAGER->isFallback()) {
+        auto *manager = static_cast<StratumManagerFallback*>(STRATUM_MANAGER);
+        lv_label_set_text(m_ui->ui_lbPoolSet, manager->getCurrentPoolHost()); // Update label
+        snprintf(strData, sizeof(strData), "%d", manager->getCurrentPoolPort());
+        lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
+    }
 
     snprintf(strData, sizeof(strData), "%d", board->getAsicFrequency());
     lv_label_set_text(m_ui->ui_lbFreqSet, strData); // Update label
@@ -786,7 +954,7 @@ void DisplayDriver::updateGlobalMiningStats(void)
     lv_label_set_text(m_ui->ui_lblhighFee, strData); // Update label
 }
 
-void DisplayDriver::updateGlobalState()
+void DisplayDriver::updateGlobalState(int pool)
 {
     PThreadGuard lock(m_lvglMutex);
     char strData[20];
@@ -814,8 +982,8 @@ void DisplayDriver::updateGlobalState()
     lv_label_set_text(m_ui->ui_lbVinput, strData); // Update label
 
     updateTime(&SYSTEM_MODULE);
-    updateShares(&SYSTEM_MODULE);
-    updateHashrate(&SYSTEM_MODULE, POWER_MANAGEMENT_MODULE.getPower());
+    updateShares(STRATUM_MANAGER, pool);
+    updateHashrate(&SYSTEM_MODULE, STRATUM_MANAGER, POWER_MANAGEMENT_MODULE.getPower(), pool);
     updateBTCprice();
     updateGlobalMiningStats();
 
@@ -898,7 +1066,7 @@ void DisplayDriver::init(Board* board)
     lv_obj_t *scr = initTDisplayS3();
 
     m_ui = new UI();
-    m_ui->init(board);
+    m_ui->init(board, this);
     // manual_lvgl_update();
 
     // startUpdateScreenTask(); //Start screen update task
