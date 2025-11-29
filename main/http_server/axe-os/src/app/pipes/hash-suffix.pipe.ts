@@ -18,7 +18,7 @@ export class HashSuffixPipe implements PipeTransform {
       return '0';
     }
 
-    const suffixes = ['H/s', 'kH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s']; // 10^0 ... 10^18
+    const suffixes = [' H/s', ' kH/s', ' MH/s', ' GH/s', ' TH/s', ' PH/s', ' EH/s']; // 10^0 ... 10^18
     const negative = value < 0;
     let abs = Math.abs(value);
     let idx = 0;
