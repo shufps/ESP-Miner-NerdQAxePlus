@@ -318,6 +318,9 @@ void StratumManager::saveSettings(const JsonDocument &doc) {
     if (doc["stratumEnonceSubscribe"].is<bool>()) {
         Config::setStratumEnonceSubscribe(doc["stratumEnonceSubscribe"].as<bool>());
     }
+    if (doc["stratumTLS"].is<bool>()) {
+        Config::setStratumTLS(doc["stratumTLS"].as<bool>());
+    }
     if (doc["fallbackStratumURL"].is<const char*>()) {
         Config::setStratumFallbackURL(doc["fallbackStratumURL"].as<const char*>());
     }
@@ -332,6 +335,9 @@ void StratumManager::saveSettings(const JsonDocument &doc) {
     }
     if (doc["fallbackStratumEnonceSubscribe"].is<bool>()) {
         Config::setStratumFallbackEnonceSubscribe(doc["fallbackStratumEnonceSubscribe"].as<bool>());
+    }
+    if (doc["fallbackStratumTLS"].is<bool>()) {
+        Config::setStratumFallbackTLS(doc["fallbackStratumTLS"].as<bool>());
     }
 }
 

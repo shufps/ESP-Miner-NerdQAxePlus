@@ -117,6 +117,9 @@
                             </div>
                         </div>
                         <div class="form-row">
+                            <nb-checkbox formControlName="stratumTLS">{{ 'MINING.STRATUM_TLS' | translate}}</nb-checkbox>
+                        </div>
+                        <div class="form-row">
                             <nb-checkbox formControlName="stratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE' |
                                 translate
                                 }}</nb-checkbox>
@@ -165,6 +168,9 @@
                                         pack="eva"></nb-icon>
                                 </button>
                             </div>
+                        </div>
+                        <div class="form-row">
+                            <nb-checkbox formControlName="fallbackStratumTLS">{{ 'MINING.STRATUM_TLS' | translate}}</nb-checkbox>
                         </div>
                         <div class="form-row">
                             <nb-checkbox formControlName="fallbackStratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE'

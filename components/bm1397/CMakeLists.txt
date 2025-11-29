@@ -15,7 +15,7 @@ INCLUDE_DIRS
 REQUIRES
     "freertos"
     "driver"
-    "stratum"
+    "mbedtls"
 )
 
 

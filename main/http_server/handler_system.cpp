@@ -148,10 +148,12 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["stratumPort"]        = Config::getStratumPortNumber();
     doc["stratumUser"]        = stratumUser;
     doc["stratumEnonceSubscribe"] = Config::isStratumEnonceSubscribe();
+    doc["stratumTLS"]         = Config::isStratumTLS();
     doc["fallbackStratumURL"] = fallbackStratumURL;
     doc["fallbackStratumPort"]= Config::getStratumFallbackPortNumber();
     doc["fallbackStratumUser"] = fallbackStratumUser;
     doc["fallbackStratumEnonceSubscribe"] = Config::isStratumFallbackEnonceSubscribe();
+    doc["fallbackStratumTLS"] = Config::isStratumFallbackTLS();
     doc["voltage"]            = POWER_MANAGEMENT_MODULE.getVoltage();
     doc["frequency"]          = board->getAsicFrequency();
     doc["defaultFrequency"]   = board->getDefaultAsicFrequency();

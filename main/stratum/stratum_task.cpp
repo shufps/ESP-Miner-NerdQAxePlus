@@ -34,24 +34,6 @@
 // mkfifo /tmp/ncpipe
 // nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
 
-int is_socket_connected(int socket)
-{
-    if (socket == -1) {
-        return 0;
-    }
-    struct timeval tv;
-    fd_set writefds;
-
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000; // 100 ms timeout
-
-    FD_ZERO(&writefds);
-    FD_SET(socket, &writefds);
-
-    int ret = select(socket + 1, NULL, &writefds, NULL, &tv);
-    return (ret > 0 && FD_ISSET(socket, &writefds)) ? 1 : 0;
-}
-
 StratumTask::StratumTask(StratumManager *manager, int index)
     : m_manager(manager), m_index(index)
 {
@@ -197,20 +179,20 @@ void StratumTask::stratumLoop()
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1
-    bool success = m_stratumAPI.subscribe(m_sock, board->getMiningAgent(), board->getAsicModel());
+    bool success = m_stratumAPI.subscribe(m_transport, board->getMiningAgent(), board->getAsicModel());
 
     // mining.configure - ID: 2
-    success = success && m_stratumAPI.configureVersionRolling(m_sock);
+    success = success && m_stratumAPI.configureVersionRolling(m_transport);
 
     // mining.authorize - ID: 3
-    success = success && m_stratumAPI.authenticate(m_sock, m_config->getUser(), m_config->getPassword());
+    success = success && m_stratumAPI.authenticate(m_transport, m_config->getUser(), m_config->getPassword());
 
     // mining.suggest_difficulty - ID: 4
-    success = success && m_stratumAPI.suggestDifficulty(m_sock, Config::getStratumDifficulty());
+    success = success && m_stratumAPI.suggestDifficulty(m_transport, Config::getStratumDifficulty());
 
     // mining.mining.extranonce.subscribe - ID 5
     if (m_config->isEnonceSubscribeEnabled()) {
-        success = success && m_stratumAPI.entranonceSubscribe(m_sock);
+        success = success && m_stratumAPI.entranonceSubscribe(m_transport);
     }
 
     if (!success) {
@@ -225,7 +207,7 @@ void StratumTask::stratumLoop()
     char *line = nullptr;
 
     while (1) {
-        if (!is_socket_connected(m_sock)) {
+        if (!m_transport->isConnected()) {
             if (Config::isStratumKeepaliveEnabled()) {
                 ESP_LOGW(m_tag, "Socket disconnected — possible TCP KeepAlive timeout (enabled)");
             } else {
@@ -233,7 +215,7 @@ void StratumTask::stratumLoop()
             }
             break;
         }
-        line = m_stratumAPI.receiveJsonRpcLine(m_sock);
+        line = m_stratumAPI.receiveJsonRpcLine(m_transport);
         if (!line && !m_reconnect) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
             break;
@@ -288,15 +270,15 @@ void StratumTask::connect()
 void StratumTask::disconnect()
 {
     m_stopFlag = true;
-    if (m_sock >= 0) {
-        shutdown(m_sock, SHUT_RDWR);
+    if (m_transport) {
+        m_transport->close();
     }
 }
 
 void StratumTask::triggerReconnect() {
     m_reconnect = true;
-    if (m_sock >= 0) {
-        shutdown(m_sock, SHUT_RDWR);
+    if (m_transport) {
+        m_transport->close();
     }
 }
 
@@ -349,7 +331,7 @@ void StratumTask::stopReconnectTimer()
 void StratumTask::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
                               const uint32_t version)
 {
-    m_stratumAPI.submitShare(m_sock, m_config->getUser(), jobid, extranonce_2, ntime, nonce, version);
+    m_stratumAPI.submitShare(m_transport, m_config->getUser(), jobid, extranonce_2, ntime, nonce, version);
 }
 
 void StratumTask::taskWrapper(void *pvParameters)
@@ -407,7 +389,14 @@ void StratumTask::task()
 
         ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d (%s)", m_config->getHost(), m_config->getPort(), ip);
 
-        if (!(m_sock = connectStratum(ip, m_config->getPort()))) {
+        // switch transports
+        if (m_config->isTLS()) {
+            m_transport = &m_tlsTransport;
+        } else {
+            m_transport = &m_tcpTransport;
+        }
+
+        if (!m_transport->connect(m_config->getHost(), ip, m_config->getPort())) {
             ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config->getHost(), m_config->getPort(), errno);
             vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
@@ -426,12 +415,7 @@ void StratumTask::task()
 
         // shutdown and reconnect
         ESP_LOGIE(m_reconnect, m_tag, "Shutdown socket ...");
-        shutdown(m_sock, SHUT_RDWR);
-
-        if (m_sock >= 0) {
-            close(m_sock);
-            m_sock = -1;
-        }
+        m_transport->close();
 
         disconnectedCallback();
         m_isConnected = false;
