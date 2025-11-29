@@ -15,6 +15,7 @@ class StratumConfig {
     char *m_user = nullptr;
     char *m_password = nullptr;
     bool m_enonceSub = false;
+    bool m_tls = false;
 
   public:
     StratumConfig(int pool);
@@ -57,6 +58,10 @@ class StratumConfig {
     bool isEnonceSubscribeEnabled()
     {
         return m_enonceSub;
+    }
+
+    bool isTLS() {
+        return m_tls;
     }
 
     //static void toLog(const StratumConfig &cfg, const char* prefix="");
