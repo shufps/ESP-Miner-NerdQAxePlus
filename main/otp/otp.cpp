@@ -311,18 +311,32 @@ void OTP::loadSettings()
     m_hasSessKey = false;
 
     char *tmp = Config::getOTPSessionKey();
-    // if not null-pointer and length > 0
-    if (tmp && tmp[0]) {
-        size_t inlen = strlen(tmp); // use actual length
-        size_t n = base32_decode(tmp, inlen, m_sessKey, sizeof(m_sessKey));
-        if (n == sizeof(m_sessKey)) {
-            m_hasSessKey = true;
-        } else {
-            m_hasSessKey = false; // decode failed
-            memset(m_sessKey, 0, sizeof(m_sessKey));
-            ESP_LOGE(TAG, "Invalid session key in NVS");
-        }
+    if (!tmp) {
+        ESP_LOGE(TAG, "session key is null");
     }
+
+    size_t len = strlen(tmp);
+
+    if (!len) {
+        // this can happen when we have a OTP enable + key on the config but
+        // not the session key. We simply generate it then.
+        ESP_LOGW(TAG, "session key empty, initializing ...");
+        createSessionKey();
+        saveSettings();
+        free(tmp);
+        return;
+    }
+
+    // decode session key and check it's length
+    size_t n = base32_decode(tmp, len, m_sessKey, sizeof(m_sessKey));
+    if (n == sizeof(m_sessKey)) {
+        m_hasSessKey = true;
+    } else {
+        m_hasSessKey = false; // decode failed
+        memset(m_sessKey, 0, sizeof(m_sessKey));
+        ESP_LOGE(TAG, "Invalid session key in NVS");
+    }
+
     free(tmp);
 }
 
