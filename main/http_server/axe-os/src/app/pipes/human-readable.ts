@@ -18,7 +18,7 @@ export class HumanReadablePipe implements PipeTransform {
       return '0';
     }
 
-    const suffixes = ['', 'K', 'M', 'G', 'T', 'P', 'E']; // 10^0 ... 10^18
+    const suffixes = [' ', ' K', ' M', ' G', ' T', ' P', ' E']; // 10^0 ... 10^18
     const negative = value < 0;
     let abs = Math.abs(value);
     let idx = 0;
