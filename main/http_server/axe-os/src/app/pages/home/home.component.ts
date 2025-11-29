@@ -322,6 +322,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return stratumURL.startsWith('http') ? stratumURL : `http://${stratumURL}`;
   }
 
+  public supportsPing(stratumURL: string) {
+    if (stratumURL.includes('public-pool.io')) {
+      return false;
+    }
+    return true;
+  }
+
   ngOnInit() {
     this.themeSubscription = this.themeService.getJsTheme().subscribe(() => {
       this.updateThemeColors();

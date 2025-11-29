@@ -339,7 +339,7 @@
                     <span class="text-hint">{{ 'POOL_INFO.PING' | translate }}:</span>
                   </div>
                   <div class="col">
-                    {{ poolInfo.pingRtt !== undefined && poolInfo.pingRtt !== null
+                    {{ supportsPing(poolInfo.host) && poolInfo.pingRtt !== undefined && poolInfo.pingRtt !== null
                     ? (poolInfo.pingRtt.toFixed(2) + ' ' + ('PERFORMANCE.MS' | translate)
                     + ' (' + ('PERFORMANCE.AVG' | translate) + ')')
                     : 'n/a' }}
@@ -352,7 +352,7 @@
                     <span class="text-hint">{{ 'POOL_INFO.LOSS' | translate }}:</span>
                   </div>
                   <div class="col">
-                    {{ poolInfo.pingLoss !== undefined && poolInfo.pingLoss !== null
+                    {{ supportsPing(poolInfo.host) && poolInfo.pingLoss !== undefined && poolInfo.pingLoss !== null
                     ? (poolInfo.pingLoss * 100).toFixed(2) + ' %'
                     : 'n/a' }}
                   </div>
