@@ -83,6 +83,17 @@ menu "Stratum Configuration"
         default 1 if STRATUM_ENONCE_SUBSCRIBE
         default 0
 
+    config STRATUM_TLS
+        bool "Enable TLS"
+        default n
+        help
+            Enable TLS
+
+    config STRATUM_TLS_VALUE
+        int
+        default 1 if STRATUM_TLS
+        default 0
+
     config STRATUM_FALLBACK_URL
         string "Stratum fallback Address"
         default ""
@@ -117,6 +128,17 @@ menu "Stratum Configuration"
     config STRATUM_FALLBACK_ENONCE_SUBSCRIBE_VALUE
         int
         default 1 if STRATUM_FALLBACK_ENONCE_SUBSCRIBE
+        default 0
+
+    config STRATUM_FALLBACK_TLS
+        bool "Enable Fallback TLS"
+        default n
+        help
+            Enable or disable TLS
+
+    config STRATUM_FALLBACK_TLS_VALUE
+        int
+        default 1 if STRATUM_FALLBACK_TLS
         default 0
 
     config STRATUM_DIFFICULTY

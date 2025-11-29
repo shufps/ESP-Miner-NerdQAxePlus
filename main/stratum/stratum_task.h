@@ -8,6 +8,7 @@
 
 #include "stratum_api.h"
 #include "stratum_config.h"
+#include "stratum_transport.h"
 
 class StratumManager;
 class StratumManagerFallback;
@@ -30,7 +31,9 @@ class StratumTask {
     StratumApi m_stratumAPI;     ///< API instance for Stratum communication
     const char *m_tag = nullptr; ///< Debug tag for logging
 
-    int m_sock = -1; ///< Socket for the Stratum connection
+    TcpStratumTransport m_tcpTransport;
+    TlsStratumTransport m_tlsTransport;
+    StratumTransport  *m_transport = nullptr;
 
     bool m_stopFlag = true;    ///< Stop flag for the task
     bool m_firstJob = true;
@@ -77,9 +80,9 @@ class StratumTask {
     {
         return m_tag;
     }
-    int getStratumSock()
+    StratumTransport* getStratumTransport()
     {
-        return m_sock;
+        return m_transport;
     }
     bool isConnected()
     {

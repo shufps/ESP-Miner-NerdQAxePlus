@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stratum_api.h"
+#include "stratum/stratum_api.h"
 
 typedef struct
 {

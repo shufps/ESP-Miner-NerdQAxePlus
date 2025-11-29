@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "stratum_api.h"
-
 #include "asic.h"
 #include "bm1368.h"
 #include "tasks/asic_jobs.h"

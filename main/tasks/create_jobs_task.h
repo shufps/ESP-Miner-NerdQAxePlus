@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-#include "stratum_api.h"
+#include "stratum/stratum_api.h"
 
 
 void create_jobs_task(void *pvParameters);
