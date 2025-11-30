@@ -3,6 +3,9 @@
 #include "driver/i2c.h"
 #include "esp_err.h"
 
+#define TPS53647_THROTTLE_TEMP 105.0
+#define TPS53647_MAX_TEMP 125.0
+
 class TPS53647 {
 protected:
     uint8_t m_i2cAddr;

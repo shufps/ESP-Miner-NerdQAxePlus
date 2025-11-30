@@ -61,6 +61,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_asicMinDifficulty = 256;
     m_asicMinDifficultyDualPool = 128;
 
+    m_vr_maxTemp = TPS53647_THROTTLE_TEMP; //Set max voltage regulator temp
+
 #ifdef NERDQAXEPLUS
     m_theme = new ThemeNerdqaxeplus();
 #endif
@@ -262,11 +264,11 @@ float NerdQaxePlus::getTemperature(int index) {
 float NerdQaxePlus::getVRTemp() {
     float vrTemp = m_tps->get_temperature();
 
-    // test
-    float tmp = TMP1075_read_temperature(1);
-    ESP_LOGI(TAG, "tmp1075 vs tps: %.2f vs %.2f (diff: %.2f)", tmp, vrTemp, vrTemp - tmp);
+    // depricated, external vr temp
+    // float tmp = TMP1075_read_temperature(1);
+    // ESP_LOGI(TAG, "tmp1075 vs tps: %.2f vs %.2f (diff: %.2f)", tmp, vrTemp, vrTemp - tmp);
 
-    return tmp;
+    return vrTemp;
 }
 
 float NerdQaxePlus::getVin() {
