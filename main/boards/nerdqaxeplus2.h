@@ -14,4 +14,5 @@ class NerdQaxePlus2 : public NerdQaxePlus {
     NerdQaxePlus2();
     float getTemperature(int index);
     virtual void requestChipTemps();
+    virtual float getVRTemp();
 };

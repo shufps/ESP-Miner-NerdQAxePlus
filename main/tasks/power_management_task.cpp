@@ -360,7 +360,13 @@ void PowerManagementTask::task()
 
         // we let the PID always calculate for "bumpless transfer"
         // when switching modes
-        pid_input = std::max(m_chipTempMax, m_vrTemp);
+        #ifdef NERDQAXEPLUS2
+            pid_input = m_chipTempMax;
+        #else
+            pid_input = std::max(m_chipTempMax, m_vrTemp);
+        #endif
+
+        
         m_pid->Compute();
 
         switch (temp_control_mode) {

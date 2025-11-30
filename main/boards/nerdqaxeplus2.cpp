@@ -35,6 +35,8 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_asicMinDifficulty = 512;
     m_asicMinDifficultyDualPool = 256;
 
+    m_vr_maxTemp = TPS53647_THROTTLE_TEMP; //Set max voltage regulator temp
+
 #ifdef NERDQAXEPLUS2
     m_theme = new ThemeNerdqaxeplus2();
 #endif
@@ -51,6 +53,17 @@ float NerdQaxePlus2::getTemperature(int index) {
     // we can't read the real chip temps but this should be about right
     return temp + 10.0f; // offset of 10°C
 }
+
+float NerdQaxePlus2::getVRTemp() {
+    float vrTemp = m_tps->get_temperature();
+
+    // depricated, external vr temp
+    // float tmp = TMP1075_read_temperature(1);
+    // ESP_LOGI(TAG, "tmp1075 vs tps: %.2f vs %.2f (diff: %.2f)", tmp, vrTemp, vrTemp - tmp);
+
+    return vrTemp;
+}
+
 
 void NerdQaxePlus2::requestChipTemps() {
     // NOP
