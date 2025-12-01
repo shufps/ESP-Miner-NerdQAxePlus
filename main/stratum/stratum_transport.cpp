@@ -175,7 +175,7 @@ bool TlsStratumTransport::connect(const char *host, const char *ip, uint16_t por
 
     esp_tls_cfg_t cfg = {};
     cfg.crt_bundle_attach = esp_crt_bundle_attach;
-    cfg.timeout_ms = 30000;
+    cfg.timeout_ms = 5000;
 
     ESP_LOGI(TAG_TLS, "Opening TLS connection to %s:%u", host, port);
 
@@ -229,15 +229,29 @@ ssize_t TlsStratumTransport::send(const void *data, size_t len)
 ssize_t TlsStratumTransport::recv(void *buf, size_t len)
 {
     if (!m_tls) {
+        errno = ENOTCONN;
         return -1;
     }
+
     int ret = esp_tls_conn_read(m_tls, buf, len);
+
     if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
-        // No data yet (non-blocking-like behaviour)
+        errno = EAGAIN;
+        return -1;
+    }
+
+    if (ret == 0) {
         return 0;
     }
+
+    if (ret < 0) {
+        errno = ECONNRESET;
+        return -1;
+    }
+
     return ret;
 }
+
 
 bool TlsStratumTransport::isConnected()
 {

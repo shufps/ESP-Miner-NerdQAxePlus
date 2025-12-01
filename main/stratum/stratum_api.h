@@ -105,6 +105,7 @@ class StratumApi {
     // Receives a JSON-RPC line (terminated by '\n') from the socket.
     // Returns a dynamically allocated C-string that the caller must free.
     char* receiveJsonRpcLine(StratumTransport *transport);
+    void resetBuffer();
 
     // Sends a subscribe message.
     bool subscribe(StratumTransport *transport, const char *device, const char *asic);

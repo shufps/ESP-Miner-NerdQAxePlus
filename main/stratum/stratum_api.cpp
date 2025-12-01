@@ -80,66 +80,99 @@ void StratumApi::debugTx(const char *msg)
 // Accumulates data from the given socket until a newline is found.
 // Returns a dynamically allocated line (caller must free the returned memory).
 //--------------------------------------------------------------------
+void StratumApi::resetBuffer()
+{
+    m_len = 0;
+    m_buffer[0] = '\0';
+}
+
 char *StratumApi::receiveJsonRpcLine(StratumTransport *transport)
 {
-    while (strchr(m_buffer, '\n') == NULL) {
+    // This function blocks until either:
+    // - a full line (terminated by '\n') is available and returned, or
+    // - an error/EOF occurs and NULL is returned.
+
+    for (;;) {
+        // Check if we already have a complete line in the buffer.
+        char *newline_ptr = strchr(m_buffer, '\n');
+        if (newline_ptr != NULL) {
+            // Compute line length up to '\n'.
+            size_t line_length = static_cast<size_t>(newline_ptr - m_buffer);
+
+            // Handle optional '\r' before '\n' (CRLF).
+            if (line_length > 0 && m_buffer[line_length - 1] == '\r') {
+                line_length--;
+            }
+
+            // Allocate memory for the line (without newline / CR).
+            char *line = (char *)MALLOC(line_length + 1);
+            if (line == NULL) {
+                ESP_LOGE(TAG, "Failed to allocate memory for line. Flushing buffer.");
+                resetBuffer();
+                return NULL;
+            }
+
+            // Copy the line and null-terminate it.
+            if (line_length > 0) {
+                memcpy(line, m_buffer, line_length);
+            }
+            line[line_length] = '\0';
+
+            // Remove the consumed line (including the '\n') from the buffer.
+            size_t consumed = static_cast<size_t>(newline_ptr - m_buffer) + 1; // include '\n'
+            size_t remaining = m_len - consumed;
+            if (remaining > 0) {
+                memmove(m_buffer, m_buffer + consumed, remaining);
+            }
+
+            m_len = remaining;
+            m_buffer[m_len] = '\0';
+
+            return line;
+        }
+
+        // No newline in buffer yet → need to read more data.
         if (m_len >= BIG_BUFFER_SIZE - 1) {
             ESP_LOGE(TAG, "Buffer full without newline. Flushing buffer.");
-            m_len = 0;
-            m_buffer[0] = '\0';
+            resetBuffer();
+            return NULL;
         }
-        int available = BIG_BUFFER_SIZE - m_len - 1; // reserve space for terminating null
+
+        int available = BIG_BUFFER_SIZE - static_cast<int>(m_len) - 1; // reserve space for '\0'
         int nbytes = transport->recv(m_buffer + m_len, available);
-        if (nbytes == -1) {
+
+        if (nbytes < 0) {
+            // Error on recv
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                ESP_LOGI(TAG, "No transmission from Stratum server. Checking socket ...");
-                if (transport->isConnected()) {
-                    ESP_LOGI(TAG, "Socket is still connected.");
-                    continue; // Retry recv() until data arrives.
-                } else {
+                // Non-blocking socket: no data right now.
+                if (!transport->isConnected()) {
                     ESP_LOGE(TAG, "Socket is not connected anymore.");
-                    m_len = 0;
-                    m_buffer[0] = '\0';
+                    resetBuffer();
                     return NULL;
                 }
+
+                ESP_LOGD(TAG, "No data available yet, socket still connected.");
+                // Avoid busy-looping and burning CPU.
+                vTaskDelay(pdMS_TO_TICKS(10));
+                continue;
             } else {
                 ESP_LOGE(TAG, "Error in recv: %s", strerror(errno));
-                m_len = 0;
-                m_buffer[0] = '\0';
+                resetBuffer();
                 return NULL;
             }
         } else if (nbytes == 0) {
-            // Remote end closed the connection.
+            // Remote side closed the connection.
+            ESP_LOGI(TAG, "Remote closed the connection.");
+            resetBuffer();
             return NULL;
         }
-        m_len += nbytes;
+
+        // We received some data; append it to the buffer.
+        m_len += static_cast<size_t>(nbytes);
         m_buffer[m_len] = '\0';
     }
-
-    // At this point, the buffer contains at least one newline.
-    char *newline_ptr = strchr(m_buffer, '\n');
-    int line_length = newline_ptr - m_buffer;
-
-    // Allocate memory for the resulting line.
-    char *line = (char *) MALLOC(line_length + 1);
-
-    if (!line) {
-        ESP_LOGE(TAG, "Failed to allocate memory for line.");
-        return NULL;
-    }
-    memcpy(line, m_buffer, line_length);
-    line[line_length] = '\0';
-
-    // Remove the extracted line (including the newline) from the buffer.
-    int remaining = m_len - (line_length + 1);
-    if (remaining > 0) {
-        memmove(m_buffer, newline_ptr + 1, remaining);
-    }
-    m_len = remaining;
-    m_buffer[m_len] = '\0';
-
-    return line;
 }
+
 
 bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, StratumApiV1Message *message)
 {

@@ -270,16 +270,10 @@ void StratumTask::connect()
 void StratumTask::disconnect()
 {
     m_stopFlag = true;
-    if (m_transport) {
-        m_transport->close();
-    }
 }
 
 void StratumTask::triggerReconnect() {
     m_reconnect = true;
-    if (m_transport) {
-        m_transport->close();
-    }
 }
 
 
