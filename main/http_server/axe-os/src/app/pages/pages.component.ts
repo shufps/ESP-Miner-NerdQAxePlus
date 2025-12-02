@@ -57,6 +57,11 @@ import { NbMenuItem } from '@nebular/theme';
                 link: '/pages/alert',
             },
             {
+                title: this.translateService.instant('NAVIGATION.SECURITY'),
+                icon: 'shield-outline',
+                link: '/pages/security',
+            },
+            {
                 title: this.translateService.instant('NAVIGATION.SYSTEM'),
                 icon: 'menu-outline',
                 link: '/pages/system',

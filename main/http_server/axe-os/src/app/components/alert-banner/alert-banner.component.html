@@ -1,0 +1,19 @@
+<ng-container *ngIf="!hidden">
+    <nb-alert [status]="status" outline="danger" class="otp-nudge">
+        <div class="banner-row">
+            <div class="banner-text">
+                <a href="/#/pages/security"><div class="banner-msg">{{ message }}</div></a>
+            </div>
+        </div>
+        <div class="banner-row" style="margin-top:10px;">
+            <button nbButton size="small" status="info" (click)="dismiss()">
+                Close
+            </button>
+
+            <label class="dont-show">
+                <nb-checkbox [(ngModel)]="dontShowAgain"></nb-checkbox>
+                <span style="margin-left: .5rem; margin-top: -8px;">Don't show this again</span>
+            </label>
+        </div>
+    </nb-alert>
+</ng-container>

@@ -22,7 +22,7 @@ static void display_msg(char *msg)
 static bool fan_sense_pass(Board *board)
 {
     uint16_t fan_speed = 0;
-    board->getFanSpeed(&fan_speed);
+    board->getFanSpeedCh(0, &fan_speed);
 
     ESP_LOGI(TAG, "fanSpeed: %d", fan_speed);
     if (fan_speed > 1000) {

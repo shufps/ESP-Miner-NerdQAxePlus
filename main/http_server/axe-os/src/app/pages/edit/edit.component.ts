@@ -1,12 +1,15 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, OnInit, TemplateRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { forkJoin, startWith, catchError, of } from 'rxjs';
+import { switchMap, forkJoin, startWith, tap, catchError, of } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
+import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { TranslateService } from '@ngx-translate/core';
+import { IStratum } from 'src/app/models/IStratum';
 
 enum SupportLevel { Safe = 0, Advanced = 1, Pro = 2 }
 
@@ -42,28 +45,25 @@ export class EditComponent implements OnInit {
 
   private originalSettings!: any;
 
-  // NEW: the “raw” options from the /asic endpoint
+  public otpEnabled = false;
+  private pendingTotp: string | undefined;
+
   private asicFrequencyValues: number[] = [];
   private asicVoltageValues: number[] = [];
+
+  private stratum : IStratum = null;
 
   private rebootRequiredFields = new Set<string>([
     'flipscreen',
     'invertscreen',
-    'autoscreenoff',
     'hostname',
     'ssid',
     'wifiPass',
     'wifiStatus',
-    'stratumURL',
-    'stratumPort',
-    'stratumUser',
-    'fallbackStratumURL',
-    'fallbackStratumPort',
-    'fallbackStratumUser',
     'invertfanpolarity',
-    'autofanpolarity',
     'stratumDifficulty',
     'stratum_keep',
+    'poolMode',
   ]);
 
   @Input() uri = '';
@@ -74,7 +74,9 @@ export class EditComponent implements OnInit {
     private toastrService: NbToastrService,
     private loadingService: LoadingService,
     private localStorageService: LocalStorageService,
-    private dialogService: NbDialogService
+    private dialogService: NbDialogService,
+    private otpAuth: OtpAuthService,
+    private translate: TranslateService,
   ) { }
 
   ngOnInit(): void {
@@ -82,138 +84,153 @@ export class EditComponent implements OnInit {
       info: this.systemService.getInfo(0, this.uri),
       asic: this.systemService.getAsicInfo(this.uri)
     })
-    .pipe(this.loadingService.lockUIUntilComplete())
-    .subscribe(({ info, asic }) => {
-      this.originalSettings = structuredClone(info);
+      .pipe(this.loadingService.lockUIUntilComplete())
+      .subscribe(({ info, asic }) => {
+        this.originalSettings = structuredClone(info);
 
-      // Model still from /info (enum-typed)
-      this.ASICModel = info.ASICModel;
+        // nasty work around
+        this.originalSettings["poolMode"] = info.stratum?.poolMode ?? 0;
 
-      // Prefer defaults from /asic, otherwise fallback to /info
-      this.defaultFrequency   = (asic?.defaultFrequency ?? info.defaultFrequency ?? 0);
-      this.defaultCoreVoltage = (asic?.defaultVoltage   ?? info.defaultCoreVoltage ?? 0);
+        this.otpEnabled = !!info.otp;
 
-      // eco only from /asic (optional)
-      this.ecoFrequency   = asic?.ecoFrequency ?? undefined;
-      this.ecoCoreVoltage = asic?.ecoVoltage ?? undefined;
+        // Model still from /info (enum-typed)
+        this.ASICModel = info.ASICModel;
 
-      // Store raw options (can be empty if the endpoint returns nothing)
-      this.asicFrequencyValues = asic?.frequencyOptions ?? [];
-      this.asicVoltageValues   = asic?.voltageOptions   ?? [];
+        // Prefer defaults from /asic, otherwise fallback to /info
+        this.defaultFrequency = (asic?.defaultFrequency ?? info.defaultFrequency ?? 0);
+        this.defaultCoreVoltage = (asic?.defaultVoltage ?? info.defaultCoreVoltage ?? 0);
 
-      this.defaultVrFrequency = info.defaultVrFrequency ?? undefined;
+        // eco only from /asic (optional)
+        this.ecoFrequency = asic?.ecoFrequency ?? undefined;
+        this.ecoCoreVoltage = asic?.ecoVoltage ?? undefined;
 
-      const freqBase = this.asicFrequencyValues.map(v => {
-        let suffix = '';
-        if (v === this.defaultFrequency) suffix = ' (default)';
-        if (this.ecoFrequency != null && v === this.ecoFrequency) suffix = ' (eco)';
-        return { name: `${v}${suffix}`, value: v };
+        // Store raw options (can be empty if the endpoint returns nothing)
+        this.asicFrequencyValues = asic?.frequencyOptions ?? [];
+        this.asicVoltageValues = asic?.voltageOptions ?? [];
+
+        this.defaultVrFrequency = info.defaultVrFrequency ?? undefined;
+
+        const freqBase = this.asicFrequencyValues.map(v => {
+          let suffix = '';
+          if (v === this.defaultFrequency) suffix = ' (default)';
+          if (this.ecoFrequency != null && v === this.ecoFrequency) suffix = ' (eco)';
+          return { name: `${v}${suffix}`, value: v };
+        });
+
+        const voltBase = this.asicVoltageValues.map(v => {
+          let suffix = '';
+          if (v === this.defaultCoreVoltage) suffix = ' (default)';
+          if (this.ecoCoreVoltage != null && v === this.ecoCoreVoltage) suffix = ' (eco)';
+          return { name: `${v}${suffix}`, value: v };
+        });
+
+        // Build dropdowns and, if needed, append the current custom value
+        this.frequencyOptions = this.assembleDropdownOptions(freqBase, info.frequency);
+        this.voltageOptions = this.assembleDropdownOptions(voltBase, info.coreVoltage);
+
+        // fix setting where we allowed to disable temp shutdown
+        if (info.overheat_temp == 0) {
+          info.overheat_temp = 70;
+        }
+        // respect bounds
+        info.overheat_temp = Math.max(40, Math.min(90, info.overheat_temp));
+
+        // Build the form (Min/Max for volt/freq will be set dynamically right after)
+        this.form = this.fb.group({
+          stratum_keep: [info.stratum_keep == 1],
+          flipscreen: [info.flipscreen == 1],
+          invertscreen: [info.invertscreen == 1],
+          autoscreenoff: [info.autoscreenoff == 1],
+          timeFormat: [this.localStorageService.getItem('timeFormat') || '24h'],
+          stratumURL: [info.stratumURL, [
+            Validators.required,
+            Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
+            Validators.pattern(/^[^:]*$/),
+          ]],
+          stratumPort: [info.stratumPort, [
+            Validators.required,
+            Validators.pattern(/^[^:]*$/),
+            Validators.min(0),
+            Validators.max(65353)
+          ]],
+          stratumUser: [info.stratumUser, [Validators.required]],
+          stratumPassword: ['*****', [Validators.required]],
+          stratumEnonceSubscribe: [info.stratumEnonceSubscribe == 1],
+
+          fallbackStratumURL: [info.fallbackStratumURL, [
+            Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
+            Validators.pattern(/^[^:]*$/),
+          ]],
+          fallbackStratumPort: [info.fallbackStratumPort, [
+            Validators.pattern(/^[^:]*$/),
+            Validators.min(0),
+            Validators.max(65353)
+          ]],
+          fallbackStratumUser: [info.fallbackStratumUser],
+          fallbackStratumPassword: ['*****'],
+          fallbackStratumEnonceSubscribe: [info.fallbackStratumEnonceSubscribe == 1],
+
+          hostname: [info.hostname, [Validators.required]],
+          ssid: [info.ssid, [Validators.required]],
+          wifiPass: ['*****'],
+
+          coreVoltage: [info.coreVoltage, [Validators.min(1005), Validators.max(1400), Validators.required]],
+          frequency: [info.frequency, [Validators.required]],
+          jobInterval: [info.jobInterval, [Validators.required]],
+          stratumDifficulty: [info.stratumDifficulty, [Validators.required, Validators.min(1)]],
+
+          poolMode: [info.stratum?.poolMode ?? 0, [Validators.required]],        // 0 = Failover, 1 = Dual
+          poolBalance: [info.stratum?.poolBalance ?? 50, [                  // Anteil PRIMARY in %
+            Validators.required,
+            Validators.min(0),
+            Validators.max(100),
+          ]],
+
+          autofanspeed: [info.autofanspeed ?? 0, [Validators.required]],
+          pidTargetTemp: [info.pidTargetTemp ?? 55, [
+            Validators.min(30),
+            Validators.max(80),
+            Validators.required
+          ]],
+          pidP: [info.pidP ?? 6, [
+            Validators.min(0),
+            Validators.max(100),
+            Validators.required
+          ]],
+          pidI: [info.pidI ?? 0.1, [
+            Validators.min(0),
+            Validators.max(10),
+            Validators.required
+          ]],
+          pidD: [info.pidD ?? 10, [
+            Validators.min(0),
+            Validators.max(100),
+            Validators.required
+          ]],
+          invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
+          manualFanSpeed: [info.manualFanSpeed, [Validators.required]],
+          overheat_temp: [info.overheat_temp, [
+            Validators.min(40),
+            Validators.max(90),
+            Validators.required
+          ]],
+          vrFrequency: [info.vrFrequency, [
+            Validators.min(1000),
+            Validators.max(100000),
+            Validators.pattern(/^\d+$/),   // only ints
+            Validators.required,
+          ]],
+          otpEnabled: [info.otp],
+        });
+
+        this.stratum = info.stratum;
+
+        this.form.controls['autofanspeed'].valueChanges
+          .pipe(startWith(this.form.controls['autofanspeed'].value))
+          .subscribe(() => this.updatePIDFieldStates());
+
+        this.updatePIDFieldStates();
       });
-
-      const voltBase = this.asicVoltageValues.map(v => {
-        let suffix = '';
-        if (v === this.defaultCoreVoltage) suffix = ' (default)';
-        if (this.ecoCoreVoltage != null && v === this.ecoCoreVoltage) suffix = ' (eco)';
-        return { name: `${v}${suffix}`, value: v };
-      });
-
-      // Build dropdowns and, if needed, append the current custom value
-      this.frequencyOptions = this.assembleDropdownOptions(freqBase, info.frequency);
-      this.voltageOptions   = this.assembleDropdownOptions(voltBase,  info.coreVoltage);
-
-      // fix setting where we allowed to disable temp shutdown
-      if (info.overheat_temp == 0) {
-        info.overheat_temp = 70;
-      }
-      // respect bounds
-      info.overheat_temp = Math.max(40, Math.min(90, info.overheat_temp));
-
-      // Build the form (Min/Max for volt/freq will be set dynamically right after)
-      this.form = this.fb.group({
-        stratum_keep: [info.stratum_keep == 1],
-        flipscreen: [info.flipscreen == 1],
-        invertscreen: [info.invertscreen == 1],
-        autoscreenoff: [info.autoscreenoff == 1],
-        timeFormat: [this.localStorageService.getItem('timeFormat') || '24h'],
-        stratumURL: [info.stratumURL, [
-          Validators.required,
-          Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
-          Validators.pattern(/^[^:]*$/),
-        ]],
-        stratumPort: [info.stratumPort, [
-          Validators.required,
-          Validators.pattern(/^[^:]*$/),
-          Validators.min(0),
-          Validators.max(65353)
-        ]],
-        stratumUser: [info.stratumUser, [Validators.required]],
-        stratumPassword: ['*****', [Validators.required]],
-        stratumEnonceSubscribe: [info.stratumEnonceSubscribe == 1],
-
-        fallbackStratumURL: [info.fallbackStratumURL, [
-          Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
-          Validators.pattern(/^[^:]*$/),
-        ]],
-        fallbackStratumPort: [info.fallbackStratumPort, [
-          Validators.pattern(/^[^:]*$/),
-          Validators.min(0),
-          Validators.max(65353)
-        ]],
-        fallbackStratumUser: [info.fallbackStratumUser],
-        fallbackStratumPassword: ['*****'],
-        fallbackStratumEnonceSubscribe: [info.fallbackStratumEnonceSubscribe == 1],
-
-        hostname: [info.hostname, [Validators.required]],
-        ssid: [info.ssid, [Validators.required]],
-        wifiPass: ['*****'],
-
-        coreVoltage: [info.coreVoltage, [Validators.min(1005), Validators.max(1400), Validators.required]],
-        frequency: [info.frequency, [Validators.required]],
-        jobInterval: [info.jobInterval, [Validators.required]],
-        stratumDifficulty: [info.stratumDifficulty, [Validators.required, Validators.min(1)]],
-        autofanspeed: [info.autofanspeed ?? 0, [Validators.required]],
-        pidTargetTemp: [info.pidTargetTemp ?? 55, [
-          Validators.min(30),
-          Validators.max(80),
-          Validators.required
-        ]],
-        pidP: [info.pidP ?? 6, [
-          Validators.min(0),
-          Validators.max(100),
-          Validators.required
-        ]],
-        pidI: [info.pidI ?? 0.1, [
-          Validators.min(0),
-          Validators.max(10),
-          Validators.required
-        ]],
-        pidD: [info.pidD ?? 10, [
-          Validators.min(0),
-          Validators.max(100),
-          Validators.required
-        ]],
-        invertfanpolarity: [info.invertfanpolarity == 1, [Validators.required]],
-        autofanpolarity: [info.autofanpolarity == 1, [Validators.required]],
-        fanspeed: [info.fanspeed, [Validators.required]],
-        overheat_temp: [info.overheat_temp, [
-          Validators.min(40),
-          Validators.max(90),
-          Validators.required
-        ]],
-        vrFrequency: [info.vrFrequency, [
-          Validators.min(1000),
-          Validators.max(100000),
-          Validators.pattern(/^\d+$/),   // only ints
-          Validators.required,
-        ]],
-      });
-
-      this.form.controls['autofanspeed'].valueChanges
-        .pipe(startWith(this.form.controls['autofanspeed'].value))
-        .subscribe(() => this.updatePIDFieldStates());
-
-      this.updatePIDFieldStates();
-    });
   }
 
   private updatePIDFieldStates(): void {
@@ -222,19 +239,19 @@ export class EditComponent implements OnInit {
     const disable = (ctrl: string) => this.form.controls[ctrl]?.disable({ emitEvent: false });
 
     if (mode === 0) {
-      enable('fanspeed');
+      enable('manualFanSpeed');
       disable('pidTargetTemp');
       disable('pidP');
       disable('pidI');
       disable('pidD');
     } else if (mode === 1) {
-      disable('fanspeed');
+      disable('manualFanSpeed');
       disable('pidTargetTemp');
       disable('pidP');
       disable('pidI');
       disable('pidD');
     } else if (mode === 2) {
-      disable('fanspeed');
+      disable('manualFanSpeed');
       enable('pidTargetTemp');
       if (this.supportLevel >= 1) {
         enable('pidP');
@@ -248,39 +265,29 @@ export class EditComponent implements OnInit {
     }
   }
 
-  public updateSystem() {
+  public updateSystem(totp?: string) {
     const form = this.form.getRawValue();
 
-    // Save client-side preferences to localStorage
+    // Client-only preference
     if (form.timeFormat) {
       this.localStorageService.setItem('timeFormat', form.timeFormat);
-      // Emit custom event to notify other components
       window.dispatchEvent(new CustomEvent('timeFormatChanged', { detail: form.timeFormat }));
-      delete form.timeFormat; // Don't send to server
+      delete form.timeFormat;
     }
 
-    // Allow an empty wifi password
+    // Allow empty WiFi password; strip masked fields
     form.wifiPass = form.wifiPass == null ? '' : form.wifiPass;
-
-    if (form.wifiPass === '*****') {
-      delete form.wifiPass;
-    }
-    if (form.stratumPassword === '*****') {
-      delete form.stratumPassword;
-    }
+    if (form.wifiPass === '*****') delete form.wifiPass;
+    if (form.stratumPassword === '*****') delete form.stratumPassword;
+    if (form.fallbackStratumPassword === '*****') delete form.fallbackStratumPassword;
 
     form.stratum_keep = form.stratum_keep ? 1 : 0;
 
-    this.systemService.updateSystem(this.uri, form)
-      .pipe(this.loadingService.lockUIUntilComplete())
-      .subscribe({
-        next: () => {
-          this.toastrService.success('Success!', 'Saved.');
-        },
-        error: (err: HttpErrorResponse) => {
-          this.toastrService.danger('Error.', `Could not save. ${err.message}`);
-        }
-      });
+    if (this.pendingTotp) {
+      form.totp = this.pendingTotp;
+    }
+
+    return this.systemService.updateSystem(this.uri, form, totp)
   }
 
   get requiresReboot(): boolean {
@@ -302,7 +309,7 @@ export class EditComponent implements OnInit {
       }
 
       if (currentValue !== originalValue) {
-        console.log(`Mismatch on key: ${key}`, currentValue, originalValue);
+        //console.log(`Mismatch on key: ${key}`, currentValue, originalValue);
         return true;
       }
     }
@@ -351,7 +358,7 @@ export class EditComponent implements OnInit {
     });
 
     this.frequencyOptions = this.assembleDropdownOptions(freqBase, this.form.controls['frequency'].value);
-    this.voltageOptions   = this.assembleDropdownOptions(voltBase,  this.form.controls['coreVoltage'].value);
+    this.voltageOptions = this.assembleDropdownOptions(voltBase, this.form.controls['coreVoltage'].value);
 
     this.updatePIDFieldStates();
   }
@@ -393,16 +400,30 @@ export class EditComponent implements OnInit {
   }
 
   public restart() {
-    this.systemService.restart().pipe(
-      catchError(error => {
-        this.toastrService.danger(`Failed to restart Device`, 'Error');
-        return of(null);
-      })
-    ).subscribe(res => {
-      if (res !== null) {
-        this.toastrService.success(`Device restarted`, 'Success');
-      }
-    });
+    this.otpAuth.ensureOtp$(
+      this.uri,
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.systemService.restart("", totp).pipe(
+            // drop session on reboot
+            tap(() => this.otpAuth.clearSession()),
+            this.loadingService.lockUIUntilComplete()
+          )
+        ),
+        catchError((err: HttpErrorResponse) => {
+          console.log(err);
+          this.toastrService.danger(this.translate.instant('SYSTEM.RESTART_FAILED'), this.translate.instant('COMMON.ERROR'));
+          return of(null);
+        })
+      )
+      .subscribe(res => {
+        if (res !== null) {
+          this.toastrService.success(this.translate.instant('SYSTEM.RESTART_SUCCESS'), this.translate.instant('COMMON.SUCCESS'));
+        }
+      });
   }
 
   // Function to check if settings are unsafe
@@ -415,7 +436,7 @@ export class EditComponent implements OnInit {
     if (!this.localStorageService.getBool('hideUnsafeSettingsWarning') && this.hasUnsafeSettings()) {
       this.dialogRef = this.dialogService.open(dialog, { closeOnBackdropClick: false });
     } else {
-      this.updateSystem(); // Directly save if warning is disabled
+      this.runSaveWithOptionalOtp();
     }
   }
 
@@ -425,7 +446,7 @@ export class EditComponent implements OnInit {
       this.localStorageService.setBool('hideUnsafeSettingsWarning', true);
     }
     this.dialogRef.close();
-    this.updateSystem();
+    this.runSaveWithOptionalOtp();
   }
 
   get wrapAroundTime(): number {
@@ -437,4 +458,35 @@ export class EditComponent implements OnInit {
     return wrap;
   }
 
+  private runSaveWithOptionalOtp(): void {
+    this.otpAuth.ensureOtp$(
+      this.uri,
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.updateSystem(totp).pipe(this.loadingService.lockUIUntilComplete())
+        ),
+      )
+      .subscribe({
+        next: () => {
+          this.toastrService.success('Success!', 'Saved.');
+        },
+        error: (err: HttpErrorResponse) => {
+          this.toastrService.danger('Error.', `Could not save. ${err.message}`);
+        }
+      });
+  }
+
+  public poolTabHeader(i: 0 | 1) {
+    if (this.form?.get("poolMode")?.value == 0) {
+      if (i == 0) {
+        return this.translate.instant('SETTINGS.PRIMARY_STRATUM_POOL');
+      }
+      return this.translate.instant('SETTINGS.FALLBACK_STRATUM_POOL');
+    }
+    return `Pool ${i + 1}`;
+  }
 }
+

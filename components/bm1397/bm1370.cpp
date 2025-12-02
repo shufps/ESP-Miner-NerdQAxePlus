@@ -16,7 +16,7 @@
 
 #include "crc.h"
 #include "serial.h"
-#include "utils.h"
+#include "mining_utils.h"
 
 
 static const char *TAG = "bm1370Module";

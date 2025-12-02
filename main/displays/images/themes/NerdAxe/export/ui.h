@@ -33,6 +33,7 @@ extern lv_obj_t * ui_SettingsScreen;
 extern lv_obj_t * ui_Image4;
 extern lv_obj_t * ui_lbIPSet;
 extern lv_obj_t * ui_lbVcoreSet;
+extern lv_obj_t * ui_lbPoolNr;
 extern lv_obj_t * ui_lbFreqSet;
 extern lv_obj_t * ui_lbFanSet;
 extern lv_obj_t * ui_lbPoolSet;

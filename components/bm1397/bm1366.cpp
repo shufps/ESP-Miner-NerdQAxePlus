@@ -16,7 +16,7 @@
 
 #include "crc.h"
 #include "serial.h"
-#include "utils.h"
+#include "mining_utils.h"
 
 static const uint64_t BM1366_CORE_COUNT = 112;
 static const uint64_t BM1366_SMALL_CORE_COUNT = 894;

@@ -10,6 +10,7 @@
 
 #include "global_state.h"
 #include "macros.h"
+#include "utils.h"
 
 static const char *TAG = "discord";
 
@@ -105,20 +106,19 @@ bool DiscordAlerter::sendMessage(const char *message)
         return false;
     }
 
-    const std::string ip  = SYSTEM_MODULE.getIPAddress();
-    const std::string mac = SYSTEM_MODULE.getMacAddress();
+    char ip[20] = {0};
+    connect_get_ip_addr(ip, sizeof(ip));
+    //ESP_LOGI(TAG, "IP: %s", ip);
+    const char *mac = SYSTEM_MODULE.getMacAddress();
+    //ESP_LOGI(TAG, "MAC: %s", mac);
     char *hostname = Config::getHostname();
 
     //ESP_LOGI(TAG, "IP: %s", ip.c_str());
     //ESP_LOGI(TAG, "MAC: %s", mac.c_str());
     //ESP_LOGI(TAG, "Hostname: %s", hostname);
 
-    snprintf(m_messageBuffer, messageBufferSize - 1,
-            "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```",
-            message,
-            hostname ? hostname : "unknown",
-            ip.empty()  ? "unknown" : ip.c_str(),
-            mac.empty() ? "unknown" : mac.c_str());
+    snprintf(m_messageBuffer, messageBufferSize - 1, "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```", message,
+             hostname ? hostname : "unknown", ip, mac ? mac : "unknown");
 
     free(hostname);
 
@@ -131,7 +131,7 @@ bool DiscordAlerter::sendWatchdogAlert() {
         return false;
     }
 
-    return discordAlerter.sendMessage("Device rebootet because there was no share for more than 1h!");
+    return discordAlerter.sendMessage("Device rebooted because there was no share for more than 1h!");
 }
 
 bool DiscordAlerter::sendBlockFoundAlert(double diff, double networkDiff)
@@ -143,8 +143,8 @@ bool DiscordAlerter::sendBlockFoundAlert(double diff, double networkDiff)
 
     char diffStr[DIFF_STRING_SIZE];
     char netStr[DIFF_STRING_SIZE];
-    SYSTEM_MODULE.suffixString((uint64_t)diff,        diffStr, DIFF_STRING_SIZE, 0);
-    SYSTEM_MODULE.suffixString((uint64_t)networkDiff, netStr,  DIFF_STRING_SIZE, 0);
+    suffixString((uint64_t)diff,        diffStr, DIFF_STRING_SIZE, 0);
+    suffixString((uint64_t)networkDiff, netStr,  DIFF_STRING_SIZE, 0);
 
     char base[192];
     snprintf(base, sizeof(base) - 1,

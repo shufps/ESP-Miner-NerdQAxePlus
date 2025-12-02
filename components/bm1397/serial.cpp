@@ -12,7 +12,7 @@
 
 #include "asic.h"
 #include "serial.h"
-#include "utils.h"
+#include "mining_utils.h"
 
 #define ECHO_TEST_TXD (17)
 #define ECHO_TEST_RXD (18)

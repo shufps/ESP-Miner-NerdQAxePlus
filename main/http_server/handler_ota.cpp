@@ -9,10 +9,21 @@
 
 static const char *TAG = "http_ota";
 
+extern bool enter_recovery;
+
+
 esp_err_t POST_WWW_update(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
+    // disable OTP when in recovery mode
+    if (!enter_recovery && validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
     }
 
     int remaining = req->content_len;
@@ -86,15 +97,22 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
  */
 esp_err_t POST_OTA_update(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
     }
 
     esp_ota_handle_t ota_handle;
     int remaining = req->content_len;
 
     // lock the power management module
-    LockGuard g(POWER_MANAGEMENT_MODULE);
+    LockGuard lg(POWER_MANAGEMENT_MODULE);
 
     // Shut down buck converter before starting OTA.
     // During OTA, I2C conflicts prevent the PID from working correctly.

@@ -17,6 +17,13 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
 
     m_asicMaxDifficulty = 4096;
     m_asicMinDifficulty = 1024;
+    m_asicMinDifficultyDualPool = 256;
+
+     // use m_asicVoltage for init
+    m_initVoltageMillis = 0;
+
+    m_maxVin = 13.0;
+    m_minVin = 11.0;
 
      // use m_asicVoltage for init
     m_initVoltageMillis = 0;

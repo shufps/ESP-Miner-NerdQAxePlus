@@ -27,7 +27,7 @@ import { Subject, takeUntil } from 'rxjs';
 export class OneColumnLayoutComponent implements OnInit, OnDestroy{
   $destroy = new Subject<void>()
 
-  constructor(  
+  constructor(
     private menuService: NbMenuService,
     private sidebarService: NbSidebarService,
     private breakpointService: NbMediaBreakpointsService)
@@ -40,7 +40,7 @@ export class OneColumnLayoutComponent implements OnInit, OnDestroy{
       {
         next: ()=>{
           setTimeout(()=>{
-            const { sm , lg} = this.breakpointService.getBreakpointsMap(); 
+            const { sm , lg} = this.breakpointService.getBreakpointsMap();
             const width = document.documentElement.clientWidth
             if ( width < sm){
               this.sidebarService.collapse('menu-sidebar')
@@ -54,6 +54,6 @@ export class OneColumnLayoutComponent implements OnInit, OnDestroy{
 }
 
 ngOnDestroy(): void {
-    
+
 }
 }

@@ -23,7 +23,7 @@ bool EMC2101_init(bool invertPolarity)
 }
 
 bool EMC2101_set_fan_polarity(bool invert) {
-    esp_err_t ret = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_FAN_CONFIG, 0b00100011 | (invert ? 0 : (1<<4)));
+    esp_err_t ret = i2c_master_register_write_byte(EMC2101_I2CADDR_DEFAULT, EMC2101_FAN_CONFIG, 0b00100011 | (invert ? (1<<4) : 0));
     return ret == ESP_OK;
 }
 

@@ -27,6 +27,10 @@ typedef struct
     float pwr_vout;
     float pwr_iout;
     float pwr_pout;
+    float fan_pwm_0;
+    float fan_pwm_1;
+    float fan_rpm_0;
+    float fan_rpm_1;
     float last_ping_rtt;
     float recent_ping_loss;
 } Stats;

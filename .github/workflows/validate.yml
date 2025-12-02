@@ -35,9 +35,9 @@ jobs:
     - name: Set Target for ${{ matrix.label }}
       run: |
         docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
-        shufps/esp-idf-builder:0.0.1.1 idf.py set-target esp32s3
+        shufps/esp-idf-builder:0.0.1 idf.py set-target esp32s3
 
     - name: Build firmware for ${{ matrix.label }}
       run: |
         docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
-        shufps/esp-idf-builder:0.0.1.1 idf.py build
+        shufps/esp-idf-builder:0.0.1 idf.py build

@@ -13,6 +13,9 @@ static const char* TAG="http_influx";
 /* Simple handler for getting system handler */
 esp_err_t GET_influx_info(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -59,6 +62,9 @@ esp_err_t GET_influx_info(httpd_req_t *req)
 
 esp_err_t PATCH_update_influx(httpd_req_t *req)
 {
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
@@ -69,37 +75,16 @@ esp_err_t PATCH_update_influx(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    int total_len = req->content_len;
-    int cur_len = 0;
-    char *buf = ((rest_server_context_t *)(req->user_ctx))->scratch;
-    int received = 0;
-
-    if (total_len >= SCRATCH_BUFSIZE) {
-        /* Respond with 500 Internal Server Error */
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
+    if (validateOTP(req) != ESP_OK) {
         return ESP_FAIL;
     }
-
-    while (cur_len < total_len) {
-        received = httpd_req_recv(req, buf + cur_len, total_len);
-        if (received <= 0) {
-            /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to post control value");
-            return ESP_FAIL;
-        }
-        cur_len += received;
-    }
-    buf[total_len] = '\0';
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
-    // Parse the JSON payload
-    DeserializationError error = deserializeJson(doc, buf);
-    if (error) {
-        ESP_LOGE(TAG, "JSON parsing failed: %s", error.c_str());
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+    esp_err_t err = getJsonData(req, doc);
+    if (err != ESP_OK) {
+        return err;
     }
 
     // Check and apply each setting if the key exists and has the correct type

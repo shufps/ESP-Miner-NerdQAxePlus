@@ -6,6 +6,9 @@
 #include "esp_lcd_panel_io.h"
 #include "ui.h"
 #include "ui_helpers.h"
+#include "button.h"
+#include "ui_ipc.h"
+#include "stratum/stratum_manager.h"
 
 /* INCLUDES ------------------------------------------------------------------*/
 
@@ -78,6 +81,8 @@ class DisplayDriver {
         SettingsScreen,
         BTCScreen,
         GlobalStats,
+        ShowQR,
+        PowerOff,
         NOP
     };
 
@@ -87,8 +92,6 @@ class DisplayDriver {
 
     pthread_mutex_t m_lvglMutex;
     bool m_animationsEnabled;   // Flag for enabling animations
-    bool m_button1PressedFlag;  // Flag indicating button 1 is pressed
-    bool m_button2PressedFlag;  // Flag indicating button 2 is pressed
     int64_t m_lastKeypressTime; // Time of the last keypress event
     bool m_displayIsOn;         // Flag indicating if the display is currently on
     int m_nextScreen;           // The next screen to display
@@ -107,6 +110,13 @@ class DisplayDriver {
     unsigned int m_btcPrice; // Current Bitcoin price
     uint32_t m_blockHeight; // Current Bitcoin price
 
+    // Shutdown countdown state
+    bool m_shutdownCountdownActive;
+    int64_t m_shutdownStartTime;
+    lv_obj_t* m_shutdownLabel;
+    int64_t m_buttonIgnoreUntil_us;
+    bool m_screenAnimationRunning = false;
+
     UI *m_ui;
 
     // Helper methods for LVGL handling
@@ -119,8 +129,8 @@ class DisplayDriver {
     void updateBTCprice(void);
 
     // Display-related functions
-    void displayTurnOff();         // Turn off the display
-    void displayTurnOn();          // Turn on the display
+    bool displayTurnOff();         // Turn off the display
+    bool displayTurnOn();          // Turn on the display
     void startCountdown();         // Start the screen countdown timer
     void displayHideCountdown();   // Hide the countdown overlay
     void checkAutoTurnOffScreen(); // Check if the screen should auto-turn off
@@ -128,8 +138,7 @@ class DisplayDriver {
 
     // Button initialization and handling
     void buttonsInit();                    // Initialize GPIO buttons
-    static void button1IsrHandler(void *); // ISR handler for button 1
-    static void button2IsrHandler(void *); // ISR handler for button 2
+
 
     // Screen switching logic
     void changeScreen(uint64_t now);   // Change between screens
@@ -142,19 +151,31 @@ class DisplayDriver {
     void lvglTimerTask(void *param);               // LVGL timer task implementation
 
     // display state machine
-    void enterState(UiState s, int64_t now);
-    void updateState(int64_t now, bool btn1Press, bool btn2Press);
+    bool enterState(UiState s, int64_t now);
+    void updateState(int64_t now, bool btn1Press, bool btn2Press, bool btnBothLongPress);
+
+    bool ledControl(bool btn1, bool btn2);        // returns true if LED was switched on/off
 
     // Display initialization
     lv_obj_t *initTDisplayS3(); // Initialize the TDisplay S3
 
-    void updateHashrate(System *module, float power);               // Update the hashrate display
-    void updateShares(System *module);                              // Update the shares information on the display
+    void updateHashrate(System *module, StratumManager *manager, float power, int pool);               // Update the hashrate display
+    void updateShares(StratumManager *manager, int pool);                              // Update the shares information on the display
     void updateTime(System *module);                                // Update the time display
     void lvglAnimations(bool enable);                               // Enable or disable LVGL animations
 
     void hideFoundBlockOverlay();
 
+    void startShutdownCountdown();
+    void updateShutdownCountdown();
+    void hideShutdownCountdown();
+
+    void handleAutoOffAndOverlays();
+    void handleUiQueueMessages(ui_msg_t &msg, int64_t tnow);
+    void processButtons(Button &btn1, Button &btn2, int64_t tnow, bool &btn1Press, bool &btn2Press, bool &btnBothLongPress);
+    uint32_t handleLvglTick(int32_t &elapsed_Ani_cycles);
+
+    void safe_screen_change(lv_obj_t * new_scr, lv_scr_load_anim_t anim_type, uint32_t speed, uint32_t delay);
   public:
     // Constructor
     DisplayDriver();
@@ -167,12 +188,16 @@ class DisplayDriver {
     void miningScreen();                                            // Switch to the mining screen
     void updateIpAddress(const char *ipAddressStr);                 // Update the displayed IP address
     void showFoundBlockOverlay();
-    void updateGlobalState();                                       // Update the global state on the display
-    void updateCurrentSettings();                                   // Update the current settings screen
+    void updateGlobalState(int pool);                               // Update the global state on the display
+    void updateCurrentSettings(int pool);                           // Update the current settings screen
     void refreshScreen();                                           // Refresh the display
     void logMessage(const char *message);                           // Log a message to the display
     void waitForSplashs();
     void loadSettings();                                            // (re)load settings
+
+    void setScreenAnimationRunning(bool state) {
+      m_screenAnimationRunning = state;
+    }
 
     UiState getState() {
       return m_state;

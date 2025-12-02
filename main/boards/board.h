@@ -7,13 +7,28 @@
 #include "nvs_config.h"
 #include "../pid/PID_v1_bc.h"
 
-enum FanPolarityGuess {
-    POLARITY_UNKNOWN,
-    POLARITY_NORMAL,
-    POLARITY_INVERTED
-};
-
 class Board {
+public:
+    enum Error {
+        NONE,
+        TEMP_FAULT,
+        VREG_TEMP_FAULT,
+        PSU_FAULT,
+        IOUT_OC_FAULT,
+        VOUT_FAULT
+    };
+
+    static const char* errorToStr(Error err) {
+        switch (err) {
+            case Error::NONE: return "";
+            case Error::TEMP_FAULT: return "MINER OVERHEATED";
+            case Error::VREG_TEMP_FAULT: return "VREG OVERHEATED";
+            case Error::PSU_FAULT: return "PSU FAULT";
+            case Error::IOUT_OC_FAULT: return "CURRENT PROTECTION";
+            case Error::VOUT_FAULT: return "VOLTAGE PROTECTION";
+            default: return "INVALID ERROR";
+        }
+    }
   protected:
     // general board information
     const char *m_deviceModel;
@@ -53,6 +68,7 @@ class Board {
 
     // asic difficulty settings
     uint32_t m_asicMinDifficulty;
+    uint32_t m_asicMinDifficultyDualPool;
     uint32_t m_asicMaxDifficulty;
 
     // Voltage regulator max temperature
@@ -60,7 +76,6 @@ class Board {
 
     // fans
     bool m_fanInvertPolarity;
-    bool m_fanAutoPolarity;
     float m_fanPerc;
 
     // flip screen
@@ -72,12 +87,15 @@ class Board {
     float m_maxVin;
     float m_minVin;
 
+    int m_numFans;
+
     // display m_theme
     Theme *m_theme = nullptr;
 
     Asic *m_asics = nullptr;
 
     bool m_isInitialized = false;
+    bool m_isBuckInitialized = false;
 
   public:
     Board();
@@ -103,9 +121,15 @@ class Board {
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
     virtual void setFanPolarity(bool invert) = 0;
-    virtual void setFanSpeed(float perc) = 0;
-    virtual void getFanSpeed(uint16_t *rpm) = 0;
-    FanPolarityGuess guessFanPolarity();
+    virtual void setFanSpeedCh(int channel, float perc) = 0;
+    virtual void setFanSpeed(float perc) {
+        for (int i=0;i<getNumFans();i++) {
+            setFanSpeedCh(i, perc);
+        }
+    }
+    virtual void getFanSpeedCh(int channel, uint16_t *rpm) = 0;
+
+    virtual int getNumFans() { return m_numFans; }
 
     virtual float getTemperature(int index) = 0;
     virtual float getVRTemp() = 0;
@@ -127,9 +151,10 @@ class Board {
 
     virtual void shutdown() = 0;
 
-    virtual bool getPSUFault()
+    virtual Error getFault(uint32_t *status)
     {
-        return false;
+        *status = 0x00000000;
+        return Error::NONE;
     }
 
     virtual bool selfTest();
@@ -149,10 +174,20 @@ class Board {
         return m_asicMinDifficulty;
     };
 
+    uint32_t getAsicMinDifficultyDualPool()
+    {
+        return m_asicMinDifficultyDualPool;
+    };
+
     bool isInitialized()
     {
         return m_isInitialized;
     };
+
+    bool isBuckInitialized()
+    {
+        return m_isBuckInitialized;
+    }
 
     virtual Asic *getAsics()
     {
@@ -243,11 +278,6 @@ class Board {
     bool isInvertFanPolarityEnabled()
     {
         return m_fanInvertPolarity;
-    }
-
-    bool isAutoFanPolarityEnabled()
-    {
-        return m_fanAutoPolarity;
     }
 
     PidSettings *getPidSettings() {

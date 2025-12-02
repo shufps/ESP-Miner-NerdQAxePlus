@@ -347,7 +347,7 @@ float TPS53647::get_temperature(void)
 
     // Get temperature (SLINEAR11)
     read_word(PMBUS_READ_TEMPERATURE_1, &u16_value);
-    ESP_LOGI(TAG, "raw temp: %04x", u16_value);
+    //ESP_LOGI(TAG, "raw temp: %04x", u16_value);
     temp = slinear11_to_float(u16_value);
 #ifdef _DEBUG_LOG_
     ESP_LOGI(TAG, "Got Temp: %2.3f °C", temp);
@@ -543,3 +543,34 @@ uint8_t TPS53647::get_status_byte(void)
     read_byte(PMBUS_STATUS_BYTE, &status_byte);
     return status_byte;
 }
+
+uint8_t TPS53647::get_status_iout(void)
+{
+    uint8_t status_byte = 0xff;
+    read_byte(PMBUS_STATUS_IOUT, &status_byte);
+    return status_byte;
+}
+
+uint8_t TPS53647::get_status_vout(void)
+{
+    uint8_t status_byte = 0xff;
+    read_byte(PMBUS_STATUS_VOUT, &status_byte);
+    return status_byte;
+}
+
+uint8_t TPS53647::get_status_input(void)
+{
+    uint8_t status_byte = 0xff;
+    read_byte(PMBUS_STATUS_INPUT, &status_byte);
+    return status_byte;
+}
+
+uint8_t TPS53647::get_status_temp(void)
+{
+    uint8_t status_byte = 0xff;
+    read_byte(PMBUS_STATUS_TEMPERATURE, &status_byte);
+    return status_byte;
+}
+
+
+

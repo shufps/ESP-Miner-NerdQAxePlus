@@ -6,25 +6,29 @@
 
 table {
     width: 100%;
-    border: 1px solid #304562;
+    border: 1px solid var(--card-divider-color);
+    background-color: var(--card-background-color);
 }
 th {
-    text-align: right;
-    /*background-color: var(--card-header-primary-background-color);*/
+  padding-top: 5px;
+  /*padding-bottom: 5px;*/
+    text-align: center;
     background-color: var(--button-filled-info-background-color);
 }
 
-th, td {
+td {
     padding: 0.5rem;
-    border-bottom: 1px solid #304562;
-    text-align: right;
+    /*border-bottom: 1px solid #304562;*/
+    text-align: center;
 }
 
-th:nth-child(1), td:nth-child(1),
-th:nth-child(8), td:nth-child(8),
-th:nth-child(9), th:nth-child(10), th:nth-child(11),
-td:nth-child(9), td:nth-child(10), td:nth-child(11) {
-    text-align: center;
+.base-row td {
+  border-top: 2px solid var(--card-divider-color);
+}
+
+.swarm-table {
+  border-top: 2px solid var(--card-divider-color);
+  border-bottom: 2px solid var(--card-divider-color);
 }
 
 th:nth-child(9), th:nth-child(10), th:nth-child(11) {
@@ -37,6 +41,63 @@ td:nth-child(11) button {
     margin-right: 0;
 }
 
+.base-row td:first-child {
+  border-right: 1px solid var(--card-divider-color);
+}
+
+.base-row td:nth-child(2),
+.base-row td:nth-child(3),
+.base-row td:nth-child(4),
+.base-row td:nth-child(5),
+.base-row td:nth-child(6),
+.base-row td:nth-child(7),
+.base-row td:nth-child(8),
+.base-row td:nth-child(9),
+.dual-pool-2nd-row td:nth-child(2),
+.dual-pool-2nd-row td:nth-child(4),
+.dual-pool-2nd-row td:nth-child(6),
+.dual-pool-2nd-row td:nth-child(8),
+.dual-pool-2nd-row td:nth-child(9) {
+    border-right: 1px solid var(--card-divider-color);
+}
+
+.dual-pool-2nd-row td {
+  border-top: 1px solid var(--card-divider-color);
+}
+
+.dual-pool-2nd-row td {
+  font-size: 75%;
+}
+
+.dual-pool-header td {
+  margin: 0px;
+  padding: 0px;
+  font-size:75%;
+  /*text-align: center;*/
+  min-width: 80px;
+  background-color: var(--button-filled-info-background-color);
+  color: var(--button-filled-primary-text-color);
+  position: relative;
+  top: -4px;
+/*
+  position: relative;
+  top: -24px;
+*/
+}
+/*
+.dual-pool-header td:nth-child(2) {
+  text-align:left;
+  padding-left: 5px;
+}
+
+.dual-pool-header td:nth-child(3) {
+  text-align:right;
+  padding-right: 5px;
+}
+*/
+.base-row td:nth-child(12), .base-row td:nth-child(11), .base-row td:nth-child(10) {
+  width: 50px;
+}
 
 a {
     color: var(--text-primary-color);// white;

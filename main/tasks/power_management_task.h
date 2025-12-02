@@ -25,20 +25,24 @@ class PowerManagementTask {
     SemaphoreHandle_t m_mutex;
     TimerHandle_t m_timer;
 
-    char m_logBuffer[256] = {0};
+    char m_logBuffer[256]{};
     uint16_t m_fanPerc;
-    uint16_t m_fanRPM;
+    uint16_t m_fanRPM[2]{};
     float m_chipTempMax;
     float m_vrTemp;
     float m_voltage;
     float m_power;
     float m_current;
+    bool m_shutdown = false;
     PID *m_pid;
+    Board* m_board = nullptr;
 
     void checkCoreVoltageChanged();
     void checkAsicFrequencyChanged();
     void checkPidSettingsChanged();
     void checkVrFrequencyChanged();
+    void readAndPublishPowerTelemetry();
+    void applyAsicSettings();
     void task();
 
     bool startTimer();
@@ -75,10 +79,9 @@ class PowerManagementTask {
     {
         return m_vrTemp;
     };
-    uint16_t getFanRPM()
-    {
-        return m_fanRPM;
-    };
+
+    uint16_t getFanRPM(int channel);
+
     uint16_t getFanPerc()
     {
         return m_fanPerc;
@@ -93,4 +96,8 @@ class PowerManagementTask {
     }
 
     void shutdown();
+
+    bool isShutdown() {
+        return m_shutdown;
+    }
 };

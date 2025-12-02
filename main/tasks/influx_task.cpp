@@ -8,12 +8,15 @@
 #include "nvs_config.h"
 #include "ping_task.h"
 #include "influx_task.h"
+#include "stratum/stratum_manager.h"
 
 static const char *TAG = "influx_task";
 
 static Influx *influxdb = 0;
 
 int last_block_found = 0;
+
+uint64_t getDuplicateHWNonces();
 
 // Timer callback function to increment uptime counters
 void uptime_timer_callback(TimerHandle_t xTimer)
@@ -51,20 +54,27 @@ void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout
     pthread_mutex_unlock(&influxdb->m_lock);
 }
 
-static void influx_task_fetch_from_system_module(System *module)
-{
+void influx_set_fan(float pwm0, float rpm0, float pwm1, float rpm1) {
+    if (!influxdb) {
+        return;
+    }
+    pthread_mutex_lock(&influxdb->m_lock);
+    influxdb->m_stats.fan_pwm_0 = pwm0;
+    influxdb->m_stats.fan_rpm_0 = rpm0;
+    influxdb->m_stats.fan_pwm_1 = pwm1;
+    influxdb->m_stats.fan_rpm_1 = rpm1;
+    pthread_mutex_unlock(&influxdb->m_lock);
+}
+
+static void influx_task_fetch_from_stratum_manager(StratumManager *module) {
     // fetch best difficulty
-    float best_diff = module->getBestSessionNonceDiff();
+    float best_diff = module->getBestSessionDiff();
 
     influxdb->m_stats.best_difficulty = best_diff;
 
     if (best_diff > influxdb->m_stats.total_best_difficulty) {
         influxdb->m_stats.total_best_difficulty = best_diff;
     }
-
-    // fetch hashrate
-    influxdb->m_stats.hashing_speed = module->getCurrentHashrate();
-    influxdb->m_stats.hashing_speed_1m = module->getCurrentHashrate1m();
 
     // accepted
     influxdb->m_stats.accepted = module->getSharesAccepted();
@@ -73,19 +83,13 @@ static void influx_task_fetch_from_system_module(System *module)
     influxdb->m_stats.not_accepted = module->getSharesRejected();
 
     // duplicate
-    influxdb->m_stats.duplicate_hashes = module->getDuplicateHWNonces();
+    influxdb->m_stats.duplicate_hashes = getDuplicateHWNonces();
 
     // pool errors
     influxdb->m_stats.pool_errors = module->getPoolErrors();
 
     // pool difficulty
     influxdb->m_stats.difficulty = module->getPoolDifficulty();
-
-    // Ping RTT
-    influxdb->m_stats.last_ping_rtt = get_last_ping_rtt();
-
-    // Recent ping packet loss ratio
-    influxdb->m_stats.recent_ping_loss = get_recent_ping_loss();
 
     // found blocks
     int found = module->getFoundBlocks();
@@ -94,6 +98,19 @@ static void influx_task_fetch_from_system_module(System *module)
         influxdb->m_stats.total_blocks_found++;
     }
     last_block_found = found;
+}
+
+static void influx_task_fetch_from_system_module(System *module)
+{
+    // fetch hashrate
+    influxdb->m_stats.hashing_speed = module->getCurrentHashrate();
+    influxdb->m_stats.hashing_speed_1m = module->getCurrentHashrate1m();
+
+    // Ping RTT
+    influxdb->m_stats.last_ping_rtt = get_last_ping_rtt();
+
+    // Recent ping packet loss ratio
+    influxdb->m_stats.recent_ping_loss = get_recent_ping_loss();
 }
 
 static void forever()
@@ -175,8 +192,13 @@ void influx_task(void *pvParameters)
     }
 
     while (1) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            ESP_LOGW(TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
         pthread_mutex_lock(&influxdb->m_lock);
         influx_task_fetch_from_system_module(module);
+        influx_task_fetch_from_stratum_manager(STRATUM_MANAGER);
         influxdb->write();
         pthread_mutex_unlock(&influxdb->m_lock);
         vTaskDelay(pdMS_TO_TICKS(15000));

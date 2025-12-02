@@ -6,7 +6,7 @@ import { EditComponent } from './edit.component';
 import { AdvancedToggleModule } from '../../components/advanced-toggle/advanced-toggle.module';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-
+import { AlertBannerModule } from 'src/app/components/alert-banner/alert-banner.module';
 
 @NgModule({
   declarations: [EditComponent],
@@ -23,6 +23,7 @@ import { TranslateModule } from '@ngx-translate/core';
     AdvancedToggleModule,
     FormsModule,
     TranslateModule,
+    AlertBannerModule,
   ],
   exports: [EditComponent]
 })

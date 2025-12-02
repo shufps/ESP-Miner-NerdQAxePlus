@@ -10,13 +10,11 @@ static constexpr uint8_t REG_NONCE_TOTAL_CNT = 0x90;
 HashrateMonitor::HashrateMonitor()
 {}
 
-bool HashrateMonitor::start(Board *board, Asic *asic, uint32_t period_ms, uint32_t window_ms, uint32_t settle_ms)
+bool HashrateMonitor::start(Board *board, Asic *asic)
 {
     m_board = board;
     m_asic = asic;
-    m_period_ms = period_ms;
-    m_window_ms = window_ms;
-    m_settle_ms = settle_ms;
+    m_period_ms = HR_INTERVAL;
 
     if (!m_board || !m_asic) {
         ESP_LOGE(HR_TAG, "start(): missing dependencies (board=%p, asic=%p)", (void *) m_board, (void *) m_asic);
@@ -27,9 +25,12 @@ bool HashrateMonitor::start(Board *board, Asic *asic, uint32_t period_ms, uint32
 
     m_chipHashrate = new float[m_asicCount]();
 
+    m_prevResponse = new int64_t[m_asicCount]();
+    m_prevCounter = new uint32_t[m_asicCount]();
+
 
     xTaskCreate(&HashrateMonitor::taskWrapper, "hr_monitor", 4096, (void *) this, 10, NULL);
-    ESP_LOGI(HR_TAG, "started (period=%lums, window=%lums, settle=%lums)", m_period_ms, m_window_ms, m_settle_ms);
+    ESP_LOGI(HR_TAG, "started (period=%lums)", m_period_ms);
     return true;
 }
 
@@ -75,35 +76,44 @@ void HashrateMonitor::publishTotalIfComplete()
         m_logBuffer[offset - 2] = 0; // remove trailing slash
     }
 
-    ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, getTotalChipHashrate());
+    float hashrate = getTotalChipHashrate();
+
+    History *history = SYSTEM_MODULE.getHistory();
+    if (hashrate && history) {
+        uint64_t timestamp = esp_timer_get_time() / 1000llu;
+        history->pushRate(hashrate, timestamp);
+    }
+
+    ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, hashrate);
 }
 
 void HashrateMonitor::taskLoop()
 {
     // Small startup delay
-    vTaskDelay(pdMS_TO_TICKS(3000));
+    vTaskDelay(pdMS_TO_TICKS(4000));
 
+    // Send broadcast RESET for counter register once
+    m_asic->resetCounter(REG_NONCE_TOTAL_CNT);
+
+    TickType_t lastWake = xTaskGetTickCount();
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(m_period_ms));
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            ESP_LOGW(HR_TAG, "suspended");
+            vTaskSuspend(NULL);
+        }
 
-        if (!m_board || !m_asic)
+        if (!m_board || !m_asic) {
+            vTaskDelay(pdMS_TO_TICKS(m_period_ms));
             continue;
+        }
 
-        // Precise start timestamp (µs) taken right before RESET.
-        uint64_t m_t0_us = esp_timer_get_time();
-
-        // Send broadcast RESET for 0x8C.
-        m_asic->resetCounter(REG_NONCE_TOTAL_CNT);
-
-        // Measurement window (blocking here
-        vTaskDelay(pdMS_TO_TICKS(m_window_ms));
-
-        // Measure actual window length in µs and then READ back all counters
-        m_window_us = esp_timer_get_time() - m_t0_us;
+        // read the counters
         m_asic->readCounter(REG_NONCE_TOTAL_CNT);
 
-        // Give RX some time to deliver replies
-        vTaskDelay(pdMS_TO_TICKS(m_settle_ms));
+        // responses normally take 20-30ms, so this is safe
+        vTaskDelay(pdMS_TO_TICKS(500));
+
+        publishTotalIfComplete();
 
         // apply a slight smoothing
         if (!m_smoothedHashrate) {
@@ -112,25 +122,35 @@ void HashrateMonitor::taskLoop()
 
         m_smoothedHashrate = 0.5f * m_smoothedHashrate + 0.5f * getTotalChipHashrate();
 
-        //ESP_LOGI(HR_TAG, "smooth: %.3f unsmooth: %.3f", m_smoothedHashrate, getTotalChipHashrate());
-
-        // In case not all replies arrived, still publish what we have
-        publishTotalIfComplete();
+        vTaskDelayUntil(&lastWake, pdMS_TO_TICKS(m_period_ms));
     }
 }
 
-void HashrateMonitor::onRegisterReply(uint8_t asic_idx, uint32_t data_ticks)
+void HashrateMonitor::onRegisterReply(uint8_t asic_idx, uint32_t counterNow)
 {
-    // no valid window yet?
-    if (m_window_us == 0) {
+    if (asic_idx >= m_asicCount) {
+        ESP_LOGE(HR_TAG, "respnse for invalid asic %d", (int) asic_idx);
         return;
     }
 
-    // GH/s = cnt * 4096 / (window_s) / 1e9  ==> GH/s = cnt * 4.096 / window_us
-    double chip_ghs = (double) data_ticks * 4.096e6 * ERRATA_FACTOR / (double) m_window_us;
+    int64_t now = esp_timer_get_time();
 
-    if (m_board) {
-        //ESP_LOGI(HR_TAG, "hashrate of chip %u: %.3f GH/s", asic_idx, (float) chip_ghs);
-        setChipHashrate(asic_idx, chip_ghs);
+    // first response
+    if (!m_prevResponse[asic_idx]) {
+        m_prevResponse[asic_idx] = now;
+        m_prevCounter[asic_idx] = counterNow;
+        return;
     }
+
+    int64_t timeDelta = now - m_prevResponse[asic_idx];
+    uint32_t counterDelta = counterNow - m_prevCounter[asic_idx];
+
+    double chip_ghs = (double) counterDelta * (double) 0x100000000uLL / (double) timeDelta / 1000.0;
+//    ESP_LOGE("XXX", "m_prevResponse[%d]=%lld now=%lld m_prevCounter[%d]=%lu counterNow=%lu timeDelta=%llu counterDelta=%lu chip_ghs=%.3f",
+//        (int) asic_idx, m_prevResponse[asic_idx], now, (int) asic_idx, m_prevCounter[asic_idx], counterNow, timeDelta, counterDelta, chip_ghs);
+
+    setChipHashrate(asic_idx, chip_ghs);
+
+    m_prevCounter[asic_idx] = counterNow;
+    m_prevResponse[asic_idx] = now;
 }

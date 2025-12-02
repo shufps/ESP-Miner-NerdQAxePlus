@@ -3,10 +3,16 @@
 #include "ArduinoJson.h"
 
 #include "esp_psram.h"
+#include "hashrate_monitor_task.h"
 
-// 128k samples should be enough^^
-// must be power of two
-#define HISTORY_MAX_SAMPLES 0x20000
+#define NEXT_POWER_OF_TWO(x) \
+    (1 << (32 - __builtin_clz((x) - 1)))
+
+// data points needed for a day
+#define HISTORY_RAW (86400000 / HR_INTERVAL)
+
+// round up to the next power of 2
+#define HISTORY_MAX_SAMPLES NEXT_POWER_OF_TWO(HISTORY_RAW)
 
 class History;
 
@@ -22,44 +28,47 @@ class NonceDistribution {
     void toLog();
 };
 
+// --- HistoryAvg: robust, time-windowed, with "ramping" display average ---
 class HistoryAvg {
   protected:
     int m_firstSample = 0;
-    int m_lastSample = 0;
-    uint64_t m_timespan = 0;
-    uint64_t m_diffSum = 0;
-    double m_avg = 0;
-    double m_avgGh = 0;
-    uint64_t m_timestamp = 0;
-    bool m_preliminary = true;
+    int m_lastSample  = -1;           // start "empty"
+    uint64_t m_timespan = 0;          // desired window length in ms
+    uint32_t m_samplePeriodMs = 5000; // your push period (5s)
+    int m_numSamples = 0;             // actual samples inside the window
 
-    History *m_history;
+    int64_t m_sumRates = 0;           // sum of rate samples in Q10 (uQ22.10 summed into sQ54.10)
+    double m_avgGh = 0.0;             // unbiased average (GH/s)
+    double m_avgGhDisplay = 0.0;      // "ramping" average for UI (GH/s)
+    uint64_t m_timestamp = 0;         // timestamp of the newest sample in the window
+    bool m_preliminary = true;        // duration < timespan
+
+    History *m_history = nullptr;
 
   public:
-    HistoryAvg(History *history, uint64_t timespan);
+    HistoryAvg(History *history, uint64_t timespan, uint32_t samplePeriodMs = 5000);
 
-    float getGh()
-    {
-        return m_avgGh;
-    };
-
-    uint64_t getTimestamp()
-    {
-        return m_timestamp;
-    };
-
-    bool isPreliminary()
-    {
-        return m_preliminary;
-    };
+    // Call on each push to include new samples and trim the left edge
     void update();
+
+    // True, physically correct average GH/s
+    float getGh() const { return (float)m_avgGh; }
+
+    // Smoothed, "ramping" average GH/s for plotting or UI
+    float getGhDisplay() const { return (float)m_avgGhDisplay; }
+
+    uint64_t getTimestamp() const { return m_timestamp; }
+    bool isPreliminary() const { return m_preliminary; }
 };
+
+
 
 class History {
   protected:
     int m_numSamples = 0;
-    uint32_t *m_shares = nullptr;
+    uint32_t *m_rates = nullptr; // (uQ22.10)
     uint64_t *m_timestamps = nullptr;
+    float *m_hashrate1m = nullptr;
     float *m_hashrate10m = nullptr;
     float *m_hashrate1h = nullptr;
     float *m_hashrate1d = nullptr;
@@ -77,12 +86,14 @@ class History {
     bool init(int numAsics);
     bool isAvailable();
     void getTimestamps(uint64_t *first, uint64_t *last, int *num_samples);
-    void pushShare(uint32_t diff, uint64_t timestamp, int asic_nr);
+    void pushShare(int asic_nr);
+    void pushRate(float rateGh, uint64_t timestamp);
 
     void lock();
     void unlock();
 
     uint64_t getTimestampSample(int index);
+    float getHashrate1mSample(int index);
     float getHashrate10mSample(int index);
     float getHashrate1hSample(int index);
     float getHashrate1dSample(int index);
@@ -91,7 +102,7 @@ class History {
     double getCurrentHashrate10m();
     double getCurrentHashrate1h();
     double getCurrentHashrate1d();
-    uint32_t getShareSample(int index);
+    uint32_t getRateSample(int index);
     int searchNearestTimestamp(int64_t timestamp);
 
     void exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
