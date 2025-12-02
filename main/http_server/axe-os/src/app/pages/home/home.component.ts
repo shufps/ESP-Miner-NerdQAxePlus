@@ -318,6 +318,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       return `https://parasite.space/user/${address}`;
     } else if (stratumURL.includes('solomining.de')) {
       return `https://pool.solomining.de/#/app/${address}`;
+    } else if (stratumURL.includes('atlaspool.io')) {
+      return `https://atlaspool.io/dashboard.html?wallet=${address}`;
     }
     return stratumURL.startsWith('http') ? stratumURL : `http://${stratumURL}`;
   }
