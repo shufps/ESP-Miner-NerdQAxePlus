@@ -49,6 +49,7 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
     vTaskDelay(pdMS_TO_TICKS(1));
 
     bool isTPS53667 = gpio_get_level(VR_DETECT_PIN);
+    m_isTPS53667 = isTPS53667;  // Save for later use in getVRTemp()
 
     if (isTPS53667) {
         // TPS53667 configuration: 6 phases, 240A capability
@@ -84,4 +85,16 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
         ESP_LOGI(TAG, "TPS53647 voltage regulator detected (GPIO3=LOW, 4 phases, using inherited)");
     }
 
+}
+
+float NerdOctaxeGamma::getVRTemp() {
+    // Get temperature from parent implementation
+    float vrTemp = NerdQaxePlus::getVRTemp();
+
+    // Apply +8°C offset only for TPS53667 (6 phases) to correct sensor deviation
+    if (m_isTPS53667) {
+        vrTemp += 8.0f;
+    }
+
+    return vrTemp;
 }

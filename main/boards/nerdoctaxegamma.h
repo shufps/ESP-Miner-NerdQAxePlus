@@ -15,4 +15,8 @@
 class NerdOctaxeGamma : public NerdQaxePlus2 {
   public:
     NerdOctaxeGamma();
+    float getVRTemp() override;
+
+  private:
+    bool m_isTPS53667 = false;
 };
