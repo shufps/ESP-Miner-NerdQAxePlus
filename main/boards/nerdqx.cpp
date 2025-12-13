@@ -39,7 +39,7 @@ NerdQX::NerdQX() : NerdQaxePlus2() {
     m_imax = m_numPhases * 30;
     m_ifault = (float) decode_m_ifault(m_numPhases);
     m_asicFrequencies = {495, 500, 525, 550, 575, 600, 625, 650, 675, 700, 725, 750, 777, 800, 825, 850, 875, 900, 925, 950, 975, 1000};
-    m_asicVoltages   = {1085, 1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1220, 1230, 1240, 1250, 1260, 1270};
+    m_asicVoltages   = {1085, 1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1220, 1230, 1240, 1250, 1260, 1270, 1280, 1290, 1300, 1310, 1320, 1330, 1340, 1350};
     m_absMaxAsicFrequency = decode_m_absMaxAsicFrequency(m_imax);
     m_defaultAsicFrequency = m_asicFrequency = 777;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1200;
