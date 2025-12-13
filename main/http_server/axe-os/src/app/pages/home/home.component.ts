@@ -11,6 +11,7 @@ import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { IPool } from 'src/app/models/IStratum';
+import { getQuickLink, supportsPing } from './home.quicklinks';
 
 @Component({
   selector: 'app-home',
@@ -295,40 +296,36 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Returns a pool-specific dashboard / stats URL for the given stratum endpoint.
+   *
+   * The function delegates to the shared quicklink helper which:
+   * - normalizes the stratum URL (supports stratum+tcp://, host:port, host)
+   * - extracts the wallet / address from the stratum user
+   * - maps known pools to their corresponding web dashboards
+   *
+   * If no known pool matches, a normalized URL representation of the stratum
+   * endpoint is returned as a fallback.
+   *
+   * @param stratumURL  Stratum pool URL or host
+   * @param stratumUser Stratum user string (wallet[.worker])
+   * @returns A pool-specific dashboard URL or `undefined` if input is empty
+   */
   public getQuickLink(stratumURL: string, stratumUser: string): string | undefined {
-    const address = stratumUser.split('.')[0];
-
-    if (stratumURL.includes('public-pool.io')) {
-      return `https://web.public-pool.io/#/app/${address}`;
-    } else if (stratumURL.includes('ocean.xyz')) {
-      return `https://ocean.xyz/stats/${address}`;
-    } else if (stratumURL.includes('solo.d-central.tech')) {
-      return `https://solo.d-central.tech/#/app/${address}`;
-    } else if (/^eusolo[46]?.ckpool.org/.test(stratumURL)) {
-      return `https://eusolostats.ckpool.org/users/${address}`;
-    } else if (/^solo[46]?.ckpool.org/.test(stratumURL)) {
-      return `https://solostats.ckpool.org/users/${address}`;
-    } else if (stratumURL.includes('pool.noderunners.network')) {
-      return `https://noderunners.network/en/pool/user/${address}`;
-    } else if (stratumURL.includes('satoshiradio.nl')) {
-      return `https://pool.satoshiradio.nl/user/${address}`;
-    } else if (stratumURL.includes('solohash.co.uk')) {
-      return `https://solohash.co.uk/user/${address}`;
-    } else if (stratumURL.includes('parasite.wtf')) {
-      return `https://parasite.space/user/${address}`;
-    } else if (stratumURL.includes('solomining.de')) {
-      return `https://pool.solomining.de/#/app/${address}`;
-    } else if (stratumURL.includes('atlaspool.io')) {
-      return `https://atlaspool.io/dashboard.html?wallet=${address}`;
-    }
-    return stratumURL.startsWith('http') ? stratumURL : `http://${stratumURL}`;
+    return getQuickLink(stratumURL, stratumUser);
   }
 
-  public supportsPing(stratumURL: string) {
-    if (stratumURL.includes('public-pool.io')) {
-      return false;
-    }
-    return true;
+  /**
+   * Indicates whether the given stratum pool supports ICMP ping.
+   *
+   * Some pools intentionally block or ignore ping requests.
+   * This helper centralizes pool-specific exceptions.
+   *
+   * @param stratumURL Stratum pool URL or host
+   * @returns `true` if ping is supported, otherwise `false`
+   */
+  public supportsPing(stratumURL: string): boolean {
+    return supportsPing(stratumURL);
   }
 
   ngOnInit() {
