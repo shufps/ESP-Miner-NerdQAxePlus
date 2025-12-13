@@ -61,7 +61,7 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
         m_tps = new TPS53667();
 
         // Extended frequency range for TPS53667 (6 phases, higher power capacity)
-        m_asicFrequencies = {525, 575, 600, 625, 650, 675, 700, 750, 800};
+        m_asicFrequencies = {525, 550, 575, 600, 625, 650, 675, 700, 725, 750, 775, 800};
         m_absMaxAsicFrequency = 850;  // Absolute max for manual input (danger zone)
 
         // Extended voltage range for TPS53667 (6 phases, higher current capacity)
