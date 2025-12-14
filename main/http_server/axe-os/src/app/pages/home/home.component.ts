@@ -11,7 +11,7 @@ import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { IPool } from 'src/app/models/IStratum';
-import { getQuickLink, supportsPing } from './home.quicklinks';
+import { getPoolIconUrl as resolvePoolIconUrl, getQuickLink, supportsPing } from './home.quicklinks';
 
 @Component({
   selector: 'app-home',
@@ -326,6 +326,17 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
    */
   public supportsPing(stratumURL: string): boolean {
     return supportsPing(stratumURL);
+  }
+
+  /**
+   * Returns the icon URL for a given pool host / stratum endpoint.
+   * Delegates to the centralized helper in `home.quicklinks.ts`.
+   *
+   * @param host Pool host or stratum endpoint
+   * @returns Icon URL/path or undefined
+   */
+  public poolIconUrl(host: string | undefined | null): string {
+    return resolvePoolIconUrl(host ?? '');
   }
 
   ngOnInit() {
