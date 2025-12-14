@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 800 800" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g id="Layer_2" transform="matrix(16.6667,0,0,16.6667,0,0)">
+        <g id="invisible_box">
+            <rect x="0" y="0" width="48" height="48" style="fill:none;"/>
+            <rect x="0" y="0" width="48" height="48" style="fill:none;"/>
+            <rect x="0" y="0" width="48" height="48" style="fill:none;"/>
+        </g>
+        <g transform="matrix(0.101679,0,0,0.101679,-19.3763,-22.3997)">
+            <g transform="matrix(570.81,0,0,570.81,651.499,657.662)">
+            </g>
+            <text x="176.014px" y="657.662px" style="font-family:'DINCondensed-Bold', 'DIN Condensed';font-weight:700;font-stretch:condensed;font-size:570.81px;fill:rgb(255,153,0);">CK</text>
+        </g>
+    </g>
+</svg>
