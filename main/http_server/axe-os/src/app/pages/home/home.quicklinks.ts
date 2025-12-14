@@ -178,12 +178,6 @@ const POOLS: PoolMeta[] = [
     match: (h) => h.includes('ocean.xyz'),
     quickLink: (a) => `https://ocean.xyz/stats/${a}`,
   },
-  {
-    id: 'd-central-solo',
-    name: 'solo.d-central.tech',
-    match: (h) => h.includes('solo.d-central.tech'),
-    quickLink: (a) => `https://solo.d-central.tech/#/app/${a}`,
-  },
   // CKPool variants
   {
     id: 'ckpool-eusolo',
