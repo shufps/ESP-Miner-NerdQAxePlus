@@ -170,6 +170,13 @@ const POOLS: PoolMeta[] = [
    *   faviconPath: '/favicon.svg',
    */
   {
+    // Prefer Umbrel over other local pools.
+    id: 'umbrel-local',
+    name: 'Umbrel',
+    match: (h) => h === 'umbrel.local',
+    iconUrl: 'assets/pools/umbrel.svg',
+  },
+  {
     id: 'local-pool',
     name: 'Local pool',
     match: (h) => isLocalHost(h),
