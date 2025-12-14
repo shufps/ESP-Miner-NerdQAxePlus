@@ -261,6 +261,8 @@ const POOLS: PoolMeta[] = [
     name: 'atlaspool.io',
     match: (h) => h.includes('atlaspool.io'),
     quickLink: (a) => `https://atlaspool.io/dashboard.html?wallet=${a}`,
+    faviconHost: 'atlaspool.io',
+    faviconPath: '/favicon.ico',
   },
   {
     id: 'powermining',
