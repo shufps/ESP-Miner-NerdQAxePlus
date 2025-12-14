@@ -248,6 +248,12 @@ const POOLS: PoolMeta[] = [
     faviconHost: 'atlaspool.io',
     faviconPath: '/favicon.ico',
   },
+  {
+    id: 'powermining-pool',
+    name: 'powermining.io',
+    match: (h) => h.includes('powermining.io'),
+    quickLink: (a) => `https://pool.powermining.io/#/app/${a}`,
+  },
 ];
 
 /* ------------------------------------------------------------------
