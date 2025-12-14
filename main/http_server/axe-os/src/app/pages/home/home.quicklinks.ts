@@ -205,6 +205,13 @@ const POOLS: PoolMeta[] = [
     iconUrl: '/assets/pools/ck-pool.svg',
   },
   {
+    id: 'ckpool-ausolo',
+    name: 'ausolo*.ckpool.org',
+    match: (h) => /^ausolo[46]?\.(ckpool\.org)$/.test(h),
+    quickLink: (a) => `https://ausolostats.ckpool.org/users/${a}`,
+    iconUrl: '/assets/pools/ck-aupool.svg',
+  },
+  {
     id: 'noderunners',
     name: 'pool.noderunners.network',
     match: (h) => h.includes('pool.noderunners.network'),
