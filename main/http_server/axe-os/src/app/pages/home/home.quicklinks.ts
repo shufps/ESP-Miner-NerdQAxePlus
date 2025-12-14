@@ -195,12 +195,14 @@ const POOLS: PoolMeta[] = [
     name: 'eusolo*.ckpool.org',
     match: (h) => /^eusolo[46]?\.(ckpool\.org)$/.test(h),
     quickLink: (a) => `https://eusolostats.ckpool.org/users/${a}`,
+    iconUrl: '/assets/pools/ck-eupool.svg',
   },
   {
     id: 'ckpool-solo',
     name: 'solo*.ckpool.org',
     match: (h) => /^solo[46]?\.(ckpool\.org)$/.test(h),
     quickLink: (a) => `https://solostats.ckpool.org/users/${a}`,
+    iconUrl: '/assets/pools/ck-pool.svg',
   },
   {
     id: 'noderunners',
