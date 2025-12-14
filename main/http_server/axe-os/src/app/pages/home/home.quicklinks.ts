@@ -157,6 +157,17 @@ const POOLS: PoolMeta[] = [
    * Local pool rule (must be FIRST).
    * Ensures local endpoints do not try to load https://<ip>/favicon.ico
    * and instead use the default icon.
+   *
+   * Example -> Parasite pool:
+   * - UI: parasite.space
+   * - Icon may be hosted elsewhere or have custom path
+   *
+   * If you ever need a custom path or different domain:
+   * - set faviconHost + faviconPath
+   *
+   * Example:
+   *   faviconHost: 'parasite.wtf',
+   *   faviconPath: '/favicon.svg',
    */
   {
     id: 'local-pool',
@@ -214,18 +225,6 @@ const POOLS: PoolMeta[] = [
     faviconHost: 'solohash.co.uk',
     faviconPath: '/icons/favicon.ico',
   },
-
-  /**
-   * Parasite:
-   * - UI: parasite.space
-   * - Icon may be hosted elsewhere or have custom path
-   *
-   * If you ever need a custom path or different domain:
-   * - set faviconHost + faviconPath
-   * Example:
-   *   faviconHost: 'parasite.wtf',
-   *   faviconPath: '/favicon.svg',
-   */
   {
     id: 'parasite',
     name: 'parasite',
@@ -245,11 +244,9 @@ const POOLS: PoolMeta[] = [
     name: 'atlaspool.io',
     match: (h) => h.includes('atlaspool.io'),
     quickLink: (a) => `https://atlaspool.io/dashboard.html?wallet=${a}`,
-    faviconHost: 'atlaspool.io',
-    faviconPath: '/favicon.ico',
   },
   {
-    id: 'powermining-pool',
+    id: 'powermining',
     name: 'powermining.io',
     match: (h) => h.includes('powermining.io'),
     quickLink: (a) => `https://pool.powermining.io/#/app/${a}`,
