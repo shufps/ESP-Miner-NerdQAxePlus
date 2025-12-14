@@ -188,6 +188,7 @@ const POOLS: PoolMeta[] = [
     name: 'public-pool.io',
     match: (h) => h.includes('public-pool.io'),
     quickLink: (a) => `https://web.public-pool.io/#/app/${a}`,
+    iconUrl: 'assets/pools/public-pool.png',
     caps: { ping: false },
   },
   {
