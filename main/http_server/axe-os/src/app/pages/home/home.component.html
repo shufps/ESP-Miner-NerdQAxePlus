@@ -277,7 +277,15 @@
           @let usingFallback = info.stratum?.usingFallback;
 
           <nb-card class="h-100">
-            <nb-card-header>
+            <nb-card-header class="pool-header">
+              <a [href]="getQuickLink(poolInfo.host, poolInfo.user)" target="_blank">
+                <img
+                  [src]="poolIconUrl(poolInfo.host)"
+                  class="pool-header__icon"
+                  alt="Pool icon"
+                />
+              </a>
+
               <span *ngIf="!isDualPool" class="text-hint">
                 {{ 'POOL_INFO.TITLE' | translate }}
                 (

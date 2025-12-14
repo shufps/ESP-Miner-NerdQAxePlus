@@ -101,3 +101,23 @@ nb-card-header {
   cursor: default;
 }
 
+.pool-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pool-header__icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.pool-header__icon {
+  opacity: 0.85;
+}
+
+.pool-header__title {
+  min-width: 0;
+}
