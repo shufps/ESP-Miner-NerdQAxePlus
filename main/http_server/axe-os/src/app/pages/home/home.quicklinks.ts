@@ -29,6 +29,7 @@ export type PoolCapabilities = {
 };
 
 export const DEFAULT_POOL_ICON_URL = 'assets/pools/default.svg';
+export const DEFAULT_EXTERNAL_POOL_ICON_URL = 'assets/pools/public.svg';
 
 export type PoolMeta = {
   id: string;
@@ -127,7 +128,7 @@ function isPrivateIp(host: string): boolean {
  * - *.local
  * - private IPv4 ranges
  */
-function isLocalHost(host: string): boolean {
+export function isLocalHost(host: string): boolean {
   const h = (host ?? '').toLowerCase();
 
   // IPv6 localhost

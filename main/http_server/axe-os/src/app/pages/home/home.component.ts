@@ -11,8 +11,12 @@ import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { IPool } from 'src/app/models/IStratum';
-import { getPoolIconUrl as resolvePoolIconUrl, getQuickLink, supportsPing } from './home.quicklinks';
-import { DEFAULT_POOL_ICON_URL } from './home.quicklinks';
+import { getPoolIconUrl as resolvePoolIconUrl,
+         getQuickLink,
+         supportsPing,
+         isLocalHost,
+         DEFAULT_POOL_ICON_URL,
+         DEFAULT_EXTERNAL_POOL_ICON_URL, } from './home.quicklinks';
 
 @Component({
   selector: 'app-home',
@@ -351,7 +355,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     if (!key) return DEFAULT_POOL_ICON_URL;
 
     if (this.poolIconErrorCache.has(key)) {
-      return DEFAULT_POOL_ICON_URL;
+      return isLocalHost(key) ? DEFAULT_POOL_ICON_URL : DEFAULT_EXTERNAL_POOL_ICON_URL;
     }
 
     return resolvePoolIconUrl(key);
@@ -378,10 +382,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     const img = evt.target as HTMLImageElement | null;
     if (!img) return;
 
-    // Prevent infinite fallback loop
-    if (img.src.includes(DEFAULT_POOL_ICON_URL)) return;
+    const fallback = isLocalHost(key)
+      ? DEFAULT_POOL_ICON_URL
+      : DEFAULT_EXTERNAL_POOL_ICON_URL;
 
-    img.src = DEFAULT_POOL_ICON_URL;
+    if (img.src.includes(fallback)) return;
+
+    img.src = fallback;
   }
 
   ngOnInit() {
