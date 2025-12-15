@@ -12,6 +12,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { IPool } from 'src/app/models/IStratum';
 import { getPoolIconUrl as resolvePoolIconUrl, getQuickLink, supportsPing } from './home.quicklinks';
+import { DEFAULT_POOL_ICON_URL } from './home.quicklinks';
 
 @Component({
   selector: 'app-home',
@@ -328,15 +329,59 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return supportsPing(stratumURL);
   }
 
+  private readonly poolIconErrorCache = new Set<string>();
+
   /**
-   * Returns the icon URL for a given pool host / stratum endpoint.
-   * Delegates to the centralized helper in `home.quicklinks.ts`.
+   * Resolves the icon URL for a given pool host.
    *
-   * @param host Pool host or stratum endpoint
-   * @returns Icon URL/path or undefined
+   * Logic:
+   * - Uses the existing pool registry / quicklink resolution via `getPoolIconUrl`
+   * - If the pool host previously failed to load an icon (favicon or registry icon),
+   *   the default pool icon is returned immediately
+   * - This guarantees a valid icon for:
+   *   - local pools
+   *   - registered pools
+   *   - unknown public pools
+   *
+   * @param host Pool hostname
+   * @returns URL to the pool icon or the default pool icon
    */
   public poolIconUrl(host: string | undefined | null): string {
-    return resolvePoolIconUrl(host ?? '');
+    const key = (host ?? '').trim().toLowerCase();
+    if (!key) return DEFAULT_POOL_ICON_URL;
+
+    if (this.poolIconErrorCache.has(key)) {
+      return DEFAULT_POOL_ICON_URL;
+    }
+
+    return resolvePoolIconUrl(key);
+  }
+
+  /**
+   * Handles icon load errors for pool icons.
+   *
+   * When a favicon or registry-provided icon cannot be loaded (e.g. 404, CORS),
+   * this method:
+   * - stores the host in an internal error cache
+   * - replaces the broken image with the default pool icon
+   * - prevents repeated failing network requests for the same pool
+   *
+   * This ensures graceful fallback behavior for unknown public pools.
+   *
+   * @param evt Image error event
+   * @param host Pool hostname associated with the icon
+   */
+  public onPoolIconError(evt: Event, host: string | undefined | null): void {
+    const key = (host ?? '').trim().toLowerCase();
+    if (key) this.poolIconErrorCache.add(key);
+
+    const img = evt.target as HTMLImageElement | null;
+    if (!img) return;
+
+    // Prevent infinite fallback loop
+    if (img.src.includes(DEFAULT_POOL_ICON_URL)) return;
+
+    img.src = DEFAULT_POOL_ICON_URL;
   }
 
   ngOnInit() {

@@ -283,6 +283,7 @@
                   [src]="poolIconUrl(poolInfo.host)"
                   class="pool-header__icon"
                   alt="Pool icon"
+                  (error)="onPoolIconError($event, poolInfo.host)"
                 />
               </a>
 
