@@ -211,6 +211,8 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
         new_work->n_merkle_branches = merkle_branch.size();
         if (new_work->n_merkle_branches > MAX_MERKLE_BRANCHES) {
             ESP_LOGE(TAG, "Too many Merkle branches.");
+            freeMiningNotify(new_work);
+            safe_free(new_work);
             return false;
         }
 
