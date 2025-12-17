@@ -369,7 +369,8 @@
     "SETTINGS": "Mining Settings",
     "STRATUM_DIFFICULTY": "Initial Suggested Stratum Difficulty",
     "STRATUM_DIFFICULTY_HELP": "Initial suggested Stratum difficulty",
-    "ENABLE_EXTRANONCE": "Enable Extranonce Subscribe"
+    "ENABLE_EXTRANONCE": "Enable Extranonce Subscribe",
+    "STRATUM_TLS": "Encrypted connection (TLS)"
   },
   "FAN": {
     "TITLE": "Fan Controller",

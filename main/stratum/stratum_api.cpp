@@ -34,7 +34,8 @@ StratumApi::StratumApi() : m_len(0), m_send_uid(1)
 
 StratumApi::~StratumApi()
 {
-    // Nothing to free.
+    safe_free(m_buffer);
+    safe_free(m_requestBuffer);
 }
 
 uint8_t StratumApi::hex2val(char c)
@@ -144,7 +145,7 @@ char *StratumApi::receiveJsonRpcLine(StratumTransport *transport)
         if (nbytes < 0) {
             // Error on recv
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                // Non-blocking socket: no data right now.
+                // Timeout / no data right now.
                 if (!transport->isConnected()) {
                     ESP_LOGE(TAG, "Socket is not connected anymore.");
                     resetBuffer();
@@ -408,8 +409,23 @@ bool StratumApi::send(StratumTransport *transport, const char *message)
         return false;
     }
 
-    ssize_t bytes_written = transport->send(message, strlen(message));
-    if (bytes_written == -1) {
+    const char *p = message;
+    size_t remaining = strlen(message);
+
+    while (remaining > 0) {
+        int n = transport->send(p, remaining);
+        if (n > 0) {
+            p += n;
+            remaining -= (size_t)n;
+            continue;
+        }
+
+        // n == 0 means "no progress"; treat like a retryable condition.
+        if (n == 0 || (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))) {
+            vTaskDelay(pdMS_TO_TICKS(10));
+            continue;
+        }
+
         ESP_LOGE(TAG, "Error writing to socket: %s", strerror(errno));
         return false;
     }
@@ -426,7 +442,7 @@ bool StratumApi::subscribe(StratumTransport *transport, const char *device, cons
     snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"%s/%s/%s\"]}\n",
              m_send_uid++, device, asic, version);
 
-    return transport->send(m_requestBuffer, strlen(m_requestBuffer));
+    return send(transport, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
@@ -439,7 +455,7 @@ bool StratumApi::entranonceSubscribe(StratumTransport *transport)
     snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.extranonce.subscribe\", \"params\": []}\n",
         m_send_uid++);
 
-    return transport->send(m_requestBuffer, strlen(m_requestBuffer));
+    return send(transport, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
@@ -450,7 +466,7 @@ bool StratumApi::suggestDifficulty(StratumTransport *transport, uint32_t difficu
     snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%ld]}\n",
              m_send_uid++, difficulty);
 
-    return transport->send(m_requestBuffer, strlen(m_requestBuffer));
+    return send(transport, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
@@ -461,7 +477,7 @@ bool StratumApi::authenticate(StratumTransport *transport, const char *username,
     snprintf(m_requestBuffer, BUFFER_SIZE, "{\"id\": %d, \"method\": \"mining.authorize\", \"params\": [\"%s\", \"%s\"]}\n",
              m_send_uid++, username, pass);
 
-    return transport->send(m_requestBuffer, strlen(m_requestBuffer));
+    return send(transport, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
@@ -474,7 +490,7 @@ bool StratumApi::submitShare(StratumTransport *transport, const char *username, 
              "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
              m_send_uid++, username, jobid, extranonce_2, ntime, nonce, version);
 
-    return transport->send(m_requestBuffer, strlen(m_requestBuffer));
+    return send(transport, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------
@@ -487,7 +503,7 @@ bool StratumApi::configureVersionRolling(StratumTransport *transport)
              "\"1fffe000\"}]}\n",
              m_send_uid++);
 
-    return transport->send(m_requestBuffer, strlen(m_requestBuffer));
+    return send(transport, m_requestBuffer);
 }
 
 //--------------------------------------------------------------------

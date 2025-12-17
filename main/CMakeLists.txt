@@ -109,6 +109,7 @@ REQUIRES
     "esp_lcd"
     "esp_psram"
     "json"
+    "tcp_transport"
     "nvs_flash"
     "spiffs"
     "vfs"

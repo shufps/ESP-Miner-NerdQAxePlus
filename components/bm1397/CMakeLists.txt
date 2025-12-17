@@ -16,6 +16,7 @@ REQUIRES
     "freertos"
     "driver"
     "mbedtls"
+    "tcp_transport"
 )
 
 

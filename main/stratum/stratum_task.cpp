@@ -20,6 +20,7 @@
 #include "psram_allocator.h"
 #include "stratum_task.h"
 #include "system.h"
+#include "guards.h"
 
 #define ESP_LOGIE(b, tag, fmt, ...)                                                                                                \
     do {                                                                                                                           \
@@ -216,14 +217,18 @@ void StratumTask::stratumLoop()
             break;
         }
         line = m_stratumAPI.receiveJsonRpcLine(m_transport);
+
+        // release memory when out of scope
+        MemoryGuard g(line);
+
         if (!line && !m_reconnect) {
             ESP_LOGE(m_tag, "Failed to receive JSON-RPC line, reconnecting ...");
-            break;
+            return;
         }
 
         if (m_reconnect) {
             ESP_LOGI(m_tag, "reconnect requested ...");
-            break;
+            return;
         }
 
         ESP_LOGI(m_tag, "rx: %s", line); // debug incoming stratum messages
@@ -236,7 +241,7 @@ void StratumTask::stratumLoop()
         DeserializationError error = deserializeJson(doc, line);
         if (error) {
             ESP_LOGE(m_tag, "Unable to parse JSON: %s", error.c_str());
-            break;
+            return;
         }
 
         // we are pretty confident now that we have valid json and we can
@@ -249,17 +254,12 @@ void StratumTask::stratumLoop()
         // if stop is requested, don't dispatch anything
         // and break the loop
         if (m_stopFlag || POWER_MANAGEMENT_MODULE.isShutdown()) {
-            break;
+            return;
         }
 
         // parse the line
         m_manager->dispatch(m_index, doc);
-
-        // sets line to nullptr too
-        safe_free(line);
     }
-
-    safe_free(line);
 }
 
 void StratumTask::connect()

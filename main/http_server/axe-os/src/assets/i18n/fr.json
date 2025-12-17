@@ -369,7 +369,8 @@
     "SETTINGS": "Paramètres de Minage",
     "STRATUM_DIFFICULTY": "Difficulté Stratum Suggérée",
     "STRATUM_DIFFICULTY_HELP": "Difficulté Stratum initiale suggérée",
-    "ENABLE_EXTRANONCE": "Activer Extranonce Subscribe"
+    "ENABLE_EXTRANONCE": "Activer Extranonce Subscribe",
+    "STRATUM_TLS": "Connexion chiffrée (TLS)"
   },
   "FAN": {
     "TITLE": "Contrôleur de Ventilateur",
