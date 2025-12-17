@@ -20,7 +20,7 @@ wifipass,data,string,mypass
 stratumurl,data,string,public-pool.io
 
 # Stratum port – usually defined by your pool (default varies)
-stratumport,data,u16,21496
+stratumport,data,u16,3333
 
 # Stratum username – usually your wallet address + optional worker ID
 stratumuser,data,string,bc1q7n70rumyv6lvu8avpml0c3uggvssfu52egum3q.nerdqaxe

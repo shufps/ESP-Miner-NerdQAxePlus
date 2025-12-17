@@ -48,7 +48,7 @@ const defaultInfo: ISystemInfo = {
   ASICModel: eASICModel.BM1368,
   deviceModel: "NerdQAxe+",
   stratumURL: "public-pool.io",
-  stratumPort: 21496,
+  stratumPort: 3333,
   stratumUser: "bc1q99n3pu025yyu0jlywpmwzalyhm36tg5u37w20d.bitaxe-U1",
   stratumEnonceSubscribe: 0,
   stratumTLS: 0,

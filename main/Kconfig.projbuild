@@ -56,7 +56,7 @@ menu "Stratum Configuration"
     config STRATUM_PORT
         int "Stratum Port"
         range 0 65535
-        default 21496
+        default 3333
         help
             The stratum server port to connect to.
 
