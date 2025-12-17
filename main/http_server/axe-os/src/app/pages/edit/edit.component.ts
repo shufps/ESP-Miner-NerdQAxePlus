@@ -51,7 +51,7 @@ export class EditComponent implements OnInit {
   private asicFrequencyValues: number[] = [];
   private asicVoltageValues: number[] = [];
 
-  private stratum : IStratum = null;
+  private stratum: IStratum = null;
 
   private rebootRequiredFields = new Set<string>([
     'flipscreen',
@@ -490,5 +490,55 @@ export class EditComponent implements OnInit {
     }
     return `Pool ${i + 1}`;
   }
+
+  public swapPools(): void {
+    if (!this.form) return;
+
+    const a = {
+      url: 'stratumURL',
+      port: 'stratumPort',
+      user: 'stratumUser',
+      pass: 'stratumPassword',
+      tls: 'stratumTLS',
+      en: 'stratumEnonceSubscribe',
+    };
+
+    const b = {
+      url: 'fallbackStratumURL',
+      port: 'fallbackStratumPort',
+      user: 'fallbackStratumUser',
+      pass: 'fallbackStratumPassword',
+      tls: 'fallbackStratumTLS',
+      en: 'fallbackStratumEnonceSubscribe',
+    };
+
+    const get = (k: string) => this.form.get(k)?.value;
+    const set = (k: string, v: any) => this.form.get(k)?.setValue(v, { emitEvent: false });
+
+    // Swap all values
+    const tmp = {
+      url: get(a.url),
+      port: get(a.port),
+      user: get(a.user),
+      pass: get(a.pass),
+      tls: get(a.tls),
+      en: get(a.en),
+    };
+
+    set(a.url, get(b.url));
+    set(a.port, get(b.port));
+    set(a.user, get(b.user));
+    set(a.pass, get(b.pass));
+    set(a.tls, get(b.tls));
+    set(a.en, get(b.en));
+
+    set(b.url, tmp.url);
+    set(b.port, tmp.port);
+    set(b.user, tmp.user);
+    set(b.pass, tmp.pass);
+    set(b.tls, tmp.tls);
+    set(b.en, tmp.en);
+  }
+
 }
 

@@ -37,7 +37,17 @@
             </nb-card-body>
         </nb-card>
         <nb-card>
-            <nb-card-header>{{ 'SETTINGS.STRATUM' | translate }}</nb-card-header>
+            <nb-card-header>
+            <div class="d-flex align-items-center justify-content-between">
+                <div>{{ 'SETTINGS.STRATUM' | translate }}</div>
+
+                <button nbButton ghost size="small" type="button"
+                        (click)="swapPools()"
+                        nbTooltip="{{ 'SETTINGS.SWAP_POOLS' | translate }}">
+                <nb-icon icon="swap-outline" pack="eva"></nb-icon>
+                </button>
+            </div>
+            </nb-card-header>
             <nb-card-body>
 
                 <div class="form-row">
