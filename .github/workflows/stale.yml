@@ -1,0 +1,32 @@
+name: Close stale issues
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # runs daily at 03:00 UTC
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Mark issue as stale after 30 days of inactivity
+          days-before-issue-stale: 30
+
+          # Close issue 30 days after being marked stale
+          days-before-issue-close: 30
+
+          stale-issue-message: >
+            This issue has been automatically marked as stale due to 30 days
+            of inactivity. Please comment if this is still relevant.
+
+          close-issue-message: >
+            This issue has been automatically closed due to prolonged inactivity.
+
+          stale-issue-label: stale
+
+          # Issues with these labels will never be marked stale
+          exempt-issue-labels: pinned,security,bug
+
