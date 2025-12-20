@@ -12,12 +12,12 @@
 }
 
 #logs {
-    height: 500px;
+    height: 100svh;
     font-family: monospace;
     border: 1px solid #304562;
     overflow-y: scroll;
     overflow-x: hidden;
-    background-color: #404040;
+    background-color: #0D1117;
     >div {
         max-width: 100%;
         line-break: anywhere;
