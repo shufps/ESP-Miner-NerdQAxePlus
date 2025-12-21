@@ -258,7 +258,10 @@ void APIsFetcher::task() {
             fetchData(APIurl_BLOCKHEIGHT, APItype_BLOCK_HEIGHT);
             fetchData(APIurl_GLOBALHASH, APItype_HASHRATE);
             fetchData(APIurl_GETFEES, APItype_FEES);
-
+#if 0
+            UBaseType_t watermark = uxTaskGetStackHighWaterMark(NULL);
+            ESP_LOGI(TAG, "Stack high watermark: %u bytes", watermark);
+#endif
             vTaskDelay(pdMS_TO_TICKS(60000));
         }while (m_enabled);
     }
