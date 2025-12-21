@@ -2,7 +2,8 @@
 #include "hashrate_monitor_task.h"
 #include "boards/board.h"
 #include "esp_log.h"
-#include "mining.h" // for Asic
+#include "mining.h"
+#include "utils.h"
 
 static const char *HR_TAG = "hashrate_monitor";
 static constexpr uint8_t REG_NONCE_TOTAL_CNT = 0x90;
@@ -29,7 +30,7 @@ bool HashrateMonitor::start(Board *board, Asic *asic)
     m_prevCounter = new uint32_t[m_asicCount]();
 
 
-    xTaskCreate(&HashrateMonitor::taskWrapper, "hr_monitor", 4096, (void *) this, 10, NULL);
+    xTaskCreatePSRAM(&HashrateMonitor::taskWrapper, "hr_monitor", 4096, (void *) this, 10, NULL);
     ESP_LOGI(HR_TAG, "started (period=%lums)", m_period_ms);
     return true;
 }
