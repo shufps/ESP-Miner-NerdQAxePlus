@@ -119,8 +119,8 @@ jobs:
       if: env.RELEASE_EXISTS == 'false'
       uses: actions/upload-artifact@v4
       with:
-        name: esp-miner-factory-${{ matrix.label }}.bin
-        path: esp-miner-factory-${{ matrix.label }}.bin
+        name: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
+        path: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
         retention-days: 7
 
     - name: Upload ELF for crash analysis
@@ -152,6 +152,7 @@ jobs:
       run: |
         echo "esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
         echo "build/esp-miner-${{ matrix.label }}.bin" >> file_list.txt
+        echo "build/esp-miner-${{ matrix.label }}.elf" >> file_list.txt
         if [ "${{ matrix.upload_www }}" == "true" ]; then
           echo "build/www.bin" >> file_list.txt
         fi
