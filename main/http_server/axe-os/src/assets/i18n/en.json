@@ -195,7 +195,10 @@
     "RESET_SDIO": "SDIO reset",
     "RESET_NOT_SPECIFIED": "Not specified",
     "ABOUT_NERDQX": " project was developed by an international team of enthusiasts and released as open hardware. NerdQX belongs to the <strong>“ORIGINAL”</strong> initiative, which allows users to find out whether their NerdQX is an original, more about this",
-    "ABOUT_NERDQX_ORIGINAL": " <u>here</u>"
+    "ABOUT_NERDQX_ORIGINAL": " <u>here</u>",
+    "SHUTDOWN": "Shutdown",
+    "SHUTDOWN_SUCCESS": "System is shutting down",
+    "SHUTDOWN_FAILED": "Shutdown failed"
   },
   "SWARM": {
     "TITLE": "Swarm Management",

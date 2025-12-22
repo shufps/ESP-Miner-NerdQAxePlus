@@ -195,7 +195,10 @@
     "RESET_SDIO": "Reinicio SDIO",
     "RESET_NOT_SPECIFIED": "No especificado",
     "ABOUT_NERDQX": " proyecto fue desarrollado por un equipo internacional de entusiastas y lanzado como hardware abierto. NerdQX pertenece a la iniciativa <strong>«ORIGINAL»</strong>, que permite a los usuarios averiguar si su NerdQX es original. Más información al respecto",
-    "ABOUT_NERDQX_ORIGINAL": " <u>aquí</u>"
+    "ABOUT_NERDQX_ORIGINAL": " <u>aquí</u>",
+    "SHUTDOWN": "Apagar",
+    "SHUTDOWN_SUCCESS": "El sistema se está apagando",
+    "SHUTDOWN_FAILED": "Error al apagar el sistema"
   },
   "SWARM": {
     "TITLE": "Gestión de Enjambre",

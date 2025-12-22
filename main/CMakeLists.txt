@@ -41,6 +41,7 @@ SRCS
     "./http_server/handler_ota.cpp"
     "./http_server/handler_otp.cpp"
     "./http_server/handler_restart.cpp"
+    "./http_server/handler_shutdown.cpp"
     "./http_server/handler_file.cpp"
     "./http_server/handler_ota_factory.cpp"
     "./self_test/self_test.cpp"

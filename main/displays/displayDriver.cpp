@@ -622,6 +622,8 @@ void DisplayDriver::lvglTimerTask(void *param)
         uint32_t wait_ms = handleLvglTick(elapsed_Ani_cycles);
 
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            // switch into poweroff state
+            enterState(UiState::PowerOff, tnow);
             vTaskDelay(pdMS_TO_TICKS(wait_ms));
             continue;
         }

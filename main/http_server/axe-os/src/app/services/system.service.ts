@@ -174,6 +174,16 @@ export class SystemService {
     });
   }
 
+  public shutdown(uri: string = '', totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) headers = headers.set('X-TOTP', totp);
+
+    return this.httpClient.post(`${uri}/api/system/shutdown`, null, {
+      headers,
+      responseType: 'text', // plain text body
+    });
+  }
+
 
   public updateSystem(uri: string = '', update: any, totp?: string) {
     let headers = new HttpHeaders();
