@@ -38,7 +38,7 @@ public:
     int m_asicCount;
     int m_chipsDetected = 0;
     int m_numTempSensors = 0;
-    float *m_chipTemps;
+    float *m_chipTemps = nullptr;
     const char *m_swarmColorName = "blue";
     uint32_t m_vrFrequency;
     uint32_t m_defaultVrFrequency;
@@ -99,6 +99,22 @@ public:
 
   public:
     Board();
+    /**
+     * @brief Destructor for Board class.
+     *
+     * Releases dynamically allocated resources:
+     * - Deallocates the m_chipTemps array (float[] allocated in initBoard())
+     * - Deletes the m_theme object (Theme* allocated in derived class constructors)
+     *
+     * This is essential for preventing memory leaks, especially important for:
+     * - Re-initialization scenarios where initBoard() is called multiple times
+     * - Polymorphic deletion through Board* pointers
+     * - Proper cleanup when Board instances are destroyed
+     *
+     * The destructor is virtual to ensure correct cleanup of derived classes
+     * when deleted through a base class pointer.
+     */
+    virtual ~Board();
 
     virtual bool initBoard();
     virtual bool initAsics() = 0;

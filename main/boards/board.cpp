@@ -19,6 +19,20 @@ Board::Board() {
     m_numFans = 1;
 }
 
+Board::~Board() {
+    // Deallocate chip temperature array
+    if (m_chipTemps) {
+        delete[] m_chipTemps;
+        m_chipTemps = nullptr;
+    }
+
+    // Deallocate theme object (allocated in derived class constructors)
+    if (m_theme) {
+        delete m_theme;
+        m_theme = nullptr;
+    }
+}
+
 void Board::loadSettings()
 {
     m_fanPerc = Config::getFanSpeed();
@@ -56,6 +70,11 @@ void Board::loadSettings()
 }
 
 bool Board::initBoard() {
+    if (m_chipTemps) {
+        delete[] m_chipTemps;
+        m_chipTemps = nullptr;
+    }
+
     m_chipTemps = new float[m_asicCount]();
     return true;
 }
@@ -79,6 +98,10 @@ void Board::requestChipTemps() {
 }
 
 float Board::getMaxChipTemp() {
+    if (!m_chipTemps) {
+        return 0.0f;
+    }
+    
     float maxTemp = 0.0f;
     for (int i=0;i<m_asicCount;i++) {
         maxTemp = std::max(maxTemp, m_chipTemps[i]);
