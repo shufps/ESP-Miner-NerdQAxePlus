@@ -799,7 +799,8 @@ void DisplayDriver::updateHashrate(System *module, StratumManager* manager, floa
     char strData[20];
     char strDataActive[20];
 
-    float efficiency = power / (SYSTEM_MODULE.getCurrentHashrate() / 1000.0);
+    float hr = SYSTEM_MODULE.getCurrentHashrate() / 1000.0f;
+    float efficiency = (hr > 0) ? power / hr : 10000.0f;
     float hashrate = SYSTEM_MODULE.getCurrentHashrate();
     formatHashrate(strData, sizeof(strData), hashrate);
 
@@ -820,7 +821,7 @@ void DisplayDriver::updateHashrate(System *module, StratumManager* manager, floa
     lv_label_set_text(m_ui->ui_lblHashPrice, strData);  // Update hashrate
 
     snprintf(strData, sizeof(strData), "%.1f", efficiency);
-    lv_label_set_text(m_ui->ui_lbEficiency, strData); // Update eficiency label
+    lv_label_set_text(m_ui->ui_lbEficiency, (efficiency < 10000.0f) ? strData : "n/a"); // Update eficiency label
 
     snprintf(strData, sizeof(strData), "%.3fW", power);
     lv_label_set_text(m_ui->ui_lbPower, strData); // Actualiza el label
