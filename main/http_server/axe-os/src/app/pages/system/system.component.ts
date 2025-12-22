@@ -6,7 +6,7 @@ import { ISystemInfo } from '../../models/ISystemInfo';
 import { NbToastrService, NbThemeService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
-import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { OtpAuthService, EnsureOtpResult, EnsureOtpOptions } from '../../services/otp-auth.service';
 import { LoadingService } from '../../services/loading.service';
 
 @Component({
@@ -103,7 +103,8 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
     this.otpAuth.ensureOtp$(
       "",
       this.translateService.instant('SECURITY.OTP_TITLE'),
-      this.translateService.instant('SECURITY.OTP_HINT')
+      this.translateService.instant('SECURITY.OTP_HINT'),
+      { disableOtp: true },
     )
       .pipe(
         switchMap(({ totp }: EnsureOtpResult) =>
@@ -125,6 +126,40 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
       });
   }
 
+  public shutdown() {
+    this.otpAuth.ensureOtp$(
+      "",
+      this.translateService.instant('SECURITY.OTP_TITLE'),
+      this.translateService.instant('SECURITY.OTP_HINT'),
+      { disableOtp: true },
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) =>
+          this.systemService.shutdown("", totp).pipe(
+            // drop session on shutdown
+            tap(() => { }),
+            this.loadingService.lockUIUntilComplete()
+          )
+        ),
+        catchError((err: HttpErrorResponse) => {
+          this.toastrService.danger(
+            this.translateService.instant('SYSTEM.SHUTDOWN_FAILED'),
+            this.translateService.instant('COMMON.ERROR')
+          );
+          return of(null);
+        })
+      )
+      .subscribe(res => {
+        if (res !== null) {
+          this.toastrService.success(
+            this.translateService.instant('SYSTEM.SHUTDOWN_SUCCESS'),
+            this.translateService.instant('COMMON.SUCCESS')
+          );
+        }
+      });
+  }
+
+
   public getRssiTooltip(rssi: number): string {
     if (rssi <= -85) return this.translateService.instant('SYSTEM.SIGNAL_VERY_WEAK');
     if (rssi <= -75) return this.translateService.instant('SYSTEM.SIGNAL_WEAK');
@@ -133,7 +168,9 @@ export class SystemComponent implements OnDestroy, AfterViewChecked {
     return this.translateService.instant('SYSTEM.SIGNAL_EXCELLENT');
   }
 
-
+  public getBootTime(uptimeSeconds: number): number {
+    return Date.now() - uptimeSeconds * 1000;
+  }
 
   openLink(url: string): void {
     // Open external link in a new tab

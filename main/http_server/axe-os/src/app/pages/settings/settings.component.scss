@@ -34,13 +34,13 @@ a {
   color: white;
 }
 
-.pro-mode-warning {
-  background-color: #ffcccb;
-  color: #b22222;
-  border: 1px solid #b22222;
+.alert-box {
+  color: #ffcccb;
+  background-color: #b22222;
+  border: 1px solid #000000;
   padding: 10px;
   margin: 10px 0;
-  text-align: center;
+  text-align: left;
   font-weight: bold;
   border-radius: 5px;
 }

@@ -26,6 +26,14 @@ import { WithCredentialsInterceptor } from './with-credentials.interceptor';
 import { OtpSessionInterceptor } from './services/otp-session.interceptor';
 
 
+export function getAppVersion() {
+  // Placeholder gets replaced by Github workflow
+  const version = '__VERSION__';
+
+  // return empty string if local build
+  return version.includes('VERSION') ? "" : version;
+}
+
 export function createTranslateLoader(http: HttpClient) {
   // Placeholder gets replaced by Github workflow
   const commit = '__COMMIT__';

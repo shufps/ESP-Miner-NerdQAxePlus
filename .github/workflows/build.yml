@@ -72,7 +72,7 @@ jobs:
         set -e
         COMMIT_HASH=$(git rev-parse --short HEAD)
         sed -e "s|__COMMIT__|${COMMIT_HASH}|g" -i ./main/http_server/axe-os/src/app/app.module.ts
-
+        sed -e "s|__VERSION__|${VERSION_TAG}|g" -i ./main/http_server/axe-os/src/app/app.module.ts
         for l in de en es fr; do
           mv "./main/http_server/axe-os/src/assets/i18n/${l}.json" "./main/http_server/axe-os/src/assets/i18n/${l}.${COMMIT_HASH}.json"
         done
@@ -119,8 +119,8 @@ jobs:
       if: env.RELEASE_EXISTS == 'false'
       uses: actions/upload-artifact@v4
       with:
-        name: esp-miner-factory-${{ matrix.label }}.bin
-        path: esp-miner-factory-${{ matrix.label }}.bin
+        name: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
+        path: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
         retention-days: 7
 
     - name: Upload ELF for crash analysis
@@ -152,6 +152,7 @@ jobs:
       run: |
         echo "esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin" > file_list.txt
         echo "build/esp-miner-${{ matrix.label }}.bin" >> file_list.txt
+        echo "build/esp-miner-${{ matrix.label }}.elf" >> file_list.txt
         if [ "${{ matrix.upload_www }}" == "true" ]; then
           echo "build/www.bin" >> file_list.txt
         fi

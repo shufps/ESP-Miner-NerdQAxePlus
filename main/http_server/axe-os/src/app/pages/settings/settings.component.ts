@@ -10,8 +10,9 @@ import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { IUpdateStatus } from 'src/app/models/IUpdateStatus';
-import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { OtpAuthService, EnsureOtpResult, EnsureOtpOptions } from '../../services/otp-auth.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
+import { getAppVersion } from 'src/app/app.module';
 
 @Component({
   selector: 'app-settings',
@@ -52,6 +53,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public showChangelog: boolean = false;
   public changelog: string = '';
   public currentVersion: string = '';
+  public currentWebVersion: string = '';
 
   public otpEnabled: boolean = false;
 
@@ -83,6 +85,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.info$.pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
         this.currentVersion = info.version;
+        this.currentWebVersion = this.getAppVersion();
         //this.deviceModel = "NerdQAxe++";
         this.deviceModel = info.deviceModel;
         this.ASICModel = info.ASICModel;
@@ -476,32 +479,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     ) ?? [];
   }
 
-  public restart() {
-    this.otpAuth.ensureOtp$(
-      "",
-      this.translate.instant('SECURITY.OTP_TITLE'),
-      this.translate.instant('SECURITY.OTP_HINT')
-    )
-      .pipe(
-        switchMap(({ totp }: EnsureOtpResult) =>
-          this.systemService.restart("", totp).pipe(
-            // drop session on reboot
-            tap(() => { }),
-            this.loadingService.lockUIUntilComplete()
-          )
-        ),
-        catchError((err: HttpErrorResponse) => {
-          this.toastrService.danger(this.translate.instant('SYSTEM.RESTART_FAILED'), this.translate.instant('COMMON.ERROR'));
-          return of(null);
-        })
-      )
-      .subscribe(res => {
-        if (res !== null) {
-          this.toastrService.success(this.translate.instant('SYSTEM.RESTART_SUCCESS'), this.translate.instant('COMMON.SUCCESS'));
-        }
-      });
-  }
-
   // settings.component.ts
   public onSelectReleaseId(id: number) {
     this.releases$.pipe(take(1)).subscribe(list => {
@@ -521,5 +498,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
     return `esp-miner-factory-${this.normalizedModel}-${release.tag_name}.bin`;
   }
 
+  public getAppVersion() {
+    return getAppVersion();
+  }
 
 }

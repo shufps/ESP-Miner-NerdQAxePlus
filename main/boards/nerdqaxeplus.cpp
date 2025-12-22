@@ -346,9 +346,12 @@ Board::Error NerdQaxePlus::getFault(uint32_t *status) {
     // is buck off? Then something is wrong ...
     // return general error.
     // status_byte: Bit 6 = OFF
-    if (status_byte != 0xff && (status_byte & 0x40)) {
-        return Board::Error::PSU_FAULT;
-    }
+    // update: this has wrong behaviour because on eg over temp shutdown
+    // it would trigger PSU error with #40000000 what actually only says the vreg is off
+    // but without any TPS error flag set.
+    //if (status_byte != 0xff && (status_byte & 0x40)) {
+    //    return Board::Error::PSU_FAULT;
+    //}
 
     return Board::Error::NONE;
 }

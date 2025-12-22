@@ -7,7 +7,7 @@ import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
-import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { OtpAuthService, EnsureOtpResult, EnsureOtpOptions } from '../../services/otp-auth.service';
 import { TranslateService } from '@ngx-translate/core';
 import { IStratum } from 'src/app/models/IStratum';
 
@@ -405,7 +405,8 @@ export class EditComponent implements OnInit {
     this.otpAuth.ensureOtp$(
       this.uri,
       this.translate.instant('SECURITY.OTP_TITLE'),
-      this.translate.instant('SECURITY.OTP_HINT')
+      this.translate.instant('SECURITY.OTP_HINT'),
+      { disableOtp: true },
     )
       .pipe(
         switchMap(({ totp }: EnsureOtpResult) =>

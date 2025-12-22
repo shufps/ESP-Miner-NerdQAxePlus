@@ -141,8 +141,8 @@ esp_reset_reason_t System::showLastResetReason() {
 }
 
 void System::showError(const char *error_message, uint32_t error_code) {
-    // is this error already shown? yes, do nothing
-    if (m_showsOverlay && m_currentErrorCode == error_code) {
+    // we are already displaying an error
+    if (m_showsOverlay && m_currentErrorCode != 0) {
         return;
     }
     m_display->showError(error_message, error_code);

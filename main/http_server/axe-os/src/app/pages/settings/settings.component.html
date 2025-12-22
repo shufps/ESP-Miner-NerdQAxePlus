@@ -1,6 +1,10 @@
 <!-- update.component.html -->
 
-
+<nb-card *ngIf="currentWebVersion !== '' && currentVersion !== currentWebVersion" class="alert-box">
+Version mismatch!<br/><br/>
+Firmware: {{ currentVersion }}<br/>
+Web-UI: {{ currentWebVersion }}<br/>
+</nb-card>
 <!-- Settings Card (stays separate) -->
 <nb-card>
   <nb-card-header>{{ 'SETTINGS.TITLE' | translate }}</nb-card-header>

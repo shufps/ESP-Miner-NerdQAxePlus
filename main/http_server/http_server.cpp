@@ -17,6 +17,7 @@
 #include "handler_system.h"
 #include "handler_ota.h"
 #include "handler_restart.h"
+#include "handler_shutdown.h"
 #include "handler_file.h"
 #include "handler_alert.h"
 #include "handler_otp.h"
@@ -200,6 +201,18 @@ esp_err_t start_rest_server(void * pvParameters)
         .user_ctx = NULL
     };
     httpd_register_uri_handler(http_server, &system_restart_options_uri);
+
+    httpd_uri_t system_shutdown_uri = {
+        .uri = "/api/system/shutdown", .method = HTTP_POST, .handler = POST_shutdown, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &system_shutdown_uri);
+
+    httpd_uri_t system_shutdown_options_uri = {
+        .uri = "/api/system/shutdown",
+        .method = HTTP_OPTIONS,
+        .handler = handle_options_request,
+        .user_ctx = NULL
+    };
+    httpd_register_uri_handler(http_server, &system_shutdown_options_uri);
 
     httpd_uri_t update_system_settings_uri = {
         .uri = "/api/system", .method = HTTP_PATCH, .handler = PATCH_update_settings, .user_ctx = rest_context};

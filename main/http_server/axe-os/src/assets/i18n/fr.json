@@ -195,7 +195,10 @@
     "RESET_SDIO": "Redémarrage SDIO",
     "RESET_NOT_SPECIFIED": "Non spécifié",
     "ABOUT_NERDQX": " projet a été développé par une équipe internationale de passionnés et publié en tant que matériel libre. NerdQX fait partie de l'initiative <strong>«ORIGINAL»</strong>, qui permet aux utilisateurs de vérifier si leur NerdQX est un produit original. Pour en savoir plus, cliquez",
-    "ABOUT_NERDQX_ORIGINAL": " <u>ici</u>"
+    "ABOUT_NERDQX_ORIGINAL": " <u>ici</u>",
+    "SHUTDOWN": "Arrêt",
+    "SHUTDOWN_SUCCESS": "Le système est en cours d’arrêt",
+    "SHUTDOWN_FAILED": "Échec de l’arrêt du système"
   },
   "SWARM": {
     "TITLE": "Gestion d'Essaim",

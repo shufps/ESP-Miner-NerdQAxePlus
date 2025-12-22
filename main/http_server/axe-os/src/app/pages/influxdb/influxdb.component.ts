@@ -6,7 +6,7 @@ import { LoadingService } from '../../services/loading.service';
 import { SystemService } from '../../services/system.service';
 import { NbToastrService, NbDialogService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
-import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { OtpAuthService, EnsureOtpResult, EnsureOtpOptions } from '../../services/otp-auth.service';
 
 @Component({
   selector: 'app-influx',
@@ -91,7 +91,8 @@ export class InfluxdbComponent implements OnInit {
     this.otpAuth.ensureOtp$(
       this.uri,
       this.translate.instant('SECURITY.OTP_TITLE'),
-      this.translate.instant('SECURITY.OTP_HINT')
+      this.translate.instant('SECURITY.OTP_HINT'),
+      { disableOtp: true },
     )
       .pipe(
         switchMap(({ totp }: EnsureOtpResult) =>
