@@ -18,11 +18,11 @@ esp_err_t POST_shutdown(httpd_req_t *req)
     if (is_network_allowed(req) != ESP_OK) {
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
-
+/*
     if (validateOTP(req) != ESP_OK) {
         return ESP_FAIL;
     }
-
+*/
     ESP_LOGI(TAG, "Shutting down System because of API Request");
 
     // Send HTTP response before restarting

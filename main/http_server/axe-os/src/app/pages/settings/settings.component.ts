@@ -10,7 +10,7 @@ import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { IUpdateStatus } from 'src/app/models/IUpdateStatus';
-import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { OtpAuthService, EnsureOtpResult, EnsureOtpOptions } from '../../services/otp-auth.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
 import { getAppVersion } from 'src/app/app.module';
 
@@ -477,32 +477,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     return this.latestStableRelease?.assets?.filter(asset =>
       asset.name === this.expectedFactoryFilename
     ) ?? [];
-  }
-
-  public restart() {
-    this.otpAuth.ensureOtp$(
-      "",
-      this.translate.instant('SECURITY.OTP_TITLE'),
-      this.translate.instant('SECURITY.OTP_HINT')
-    )
-      .pipe(
-        switchMap(({ totp }: EnsureOtpResult) =>
-          this.systemService.restart("", totp).pipe(
-            // drop session on reboot
-            tap(() => { }),
-            this.loadingService.lockUIUntilComplete()
-          )
-        ),
-        catchError((err: HttpErrorResponse) => {
-          this.toastrService.danger(this.translate.instant('SYSTEM.RESTART_FAILED'), this.translate.instant('COMMON.ERROR'));
-          return of(null);
-        })
-      )
-      .subscribe(res => {
-        if (res !== null) {
-          this.toastrService.success(this.translate.instant('SYSTEM.RESTART_SUCCESS'), this.translate.instant('COMMON.SUCCESS'));
-        }
-      });
   }
 
   // settings.component.ts
