@@ -99,6 +99,8 @@ bool NerdaxeGamma::initBoard()
 
 void NerdaxeGamma::shutdown() {
     setVoltage(0.0);
+
+    Board::shutdown();
 }
 
 bool NerdaxeGamma::initAsics() {

@@ -118,6 +118,8 @@ void NerdQaxePlus::shutdown() {
     LDO_disable();
 
     vTaskDelay(pdMS_TO_TICKS(500));
+
+    Board::shutdown();
 }
 
 bool NerdQaxePlus::initAsics()
@@ -186,6 +188,15 @@ void NerdQaxePlus::requestBuckTelemtry() {
 
 void NerdQaxePlus::requestChipTemps() {
     if (!m_asics) {
+        return;
+    }
+
+    // in shutdown we can't request chip temps via serial, so we
+    // reset it to 0 to prevent stale values
+    if (m_shutdown) {
+        for (int i=0;i<m_asicCount;i++) {
+            setChipTemp(i, 0.0f);
+        }
         return;
     }
 

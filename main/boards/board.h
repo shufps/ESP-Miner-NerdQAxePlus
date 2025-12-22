@@ -89,6 +89,8 @@ public:
 
     int m_numFans;
 
+    bool m_shutdown = false;
+
     // display m_theme
     Theme *m_theme = nullptr;
 
@@ -149,7 +151,9 @@ public:
     float getMaxChipTemp();
     float getChipTemp(int nr);
 
-    virtual void shutdown() = 0;
+    virtual void shutdown() {
+        m_shutdown = true;
+    }
 
     virtual Error getFault(uint32_t *status)
     {
@@ -302,6 +306,10 @@ public:
 
     const char* getDefaultTheme() {
         return m_defaultTheme;
+    }
+
+    bool isShutdown() {
+        return m_shutdown;
     }
 
 };

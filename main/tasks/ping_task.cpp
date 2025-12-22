@@ -194,12 +194,14 @@ void PingTask::ping_task()
     StratumConfig* cfg = new StratumConfig(m_pool);
     while (true) {
         {
-            PThreadGuard g(m_mutex);
             if (POWER_MANAGEMENT_MODULE.isShutdown()) {
                 ESP_LOGW(m_tag, "suspended");
+                // reset metrics in shutdown
+                reset();
                 vTaskSuspend(NULL);
             }
 
+            PThreadGuard g(m_mutex);
             if (!m_manager || !m_manager->isConnected(m_pool)) { // helper public machen
                 vTaskDelay(pdMS_TO_TICKS(10000));
                 continue;

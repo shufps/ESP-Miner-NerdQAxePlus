@@ -93,6 +93,15 @@ bool NerdQX::initBoard() {
 }
 
 void NerdQX::requestChipTemps() {
+    // in shutdown the LDOs are not powered and we can't
+    // measure the chip temps, so we reset it to 0 to prevent stale values
+    if (m_shutdown) {
+        for (int i=0;i<m_asicCount;i++) {
+            setChipTemp(i, 0.0f);
+        }
+        return;
+    }
+
     // don't try when we know we don't have it
     if (!m_hasTMux) {
         ESP_LOGE(TAG, "TMUX not detected.");

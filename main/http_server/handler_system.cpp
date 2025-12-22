@@ -62,6 +62,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
+    bool shutdown = POWER_MANAGEMENT_MODULE.isShutdown();
+
     // Get configuration strings from NVS
     char *ssid               = Config::getWifiSSID();
     char *hostname           = Config::getHostname();
@@ -89,11 +91,12 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["temp"]               = POWER_MANAGEMENT_MODULE.getChipTempMax();
     doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
     doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
-    doc["hashRate"]           = SYSTEM_MODULE.getCurrentHashrate();
-    doc["hashRate_1m"]        = history->getCurrentHashrate1m();
-    doc["hashRate_10m"]       = history->getCurrentHashrate10m();
-    doc["hashRate_1h"]        = history->getCurrentHashrate1h();
-    doc["hashRate_1d"]        = history->getCurrentHashrate1d();
+    // set hashrate values to 0 in shutdown
+    doc["hashRate"]           = !shutdown ? SYSTEM_MODULE.getCurrentHashrate() : 0.0;
+    doc["hashRate_1m"]        = !shutdown ? history->getCurrentHashrate1m()    : 0.0;
+    doc["hashRate_10m"]       = !shutdown ? history->getCurrentHashrate10m()   : 0.0;
+    doc["hashRate_1h"]        = !shutdown ? history->getCurrentHashrate1h()    : 0.0;
+    doc["hashRate_1d"]        = !shutdown ? history->getCurrentHashrate1d()    : 0.0;
     doc["coreVoltage"]        = board->getAsicVoltageMillis();
     doc["defaultCoreVoltage"] = board->getDefaultAsicVoltageMillis();
     doc["coreVoltageActual"]  = (int) (board->getVout() * 1000.0f);
@@ -127,7 +130,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     }
 
     // If history was requested, add the history data as a nested object
-    if (history_requested) {
+    if (!shutdown && history_requested) {
         uint64_t end_timestamp = start_timestamp + 3600 * 1000ULL; // 1 hour later
         JsonObject json_history = doc["history"].to<JsonObject>();
 

@@ -224,6 +224,11 @@ void PowerManagementTask::readAndPublishPowerTelemetry()
 
 void PowerManagementTask::applyAsicSettings()
 {
+    // not available when asics are shutdown
+    if (m_shutdown) {
+        return;
+    }
+
     // don't change frequency or voltage if
     // asics haven't been initialized
     if (!m_board->isInitialized()) {
@@ -278,13 +283,14 @@ void PowerManagementTask::task()
 
         // uint64_t start = esp_timer_get_time();
         lock();
-
+/*
+        // don't suspend power management task in shutdown
         if (m_shutdown) {
             unlock();
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }
-
+*/
         uint16_t asic_overheat_temp = Config::getOverheatTemp();
         uint16_t temp_control_mode = Config::getTempControlMode();
 

@@ -133,6 +133,8 @@ bool NerdAxe::initBoard()
 
 void NerdAxe::shutdown() {
     setVoltage(0.0);
+
+    Board::shutdown();
 }
 
 bool NerdAxe::initAsics()
