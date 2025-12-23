@@ -14,10 +14,10 @@
 #logs {
     height: 100svh;
     font-family: monospace;
-    border: 1px solid #304562;
+    border: 1px solid var(--border-basic-color-3);
     overflow-y: scroll;
     overflow-x: hidden;
-    background-color: #0D1117;
+    background-color: var(--background-basic-color-3);
     >div {
         max-width: 100%;
         line-break: anywhere;
@@ -32,7 +32,7 @@
 }
 
 :host ::ng-deep .ansi-red { color: #ff0000 !important; }
-:host ::ng-deep .ansi-green { color: #00ff00 !important; }
+:host ::ng-deep .ansi-green { color: #00bb00 !important; }
 :host ::ng-deep .ansi-yellow { color: #ffff00 !important; }
 :host ::ng-deep .ansi-blue { color: #0000ff !important; }
 :host ::ng-deep .ansi-magenta { color: #ff00ff !important; }
