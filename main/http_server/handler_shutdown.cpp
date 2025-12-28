@@ -25,8 +25,8 @@ esp_err_t POST_shutdown(httpd_req_t *req)
 */
     ESP_LOGI(TAG, "Shutting down System because of API Request");
 
-    // Send HTTP response before restarting
-    const char *resp_str = "System will restart shortly.";
+    // Send HTTP response before shutting down
+    const char *resp_str = "System will shutdown shortly.";
     httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
 
     // Delay to ensure the response is sent
