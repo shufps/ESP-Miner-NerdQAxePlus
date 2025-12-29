@@ -409,12 +409,14 @@
     "WEBHOOK": "Discord Webhook",
     "WEBHOOK_URL": "Webhook URL",
     "WEBHOOK_HELP": "Webhook from your Discord channel integration",
-    "CONFIGURE_DESCRIPTION": "Configure which Discord alerts you want to receive. The webhook is used for all selected topics.",
+    "CONFIGURE_DESCRIPTION": "Configure which Discord alerts you want to receive. The webhook is used for all selected alerts.",
     "MINER_WATCHDOG": "Miner watchdog triggered",
-    "MINER_WATCHDOG_DESC": "triggers if the device reboots after failing to submit a share for 1 hour",
+    "MINER_WATCHDOG_DESC": "triggers when the device reboots after failing to submit a share for 1 hour",
     "BLOCK_FOUND": "Block found",
     "BLOCK_FOUND_DESC": "triggers when your miner finds a block",
-    "TEST": "Test"
+    "TEST": "Test",
+    "BEST_DIFF_FOUND": "Best difficulty found",
+    "BEST_DIFF_FOUND_DESC": "triggers when the device finds a new best difficulty"
   },
   "LANGUAGE": {
     "TITLE": "Language / Langue",

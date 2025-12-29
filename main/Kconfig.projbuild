@@ -231,6 +231,12 @@ menu "Discord Alert Configuration"
         help
             Sends a Discord alert when your miner finds a block.
 
+    config ALERT_DISCORD_BEST_DIFF_ENABLE
+        bool "Block-found alert"
+        default n
+        help
+            Sends a Discord alert when your miner finds a new best difficulty.
+
     # Internal 0/1 mirrors for C code that prefers ints
     config ALERT_DISCORD_WATCHDOG_ENABLE_VALUE
         int
@@ -240,6 +246,11 @@ menu "Discord Alert Configuration"
     config ALERT_DISCORD_BLOCK_FOUND_ENABLE_VALUE
         int
         default 1 if ALERT_DISCORD_BLOCK_FOUND_ENABLE
+        default 0
+
+    config ALERT_DISCORD_BEST_DIFF_ENABLE_VALUE
+        int
+        default 1 if ALERT_DISCORD_BEST_DIFF_ENABLE
         default 0
 
     # Webhook URL for sending Discord alerts (only shown if any alert is enabled)

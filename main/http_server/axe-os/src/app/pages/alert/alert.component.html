@@ -28,6 +28,12 @@
           </nb-checkbox>
         </div>
 
+        <div class="form-row">
+          <nb-checkbox formControlName="alertDiscordBestDiffEnable" class="cb-line">
+            <span class="cb-title">{{ 'DISCORD.BEST_DIFF_FOUND' | translate }}</span>
+            <span class="cb-desc">— {{ 'DISCORD.BEST_DIFF_FOUND_DESC' | translate }}</span>
+          </nb-checkbox>
+        </div>
         <!-- Webhook -->
         <div class="form-row mt-3">
           <label for="alertDiscordWebhook" class="form-label">{{ 'DISCORD.WEBHOOK_URL' | translate }}:</label>

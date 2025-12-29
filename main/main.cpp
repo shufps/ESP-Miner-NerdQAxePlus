@@ -280,8 +280,8 @@ extern "C" void app_main(void)
         // wifi is connected, switch the AP off
         wifi_softap_off();
 
-        discordAlerter.init();
-        discordAlerter.loadConfig();
+        // start the discord alerter early
+        discordAlerter.start();
 
         // initialize OTP
         if (!otp.init()) {

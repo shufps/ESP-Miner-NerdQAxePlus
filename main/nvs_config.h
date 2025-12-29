@@ -53,6 +53,7 @@
 #define NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE "alrt_disc_en"
 #define NVS_CONFIG_ALERT_DISCORD_URL    "alrt_disc_url"
 #define NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE "alrt_disc_bf_en"
+#define NVS_CONFIG_ALERT_DISCORD_BEST_DIFF "alrt_disc_bd_en"
 
 #define NVS_CONFIG_SWARM "swarmconfig"
 
@@ -180,6 +181,7 @@ namespace Config {
     inline bool isInfluxEnabled() { return nvs_config_get_u16(NVS_CONFIG_INFLUX_ENABLE, CONFIG_INFLUX_ENABLE_VALUE) != 0; }
     inline bool isDiscordWatchdogAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE, CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE_VALUE) != 0; }
     inline bool isDiscordBlockFoundAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE_VALUE) != 0; }
+    inline bool isDiscordBestDiffAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_BEST_DIFF, CONFIG_ALERT_DISCORD_BEST_DIFF_ENABLE_VALUE) != 0; }
     inline bool isStratumKeepaliveEnabled() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_KEEPALIVE, CONFIG_STRATUM_KEEPALIVE_ENABLE_VALUE) != 0; }
     inline bool isStratumEnonceSubscribe() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_ENONCE_SUB, CONFIG_STRATUM_ENONCE_SUBSCRIBE_VALUE) != 0; }
     inline bool isStratumFallbackEnonceSubscribe() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB, CONFIG_STRATUM_FALLBACK_ENONCE_SUBSCRIBE_VALUE) != 0; }
@@ -195,6 +197,7 @@ namespace Config {
     inline void setInfluxEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_INFLUX_ENABLE, value ? 1 : 0); }
     inline void setDiscordWatchdogAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE, value ? 1 : 0); }
     inline void setDiscordAlertBlockFoundEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, value ? 1 : 0); }
+    inline void setDiscordAlertBestDiffEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_BEST_DIFF, value ? 1 : 0); }
     inline void setStratumKeepaliveEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_KEEPALIVE, value ? 1 : 0); }
     inline void setStratumEnonceSubscribe(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_ENONCE_SUB, value ? 1 : 0); }
     inline void setStratumFallbackEnonceSubscribe(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB, value ? 1 : 0); }

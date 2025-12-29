@@ -36,6 +36,7 @@ esp_err_t GET_alert_info(httpd_req_t *req)
     //doc["alertDiscordWebhook"]  = alertDiscordWebhook;
     doc["alertDiscordWatchdogEnable"] = Config::isDiscordWatchdogAlertEnabled() ? 1 : 0;
     doc["alertDiscordBlockFoundEnable"] = Config::isDiscordBlockFoundAlertEnabled() ? 1 : 0;
+    doc["alertDiscordBestDiffEnable"] = Config::isDiscordBestDiffAlertEnabled() ? 1 : 0;
 
     esp_err_t ret = sendJsonResponse(req, doc);
 
@@ -81,7 +82,9 @@ esp_err_t POST_update_alert(httpd_req_t *req)
     if (doc["alertDiscordBlockFoundEnable"].is<bool>()) {
         Config::setDiscordAlertBlockFoundEnabled(doc["alertDiscordBlockFoundEnable"].as<bool>());
     }
-
+    if (doc["alertDiscordBestDiffEnable"]).is<bool>()) {
+        Config::setDiscordAlertBestDiffEnabled(doc["alertDiscordBestDiffEnable"].as<bool>());
+    }
 
     doc.clear();
 

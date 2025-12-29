@@ -407,14 +407,16 @@
     "TITLE": "Alertes Discord",
     "ALERTS": "Alertes Discord",
     "WEBHOOK": "Webhook Discord",
-    "WEBHOOK_URL": "URL Webhook",
-    "WEBHOOK_HELP": "Webhook de l'intégration de votre canal Discord",
+    "WEBHOOK_URL": "URL du webhook",
+    "WEBHOOK_HELP": "Webhook issu de l’intégration du canal Discord",
     "CONFIGURE_DESCRIPTION": "Configurez les alertes Discord que vous souhaitez recevoir. Le webhook est utilisé pour tous les sujets sélectionnés.",
-    "MINER_WATCHDOG": "Surveillance du mineur déclenchée",
-    "MINER_WATCHDOG_DESC": "se déclenche si l'appareil redémarre après avoir échoué à soumettre une part pendant 1 heure",
+    "MINER_WATCHDOG": "Watchdog du mineur déclenché",
+    "MINER_WATCHDOG_DESC": "se déclenche lorsque l’appareil redémarre après n’avoir envoyé aucun share pendant 1 heure",
     "BLOCK_FOUND": "Bloc trouvé",
-    "BLOCK_FOUND_DESC": "se déclenche quand votre mineur trouve un bloc",
-    "TEST": "Test"
+    "BLOCK_FOUND_DESC": "se déclenche lorsque votre mineur trouve un bloc",
+    "TEST": "Test",
+    "BEST_DIFF_FOUND": "Meilleure difficulté trouvée",
+    "BEST_DIFF_FOUND_DESC": "se déclenche lorsque l’appareil trouve une nouvelle meilleure difficulté"
   },
   "LANGUAGE": {
     "TITLE": "Langue / Language",

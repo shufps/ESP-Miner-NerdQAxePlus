@@ -2,11 +2,11 @@
 #include <cstring>
 #include <string>
 
+#include "connect.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "nvs_config.h"
-#include "connect.h"
 
 #include "global_state.h"
 #include "macros.h"
@@ -14,40 +14,61 @@
 
 static const char *TAG = "discord";
 
+#define ALERTER_QUEUE_LEN 4
+
+#define DISCORD_TASK_PRIO 5
+
 #ifndef DIFF_STRING_SIZE
-#define DIFF_STRING_SIZE 32
+#define DIFF_STRING_SIZE 12
 #endif
 
-Alerter::Alerter() : m_messageBuffer(nullptr), m_payloadBuffer(nullptr)
+Alerter::Alerter() : m_payloadBuffer(nullptr)
 {
     // NOP
 }
 
-void Alerter::init() {
-    m_messageBuffer = (char *) MALLOC(messageBufferSize);
+bool Alerter::init()
+{
     m_payloadBuffer = (char *) MALLOC(payloadBufferSize);
-}
-
-DiscordAlerter::DiscordAlerter() : Alerter(), m_webhookUrl(nullptr)
-{
-    // NOP
-}
-
-void DiscordAlerter::loadConfig()
-{
-    if (m_webhookUrl) {
-        free(m_webhookUrl);
-        m_webhookUrl = nullptr;
+    if (!m_payloadBuffer) {
+        ESP_LOGE(TAG, "Error creating payload buffer");
+        return false;
     }
 
+    m_msgQueue = xQueueCreate(ALERTER_QUEUE_LEN, sizeof(alerter_msg_t));
+    if (!m_msgQueue) {
+        ESP_LOGE(TAG, "Failed to create queue");
+        return false;
+    }
+
+    loadConfig();
+    return true;
+}
+
+void Alerter::loadConfig()
+{
+    safe_free(m_webhookUrl);
+    safe_free(m_host);
+
+    m_host = Config::getHostname();
     m_webhookUrl = Config::getDiscordWebhook();
+    m_wdtAlertEnabled = Config::isDiscordWatchdogAlertEnabled();
+    m_blockFoundAlertEnabled = Config::isDiscordBlockFoundAlertEnabled();
+    m_bestDiffAlertEnabled = Config::isDiscordBestDiffAlertEnabled();
 }
 
-void DiscordAlerter::init() {
-    Alerter::init();
+DiscordAlerter::DiscordAlerter() : Alerter()
+{
+    // NOP
 }
 
-bool DiscordAlerter::sendRaw(const char *message)
+
+bool DiscordAlerter::init()
+{
+    return Alerter::init();
+}
+
+bool DiscordAlerter::httpPost(const char *message)
 {
     if (m_webhookUrl == nullptr || message == nullptr) {
         ESP_LOGE(TAG, "Webhook URL or message is null");
@@ -99,63 +120,101 @@ bool DiscordAlerter::sendRaw(const char *message)
     }
 }
 
-bool DiscordAlerter::sendMessage(const char *message)
+bool DiscordAlerter::enqueueMessage(const char *message)
 {
-    if (!m_messageBuffer) {
-        ESP_LOGE(TAG, "message buffer is nullptr");
-        return false;
-    }
-
     char ip[20] = {0};
     connect_get_ip_addr(ip, sizeof(ip));
-    //ESP_LOGI(TAG, "IP: %s", ip);
     const char *mac = SYSTEM_MODULE.getMacAddress();
-    //ESP_LOGI(TAG, "MAC: %s", mac);
-    char *hostname = Config::getHostname();
 
-    //ESP_LOGI(TAG, "IP: %s", ip.c_str());
-    //ESP_LOGI(TAG, "MAC: %s", mac.c_str());
-    //ESP_LOGI(TAG, "Hostname: %s", hostname);
+    alerter_msg_t msg = {};
 
-    snprintf(m_messageBuffer, messageBufferSize - 1, "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```", message,
-             hostname ? hostname : "unknown", ip, mac ? mac : "unknown");
+    snprintf(msg.message, sizeof(msg.message) - 1, "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```", message,
+             m_host ? m_host : "unknown", ip, mac ? mac : "unknown");
 
-    free(hostname);
+    ESP_LOGW(TAG, "enqueued: %s", msg.message);
 
-    return sendRaw(m_messageBuffer);
+    return xQueueSend(m_msgQueue, &msg, 0) == pdTRUE;
 }
 
-bool DiscordAlerter::sendWatchdogAlert() {
-    if (!Config::isDiscordWatchdogAlertEnabled()) {
+bool DiscordAlerter::sendWatchdogAlert()
+{
+    if (!m_wdtAlertEnabled) {
         ESP_LOGI(TAG, "discord watchdog alert not enabled");
         return false;
     }
 
-    return discordAlerter.sendMessage("Device rebooted because there was no share for more than 1h!");
+    return enqueueMessage("Device rebooted because there was no share for more than 1h!");
 }
 
 bool DiscordAlerter::sendBlockFoundAlert(double diff, double networkDiff)
 {
-    if (!Config::isDiscordBlockFoundAlertEnabled()) {
+    if (!m_blockFoundAlertEnabled) {
         ESP_LOGI(TAG, "discord block found alert not enabled");
         return false;
     }
 
     char diffStr[DIFF_STRING_SIZE];
     char netStr[DIFF_STRING_SIZE];
-    suffixString((uint64_t)diff,        diffStr, DIFF_STRING_SIZE, 0);
-    suffixString((uint64_t)networkDiff, netStr,  DIFF_STRING_SIZE, 0);
+    suffixString((uint64_t) diff, diffStr, DIFF_STRING_SIZE, 0);
+    suffixString((uint64_t) networkDiff, netStr, DIFF_STRING_SIZE, 0);
 
     char base[192];
-    snprintf(base, sizeof(base) - 1,
-             ":tada: Block found!\\nDiff: %s (network: %s)",
-             diffStr, netStr);
+    snprintf(base, sizeof(base) - 1, ":tada: Block found!\\nDiff: %s (network: %s)", diffStr, netStr);
 
-    return sendMessage(base);
+    return enqueueMessage(base);
 }
 
+bool DiscordAlerter::sendBestDifficultyAlert(double diff, double networkDiff)
+{
+    if (!m_bestDiffAlertEnabled) {
+        return false;
+    }
+
+    char bestStr[DIFF_STRING_SIZE];
+    char netStr[DIFF_STRING_SIZE];
+
+    suffixString((uint64_t) diff, bestStr, DIFF_STRING_SIZE, 0);
+    suffixString((uint64_t) networkDiff, netStr, DIFF_STRING_SIZE, 0);
+
+    char base[160];
+    snprintf(base, sizeof(base) - 1,
+             ":chart_with_upwards_trend: New *best difficulty* found!\\n"
+             "Best:    %s\\n"
+             "Network: %s",
+             bestStr, netStr);
+
+    return enqueueMessage(base);
+}
 
 bool DiscordAlerter::sendTestMessage()
 {
-    return sendMessage("This is a test message!");
+    return enqueueMessage("This is a test message!");
+}
+
+void DiscordAlerter::taskWrapper(void *pv) {
+    DiscordAlerter *alerter = static_cast<DiscordAlerter*>(pv);
+    alerter->task();
+}
+
+void DiscordAlerter::task() {
+    ESP_LOGI(TAG, "Discord alerter started");
+
+    alerter_msg_t msg;
+    while (1) {
+        if (xQueueReceive(m_msgQueue, &msg, portMAX_DELAY) == pdTRUE) {
+            httpPost(msg.message);
+        }
+    }
+}
+
+void DiscordAlerter::start()
+{
+    if (!init()) {
+        ESP_LOGE(TAG, "error init discord alerter!");
+        return;
+    }
+
+    xTaskCreatePSRAM(DiscordAlerter::taskWrapper, "discord_task", 8192, (void*) this, DISCORD_TASK_PRIO, NULL);
+
+    ESP_LOGI(TAG, "Discord task started");
 }

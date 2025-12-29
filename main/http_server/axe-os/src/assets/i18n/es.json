@@ -404,17 +404,19 @@
     "PROCEED_ANYWAY": "Continuar de Todos Modos"
   },
   "DISCORD": {
-    "TITLE": "Alertas Discord",
-    "ALERTS": "Alertas Discord",
-    "WEBHOOK": "Webhook Discord",
-    "WEBHOOK_URL": "URL Webhook",
-    "WEBHOOK_HELP": "Webhook de la integración de su canal Discord",
-    "CONFIGURE_DESCRIPTION": "Configure qué alertas de Discord desea recibir. El webhook se usa para todos los temas seleccionados.",
-    "MINER_WATCHDOG": "Vigilancia del minero activada",
-    "MINER_WATCHDOG_DESC": "se activa si el dispositivo se reinicia después de fallar al enviar una acción durante 1 hora",
+    "TITLE": "Alertas de Discord",
+    "ALERTS": "Alertas de Discord",
+    "WEBHOOK": "Webhook de Discord",
+    "WEBHOOK_URL": "URL del webhook",
+    "WEBHOOK_HELP": "Webhook de la integración del canal de Discord",
+    "CONFIGURE_DESCRIPTION": "Configura qué alertas de Discord deseas recibir. El webhook se utiliza para todos los temas seleccionados.",
+    "MINER_WATCHDOG": "Watchdog del minero activado",
+    "MINER_WATCHDOG_DESC": "se activa cuando el dispositivo se reinicia tras no enviar ningún share durante 1 hora",
     "BLOCK_FOUND": "Bloque encontrado",
-    "BLOCK_FOUND_DESC": "se activa cuando su minero encuentra un bloque",
-    "TEST": "Prueba"
+    "BLOCK_FOUND_DESC": "se activa cuando tu minero encuentra un bloque",
+    "TEST": "Prueba",
+    "BEST_DIFF_FOUND": "Mejor dificultad encontrada",
+    "BEST_DIFF_FOUND_DESC": "se activa cuando el dispositivo encuentra una nueva mejor dificultad"
   },
   "LANGUAGE": {
     "TITLE": "Idioma / Language",

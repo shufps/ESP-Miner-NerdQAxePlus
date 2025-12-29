@@ -408,13 +408,15 @@
     "ALERTS": "Discord-Benachrichtigungen",
     "WEBHOOK": "Discord-Webhook",
     "WEBHOOK_URL": "Webhook-URL",
-    "WEBHOOK_HELP": "Webhook von Ihrer Discord-Kanal-Integration",
-    "CONFIGURE_DESCRIPTION": "Konfigurieren Sie, welche Discord-Benachrichtigungen Sie erhalten möchten. Der Webhook wird für alle ausgewählten Themen verwendet.",
+    "WEBHOOK_HELP": "Webhook aus der Discord-Kanal-Integration",
+    "CONFIGURE_DESCRIPTION": "Lege fest, welche Discord-Benachrichtigungen du erhalten möchtest. Der Webhook wird für alle ausgewählten Themen verwendet.",
     "MINER_WATCHDOG": "Miner-Watchdog ausgelöst",
-    "MINER_WATCHDOG_DESC": "wird ausgelöst, wenn das Gerät nach dem Versagen, eine Aktie für 1 Stunde einzureichen, neu startet",
+    "MINER_WATCHDOG_DESC": "wird ausgelöst, wenn das Gerät neu startet, nachdem 1 Stunde lang kein Share gesendet wurde",
     "BLOCK_FOUND": "Block gefunden",
-    "BLOCK_FOUND_DESC": "wird ausgelöst, wenn Ihr Miner einen Block findet",
-    "TEST": "Test"
+    "BLOCK_FOUND_DESC": "wird ausgelöst, wenn dein Miner einen Block findet",
+    "TEST": "Test",
+    "BEST_DIFF_FOUND": "Beste Schwierigkeit gefunden",
+    "BEST_DIFF_FOUND_DESC": "wird ausgelöst, wenn das Gerät eine neue beste Schwierigkeit findet"
   },
   "LANGUAGE": {
     "TITLE": "Sprache / Language",
