@@ -179,8 +179,7 @@ bool DiscordAlerter::sendBestDifficultyAlert(double diff, double networkDiff)
     char base[160];
     snprintf(base, sizeof(base) - 1,
              ":chart_with_upwards_trend: New *best difficulty* found!\\n"
-             "Best:    %s\\n"
-             "Network: %s",
+             "Diff: %s (network: %s)",
              bestStr, netStr);
 
     return enqueueMessage(base);
