@@ -196,9 +196,9 @@
                   <app-gauge
                     [value]="info.currentA"
                     [min]="info.minCurrentA ?? 0"
-                    [max]="info.maxCurrentA ?? 8"
-                    [warn]="(info.maxCurrentA ?? 8) * 0.95"
-                    [crit]="(info.maxCurrentA ?? 8) * 1.00"
+                    [max]="info.maxCurrentA ?? 6"
+                    [warn]="(info.maxCurrentA ?? 6) * 0.94"
+                    [crit]="(info.maxCurrentA ?? 6) * 0.99"
                     [unit]="'A'"
                     [label]="'PERFORMANCE.INPUT_CURRENT' | translate"
                     [format]="'1.2-2'">
