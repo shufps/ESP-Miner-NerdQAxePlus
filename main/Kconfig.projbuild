@@ -1,4 +1,15 @@
 menu "Miner Configuration"
+    config SHOW_BLOCK_FOUND_ENABLE
+        bool "Show 'Block Found' Alert"
+        default y
+        help
+            Shows "Block Found" on the display when a block is found
+
+    config SHOW_BLOCK_FOUND_ENABLE_VALUE
+        int
+        default 1 if SHOW_BLOCK_FOUND_ENABLE
+        default 0
+
     config AUTO_SCREEN_OFF
         bool "Screen auto-off"
         default n

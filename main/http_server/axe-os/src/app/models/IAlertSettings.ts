@@ -3,4 +3,5 @@ export interface IAlertSettings {
   alertDiscordWatchdogEnable: boolean;
   alertDiscordBlockFoundEnable: boolean;
   alertDiscordBestDiffEnable: boolean;
+  showBlockFoundScreenEnable: boolean;
 }

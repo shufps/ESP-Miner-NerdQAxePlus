@@ -75,6 +75,7 @@ void DisplayDriver::loadSettings() {
     m_isAutoScreenOffEnabled = Config::isAutoScreenOffEnabled();
     m_tempControlMode = Config::getTempControlMode();
     m_fanSpeed = Config::getFanSpeed();
+    m_showFoundBlockEnabled = Config::isShowBlockFoundEnabled();
 
     // when setting was changed, turn on the display LED
     if (!m_isAutoScreenOffEnabled) {
@@ -257,6 +258,11 @@ void DisplayDriver::showFoundBlockOverlay() {
     PThreadGuard lock(m_lvglMutex);
     // hide the overlay and free the memory in case it was open
     m_ui->hideImageOverlay();
+
+    // not enabled?
+    if (!m_showFoundBlockEnabled) {
+        return;
+    }
 
     // now show the (new) image overlay
     m_ui->showImageOverlay(&ui_img_found_block_png);

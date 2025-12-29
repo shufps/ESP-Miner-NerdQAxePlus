@@ -266,6 +266,11 @@
     "TEST_ALERT_SENT": "Test-Benachrichtigung an Discord gesendet.",
     "TEST_ALERT_FAILED": "Test-Benachrichtigung senden fehlgeschlagen."
   },
+  "DISPLAY": {
+    "TITLE": "Anzeigen",
+    "BLOCK_FOUND_SCREEN": "'Block Found' Screen anzeigen",
+    "BLOCK_FOUND_SCREEN_DESC": "Zeigt beim Fund eines Blocks einen Hinweis auf dem Miner-Display."
+  },
   "ERRORS": {
     "NETWORK_ERROR": "Netzwerkfehler aufgetreten",
     "INVALID_SETTINGS": "Ungültige Einstellungen angegeben",

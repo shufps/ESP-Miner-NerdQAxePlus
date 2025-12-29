@@ -48,14 +48,28 @@
             <small>{{ 'DISCORD.WEBHOOK_HELP' | translate }}</small>
           </div>
         </div>
+        <div class="d-flex align-items-center justify-content-between mt-3">
+          <div>
+            <button nbButton size="small" (click)="sendTest()" status="info">{{ 'DISCORD.TEST' | translate }}</button>
+          </div>
+        </div>
+        <hr class="my-4" />
+
+        <div class="form-row mb-2">
+          <strong>{{ 'DISPLAY.TITLE' | translate }}</strong>
+        </div>
+
+        <div class="form-row">
+          <nb-checkbox formControlName="showBlockFoundScreenEnable" class="cb-line">
+            <span class="cb-title">{{ 'DISPLAY.BLOCK_FOUND_SCREEN' | translate }}</span>
+            <span class="cb-desc">— {{ 'DISPLAY.BLOCK_FOUND_SCREEN_DESC' | translate }}</span>
+          </nb-checkbox>
+        </div>
 
         <!-- Actions -->
         <div class="d-flex align-items-center justify-content-between mt-3">
           <div>
             <button nbButton size="small" (click)="save()" status="danger">{{ 'COMMON.SAVE' | translate }}</button>
-          </div>
-          <div>
-            <button nbButton size="small" (click)="sendTest()" status="info">{{ 'DISCORD.TEST' | translate }}</button>
           </div>
         </div>
       </nb-card-body>

@@ -103,6 +103,8 @@ class DisplayDriver {
     uint16_t m_tempControlMode;
     uint16_t m_fanSpeed;
 
+    bool m_showFoundBlockEnabled = true;
+
     lv_obj_t *m_countdownLabel = nullptr; // Label object for the countdown timer
     bool m_countdownActive = false;       // Flag for countdown timer activity
     int64_t m_countdownStartTime = 0;     // Start time for the countdown

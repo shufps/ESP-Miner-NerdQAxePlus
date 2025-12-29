@@ -266,6 +266,11 @@
     "TEST_ALERT_SENT": "Test alert sent to Discord.",
     "TEST_ALERT_FAILED": "Failed to send test alert."
   },
+  "DISPLAY": {
+    "TITLE": "Display",
+    "BLOCK_FOUND_SCREEN": "Show 'Block Found' screen",
+    "BLOCK_FOUND_SCREEN_DESC": "Shows a notification on the miner display when a block is found."
+  },
   "ERRORS": {
     "NETWORK_ERROR": "Network error occurred",
     "INVALID_SETTINGS": "Invalid settings provided",

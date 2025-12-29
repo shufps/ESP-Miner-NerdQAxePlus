@@ -266,6 +266,11 @@
     "TEST_ALERT_SENT": "Alerte test envoyée sur Discord.",
     "TEST_ALERT_FAILED": "Échec d'envoi de l'alerte test."
   },
+  "DISPLAY": {
+    "TITLE": "Affichage",
+    "BLOCK_FOUND_SCREEN": "Afficher l'écran « Bloc trouvé »",
+    "BLOCK_FOUND_SCREEN_DESC": "Affiche une notification sur l'écran du mineur lorsqu'un bloc est trouvé."
+  },
   "ERRORS": {
     "NETWORK_ERROR": "Erreur réseau survenue",
     "INVALID_SETTINGS": "Paramètres invalides fournis",
