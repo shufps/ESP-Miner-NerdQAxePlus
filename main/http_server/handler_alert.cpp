@@ -82,7 +82,7 @@ esp_err_t POST_update_alert(httpd_req_t *req)
     if (doc["alertDiscordBlockFoundEnable"].is<bool>()) {
         Config::setDiscordAlertBlockFoundEnabled(doc["alertDiscordBlockFoundEnable"].as<bool>());
     }
-    if (doc["alertDiscordBestDiffEnable"]).is<bool>()) {
+    if (doc["alertDiscordBestDiffEnable"].is<bool>()) {
         Config::setDiscordAlertBestDiffEnabled(doc["alertDiscordBestDiffEnable"].as<bool>());
     }
 

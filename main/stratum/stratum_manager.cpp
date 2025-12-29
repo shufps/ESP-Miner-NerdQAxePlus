@@ -352,6 +352,10 @@ void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
     suffixString((uint64_t) diff, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
 
     Config::setBestDiff(m_totalBestDiff);
+
+    // send alert that a new best difficulty was found
+    double networkDiff = calculateNetworkDifficulty(nbits);
+    discordAlerter.sendBestDifficultyAlert(diff, networkDiff);
 }
 
 void StratumManager::getManagerInfoJson(JsonObject &obj)
