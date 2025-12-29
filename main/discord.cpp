@@ -77,6 +77,7 @@ bool DiscordAlerter::httpPost(const char *message)
 
     if (!m_payloadBuffer) {
         ESP_LOGE(TAG, "payload buffer is nullptr");
+        return false;
     }
 
     ESP_LOGI(TAG, "discord message: %s", message);
