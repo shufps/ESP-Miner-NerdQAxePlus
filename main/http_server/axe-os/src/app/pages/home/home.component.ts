@@ -11,12 +11,14 @@ import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { IPool } from 'src/app/models/IStratum';
-import { getPoolIconUrl as resolvePoolIconUrl,
-         getQuickLink,
-         supportsPing,
-         isLocalHost,
-         DEFAULT_POOL_ICON_URL,
-         DEFAULT_EXTERNAL_POOL_ICON_URL, } from './home.quicklinks';
+import {
+  getPoolIconUrl as resolvePoolIconUrl,
+  getQuickLink,
+  supportsPing,
+  isLocalHost,
+  DEFAULT_POOL_ICON_URL,
+  DEFAULT_EXTERNAL_POOL_ICON_URL,
+} from './home.quicklinks';
 
 @Component({
   selector: 'app-home',
@@ -93,8 +95,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     }
 
     this.loadChartData();
-    if (this._info.history) {
+    if (this.dataLabel.length === 0) {
       this.importHistoricalDataChunked(this._info.history);
+    } else {
+      this.importHistoricalData(this._info.history);
     }
   }
 
@@ -263,7 +267,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           max: 80,
           ticks: {
             color: textColorSecondary,
-            callback: (value: number) => `${value.toFixed(2) } °C`
+            callback: (value: number) => `${value.toFixed(2)} °C`
           },
           grid: {
             color: '#80808080',//surfaceBorder,
@@ -293,8 +297,11 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         if (!this.chart) {
           return info;
         }
-        if (info.history) {
+        // Only drain on cold start (no cached points yet)
+        if (this.dataLabel.length === 0) {
           this.importHistoricalDataChunked(info.history);
+        } else {
+          this.importHistoricalData(info.history);
         }
       }),
       map(info => {
@@ -551,8 +558,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.dataData10m = parsedData.dataData10m || [];
       this.dataData1h = parsedData.dataData1h || [];
       this.dataData1d = parsedData.dataData1d || [];
-      this.dataVregTemp = parsedData.vregTemp || [];
-      this.dataAsicTemp = parsedData.asicTemp || [];
+      this.dataVregTemp = parsedData.dataVregTemp || [];
+      this.dataAsicTemp = parsedData.dataAsicTemp || [];
     }
 
     // do a simple consistency check
