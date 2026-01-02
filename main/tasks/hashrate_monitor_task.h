@@ -26,6 +26,7 @@ class HashrateMonitor {
     int m_asicCount = 0;
     float *m_chipHashrate = nullptr;
     float m_smoothedHashrate = 0.0f;
+    float m_hashrate = 0.0f;
 
     int64_t *m_prevResponse = nullptr;
     uint32_t *m_prevCounter = nullptr;
@@ -58,5 +59,9 @@ class HashrateMonitor {
 
     float getSmoothedTotalChipHashrate() {
       return m_smoothedHashrate;
+    }
+
+    float getHashrate() {
+      return m_hashrate;
     }
 };

@@ -87,6 +87,16 @@ float History::getHashrate1dSample(int index)
     return m_hashrate1d[WRAP(index)];
 }
 
+float History::getVregTempSample(int index)
+{
+    return m_vregTemps[WRAP(index)];
+}
+
+float History::getAsicTempSample(int index)
+{
+    return m_asicTemps[WRAP(index)];
+}
+
 double History::getCurrentHashrate1m()
 {
     return m_avg1m.getGhDisplay();
@@ -134,8 +144,8 @@ bool History::isAvailable()
 }
 
 History::History()
-    : m_avg1m(this, 60llu * 1000llu, HR_INTERVAL), m_avg10m(this, 600llu * 1000llu, HR_INTERVAL), m_avg1h(this, 3600llu * 1000llu, HR_INTERVAL),
-      m_avg1d(this, 86400llu * 1000llu, HR_INTERVAL)
+    : m_avg1m(this, 60llu * 1000llu, HR_INTERVAL), m_avg10m(this, 600llu * 1000llu, HR_INTERVAL),
+      m_avg1h(this, 3600llu * 1000llu, HR_INTERVAL), m_avg1d(this, 86400llu * 1000llu, HR_INTERVAL)
 {
     // NOP
 }
@@ -148,6 +158,8 @@ bool History::init(int num_asics)
     m_hashrate10m = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
     m_hashrate1h = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
     m_hashrate1d = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+    m_vregTemps = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
+    m_asicTemps = (float *) CALLOC(HISTORY_MAX_SAMPLES, sizeof(float));
 
     ESP_LOGI(TAG, "History size %d samples", (int) HISTORY_MAX_SAMPLES);
 
@@ -236,7 +248,7 @@ void HistoryAvg::update()
     m_timestamp = lastTs;
 }
 // push a measured instantaneous hashrate (GH/s)
-void History::pushRate(float rateGh, uint64_t timestamp)
+void History::push(float rateGh, float vregTemp, float asicTemp, uint64_t timestamp)
 {
     if (!isAvailable()) {
         ESP_LOGW(TAG, "PSRAM not initialized");
@@ -251,6 +263,8 @@ void History::pushRate(float rateGh, uint64_t timestamp)
 
     // store rate sample and timestamp
     m_rates[WRAP(m_numSamples)] = (uint32_t) (rateGh * 1024.0); // -> Q22.10
+    m_vregTemps[WRAP(m_numSamples)] = vregTemp;
+    m_asicTemps[WRAP(m_numSamples)] = asicTemp;
     m_timestamps[WRAP(m_numSamples)] = timestamp;
     m_numSamples++;
 
@@ -328,7 +342,6 @@ int History::searchNearestTimestamp(int64_t timestamp)
     return current;
 }
 
-
 // Helper: fills a JsonObject with history data using ArduinoJson
 void History::exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp,
                                 uint64_t current_timestamp)
@@ -360,22 +373,37 @@ void History::exportHistoryData(JsonObject &json_history, uint64_t start_timesta
     JsonArray hashrate_1h = json_history["hashrate_1h"].to<JsonArray>();
     JsonArray hashrate_1d = json_history["hashrate_1d"].to<JsonArray>();
     JsonArray timestamps = json_history["timestamps"].to<JsonArray>();
+    JsonArray vregTemps = json_history["vregTemp"].to<JsonArray>();
+    JsonArray asicTemps = json_history["asicTemp"].to<JsonArray>();
 
+    int64_t lastTimestamp = 0;
+    int limit = 100;
+    bool hasMore = false;
     for (int i = start_index; i < start_index + num_samples; i++) {
+        if (limit == 0) {
+            ESP_LOGW(TAG, "history response limited to %d points. Last timestamp %lld", limit, lastTimestamp);
+            hasMore = true;
+            break;
+        }
+
         uint64_t sample_timestamp = getTimestampSample(i);
         if ((int64_t) sample_timestamp < sys_start) {
             continue;
         }
-        // Multiply by 100.0 and cast to int as in the original code
-        hashrate_1m.add((int) (getHashrate1mSample(i) * 100.0));
-        hashrate_10m.add((int) (getHashrate10mSample(i) * 100.0));
-        hashrate_1h.add((int) (getHashrate1hSample(i) * 100.0));
-        hashrate_1d.add((int) (getHashrate1dSample(i) * 100.0));
+        hashrate_1m.add((int) (getHashrate1mSample(i) * 100.0f));
+        hashrate_10m.add((int) (getHashrate10mSample(i) * 100.0f));
+        hashrate_1h.add((int) (getHashrate1hSample(i) * 100.0f));
+        hashrate_1d.add((int) (getHashrate1dSample(i) * 100.0f));
+        vregTemps.add((int) (getVregTempSample(i) * 100.0f));
+        asicTemps.add((int) (getAsicTempSample(i) * 100.0f));
         timestamps.add((int64_t) sample_timestamp - sys_start);
+        limit--;
+        lastTimestamp = sample_timestamp;
     }
 
     // Add base timestamp for reference
     json_history["timestampBase"] = start_timestamp;
+    json_history["hasMore"] = hasMore;
 
     unlock();
 }

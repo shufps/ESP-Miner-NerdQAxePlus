@@ -3,6 +3,11 @@
 #include <ctime>
 #include <stdint.h>
 #include <string.h>
+#include <pthread.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#include "esp_timer.h"
 
 #include "boards/board.h"
 #include "displays/displayDriver.h"
@@ -11,6 +16,7 @@
 #include "freertos/queue.h"
 #include "history.h"
 #include "sntp.h"
+
 
 // Configuration and constants
 #define STRATUM_USER CONFIG_STRATUM_USER
@@ -60,6 +66,10 @@ class System {
     // board
     Board *m_board;
 
+    pthread_mutex_t m_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t m_loop_cond = PTHREAD_COND_INITIALIZER;
+    TimerHandle_t m_timer;
+
     // Internal helper methods for system management
     void initSystem();                                 // Initialize system components
     void updateHashrate();                             // Update the hashrate
@@ -73,6 +83,9 @@ class System {
     void showApInformation(const char *error);         // Show Access Point (AP) information with optional error message
     double calculateNetworkDifficulty(uint32_t nBits); // Calculate network difficulty based on pool difficulty
 
+    bool startTimer();
+    void trigger();
+    static void timerWrapper(TimerHandle_t xTimer);
   public:
     System();
 
@@ -198,4 +211,6 @@ class System {
     void pushShare(int nr) {
         m_history->pushShare(nr);
     }
+
+    void pushHistory();
 };

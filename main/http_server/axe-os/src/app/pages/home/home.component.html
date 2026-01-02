@@ -46,7 +46,7 @@
 
         <!-- Shares Card -->
         <!-- Shares Card -->
-        <div class="col-12 col-lg-6 col-xl-3 ps-lg-1">
+        <div class="col-12 col-lg-6 col-xl-3">
           <nb-card class="h-100">
             <nb-card-header style="position: relative;">
               <div class="d-flex justify-content-between align-items-center">
@@ -105,7 +105,7 @@
 
 
         <!-- Efficiency Card -->
-        <div class="col-12 col-lg-6 col-xl-3 ps-lg-1">
+        <div class="col-12 col-lg-6 col-xl-3">
           <nb-card class="h-100">
             <nb-card-header>
               <span class="text-hint">{{ 'HOME.EFFICIENCY' | translate }}</span>
@@ -128,7 +128,7 @@
         </div>
 
         <!-- Best Difficulty Card -->
-        <div class="col-12 col-lg-6 col-xl-3 ps-lg-1">
+        <div class="col-12 col-lg-6 col-xl-3">
           <nb-card class="h-100">
             <nb-card-header>
               <span class="text-hint">{{ 'HOME.BEST_DIFF' | translate }}</span>
@@ -163,7 +163,9 @@
         <div class="col-12">
           <nb-card>
             <nb-card-header>
-              <span class="text-hint">{{ 'HOME.HASH_RATE_CHART' | translate }}</span>
+              <span class="text-hint">{{ 'HOME.HASH_RATE_CHART' | translate }}&nbsp;
+                <span *ngIf="this.historyDrainRunning">(Loading ...)</span>
+              </span>
             </nb-card-header>
             <nb-card-body>
               <canvas #myChart width="400" height="400"></canvas>

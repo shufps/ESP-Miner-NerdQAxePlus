@@ -111,9 +111,13 @@ const defaultInfo: ISystemInfo = {
   boardtemp2: 40,
   overheat_temp: 70,
   history: {
+    hashrate_1m: [],
     hashrate_10m: [],
     hashrate_1h: [],
     hashrate_1d: [],
+    vregTemp: [],
+    asicTemp: [],
+    hasMore: false,
     timestamps: [],
     timestampBase: 0
   }

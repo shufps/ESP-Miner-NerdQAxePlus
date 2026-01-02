@@ -1,5 +1,5 @@
 import { Component, AfterViewChecked, OnInit, OnDestroy } from '@angular/core';
-import { interval, map, Observable, shareReplay, startWith, switchMap, tap } from 'rxjs';
+import { interval, map, Observable, shareReplay, startWith, switchMap, tap, Subscription, take, exhaustMap } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
@@ -49,7 +49,12 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public dataData10m: number[] = [];
   public dataData1h: number[] = [];
   public dataData1d: number[] = [];
+  public dataVregTemp: number[] = [];
+  public dataAsicTemp: number[] = [];
   public chartData?: any;
+
+  public historyDrainRunning = false;
+  private historyDrainSub?: Subscription;
 
   public hasChipTemps: boolean = false;
   public viewMode: 'gauge' | 'bars' = 'bars'; // default to bars
@@ -89,7 +94,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.loadChartData();
     if (this._info.history) {
-      this.importHistoricalData(this._info.history);
+      this.importHistoricalDataChunked(this._info.history);
     }
   }
 
@@ -117,6 +122,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           type: 'line',
           label: this.translateService.instant('HOME.HASHRATE_1M'),
           data: this.dataData1m,
+          yAxisID: 'y',
           fill: false,
           backgroundColor: '#6484f6',
           borderColor: '#6484f6',
@@ -128,6 +134,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           type: 'line',
           label: this.translateService.instant('HOME.HASHRATE_10M'),
           data: this.dataData10m,
+          yAxisID: 'y',
           fill: false,
           backgroundColor: '#7464f6',
           borderColor: '#7464f6',
@@ -139,6 +146,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           type: 'line',
           label: this.translateService.instant('HOME.HASHRATE_1H'),
           data: this.dataData1h,
+          yAxisID: 'y',
           fill: false,
           backgroundColor: '#a564f6',
           borderColor: '#a564f6',
@@ -150,6 +158,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           type: 'line',
           label: this.translateService.instant('HOME.HASHRATE_1D'),
           data: this.dataData1d,
+          yAxisID: 'y',
           fill: false,
           backgroundColor: '#c764f6',
           borderColor: '#c764f6',
@@ -157,6 +166,28 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           pointRadius: 0,
           borderWidth: 1
         },
+        {
+          type: 'line',
+          label: this.translateService.instant('PERFORMANCE.VR_TEMP'),
+          data: this.dataVregTemp,
+          yAxisID: 'y_temp',
+          borderColor: '#ff8a65',
+          backgroundColor: '#ff8a65',
+          tension: .4,
+          pointRadius: 0,
+          borderWidth: 1
+        },
+        {
+          type: 'line',
+          label: this.translateService.instant('PERFORMANCE.ASIC_TEMP'),
+          data: this.dataAsicTemp,
+          yAxisID: 'y_temp',
+          borderColor: '#f06292',
+          backgroundColor: '#f06292',
+          tension: .4,
+          pointRadius: 0,
+          borderWidth: 1
+        }
       ]
     };
 
@@ -222,6 +253,19 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
             callback: (value: number) => HashSuffixPipe.transform(value)
           },
           grid: {
+            display: false,
+            drawBorder: false
+          }
+        },
+        y_temp: {
+          position: "right",
+          min: 20,
+          max: 80,
+          ticks: {
+            color: textColorSecondary,
+            callback: (value: number) => `${value.toFixed(2) } °C`
+          },
+          grid: {
             color: '#80808080',//surfaceBorder,
             drawBorder: false
           }
@@ -231,7 +275,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.info$ = interval(5000).pipe(
       startWith(0), // Immediately start the interval observable
-      switchMap(() => {
+      exhaustMap(() => {
         const storedLastTimestamp = this.getStoredTimestamp();
         const currentTimestamp = new Date().getTime();
         const oneHourAgo = currentTimestamp - 3600 * 1000;
@@ -250,7 +294,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           return info;
         }
         if (info.history) {
-          this.importHistoricalData(info.history);
+          this.importHistoricalDataChunked(info.history);
         }
       }),
       map(info => {
@@ -404,6 +448,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.historyDrainSub?.unsubscribe();
     if (this.timeFormatListener) {
       window.removeEventListener('timeFormatChanged', this.timeFormatListener);
     }
@@ -457,6 +502,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.dataData10m = [];
     this.dataData1h = [];
     this.dataData1d = [];
+    this.dataVregTemp = [];
+    this.dataAsicTemp = [];
   }
 
   private updateChartData(data: any): void {
@@ -466,6 +513,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     const convertedhashrate_10m = data.hashrate_10m.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_1h = data.hashrate_1h.map((hr: number) => hr * 1000000000.0 / 100.0);
     const convertedhashrate_1d = data.hashrate_1d.map((hr: number) => hr * 1000000000.0 / 100.0);
+    const convertedVregTemp = data.vregTemp.map((temp: number) => temp / 100.0);
+    const convertedAsicTemp = data.asicTemp.map((temp: number) => temp / 100.0);
 
     // Find the highest existing timestamp
     const lastTimestamp = this.dataLabel.length > 0 ? Math.max(...this.dataLabel) : -Infinity;
@@ -477,6 +526,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       hashrate_10m: convertedhashrate_10m[index],
       hashrate_1h: convertedhashrate_1h[index],
       hashrate_1d: convertedhashrate_1d[index],
+      vregTemp: convertedVregTemp[index],
+      asicTemp: convertedAsicTemp[index],
     })).filter(entry => entry.timestamp > lastTimestamp);
 
     // Append only new data
@@ -486,6 +537,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.dataData10m = [...this.dataData10m, ...newData.map(entry => entry.hashrate_10m)];
       this.dataData1h = [...this.dataData1h, ...newData.map(entry => entry.hashrate_1h)];
       this.dataData1d = [...this.dataData1d, ...newData.map(entry => entry.hashrate_1d)];
+      this.dataVregTemp = [...this.dataVregTemp, ...newData.map(entry => entry.vregTemp)];
+      this.dataAsicTemp = [...this.dataAsicTemp, ...newData.map(entry => entry.asicTemp)];
     }
   }
 
@@ -498,6 +551,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.dataData10m = parsedData.dataData10m || [];
       this.dataData1h = parsedData.dataData1h || [];
       this.dataData1d = parsedData.dataData1d || [];
+      this.dataVregTemp = parsedData.vregTemp || [];
+      this.dataAsicTemp = parsedData.asicTemp || [];
     }
 
     // do a simple consistency check
@@ -519,6 +574,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       dataData10m: this.dataData10m,
       dataData1h: this.dataData1h,
       dataData1d: this.dataData1d,
+      dataVregTemp: this.dataVregTemp,
+      dataAsicTemp: this.dataAsicTemp,
     };
     localStorage.setItem(this.localStorageKey, JSON.stringify(dataToSave));
   }
@@ -533,6 +590,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.dataData10m.shift();
       this.dataData1h.shift();
       this.dataData1d.shift();
+      this.dataVregTemp.shift();
+      this.dataAsicTemp.shift();
     }
 
     if (this.dataLabel.length) {
@@ -562,6 +621,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.chartData.datasets[1].data = this.dataData10m;
     this.chartData.datasets[2].data = this.dataData1h;
     this.chartData.datasets[3].data = this.dataData1d;
+    this.chartData.datasets[4].data = this.dataVregTemp;
+    this.chartData.datasets[5].data = this.dataAsicTemp;
 
     if (!this.chart) {
       return;
@@ -583,6 +644,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.chartOptions.scales.x.grid.color = '#80808080';
     this.chartOptions.scales.y.ticks.color = textColor;
     this.chartOptions.scales.y.grid.color = '#80808080';
+    this.chartOptions.scales.y_temp.ticks.color = textColor;
+    this.chartOptions.scales.y_temp.grid.color = '#80808080';
 
     // Update and redraw the chart
     if (this.chart) {
@@ -748,8 +811,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     const len10m = this.dataData10m.length;
     const len1h = this.dataData1h.length;
     const len1d = this.dataData1d.length;
+    const lenVregTemp = this.dataVregTemp.length;
+    const lenAsicTemp = this.dataAsicTemp.length;
 
-    const lengths = [lenLabels, len1m, len10m, len1h, len1d];
+    const lengths = [lenLabels, len1m, len10m, len1h, len1d, lenVregTemp, lenAsicTemp];
 
     // if all arrays have the same length everything is fine
     const allEqual = lengths.every(l => l === lengths[0]);
@@ -759,7 +824,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     // if not we clear the data and trigger a reload
     console.warn('[History] Inconsistent lengths detected from', {
-      lenLabels, len1m, len10m, len1h, len1d,
+      lenLabels, len1m, len10m, len1h, len1d, lenVregTemp, lenAsicTemp
     });
 
     // Clear in-memory history arrays
@@ -768,6 +833,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.dataData10m = [];
     this.dataData1h = [];
     this.dataData1d = [];
+    this.dataVregTemp = [];
+    this.dataAsicTemp = [];
 
     // prevent saving anything after we clear and reload the window
     this.saveLock = true;
@@ -796,6 +863,69 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return rejected / (accepted + rejected) * 100;
   }
 
+
+  private getLastAbsTimestampFromHistory(history: any): number | null {
+    if (!history?.timestamps?.length) return null;
+    const maxRel = Math.max(...history.timestamps);
+    return history.timestampBase + maxRel;
+  }
+
+  private importHistoricalDataChunked(history: any): void {
+    // Import current chunk using your existing logic
+    this.importHistoricalData(history);
+
+    // If no more chunks -> done
+    console.log("has more: " + history?.hasMore);
+    if (!history?.hasMore) {
+      this.historyDrainRunning = false;
+      return;
+    }
+
+    // If we are already draining, don't start a second chain
+    if (this.historyDrainRunning) {
+      return;
+    }
+
+    this.historyDrainRunning = true;
+
+    const startNext = this.getLastAbsTimestampFromHistory(history);
+    if (startNext === null) {
+      this.historyDrainRunning = false;
+      return;
+    }
+
+    const fetchNext = (startTs: number) => {
+      this.historyDrainSub = this.systemService.getInfo(startTs).pipe(take(1)).subscribe({
+        next: (info) => {
+          const h = info?.history;
+          if (!h) {
+            this.historyDrainRunning = false;
+            return;
+          }
+
+          // Import next chunk
+          this.importHistoricalData(h);
+
+          // Continue?
+          if (h.hasMore) {
+            const lastAbs = this.getLastAbsTimestampFromHistory(h);
+            if (lastAbs === null) {
+              this.historyDrainRunning = false;
+              return;
+            }
+            fetchNext(lastAbs + 1);
+          } else {
+            this.historyDrainRunning = false;
+          }
+        },
+        error: () => {
+          this.historyDrainRunning = false;
+        }
+      });
+    };
+
+    fetchNext(startNext + 1);
+  }
 }
 
 Chart.register(TimeScale);

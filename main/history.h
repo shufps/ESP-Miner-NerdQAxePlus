@@ -72,6 +72,8 @@ class History {
     float *m_hashrate10m = nullptr;
     float *m_hashrate1h = nullptr;
     float *m_hashrate1d = nullptr;
+    float *m_vregTemps = nullptr;
+    float *m_asicTemps = nullptr;
 
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -87,7 +89,7 @@ class History {
     bool isAvailable();
     void getTimestamps(uint64_t *first, uint64_t *last, int *num_samples);
     void pushShare(int asic_nr);
-    void pushRate(float rateGh, uint64_t timestamp);
+    void push(float rateGh, float vregTemp, float asicTemp, uint64_t timestamp);
 
     void lock();
     void unlock();
@@ -97,6 +99,8 @@ class History {
     float getHashrate10mSample(int index);
     float getHashrate1hSample(int index);
     float getHashrate1dSample(int index);
+    float getVregTempSample(int index);
+    float getAsicTempSample(int index);
     uint64_t getCurrentTimestamp(void);
     double getCurrentHashrate1m();   // 1-minute average for real-time monitoring
     double getCurrentHashrate10m();

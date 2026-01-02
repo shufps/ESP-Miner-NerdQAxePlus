@@ -68,24 +68,99 @@ static bool rateLimit() {
 }
 
 
-esp_err_t sendJsonResponse(httpd_req_t *req, JsonDocument &doc)
+
+struct HttpdChunkHeapWriter {
+    httpd_req_t* m_req = nullptr;
+    bool m_failed = false;
+
+    uint8_t* m_buf = nullptr;
+    size_t m_cap = 0;
+    size_t m_pos = 0;
+
+    explicit HttpdChunkHeapWriter(httpd_req_t* req, size_t capacity)
+        : m_req(req), m_cap(capacity) {
+        m_buf = static_cast<uint8_t*>(heap_caps_malloc(m_cap, MALLOC_CAP_8BIT));
+        if (!m_buf) {
+            m_failed = true;
+            m_cap = 0;
+        }
+    }
+
+    ~HttpdChunkHeapWriter() {
+        if (m_buf) {
+            heap_caps_free(m_buf);
+            m_buf = nullptr;
+        }
+    }
+
+    size_t write(uint8_t c) {
+        if (m_failed) return 0;
+        if (m_pos >= m_cap) {
+            flush();
+            if (m_failed) return 0;
+        }
+        m_buf[m_pos++] = c;
+        return 1;
+    }
+
+    size_t write(const uint8_t* data, size_t len) {
+        if (m_failed) return 0;
+
+        size_t written = 0;
+        while (len > 0 && !m_failed) {
+            const size_t space = m_cap - m_pos;
+            if (space == 0) {
+                flush();
+                continue;
+            }
+
+            const size_t n = (len < space) ? len : space;
+            memcpy(&m_buf[m_pos], data, n);
+            m_pos += n;
+
+            data += n;
+            len -= n;
+            written += n;
+
+            if (m_pos == m_cap) {
+                flush();
+            }
+        }
+        return written;
+    }
+
+    void flush() {
+        if (m_failed || m_pos == 0) return;
+
+        const esp_err_t err = httpd_resp_send_chunk(
+            m_req,
+            reinterpret_cast<const char*>(m_buf),
+            m_pos
+        );
+        if (err != ESP_OK) {
+            m_failed = true;
+            return;
+        }
+        m_pos = 0;
+    }
+
+    esp_err_t finish() {
+        flush();
+        if (m_failed) return ESP_FAIL;
+        return httpd_resp_send_chunk(m_req, nullptr, 0);
+    }
+};
+
+esp_err_t sendJsonResponse(httpd_req_t* req, JsonDocument& doc)
 {
-    // Measure the size needed for the JSON text
-    size_t jsonLength = measureJson(doc);
-    // Allocate a buffer from PSRAM (or regular heap if you prefer)
-    char *jsonOutput = (char *) MALLOC(jsonLength + 1);
-    if (!jsonOutput) {
-        ESP_LOGE(TAG, "Failed to allocate memory for JSON output");
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation error");
+    HttpdChunkHeapWriter w(req, 2048);
+    if (w.m_failed) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
         return ESP_FAIL;
     }
-    // Serialize the JSON document into the allocated buffer
-    serializeJson(doc, jsonOutput, jsonLength + 1);
-    // Send the response
-    esp_err_t ret = httpd_resp_sendstr(req, jsonOutput);
-    // Free the allocated buffer
-    FREE(jsonOutput);
-    return ret;
+
+    serializeJson(doc, w);
+    return w.finish();
 }
 
 esp_err_t getPostData(httpd_req_t *req)

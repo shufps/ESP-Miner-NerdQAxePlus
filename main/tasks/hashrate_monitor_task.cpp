@@ -77,15 +77,9 @@ void HashrateMonitor::publishTotalIfComplete()
         m_logBuffer[offset - 2] = 0; // remove trailing slash
     }
 
-    float hashrate = getTotalChipHashrate();
+    m_hashrate = getTotalChipHashrate();
 
-    History *history = SYSTEM_MODULE.getHistory();
-    if (hashrate && history) {
-        uint64_t timestamp = esp_timer_get_time() / 1000llu;
-        history->pushRate(hashrate, timestamp);
-    }
-
-    ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, hashrate);
+    ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, m_hashrate);
 }
 
 void HashrateMonitor::taskLoop()
