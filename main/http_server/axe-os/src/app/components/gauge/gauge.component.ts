@@ -121,9 +121,6 @@ export class GaugeComponent {
   center: number = 50; // Center of the circle
   viewBox: string = '0 0 100 100'; // SVG viewBox
 
-  /* =======================
-   * EXISTING LOGIC (unchanged)
-   * ======================= */
   get circumference(): number {
     return 2 * Math.PI * this.radius;
   }

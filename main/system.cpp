@@ -200,11 +200,24 @@ bool System::startTimer()
 }
 
 void System::pushHistory() {
+    static float filteredVreg = 0.0f;
+    static float filteredAsicTemp = 0.0f;
+    constexpr float alpha = 0.50f; // slight smoothing
+
     uint64_t timestamp = esp_timer_get_time() / 1000llu;
     float hashrate = HASHRATE_MONITOR.getHashrate();
     float vregTemp = POWER_MANAGEMENT_MODULE.getVRTemp();
     float asicTemp = POWER_MANAGEMENT_MODULE.getChipTempMax();
-    m_history->push(hashrate, vregTemp, asicTemp, timestamp);
+
+    if (!filteredVreg || !filteredAsicTemp) {
+        filteredVreg = vregTemp;
+        filteredAsicTemp = asicTemp;
+    } else {
+        filteredVreg = vregTemp * alpha + (1.0f - alpha) * filteredVreg;
+        filteredAsicTemp = asicTemp * alpha + (1.0f - alpha) * filteredAsicTemp;
+    }
+
+    m_history->push(hashrate, filteredVreg, filteredAsicTemp, timestamp);
 }
 
 void System::task() {

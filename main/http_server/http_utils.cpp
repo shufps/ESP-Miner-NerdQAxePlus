@@ -79,7 +79,7 @@ struct HttpdChunkHeapWriter {
 
     explicit HttpdChunkHeapWriter(httpd_req_t* req, size_t capacity)
         : m_req(req), m_cap(capacity) {
-        m_buf = static_cast<uint8_t*>(heap_caps_malloc(m_cap, MALLOC_CAP_8BIT));
+        m_buf = static_cast<uint8_t*>(MALLOC(m_cap));
         if (!m_buf) {
             m_failed = true;
             m_cap = 0;
@@ -88,7 +88,7 @@ struct HttpdChunkHeapWriter {
 
     ~HttpdChunkHeapWriter() {
         if (m_buf) {
-            heap_caps_free(m_buf);
+            FREE(m_buf);
             m_buf = nullptr;
         }
     }
