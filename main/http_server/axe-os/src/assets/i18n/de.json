@@ -200,7 +200,8 @@
     "ABOUT_NERDQX_ORIGINAL": " <u>hier</u>",
     "SHUTDOWN": "Shutdown",
     "SHUTDOWN_SUCCESS": "System wird heruntergefahren",
-    "SHUTDOWN_FAILED": "Shutdown fehlgeschlagen"
+    "SHUTDOWN_FAILED": "Shutdown fehlgeschlagen",
+    "LOGS_ALREADY_OPEN_OTHER_TAB": "Logs sind bereits in einem anderen Tab geöffnet."
   },
   "SWARM": {
     "TITLE": "Schwarm-Verwaltung",

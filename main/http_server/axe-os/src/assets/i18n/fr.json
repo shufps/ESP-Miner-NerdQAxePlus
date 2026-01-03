@@ -200,7 +200,8 @@
     "ABOUT_NERDQX_ORIGINAL": " <u>ici</u>",
     "SHUTDOWN": "Arrêt",
     "SHUTDOWN_SUCCESS": "Le système est en cours d’arrêt",
-    "SHUTDOWN_FAILED": "Échec de l’arrêt du système"
+    "SHUTDOWN_FAILED": "Échec de l’arrêt du système",
+    "LOGS_ALREADY_OPEN_OTHER_TAB": "Les journaux sont déjà ouverts dans un autre onglet."
   },
   "SWARM": {
     "TITLE": "Gestion d'Essaim",

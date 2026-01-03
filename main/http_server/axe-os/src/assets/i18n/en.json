@@ -200,7 +200,8 @@
     "ABOUT_NERDQX_ORIGINAL": " <u>here</u>",
     "SHUTDOWN": "Shutdown",
     "SHUTDOWN_SUCCESS": "System is shutting down",
-    "SHUTDOWN_FAILED": "Shutdown failed"
+    "SHUTDOWN_FAILED": "Shutdown failed",
+    "LOGS_ALREADY_OPEN_OTHER_TAB": "Logs are already open in another tab."
   },
   "SWARM": {
     "TITLE": "Swarm Management",
