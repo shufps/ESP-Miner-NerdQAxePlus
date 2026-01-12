@@ -142,6 +142,28 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     cubicInterpolationMode: 'monotone' as const,
   };
 
+  private applyDatasetRenderOrder(datasets: any[]): void {
+    const hr1m: any = datasets?.[0];
+    const hr10m: any = datasets?.[1];
+    const hr1h: any = datasets?.[2];
+    const hr1d: any = datasets?.[3];
+
+    const vr: any = datasets?.[4];
+    const asic: any = datasets?.[5];
+
+    // Smaller order renders first (further "behind")
+    if (hr1m) hr1m.order = 0;
+
+    // Temps in front of 1m; ASIC behind VR
+    if (asic) asic.order = 1;
+    if (vr) vr.order = 2;
+
+    // 10m / 1h / 1d in front
+    if (hr10m) hr10m.order = 10;
+    if (hr1h) hr1h.order = 11;
+    if (hr1d) hr1d.order = 12;
+  }
+
   private applyHashrate1mSmoothing(): void {
     const ds: any = (this.chartData?.datasets && this.chartData.datasets.length) ? this.chartData.datasets[0] : null;
     if (!ds) return;
@@ -432,13 +454,16 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       ]
     };
 
+    this.applyDatasetRenderOrder(this.chartData.datasets as any[]);
+
     this.chartOptions = {
       animation: false,
       maintainAspectRatio: false,
       plugins: {
         legend: {
           labels: {
-            color: textColor
+            color: textColor,
+            sort: (a: any, b: any) => a.datasetIndex - b.datasetIndex
           },
           onClick: (evt, legendItem, legend) => {
             const chart = legend.chart;
