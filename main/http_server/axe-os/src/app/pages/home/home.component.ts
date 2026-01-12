@@ -1,5 +1,5 @@
 import { Component, AfterViewChecked, OnInit, OnDestroy } from '@angular/core';
-import { interval, map, Observable, shareReplay, startWith, switchMap, tap, Subscription, take, exhaustMap } from 'rxjs';
+import { interval, map, Observable, shareReplay, startWith, switchMap, tap, Subscription, take, exhaustMap, catchError, EMPTY } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
@@ -575,7 +575,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         // Cap the startTimestamp to be at most one hour ago
         let startTimestamp = storedLastTimestamp ? Math.max(storedLastTimestamp + 1, oneHourAgo) : oneHourAgo;
 
-        return this.systemService.getInfo(startTimestamp);
+        return this.systemService.getInfo(startTimestamp).pipe(
+          catchError(err => {
+            console.error('[HomeComponent] getInfo polling error', err);
+            // Skip this tick, keep last good value and continue polling.
+            return EMPTY;
+          })
+        );
       }),
       tap(info => {
         if (!info) {
