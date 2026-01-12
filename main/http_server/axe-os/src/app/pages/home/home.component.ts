@@ -311,7 +311,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       options: this.chartOptions,
     });
     // Restore legend visibility
-    const saved = localStorage.getItem(this.legendVisibilityKey);
+    const saved = this.localStorageGet(this.legendVisibilityKey);
     if (saved) {
       const visibility = JSON.parse(saved);
       visibility.forEach((hidden: boolean, i: number) => {
@@ -324,8 +324,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     try {
       const flagKey = '__nerdCharts_clearChartHistoryOnce';
-      if (window.localStorage.getItem(flagKey) === '1') {
-        window.localStorage.removeItem(flagKey);
+      if (this.localStorageGet(flagKey) === '1') {
+        this.localStorageRemove(flagKey);
         this.clearChartHistoryInternal(false);
       }
     } catch {}
@@ -359,7 +359,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     // Load optional min-history timestamp (used after debug clear to prevent immediate refill)
     try {
-      const v = Number(window.localStorage.getItem(this.minHistoryTsKey));
+      const v = Number(this.localStorageGet(this.minHistoryTsKey));
       if (Number.isFinite(v) && v > 0) {
         this.historyMinTimestampMs = v;
       }
@@ -479,7 +479,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
             const visibility = chart.data.datasets.map((ds, i) =>
               chart.getDatasetMeta(i).hidden ? true : false
             );
-            localStorage.setItem(this.legendVisibilityKey, JSON.stringify(visibility));
+            this.localStorageSet(this.legendVisibilityKey, JSON.stringify(visibility));
           }
         },
         tooltip: {
@@ -563,10 +563,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       exhaustMap(() => {
         let storedLastTimestamp = this.getStoredTimestamp();
         try {
-          const forcedStart = Number(window.localStorage.getItem('__nerdCharts_forceStartTimestampMs'));
+          const forcedStart = Number(this.localStorageGet('__nerdCharts_forceStartTimestampMs'));
           if (Number.isFinite(forcedStart) && forcedStart > 0) {
             storedLastTimestamp = forcedStart;
-            window.localStorage.removeItem('__nerdCharts_forceStartTimestampMs');
+            this.localStorageRemove('__nerdCharts_forceStartTimestampMs');
           }
         } catch {}
         const currentTimestamp = new Date().getTime();
@@ -590,8 +590,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         this._info = info;
         try {
           const flagKey = '__nerdCharts_clearChartHistoryOnce';
-          if (window.localStorage.getItem(flagKey) === '1') {
-            window.localStorage.removeItem(flagKey);
+          if (this.localStorageGet(flagKey) === '1') {
+            this.localStorageRemove(flagKey);
             this.clearChartHistoryInternal(false);
           }
         } catch {}
@@ -754,12 +754,12 @@ private installNerdChartsDebugHooks(): void {
   // Clear all in-browser chart history once (persisted + in-memory on next load)
   g.__nerdCharts.clearChartHistoryOnce = () => {
     try {
-      window.localStorage.setItem(clearFlagKey, '1');
+      this.localStorageSet(clearFlagKey, '1');
       // Ensure the next load does NOT immediately re-fill from API history (debug helper)
       const seed = Date.now() - 30000;
-      window.localStorage.setItem(forceStartKey, String(seed));
-      window.localStorage.setItem('__nerdCharts_minHistoryTimestampMs', String(seed));
-      window.localStorage.setItem('lastTimestamp', String(seed));
+      this.localStorageSet(forceStartKey, String(seed));
+      this.localStorageSet('__nerdCharts_minHistoryTimestampMs', String(seed));
+      this.localStorageSet('lastTimestamp', String(seed));
     } catch (e) {
       console.warn('[nerdCharts] clearChartHistoryOnce failed', e);
     }
@@ -912,7 +912,43 @@ private installNerdChartsDebugBootstrap(): void {
 }
 
 
-  ngOnInit() {
+
+  // LocalStorage can throw (privacy mode/quota) and may be unavailable in some environments.
+  // Centralize access to keep persistence robust.
+  /**
+   * Read a value from localStorage safely (guards against privacy/quota errors).
+   */
+  private localStorageGet(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Write a value to localStorage safely (no-ops if storage is unavailable).
+   */
+  private localStorageSet(key: string, value: string): void {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // Ignore storage errors (e.g., privacy mode/quota).
+    }
+  }
+
+  /**
+   * Remove a localStorage key safely (ignores storage access errors).
+   */
+  private localStorageRemove(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore storage errors.
+    }
+  }
+
+ngOnInit() {
     this.installNerdChartsDebugBootstrap();
     this.loadAxisPaddingOverrides();
     this.themeSubscription = this.themeService.getJsTheme().subscribe(() => {
@@ -1180,7 +1216,7 @@ private graphGuard(key: string, raw: any, relThreshold: number, liveRef?: number
 private loadAxisPaddingOverrides(): void {
   try {
     if (window?.localStorage?.getItem(this.axisPadOverrideEnabledKey) !== '1') return;
-    const raw = window.localStorage.getItem(this.axisPadStorageKey);
+    const raw = this.localStorageGet(this.axisPadStorageKey);
     if (!raw) return;
     const cfg = JSON.parse(raw);
     if (cfg && typeof cfg === 'object') this.setAxisPadding(cfg, false);
@@ -1585,7 +1621,7 @@ private updateChartData(data: any): void {
     // Allow persistence from now on (even if there is no data yet on first run).
     this.wasLoaded = true;
 
-    const raw = localStorage.getItem(this.localStorageKey);
+    const raw = this.localStorageGet(this.localStorageKey);
     if (!raw) return;
 
     try {
@@ -1690,7 +1726,7 @@ private updateChartData(data: any): void {
       dataVregTemp: this.dataVregTemp,
       dataAsicTemp: this.dataAsicTemp,
     };
-    localStorage.setItem(this.localStorageKey, JSON.stringify(dataToSave));
+    this.localStorageSet(this.localStorageKey, JSON.stringify(dataToSave));
   }
 
   private filterOldData(): void {
@@ -1721,11 +1757,11 @@ private updateChartData(data: any): void {
     if (this.saveLock) {
       return;
     }
-    localStorage.setItem(this.timestampKey, timestamp.toString());
+    this.localStorageSet(this.timestampKey, timestamp.toString());
   }
 
   private getStoredTimestamp(): number | null {
-    const storedTimestamp = localStorage.getItem(this.timestampKey);
+    const storedTimestamp = this.localStorageGet(this.timestampKey);
     if (storedTimestamp) {
       const timestamp = parseInt(storedTimestamp, 10);
       return timestamp;
@@ -1957,16 +1993,16 @@ private updateTempScaleFromLatest(): void {
     this.graphGuardState.clear();
 
     // Clear persisted history
-    localStorage.removeItem(this.localStorageKey);
-    localStorage.removeItem(this.timestampKey);
+    this.localStorageRemove(this.localStorageKey);
+    this.localStorageRemove(this.timestampKey);
 
     // Prevent immediate refill with old history (API/local) after clearing.
     // Seed a minimum timestamp slightly in the past to allow the very next sample through.
     const seed = Date.now() - 30000;
     this.historyMinTimestampMs = seed;
     try {
-      localStorage.setItem(this.minHistoryTsKey, String(seed));
-      localStorage.setItem(this.timestampKey, String(seed));
+      this.localStorageSet(this.minHistoryTsKey, String(seed));
+      this.localStorageSet(this.timestampKey, String(seed));
     } catch {}
 
     if (updateChartNow) {
