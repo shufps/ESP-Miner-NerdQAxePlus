@@ -954,8 +954,9 @@ private installNerdChartsDebugBootstrap(): void {
     if (data.timestamps && data.timestamps.length) {
       const lastRel = data.timestamps[data.timestamps.length - 1];
       const base = Number(data.timestampBase ?? 0);
-      const lastDataTimestamp = base + Number(lastRel ?? 0);
-      this.storeTimestamp(lastDataTimestamp);
+      let lastDataTimestampMs = base + Number(lastRel ?? 0);
+      if (lastDataTimestampMs > 0 && lastDataTimestampMs < 1000000000000) lastDataTimestampMs *= 1000;
+      this.storeTimestamp(lastDataTimestampMs);
     }
 
     // During history draining we buffer chunks and render/persist once at the end
@@ -1526,7 +1527,7 @@ private updateChartData(data: any): void {
       if (tsAbs > 0 && tsAbs < 1000000000000) tsAbs *= 1000;
       if (!Number.isFinite(tsAbs)) continue;
       if (this.historyMinTimestampMs != null && tsAbs < this.historyMinTimestampMs) continue;
-      if (tsAbs <= lastTimestamp) continue;
+      if (tsAbs < lastTimestamp) continue;
 
       newData.push({
         timestamp: tsAbs,
@@ -2020,7 +2021,9 @@ private updateTempScaleFromLatest(): void {
   private getLastAbsTimestampFromHistory(history: any): number | null {
     if (!history?.timestamps?.length) return null;
     const maxRel = Math.max(...history.timestamps);
-    return history.timestampBase + maxRel;
+    let ts = Number(history.timestampBase ?? 0) + Number(maxRel ?? 0);
+    if (ts > 0 && ts < 1000000000000) ts *= 1000;
+    return ts;
   }
 
   private importHistoricalDataChunked(history: any): void {
