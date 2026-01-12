@@ -27,6 +27,86 @@ import {
 
 export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   @ViewChild("myChart") ctx: ElementRef<HTMLCanvasElement>;
+  private HR_BASE_COLOR: string = '#a564f6';
+
+  // Build the hashrate graph color from the base hex color and a given alpha (opacity).
+  private hrColor(alpha: number = 1): string {
+    if (alpha >= 1) return this.HR_BASE_COLOR;
+    const hex = this.HR_BASE_COLOR.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  // Build the 1-minute hashrate area background as a classic vertical gradient (80% -> 0%).
+  private hr1mAreaGradient(context: any): CanvasGradient | string {
+    const chart = context?.chart;
+    const ctx = chart?.ctx;
+    const chartArea = chart?.chartArea;
+
+    // Chart.js can call backgroundColor before layout; fall back until chartArea exists.
+    if (!ctx || !chartArea) return this.hrColor(0.3);
+
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, this.hrColor(0.3));
+    gradient.addColorStop(1, this.hrColor(0));
+    return gradient;
+  }
+
+  // Build the VR temperature area background as a reversed classic vertical gradient (25% -> 70%).
+  private vrTempAreaGradient(context: any): CanvasGradient | string {
+    const chart = context?.chart;
+    const ctx = chart?.ctx;
+    const chartArea = chart?.chartArea;
+
+    // Settings for gradient.
+    const baseHex = '#2DA8B7';
+    const topAlpha = 0.01;
+    const bottomAlpha = 0.12;
+
+    const hex = baseHex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const rgba = (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+    // Chart.js can call backgroundColor before layout; fall back until chartArea exists.
+    if (!ctx || !chartArea) return rgba(topAlpha);
+
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, rgba(topAlpha));
+    gradient.addColorStop(1, rgba(bottomAlpha));
+    return gradient;
+  }
+
+  // Build the ASIC temperature area background as a reversed classic vertical gradient (25% -> 70%).
+  private asicTempAreaGradient(context: any): CanvasGradient | string {
+    const chart = context?.chart;
+    const ctx = chart?.ctx;
+    const chartArea = chart?.chartArea;
+
+    // Settings for gradient.
+    const baseHex = '#C84847';
+    const topAlpha = 0.01;
+    const bottomAlpha = 0.21;
+
+
+    const hex = baseHex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const rgba = (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+    // Chart.js can call backgroundColor before layout; fall back until chartArea exists.
+    if (!ctx || !chartArea) return rgba(topAlpha);
+
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, rgba(topAlpha));
+    gradient.addColorStop(1, rgba(bottomAlpha));
+    return gradient;
+  }
+
   // --- GraphGuard
   // Step-Confirmation: how many consecutive "suspicious" samples in the same direction
   // are required before accepting a step. Increase to 3 to be more conservative.
@@ -271,13 +351,14 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           label: this.translateService.instant('HOME.HASHRATE_1M'),
           data: this.dataData1m,
           yAxisID: 'y',
-          fill: false,
-          backgroundColor: '#6484f6',
-          borderColor: '#6484f6',
+          fill: 'start',
+          backgroundColor: (context: any) => this.hr1mAreaGradient(context),
+          borderColor: this.hrColor(1),
+          pill: { bg: this.hrColor(1) },
           tension: this.hashrate1mSmoothingCfg.tensionFast,
           cubicInterpolationMode: 'monotone',
           pointRadius: 0,
-          borderWidth: 1
+          borderWidth: 2.1
         },
         {
           type: 'line',
@@ -285,12 +366,14 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           data: this.dataData10m,
           yAxisID: 'y',
           fill: false,
-          backgroundColor: '#7464f6',
-          borderColor: '#7464f6',
+          backgroundColor: this.hrColor(0),
+          borderColor: this.hrColor(0.9),
           tension: .4,
           cubicInterpolationMode: 'monotone',
           pointRadius: 0,
-          borderWidth: 1
+          borderWidth: 1.8,
+          borderDash: [1, 4],
+          borderCapStyle: 'round'
         },
         {
           type: 'line',
@@ -298,12 +381,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           data: this.dataData1h,
           yAxisID: 'y',
           fill: false,
-          backgroundColor: '#a564f6',
-          borderColor: '#a564f6',
+          backgroundColor: this.hrColor(0),
+          borderColor: this.hrColor(0.8),
           tension: .4,
           cubicInterpolationMode: 'monotone',
           pointRadius: 0,
-          borderWidth: 1
+          borderWidth: 1.8,
+          borderDash: [8, 2]
         },
         {
           type: 'line',
@@ -311,38 +395,39 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           data: this.dataData1d,
           yAxisID: 'y',
           fill: false,
-          backgroundColor: '#c764f6',
-          borderColor: '#c764f6',
+          backgroundColor: this.hrColor(0),
+          borderColor: this.hrColor(0.8),
           tension: .4,
           cubicInterpolationMode: 'monotone',
           pointRadius: 0,
-          borderWidth: 1
+          borderWidth: 1.8,
+          borderDash: [14, 8]
         },
         {
           type: 'line',
-          label: this.translateService.instant('PERFORMANCE.VR_TEMP'),
+          label: this.translateService.instant('PERFORMANCE.VR_TEMP_LEGEND'),
           data: this.dataVregTemp,
           yAxisID: 'y_temp',
           fill: true,
           borderColor: '#2DA8B7',
-          backgroundColor: 'rgba(0, 188, 212, 0.25)',
+          backgroundColor: (context: any) => this.vrTempAreaGradient(context),
           tension: .4,
           cubicInterpolationMode: 'monotone',
           pointRadius: 0,
-          borderWidth: 1
+          borderWidth: 1.4
         },
         {
           type: 'line',
-          label: this.translateService.instant('PERFORMANCE.ASIC_TEMP'),
+          label: this.translateService.instant('PERFORMANCE.ASIC_TEMP_LEGEND'),
           data: this.dataAsicTemp,
           yAxisID: 'y_temp',
           fill: true,
           borderColor: '#C84847',
-          backgroundColor: 'rgba(229, 57, 53, 0.25)',
+          backgroundColor: (context: any) => this.asicTempAreaGradient(context),
           tension: .4,
           cubicInterpolationMode: 'monotone',
           pointRadius: 0,
-          borderWidth: 1
+          borderWidth: 1.3
         }
       ]
     };
