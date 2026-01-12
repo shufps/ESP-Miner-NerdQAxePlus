@@ -219,7 +219,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   protected readonly NbTrigger = NbTrigger;
 
   private chart: Chart;
-  private themeSubscription: any;
+  private themeSubscription?: Subscription;
   private chartInitialized = false;
   private _info: any;
   private timeFormatListener: any;
@@ -927,6 +927,8 @@ private installNerdChartsDebugBootstrap(): void {
   }
 
   ngOnDestroy(): void {
+    // Clean up theme subscription to avoid memory leaks when navigating away.
+    this.themeSubscription?.unsubscribe();
     this.historyDrainSub?.unsubscribe();
     if (this.timeFormatListener) {
       window.removeEventListener('timeFormatChanged', this.timeFormatListener);
