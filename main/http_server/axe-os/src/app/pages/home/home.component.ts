@@ -1574,28 +1574,68 @@ private updateChartData(data: any): void {
   }
 
   private loadChartData(): void {
-    const storedData = localStorage.getItem(this.localStorageKey);
-    if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      this.dataLabel = parsedData.labels || [];
-      this.dataData1m = parsedData.dataData1m || [];
-      this.dataData10m = parsedData.dataData10m || [];
-      this.dataData1h = parsedData.dataData1h || [];
-      this.dataData1d = parsedData.dataData1d || [];
-      this.dataVregTemp = parsedData.dataVregTemp || [];
-      this.dataAsicTemp = parsedData.dataAsicTemp || [];
-    }
-
-    // do a simple consistency check
-    this.validateOrResetHistory();
-
-    // sanitize persisted data (remove visual spikes / line-break seeds)
-    this.sanitizeLoadedHistory();
-
-    this.updateChart();
-
-    // make sure we load the data before we save it
+    // Allow persistence from now on (even if there is no data yet on first run).
     this.wasLoaded = true;
+
+    const raw = localStorage.getItem(this.localStorageKey);
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw);
+
+      // Validate minimal required schema: labels + the 4 hashrate series.
+      const labels = Array.isArray(parsed?.labels) ? parsed.labels : null;
+
+      const d1m = Array.isArray(parsed?.dataData1m) ? parsed.dataData1m : null;
+      const d10m = Array.isArray(parsed?.dataData10m) ? parsed.dataData10m : null;
+      const d1h = Array.isArray(parsed?.dataData1h) ? parsed.dataData1h : null;
+      const d1d = Array.isArray(parsed?.dataData1d) ? parsed.dataData1d : null;
+
+      if (!labels || !d1m || !d10m || !d1h || !d1d) {
+        throw new Error('Invalid chartData storage shape (missing required series)');
+      }
+
+      const targetLen = labels.length;
+
+      const normalizeToLen = (arr: number[] | null, len: number): number[] => {
+        if (!arr) return new Array(len).fill(Number.NaN);
+        if (arr.length === len) return arr;
+        if (arr.length > len) return arr.slice(0, len);
+        return arr.concat(new Array(len - arr.length).fill(Number.NaN));
+      };
+
+      // Optional series: allow missing keys (backward compatible).
+      const vreg = Array.isArray(parsed?.dataVregTemp) ? parsed.dataVregTemp : null;
+      const asic = Array.isArray(parsed?.dataAsicTemp) ? parsed.dataAsicTemp : null;
+
+      this.dataLabel = labels;
+      this.dataData1m = normalizeToLen(d1m, targetLen);
+      this.dataData10m = normalizeToLen(d10m, targetLen);
+      this.dataData1h = normalizeToLen(d1h, targetLen);
+      this.dataData1d = normalizeToLen(d1d, targetLen);
+      this.dataVregTemp = normalizeToLen(vreg, targetLen);
+      this.dataAsicTemp = normalizeToLen(asic, targetLen);
+
+      // Keep chartData in sync with the restored arrays.
+      if (this.chartData) {
+        this.updateChart();
+      }
+    } catch (err) {
+      console.warn('[HomeComponent] Failed to load chartData from localStorage (keeping it untouched).', err);
+
+      // Reset in-memory only, but do NOT wipe storage automatically.
+      this.dataLabel = [];
+      this.dataData1m = [];
+      this.dataData10m = [];
+      this.dataData1h = [];
+      this.dataData1d = [];
+      this.dataVregTemp = [];
+      this.dataAsicTemp = [];
+
+      if (this.chartData) {
+        this.updateChart();
+      }
+    }
   }
 
   private sanitizeLoadedHistory(): void {
@@ -1928,7 +1968,7 @@ private updateTempScaleFromLatest(): void {
 
   // edge case where chart data in the browser is not consistent
   // this happens when adding new charts
-  private validateOrResetHistory() {
+  private validateOrResetHistory(): void {
     const lenLabels = this.dataLabel.length;
     const len1m = this.dataData1m.length;
     const len10m = this.dataData10m.length;
@@ -1939,35 +1979,51 @@ private updateTempScaleFromLatest(): void {
 
     const lengths = [lenLabels, len1m, len10m, len1h, len1d, lenVregTemp, lenAsicTemp];
 
-    // if all arrays have the same length everything is fine
+    // If all arrays have the same length, everything is fine.
     const allEqual = lengths.every(l => l === lengths[0]);
-    if (allEqual) {
+    if (allEqual) return;
+
+    // If labels are missing but any series has data, we cannot safely recover.
+    const anySeriesHasData = [len1m, len10m, len1h, len1d, lenVregTemp, lenAsicTemp].some(l => l > 0);
+    if (lenLabels === 0 && anySeriesHasData) {
+      console.warn('[History] Labels missing while series data exists; clearing in-memory only.', {
+        lenLabels, len1m, len10m, len1h, len1d, lenVregTemp, lenAsicTemp,
+      });
+
+      // Clear in-memory only; do not wipe persisted storage here.
+      this.dataLabel = [];
+      this.dataData1m = [];
+      this.dataData10m = [];
+      this.dataData1h = [];
+      this.dataData1d = [];
+      this.dataVregTemp = [];
+      this.dataAsicTemp = [];
       return;
     }
 
-    // if not we clear the data and trigger a reload
-    console.warn('[History] Inconsistent lengths detected from', {
-      lenLabels, len1m, len10m, len1h, len1d, lenVregTemp, lenAsicTemp
+    console.warn('[History] Inconsistent lengths detected; repairing series to match labels.', {
+      lenLabels, len1m, len10m, len1h, len1d, lenVregTemp, lenAsicTemp,
     });
 
-    // Clear in-memory history arrays
-    this.dataLabel = [];
-    this.dataData1m = [];
-    this.dataData10m = [];
-    this.dataData1h = [];
-    this.dataData1d = [];
-    this.dataVregTemp = [];
-    this.dataAsicTemp = [];
+    const normalizeToLen = (arr: number[], targetLen: number): number[] => {
+      if (arr.length === targetLen) return arr;
+      if (arr.length > targetLen) return arr.slice(0, targetLen);
 
-    // prevent saving anything after we clear and reload the window
-    this.saveLock = true;
+      // Pad missing values with NaN so Chart.js will skip those points.
+      const pad = new Array(targetLen - arr.length).fill(Number.NaN);
+      return arr.concat(pad);
+    };
 
-    // Clear persisted history
-    localStorage.removeItem(this.localStorageKey);
-    localStorage.removeItem(this.timestampKey);
+    // Normalize all series to labels length.
+    this.dataData1m = normalizeToLen(this.dataData1m, lenLabels);
+    this.dataData10m = normalizeToLen(this.dataData10m, lenLabels);
+    this.dataData1h = normalizeToLen(this.dataData1h, lenLabels);
+    this.dataData1d = normalizeToLen(this.dataData1d, lenLabels);
+    this.dataVregTemp = normalizeToLen(this.dataVregTemp, lenLabels);
+    this.dataAsicTemp = normalizeToLen(this.dataAsicTemp, lenLabels);
 
-    // Hard reload to force a clean state
-    window.location.reload();
+    // Do not clear persisted history and do not force a reload.
+    // The next regular save will persist the repaired shape.
   }
 
   public rejectRate(id: number) {
