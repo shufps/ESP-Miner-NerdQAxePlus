@@ -113,7 +113,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private graphGuardConfirmSamples: number = 2;
   // If a "suspicious" hashrate step matches the live pool-sum reference within this tolerance,
   // accept immediately (so the Y-scale reacts in 1–2 ticks).
-  private graphGuardLiveRefTolerance: number = 0.12;
+  private graphGuardLiveRefTolerance: number = 0.15;
   // A step >= this relative delta vs previous sample is treated as a likely real change (e.g. freq up/down)
   // and will not be blocked by the live-ref gate. (5s updates -> reacts in ~10s with confirmSamples=2)
   private graphGuardBigStepRel: number = 0.20;
@@ -123,8 +123,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private livePoolSumRing: number[] = [];
   private lastLivePoolSumHs: number = 0;
   // Controls how many tick labels are shown on the left hashrate Y axis (Chart.js 'maxTicksLimit').
-  private hashrateYAxisMaxTicks: number = 7;
-  private hashrateYAxisMinStepThs: number = 0.02;
+  private hashrateYAxisMaxTicks: number = 5;
+  private hashrateYAxisMinStepThs: number = 0.005;
   private tempYAxisMinStepC: number = 2;
   // --- Rendering smoothing (visual only)
   // Applies to the 1min hashrate dataset. This does not modify data, only the curve rendering.
@@ -132,12 +132,12 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private hashrate1mSmoothingCfg = {
     enabled: true,
     // median point interval thresholds (ms)
-    fastIntervalMs: 2500,
-    mediumIntervalMs: 5000,
+    fastIntervalMs: 6000,
+    mediumIntervalMs: 12000,
     // tensions
-    tensionFast: 0.40,
+    tensionFast: 0.60,
     tensionMedium: 0.25,
-    tensionSlow: 0.10,
+    tensionSlow: 0.20,
     // interpolation (keeps curve monotone; avoids overshoot)
     cubicInterpolationMode: 'monotone' as const,
   };
@@ -197,7 +197,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   private setHashrateYAxisLabelCount(count: number): void {
-    const n = Math.max(2, Math.min(12, Math.round(Number(count))));
+    const n = Math.max(2, Math.min(30, Math.round(Number(count))));
     this.hashrateYAxisMaxTicks = n;
 
     try {
@@ -277,8 +277,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     hashrate: {
       windowPoints: 180,     // last N points to consider
       padPct: 0.06,          // fallback padding (symmetrical) as % of range
-      padPctTop: 0.08,       // extra headroom above range (as % of range)
-      padPctBottom: 0.06,    // extra room below range (as % of range)
+      padPctTop: 0.05,       // extra headroom above range (as % of range)
+      padPctBottom: 0.07,    // extra room below range (as % of range)
       minPadThs: 0.03,       // minimum padding in TH/s (keep small so flat curves don't look "stuck")
       flatPadPctOfMax: 0.005,// if range ~0, use max*X (keep small; too large flattens visible variation)
       maxPadPctOfMax: 0.25,  // cap padding to avoid over-zooming out
@@ -1409,7 +1409,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
         const desiredThs = rangeThs / Math.max(1, maxTicks - 1);
 
         // "Nice" steps in TH/s; we then convert back to H/s for Chart.js.
-        const niceStepsThs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10];
+        const niceStepsThs = [0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25, 0.3, 0.5, 1, 2, 5, 10];
         let stepThs = niceStepsThs[niceStepsThs.length - 1];
 
         // Prefer a step that yields a tick count close to maxTicks (maxTicksLimit is only a maximum).
@@ -1548,21 +1548,21 @@ private updateChartData(data: any): void {
       const lastIdx = this.dataLabel.length - 1;
       if (lastIdx >= 0 && this.dataLabel[lastIdx] === entry.timestamp) {
         this.dataData1m[lastIdx] = this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1m', entry.hashrate_1m, 0.01, livePoolSum) : entry.hashrate_1m;
+        this.dataVregTemp[lastIdx] = this.graphGuard('vregTemp', entry.vregTemp, 0.35);
+        this.dataAsicTemp[lastIdx] = this.graphGuard('asicTemp', entry.asicTemp, 0.35);
         this.dataData10m[lastIdx] = this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_10m', entry.hashrate_10m, 0.02, livePoolSum) : entry.hashrate_10m;
         this.dataData1h[lastIdx] = this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1h', entry.hashrate_1h, 0.08, livePoolSum) : entry.hashrate_1h;
         this.dataData1d[lastIdx] = this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1d', entry.hashrate_1d, 0.10, livePoolSum) : entry.hashrate_1d;
-        this.dataVregTemp[lastIdx] = this.graphGuard('vregTemp', entry.vregTemp, 0.35);
-        this.dataAsicTemp[lastIdx] = this.graphGuard('asicTemp', entry.asicTemp, 0.35);
         continue;
       }
 
       this.dataLabel.push(entry.timestamp);
       this.dataData1m.push(this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1m', entry.hashrate_1m, 0.01, livePoolSum) : entry.hashrate_1m);
+      this.dataVregTemp.push(this.graphGuard('vregTemp', entry.vregTemp, 0.35));
+      this.dataAsicTemp.push(this.graphGuard('asicTemp', entry.asicTemp, 0.35));
       this.dataData10m.push(this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_10m', entry.hashrate_10m, 0.02, livePoolSum) : entry.hashrate_10m);
       this.dataData1h.push(this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1h', entry.hashrate_1h, 0.08, livePoolSum) : entry.hashrate_1h);
       this.dataData1d.push(this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1d', entry.hashrate_1d, 0.10, livePoolSum) : entry.hashrate_1d);
-      this.dataVregTemp.push(this.graphGuard('vregTemp', entry.vregTemp, 0.35));
-      this.dataAsicTemp.push(this.graphGuard('asicTemp', entry.asicTemp, 0.35));
     }
   }
 
@@ -1607,12 +1607,11 @@ private updateChartData(data: any): void {
 
     for (let i = 0; i < len; i++) {
       out1m.push(this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1m', this.dataData1m[i], 0.01) : this.dataData1m[i]);
+      outVreg.push(this.graphGuard('vregTemp', this.dataVregTemp[i], 0.35));
+      outAsic.push(this.graphGuard('asicTemp', this.dataAsicTemp[i], 0.35));
       out10m.push(this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_10m', this.dataData10m[i], 0.02) : this.dataData10m[i]);
       out1h.push(this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1h', this.dataData1h[i], 0.08) : this.dataData1h[i]);
       out1d.push(this.enableHashrateSpikeGuard ? this.graphGuard('hashrate_1d', this.dataData1d[i], 0.10) : this.dataData1d[i]);
-
-      outVreg.push(this.graphGuard('vregTemp', this.dataVregTemp[i], 0.35));
-      outAsic.push(this.graphGuard('asicTemp', this.dataAsicTemp[i], 0.35));
     }
 
     this.dataData1m = out1m;
