@@ -218,7 +218,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   protected readonly NbTrigger = NbTrigger;
 
-  private chart: Chart;
+  private chart?: Chart;
   private themeSubscription?: Subscription;
   private chartInitialized = false;
   private _info: any;
@@ -927,6 +927,12 @@ private installNerdChartsDebugBootstrap(): void {
   }
 
   ngOnDestroy(): void {
+    // Destroy Chart.js instance to release canvas resources and internal listeners.
+    if (this.chart) {
+      this.chart.destroy();
+      this.chart = undefined;
+    }
+
     // Clean up theme subscription to avoid memory leaks when navigating away.
     this.themeSubscription?.unsubscribe();
     this.historyDrainSub?.unsubscribe();
