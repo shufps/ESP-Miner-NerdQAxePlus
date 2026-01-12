@@ -36,7 +36,7 @@
   "HOME": {
     "HASH_RATE": "Hash-Rate",
     "HASH_RATE_TOOLTIP": "Von den ASICs gemeldete Hash-Rate.",
-    "HASH_RATE_CHART": "Hash-Rate-Diagramm",
+    "HASH_RATE_CHART": "Nerd* Diagramme",
     "HASHRATE_ESTIMATED": "Hash-Rate geschätzt durch gefundene Anteile.",
     "SHARES": "Anteile",
     "POWER": "Leistung",
@@ -60,10 +60,10 @@
     "IDLE": "Leerlauf",
     "PRIMARY_POOL": "Primärer Pool",
     "FALLBACK_POOL": "Fallback-Pool",
-    "HASHRATE_1M": "Hashrate (1 min)",
-    "HASHRATE_10M": "Hashrate (10 min)",
-    "HASHRATE_1H": "Hashrate (1 std)",
-    "HASHRATE_1D": "Hashrate (1 Tag)",
+    "HASHRATE_1M": "Hashrate  (1 min)",
+    "HASHRATE_10M": " (10 min)",
+    "HASHRATE_1H": " (1 std)",
+    "HASHRATE_1D": " (1 Tag)",
     "SHARE_TOO_SMALL": "Anteil für diesen Pool zu klein!"
   },
   "PERFORMANCE": {
@@ -78,6 +78,8 @@
     "TITLE_HEAT": "Hitze",
     "ASIC_TEMP": "ASIC-Temp",
     "VR_TEMP": "VR-Temp",
+    "ASIC_TEMP_LEGEND": "ASIC",
+    "VR_TEMP_LEGEND": "VReg.",
     "FAN_SPEED": "Lüftergeschwindigkeit",
     "FAN_RPM": "Lüfter-RPM",
     "ASIC_FREQUENCY": "ASIC-Frequenz",

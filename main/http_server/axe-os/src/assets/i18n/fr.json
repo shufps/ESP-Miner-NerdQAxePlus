@@ -36,7 +36,7 @@
   "HOME": {
     "HASH_RATE": "Taux de Hachage",
     "HASH_RATE_TOOLTIP": "Taux de hachage rapporté par les ASICs.",
-    "HASH_RATE_CHART": "Graphique du Taux de Hachage",
+    "HASH_RATE_CHART": "Nerd* Graphique",
     "HASHRATE_ESTIMATED": "Taux de hachage estimé par les parts trouvées.",
     "SHARES": "Parts",
     "POWER": "Puissance",
@@ -60,10 +60,10 @@
     "IDLE": "Inactif",
     "PRIMARY_POOL": "Pool Primaire",
     "FALLBACK_POOL": "Pool de Secours",
-    "HASHRATE_1M": "Hashrate (1 min)",
-    "HASHRATE_10M": "Hashrate (10 min)",
-    "HASHRATE_1H": "Hashrate (1 h)",
-    "HASHRATE_1D": "Hashrate (1 j)",
+    "HASHRATE_1M": "Hashrate  (1 min)",
+    "HASHRATE_10M": " (10 min)",
+    "HASHRATE_1H": " (1 heure)",
+    "HASHRATE_1D": " (1 jour)",
     "SHARE_TOO_SMALL": "Pourcentage pour ce pool trop faible!"
   },
   "PERFORMANCE": {
@@ -78,6 +78,8 @@
     "TITLE_HEAT": "Chaleur",
     "ASIC_TEMP": "Temp ASIC",
     "VR_TEMP": "Temp VR",
+    "ASIC_TEMP_LEGEND": "ASIC",
+    "VR_TEMP_LEGEND": "VReg.",
     "FAN_SPEED": "Vitesse Ventilateur",
     "FAN_RPM": "RPM Ventilateur",
     "ASIC_FREQUENCY": "Fréquence ASIC",

@@ -36,7 +36,7 @@
   "HOME": {
     "HASH_RATE": "Tasa de Hash",
     "HASH_RATE_TOOLTIP": "Tasa de hash reportada por los ASICs.",
-    "HASH_RATE_CHART": "Gráfico de Tasa de Hash",
+    "HASH_RATE_CHART": "Nerd* Gráfico",
     "HASHRATE_ESTIMATED": "Tasa de hash estimada por las acciones encontradas.",
     "SHARES": "Acciones",
     "POWER": "Potencia",
@@ -60,10 +60,10 @@
     "IDLE": "Inactivo",
     "PRIMARY_POOL": "Pool Primario",
     "FALLBACK_POOL": "Pool de Respaldo",
-    "HASHRATE_1M": "Hashrate (1 min)",
-    "HASHRATE_10M": "Hashrate (10 min)",
-    "HASHRATE_1H": "Hashrate (1 h)",
-    "HASHRATE_1D": "Hashrate (1 d)",
+    "HASHRATE_1M": "Hashrate  (1 min)",
+    "HASHRATE_10M": " (10 min)",
+    "HASHRATE_1H": " (1 hora)",
+    "HASHRATE_1D": " (1 día)",
     "SHARE_TOO_SMALL": "Porcentaje para este pool demasiado bajo!"
   },
   "PERFORMANCE": {
@@ -78,6 +78,8 @@
     "TITLE_HEAT": "Calor",
     "ASIC_TEMP": "Temp ASIC",
     "VR_TEMP": "Temp VR",
+    "ASIC_TEMP_LEGEND": "ASIC",
+    "VR_TEMP_LEGEND": "VReg.",
     "FAN_SPEED": "Velocidad Ventilador",
     "FAN_RPM": "RPM Ventilador",
     "ASIC_FREQUENCY": "Frecuencia ASIC",
