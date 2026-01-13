@@ -76,8 +76,8 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
   public minBufferPx = 18 * 20;
   public maxBufferPx = 18 * 80;
 
-  /** Adaptive max log count (updated from device heap). */
-  private maxLogs = 3000;
+  /** Max log count (fixed limit). */
+  private maxLogs = 10000;
 
   /** Monotonic ID for stable `trackBy` in virtual scroll. */
   private nextLogId = 1;
@@ -148,7 +148,7 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
         info.coreVoltageActual = parseFloat((info.coreVoltageActual / 1000).toFixed(2));
         info.coreVoltage = parseFloat((info.coreVoltage / 1000).toFixed(2));
 
-        // Adaptive memory guard for logs
+        // Fixed log limit (independent of device heap)
         this.updateMaxLogsFromHeap(info.freeHeap);
 
         return info;
@@ -258,26 +258,17 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
-   * Updates the maximum number of stored log lines based on free device memory.
-   * Uses conservative thresholds to reduce memory pressure from long ANSI logs.
+   * Sets the maximum number of stored log lines.
+   * The limit is fixed to 10,000 lines (independent of device free heap).
    *
    * Input:
-   *  @param freeHeap number - Free heap memory reported by the device (bytes)
+   *  @param _freeHeap number - Free heap memory reported by the device (bytes)
    *
    * Output: void
    * Side effects: updates `maxLogs`
    */
-  private updateMaxLogsFromHeap(freeHeap: number) {
-    if (!freeHeap || freeHeap <= 0) {
-      this.maxLogs = 2000;
-      return;
-    }
-
-    if (freeHeap < 100_000) this.maxLogs = 1000;
-    else if (freeHeap < 200_000) this.maxLogs = 2000;
-    else if (freeHeap < 400_000) this.maxLogs = 3000;
-    else if (freeHeap < 800_000) this.maxLogs = 5000;
-    else this.maxLogs = 8000;
+  private updateMaxLogsFromHeap(_freeHeap: number) {
+    this.maxLogs = 10000;
   }
 
   /**
@@ -330,7 +321,7 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
    * Responsibilities:
    *  - Converts raw string lines into LogLine objects with incremental IDs
    *  - Appends them to the main log buffer
-   *  - Enforces the adaptive `maxLogs` limit (drops oldest entries)
+   *  - Enforces the `maxLogs` limit (drops oldest entries)
    *  - Re-applies the active text filter
    *  - Triggers OnPush change detection
    *  - Schedules a frame-synchronized smooth auto-scroll update
