@@ -2189,8 +2189,13 @@ private updateTempScaleFromLatest(): void {
             this.flushHistoryDrainRenderFinal();
           }
         },
-        error: () => {
+        error: (err) => {
+          console.error('[HistoryDrain] failed', err);
+          // Ensure the UI can continue updating after a drain error.
           this.historyDrainRunning = false;
+          this.suppressChartUpdatesDuringHistoryDrain = false;
+          // If we buffered render updates, flush once so the user still sees partial progress.
+          this.flushHistoryDrainRenderFinal();
         }
       });
     };
