@@ -3,7 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { PagesComponent } from './pages.component';
 import { NotFoundComponent } from '../@theme/components';
-import { HomeComponent } from './home/home.component';
+import { HomeShellComponent } from './home/home-shell.component';
 import { SettingsComponent } from './settings/settings.component';
 import { InfluxdbComponent } from './influxdb/influxdb.component';
 import { SystemComponent } from './system/system.component';
@@ -22,7 +22,7 @@ const routes: Routes = [{
     },
     {
       path: 'home',
-      component: HomeComponent
+      component: HomeShellComponent
     },
     {
       path: 'settings',

@@ -1,0 +1,7 @@
+<ng-container *ngIf="(experimental.enabled$ | async); else normal">
+  <app-home-experimental></app-home-experimental>
+</ng-container>
+
+<ng-template #normal>
+  <app-home></app-home>
+</ng-template>
