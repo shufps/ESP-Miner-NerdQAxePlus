@@ -26,7 +26,8 @@ import {
 })
 
 export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
-  @ViewChild("myChart") ctx: ElementRef<HTMLCanvasElement>;
+  @ViewChild('myChart') ctx!: ElementRef<HTMLCanvasElement>;
+
   private HR_BASE_COLOR: string = '#a564f6';
 
   // Build the hashrate graph color from the base hex color and a given alpha (opacity).
