@@ -189,6 +189,17 @@
         {{ 'SYSTEM.SCROLLING' | translate }}
       </button>
 
+      <button nbButton
+              size="small"
+              status="success"
+              *ngIf="showLogs"
+              [disabled]="logs.length === 0"
+              (click)="downloadLogs()"
+              style="margin-left: 15px;">
+        <nb-icon icon="download-outline" class="download-icon" aria-hidden="true"></nb-icon>
+        {{ 'SYSTEM.DOWNLOAD_LOGS' | translate }}
+      </button>
+
       <div *ngIf="showLogs" style="display: flex; align-items: center; margin-left: 15px; margin-top: 0;">
         <button nbButton
                 size="small"
@@ -229,7 +240,7 @@
         <div
           class="log-entry"
           *cdkVirtualFor="let log of filteredLogs; trackBy: trackByLogId"
-          [innerHTML]="'₿ ' + (log.text | ANSI)">
+          [innerHTML]="(formatLogForUi(log.text) | ANSI)">
         </div>
 
       </cdk-virtual-scroll-viewport>

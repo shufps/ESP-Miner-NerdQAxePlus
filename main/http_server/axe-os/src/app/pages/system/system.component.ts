@@ -33,7 +33,7 @@ import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service
 import { SystemService } from '../../services/system.service';
 import { WebsocketService } from '../../services/web-socket.service';
 
-type LogLine = { id: number; text: string };
+type LogLine = { id: number; text: string; ts: number };
 
 type LogsLockRecord = { ownerId: string; ts: number };
 type LogsBroadcastMessage =
@@ -335,6 +335,7 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
     const newLines: LogLine[] = lines.map((text) => ({
       id: this.nextLogId++,
       text,
+      ts: Date.now(),
     }));
 
     this.logs.push(...newLines);
@@ -800,4 +801,81 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
       this.lockHeartbeatTimer = undefined;
     }
   }
+
+
+  public formatLogForUi(text: string): string {
+    // Replace ESC[0;32mI -> ESC[0;32m₿ (keeps original ANSI styling)
+    return (text ?? '').replace(/\x1b\[0;32mI/g, '\x1b[0;32m₿');
+  }
+
+  public downloadLogs(): void {
+    const content = this.buildDownloadTextFromLogs();
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `logs_${this.formatFilenameStamp(new Date())}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  private buildDownloadTextFromLogs(): string {
+    const out: string[] = [];
+
+    for (const l of this.logs) {
+      const time = this.formatHms(l.ts);
+
+      const rawLines = String(l.text ?? '').split(/\r?\n/);
+      for (const raw of rawLines) {
+        const cleaned = this.cleanLogLineForExport(raw);
+        if (!cleaned) continue;
+        out.push(`${time} ${cleaned}`);
+      }
+    }
+
+    return out.join('\n') + (out.length ? '\n' : '');
+  }
+
+  private cleanLogLineForExport(line: string): string {
+    let t = String(line ?? '');
+
+    // Replace the colored "I" marker directly (if present)
+    t = t.replace(/\x1b\[0;32mI/g, '₿');
+
+    // Strip ANSI sequences for a clean text file
+    t = this.stripAnsi(t);
+
+    // If it already starts with a plain "I ", convert that too
+    t = t.replace(/^I(\s)/, '₿$1');
+
+    // Drop empty lines
+    t = t.replace(/\r/g, '').trimEnd();
+    return t.trim().length ? t : '';
+  }
+
+  private stripAnsi(text: string): string {
+    return String(text ?? '').replace(/\x1b\[[0-9;]*m/g, '');
+  }
+
+  private formatHms(ts: number): string {
+    const d = new Date(ts);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+  }
+
+  private formatFilenameStamp(d: Date): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return `${yyyy}${mm}${dd}_${hh}${mi}${ss}`;
+  }
+
 }

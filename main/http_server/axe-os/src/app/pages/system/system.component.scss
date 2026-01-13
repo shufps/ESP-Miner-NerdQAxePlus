@@ -34,13 +34,20 @@
   font-family: ui-monospace, monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
   white-space: pre;       /* do not wrap -> stable height */
   line-height: 18px;      /* must match logItemSize */
-  padding: 0;
+  padding: 0 0 0 10px;
   margin: 0;
   background-color: #0D1117;
 
   /* optional: allow horizontal scroll for long lines */
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+.download-icon {
+  margin-right: 8px;
+  vertical-align: middle;
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 :host ::ng-deep .ansi-red { color: #ff0000 !important; }
