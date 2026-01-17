@@ -190,7 +190,12 @@ float NerdaxeGamma::getVin() {
 }
 
 float NerdaxeGamma::getIin() {
-    return TPS546_get_iout();
+    float vin = getVin();
+    if (!vin) {
+        return 0.0f;
+    }
+
+    return getPin() / vin;
 }
 
 float NerdaxeGamma::getPin() {
