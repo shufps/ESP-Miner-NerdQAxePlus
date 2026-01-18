@@ -89,7 +89,7 @@ export class OtpAuthService {
             return of<EnsureOtpResult>({});
         }
 
-        return this.system.getInfo(0, uri).pipe(
+        return this.system.getInfo(0, 0, uri).pipe(
             take(1),
             switchMap(info => {
                 const otpEnabled = !!info?.otp;

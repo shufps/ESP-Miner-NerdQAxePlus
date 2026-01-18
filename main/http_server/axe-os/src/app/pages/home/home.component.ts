@@ -55,9 +55,6 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public dataAsicTemp: number[] = [];
   public chartData?: any;
 
-  public historyDrainRunning = false;
-  private historyDrainSub?: Subscription;
-
   public hasChipTemps: boolean = false;
   public viewMode: 'gauge' | 'bars' = 'bars'; // default to bars
 
@@ -95,9 +92,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     }
 
     this.loadChartData();
-    if (this.dataLabel.length === 0) {
-      this.importHistoricalDataChunked(this._info.history);
-    } else {
+    if (this._info.history) {
       this.importHistoricalData(this._info.history);
     }
   }
@@ -297,10 +292,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         if (!this.chart) {
           return info;
         }
-        // Only drain on cold start (no cached points yet)
-        if (this.dataLabel.length === 0) {
-          this.importHistoricalDataChunked(info.history);
-        } else {
+        if (info.history) {
           this.importHistoricalData(info.history);
         }
       }),
@@ -455,7 +447,6 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.historyDrainSub?.unsubscribe();
     if (this.timeFormatListener) {
       window.removeEventListener('timeFormatChanged', this.timeFormatListener);
     }
@@ -870,69 +861,6 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return rejected / (accepted + rejected) * 100;
   }
 
-
-  private getLastAbsTimestampFromHistory(history: any): number | null {
-    if (!history?.timestamps?.length) return null;
-    const maxRel = Math.max(...history.timestamps);
-    return history.timestampBase + maxRel;
-  }
-
-  private importHistoricalDataChunked(history: any): void {
-    // Import current chunk using your existing logic
-    this.importHistoricalData(history);
-
-    // If no more chunks -> done
-    console.log("has more: " + history?.hasMore);
-    if (!history?.hasMore) {
-      this.historyDrainRunning = false;
-      return;
-    }
-
-    // If we are already draining, don't start a second chain
-    if (this.historyDrainRunning) {
-      return;
-    }
-
-    this.historyDrainRunning = true;
-
-    const startNext = this.getLastAbsTimestampFromHistory(history);
-    if (startNext === null) {
-      this.historyDrainRunning = false;
-      return;
-    }
-
-    const fetchNext = (startTs: number) => {
-      this.historyDrainSub = this.systemService.getInfo(startTs).pipe(take(1)).subscribe({
-        next: (info) => {
-          const h = info?.history;
-          if (!h) {
-            this.historyDrainRunning = false;
-            return;
-          }
-
-          // Import next chunk
-          this.importHistoricalData(h);
-
-          // Continue?
-          if (h.hasMore) {
-            const lastAbs = this.getLastAbsTimestampFromHistory(h);
-            if (lastAbs === null) {
-              this.historyDrainRunning = false;
-              return;
-            }
-            fetchNext(lastAbs + 1);
-          } else {
-            this.historyDrainRunning = false;
-          }
-        },
-        error: () => {
-          this.historyDrainRunning = false;
-        }
-      });
-    };
-
-    fetchNext(startNext + 1);
-  }
 }
 
 Chart.register(TimeScale);

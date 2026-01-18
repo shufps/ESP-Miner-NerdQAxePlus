@@ -69,7 +69,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.systemService.getInfo(0)
+    this.systemService.getInfo()
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
         next: (info) => {
@@ -201,7 +201,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
     }
 
     forkJoin({
-      info: this.systemService.getInfo(0, `http://${newIp}`),
+      info: this.systemService.getInfo(0, 0, `http://${newIp}`),
       asic: this.httpClient.get<any>(`http://${newIp}/api/system/asic`).pipe(
         timeout(5000),
         catchError(() => of(null))

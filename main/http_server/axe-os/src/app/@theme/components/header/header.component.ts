@@ -85,7 +85,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
 
     // 2) Always load backend info (device name/model + default theme)
-    this.infoService.getInfo(0).subscribe(info => {
+    this.infoService.getInfo().subscribe(info => {
       if (info?.deviceModel) {
         // Replace gamma symbol with "Gamma" to match asset filenames if needed
         this.deviceModel = String(info.deviceModel).replace('γ', 'Gamma');

@@ -109,7 +109,7 @@ class History {
     uint32_t getRateSample(int index);
     int searchNearestTimestamp(int64_t timestamp);
 
-    void exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp);
+    void exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp, uint64_t current_timestamp, uint32_t limit);
 
     int getNumSamples()
     {

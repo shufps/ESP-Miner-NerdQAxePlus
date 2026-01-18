@@ -344,7 +344,7 @@ int History::searchNearestTimestamp(int64_t timestamp)
 
 // Helper: fills a JsonObject with history data using ArduinoJson
 void History::exportHistoryData(JsonObject &json_history, uint64_t start_timestamp, uint64_t end_timestamp,
-                                uint64_t current_timestamp)
+                                uint64_t current_timestamp, uint32_t limit)
 {
     // Ensure consistency
     lock();
@@ -377,11 +377,11 @@ void History::exportHistoryData(JsonObject &json_history, uint64_t start_timesta
     JsonArray asicTemps = json_history["asicTemp"].to<JsonArray>();
 
     int64_t lastTimestamp = 0;
-    int limit = 100;
+    int left = limit;
     bool hasMore = false;
     for (int i = start_index; i < start_index + num_samples; i++) {
-        if (limit == 0) {
-            ESP_LOGW(TAG, "history response limited to %d points. Last timestamp %lld", limit, lastTimestamp);
+        if (limit && left == 0) {
+            ESP_LOGW(TAG, "history response limited to %lu points. Last timestamp %lld", limit, lastTimestamp);
             hasMore = true;
             break;
         }
@@ -397,7 +397,7 @@ void History::exportHistoryData(JsonObject &json_history, uint64_t start_timesta
         vregTemps.add((int) (getVregTempSample(i) * 100.0f));
         asicTemps.add((int) (getAsicTempSample(i) * 100.0f));
         timestamps.add((int64_t) sample_timestamp - sys_start);
-        limit--;
+        left--;
         lastTimestamp = sample_timestamp;
     }
 

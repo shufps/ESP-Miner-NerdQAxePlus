@@ -140,7 +140,7 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
 
     this.info$ = interval(5000).pipe(
       startWith(0),
-      switchMap(() => this.systemService.getInfo(0)),
+      switchMap(() => this.systemService.getInfo()),
       map(info => {
         info.power = parseFloat(info.power.toFixed(1));
         info.voltage = parseFloat((info.voltage / 1000).toFixed(1));

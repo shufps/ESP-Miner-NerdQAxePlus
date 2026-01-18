@@ -1,4 +1,4 @@
-import { HttpClient, HttpEvent } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { delay, Observable, of } from 'rxjs';
 import { eASICModel } from '../models/enum/eASICModel';
@@ -149,8 +149,20 @@ export class SystemService {
     return defaultInfo;
   }
 
-  public getInfo(ts: number, uri: string = ''): Observable<ISystemInfo> {
-    return this.httpClient.get(`${uri}/api/system/info?ts=${ts}&cur=${Math.floor(Date.now())}`) as Observable<ISystemInfo>;
+  public getInfo(ts = 0, limit = 0, uri = ''): Observable<ISystemInfo> {
+    let params = new HttpParams();
+
+    if (ts > 0) {
+      params = params
+        .set('ts', ts)
+        .set('cur', Date.now());
+
+      if (limit > 0) {
+        params = params.set('limit', limit);
+      }
+    }
+    const endpoint = `${uri}/api/system/info`;
+    return this.httpClient.get<ISystemInfo>(endpoint, { params });
   }
 
   public getAsicInfo(uri: string = ''): Observable<AsicInfo> {

@@ -126,6 +126,8 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   private hashrateYAxisMaxTicks: number = 5;
   private hashrateYAxisMinStepThs: number = 0.005;
   private tempYAxisMinStepC: number = 2;
+  // Chunk size for the history drainer
+  private chunkSizeDrainer: number = 100;
   // --- Rendering smoothing (visual only)
   // Applies to the 1min hashrate dataset. This does not modify data, only the curve rendering.
   // Rule: high point density => higher tension, low density => lower tension.
@@ -575,7 +577,7 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
         // Cap the startTimestamp to be at most one hour ago
         let startTimestamp = storedLastTimestamp ? Math.max(storedLastTimestamp + 1, oneHourAgo) : oneHourAgo;
 
-        return this.systemService.getInfo(startTimestamp).pipe(
+        return this.systemService.getInfo(startTimestamp, this.chunkSizeDrainer).pipe(
           catchError(err => {
             console.error('[HomeComponent] getInfo polling error', err);
             // Skip this tick, keep last good value and continue polling.
@@ -2179,7 +2181,7 @@ private updateTempScaleFromLatest(): void {
     }
 
     const fetchNext = (startTs: number) => {
-      this.historyDrainSub = this.systemService.getInfo(startTs).pipe(take(1)).subscribe({
+      this.historyDrainSub = this.systemService.getInfo(startTs, this.chunkSizeDrainer).pipe(take(1)).subscribe({
         next: (info) => {
           const h = info?.history;
           if (!h) {

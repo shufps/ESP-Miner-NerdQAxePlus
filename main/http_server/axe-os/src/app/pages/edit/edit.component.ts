@@ -83,7 +83,7 @@ export class EditComponent implements OnInit {
 
   ngOnInit(): void {
     forkJoin({
-      info: this.systemService.getInfo(0, this.uri),
+      info: this.systemService.getInfo(0, 0, this.uri),
       asic: this.systemService.getAsicInfo(this.uri)
     })
       .pipe(this.loadingService.lockUIUntilComplete())

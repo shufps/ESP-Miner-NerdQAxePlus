@@ -76,7 +76,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
     private otpAuth: OtpAuthService,
   ) {
-    this.info$ = this.systemService.getInfo(0).pipe(
+    this.info$ = this.systemService.getInfo().pipe(
       shareReplay({ refCount: true, bufferSize: 1 })
     );
   }
@@ -154,7 +154,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         attemptCount++;
 
         // Try to fetch system info
-        this.systemService.getInfo(0).subscribe({
+        this.systemService.getInfo().subscribe({
           next: (info) => {
             // Device is back online!
             clearInterval(this.rebootCheckInterval);

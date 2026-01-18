@@ -40,6 +40,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     // Parse optional start_timestamp parameter
     uint64_t start_timestamp = 0;
     uint64_t current_timestamp = 0;
+    uint32_t history_limit = 0;
     bool history_requested = false;
     char query_str[128];
     if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
@@ -48,6 +49,12 @@ esp_err_t GET_system_info(httpd_req_t *req)
             start_timestamp = strtoull(param, NULL, 10);
             if (start_timestamp) {
                 history_requested = true;
+            }
+        }
+        if (httpd_query_key_value(query_str, "limit", param, sizeof(param)) == ESP_OK) {
+            history_limit = strtoul(param, NULL, 10);
+            if (history_limit > 1000) {
+                history_limit = 1000;
             }
         }
         if (httpd_query_key_value(query_str, "cur", param, sizeof(param)) == ESP_OK) {
@@ -137,7 +144,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
         JsonObject json_history = doc["history"].to<JsonObject>();
 
         History *history = SYSTEM_MODULE.getHistory();
-        history->exportHistoryData(json_history, start_timestamp, end_timestamp, current_timestamp);
+        history->exportHistoryData(json_history, start_timestamp, end_timestamp, current_timestamp, history_limit);
     }
 
     // settings
