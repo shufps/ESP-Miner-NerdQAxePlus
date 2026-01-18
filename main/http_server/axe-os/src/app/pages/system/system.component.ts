@@ -848,6 +848,43 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
     // Strip ANSI sequences for a clean text file
     t = this.stripAnsi(t);
 
+    // --- Anonymize sensitive values for exported logs
+
+    // stratum_api: replace params[0] with USER.WORKER
+    if (t.includes('stratum_api:') && t.includes('"params"')) {
+      t = t.replace(/(\"params\"\s*:\s*\[\s*\")(?:[^\"]*)(\")/, '$1USER.WORKER$2');
+    }
+
+    // http_cors: hide client IP
+    t = t.replace(/(http_cors:\s*Client IP:\s*)([0-9]{1,3}(?:\.[0-9]{1,3}){3})/g, '$1127.0.0.1');
+
+    // ping task (pri): hide bytes-from IP
+    t = t.replace(/(ping task \(pri\):\s*\d+\s+bytes from\s*)([0-9]{1,3}(?:\.[0-9]{1,3}){3})/g, '$1127.0.0.1');
+
+    // ping task (pri): hide PING host + IP
+    t = t.replace(/(ping task \(pri\):\s*PING\s*)([^ ]+)(\s*\()([0-9]{1,3}(?:\.[0-9]{1,3}){3})(\)\s*:)/g, '$1locahost.host$3127.0.0.1$5');
+
+    // ping task (pri): hide ping statistics host
+    t = t.replace(
+      /(ping task \(pri\):\s*---\s*)(.+?)(\s+ping statistics\s*---)/g,
+      '$1Nerd*Pool$3'
+    );
+
+    // InfluxDB: normalize URL (host/port) and query params
+    if (/InfluxDB:\s*URL:/i.test(t)) {
+      t = t.replace(
+        /(InfluxDB:\s*URL:\s*)https?:\/\/[^\/\s]+(\/\S*)?/i,
+        (_m, p1, p2) => `${p1}http://localhost.local:1234${p2 ?? '/'}`
+      );
+      t = t.replace(/([?&]bucket=)[^&\s]*/i, '$1xBucket');
+      t = t.replace(/([?&]org=)[^&\s]*/i, '$1xOrg');
+    }
+
+    // InfluxDB: anonymize POST payload
+    if (/InfluxDB:\s*POST:/i.test(t)) {
+      t = t.replace(/(InfluxDB:\s*POST:\s*).*/i, '$1Anonymize sensitive values.');
+    }
+
     // If it already starts with a plain "I ", convert that too
     t = t.replace(/^I(\s)/, '₿$1');
 
