@@ -50,6 +50,25 @@
   line-height: 1;
 }
 
+/* Toxic green download button (match terminal green) */
+:host ::ng-deep button.download-toxic {
+  background-color: #00bb00 !important;
+  border-color: #00bb00 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+:host ::ng-deep button.download-toxic:hover {
+  background-color: #00d000 !important;
+  border-color: #00d000 !important;
+}
+
+:host ::ng-deep button.download-toxic:disabled {
+  background-color: rgba(0, 187, 0, 0.35) !important;
+  border-color: rgba(0, 187, 0, 0.35) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
 :host ::ng-deep .ansi-red { color: #ff0000 !important; }
 :host ::ng-deep .ansi-green { color: #00bb00 !important; }
 :host ::ng-deep .ansi-yellow { color: #ffff00 !important; }
@@ -234,4 +253,110 @@
   height: 16px;
   display: block;
   pointer-events: none; /* click handled by the cell */
+}
+
+.logs-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap; /* desktop */
+  gap: 15px;
+}
+
+.logs-header-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 15px;
+}
+
+.logs-header-title {
+  white-space: nowrap;
+}
+
+.logs-header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.logs-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.logs-filter-label {
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.logs-filter-input {
+  flex: 0 1 560px;
+  min-width: 260px;
+  margin-right: 10px; /* MUST stay 10px to Clear Filter */
+}
+
+.logs-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+/* If the header needs to wrap, keep the right side starting from the left */
+@media (max-width: 1150px) {
+  .logs-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .logs-header-right {
+    margin-left: 0;
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .logs-filter-row {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center; /* align buttons to input height */
+    gap: 11px 0; /* vertical spacing only when wrapping */
+  }
+
+  .logs-filter-input {
+    /* allow the input to shrink so buttons don't get pushed down prematurely */
+    flex: 1 1 310px;
+    min-width: 120px;
+  }
+}
+
+/* <=780px: ONLY the download button drops below the input, aligned with the input start */
+@media (max-width: 780px) {
+  .logs-filter-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "label input clear"
+      ". download download";
+    align-items: center;
+    column-gap: 10px; /* keep 10px spacing between input and Clear Filter */
+    row-gap: 10px;
+  }
+
+  .logs-filter-label { grid-area: label; margin-right: 12px; }
+  .logs-filter-input  { grid-area: input; width: 100%; min-width: 0; margin-right: 0; }
+
+  .logs-filter-actions {
+    display: contents; /* let the buttons participate in the grid */
+  }
+
+  .logs-filter-actions > :first-child {
+    grid-area: clear;
+  }
+
+  :host ::ng-deep .logs-filter-actions > button.download-toxic {
+    grid-area: download;
+    justify-self: start; /* align to the input start */
+  }
 }

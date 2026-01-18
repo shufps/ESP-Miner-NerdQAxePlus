@@ -171,54 +171,57 @@
 
   <!-- LOGS CARD: always visible (button always there), content only if showLogs -->
   <nb-card class="mt-4">
-    <nb-card-header style="display: flex; align-items: center; flex-wrap: nowrap;">
-      {{ 'SYSTEM.REALTIME_LOGS' | translate }}
+    <nb-card-header>
+      <div class="logs-header">
+        <div class="logs-header-left">
+          <div class="logs-header-title">{{ 'SYSTEM.REALTIME_LOGS' | translate }}</div>
 
-      <button nbButton size="small" status="primary" (click)="toggleLogs()" style="margin-left: 15px;">
-        {{ showLogs ? ('SYSTEM.HIDE' | translate) : ('SYSTEM.SHOW' | translate) }}
-        {{ 'SYSTEM.LOGS' | translate }}
-      </button>
+          <button nbButton size="small" status="primary" (click)="toggleLogs()">
+            {{ showLogs ? ('SYSTEM.HIDE' | translate) : ('SYSTEM.SHOW' | translate) }}
+            {{ 'SYSTEM.LOGS' | translate }}
+          </button>
 
-      <button nbButton
-              size="small"
-              status="warning"
-              (click)="toggleScrolling()"
-              *ngIf="showLogs"
-              style="margin-left: 15px;">
-        {{ stopScroll ? ('SYSTEM.START' | translate) : ('SYSTEM.STOP' | translate) }}
-        {{ 'SYSTEM.SCROLLING' | translate }}
-      </button>
+          <button nbButton
+                  size="small"
+                  status="warning"
+                  (click)="toggleScrolling()"
+                  *ngIf="showLogs">
+            {{ stopScroll ? ('SYSTEM.START' | translate) : ('SYSTEM.STOP' | translate) }}
+            {{ 'SYSTEM.SCROLLING' | translate }}
+          </button>
+        </div>
 
-      <button nbButton
-              size="small"
-              status="success"
-              *ngIf="showLogs"
-              [disabled]="logs.length === 0"
-              (click)="downloadLogs()"
-              style="margin-left: 15px;">
-        <nb-icon icon="download-outline" class="download-icon" aria-hidden="true"></nb-icon>
-        {{ 'SYSTEM.DOWNLOAD_LOGS' | translate }}
-      </button>
+        <div class="logs-header-right" *ngIf="showLogs">
+          <div class="logs-filter-row">
+            <label class="logs-filter-label" for="logFilterText">{{ 'SYSTEM.FILTER' | translate }}</label>
 
-      <div *ngIf="showLogs" style="display: flex; align-items: center; margin-left: 15px; margin-top: 0;">
-        <button nbButton
-                size="small"
-                status="info"
-                (click)="logFilterText = ''; applyFilter(); onFilterMaybeScroll()"
-                style="margin-right: 10px;">
-          {{ 'SYSTEM.CLEAR_FILTER' | translate }}
-        </button>
+            <input id="logFilterText"
+                   class="logs-filter-input"
+                   type="text"
+                   [(ngModel)]="logFilterText"
+                   (ngModelChange)="applyFilter(); onFilterMaybeScroll()"
+                   [placeholder]="'SYSTEM.FILTER_LOGS_PLACEHOLDER' | translate" />
 
-        <label for="logFilterText" style="margin-right: 5px;">
-          {{ 'SYSTEM.FILTER' | translate }}
-        </label>
+            <div class="logs-filter-actions">
+              <button nbButton
+                      size="small"
+                      status="info"
+                      (click)="logFilterText = ''; applyFilter(); onFilterMaybeScroll()">
+                {{ 'SYSTEM.CLEAR_FILTER' | translate }}
+              </button>
 
-        <input id="logFilterText"
-               type="text"
-               [(ngModel)]="logFilterText"
-               (ngModelChange)="applyFilter(); onFilterMaybeScroll()"
-               [placeholder]="'SYSTEM.FILTER_LOGS_PLACEHOLDER' | translate"
-               style="margin-left: 5px; flex-grow: 1; width: calc(100% - 210px);" />
+              <button nbButton
+                      size="small"
+                      status="success"
+                      class="download-toxic"
+                      [disabled]="logs.length === 0"
+                      (click)="downloadLogs()">
+                <nb-icon icon="download-outline" class="download-icon" aria-hidden="true"></nb-icon>
+                {{ 'SYSTEM.DOWNLOAD_LOGS' | translate }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </nb-card-header>
 
