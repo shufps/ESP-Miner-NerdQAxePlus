@@ -251,10 +251,11 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   public hasChipTemps: boolean = false;
   public viewMode: 'gauge' | 'bars' = 'bars'; // default to bars
 
-  private localStorageKey = 'chartData';
-  private timestampKey = 'lastTimestamp'; // Key to store lastTimestamp
-  private tempViewKey = 'tempViewMode';
-  private legendVisibilityKey = 'chartLegendVisibility';
+  private localStorageKey = 'chartData_exp';
+  private timestampKey = 'lastTimestamp_exp'; // Key to store lastTimestamp
+  private tempViewKey = 'tempViewMode_exp';
+  private legendVisibilityKey = 'chartLegendVisibility_exp';
+  private minHistoryTsKey = 'minHistoryTimestampMs_exp';
 
   public isDualPool: boolean = false;
 
@@ -272,7 +273,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   private enableHashrateSpikeGuard: boolean = true;
   public debugSpikeGuard: boolean = false;
   public debugPillsLayout: boolean = false;
-  private minHistoryTsKey = '__nerdCharts_minHistoryTimestampMs';
 
   // Adaptive axis padding so lines don't stick to frame; tweak here.
   private axisPadCfg = {
