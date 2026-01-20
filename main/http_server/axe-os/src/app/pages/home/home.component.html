@@ -163,7 +163,9 @@
         <div class="col-12">
           <nb-card>
             <nb-card-header>
-              <span class="text-hint">{{ 'HOME.HASH_RATE_CHART' | translate }}</span>
+              <div class="chart-header-row">
+                <span class="text-hint">{{ 'HOME.HASH_RATE_CHART' | translate }}</span>
+              </div>
             </nb-card-header>
             <nb-card-body>
               <canvas #myChart width="400" height="400"></canvas>

@@ -121,3 +121,32 @@ nb-card-header {
 .pool-header__title {
   min-width: 0;
 }
+
+
+/* --- Debug mode toggle (Step 7) --- */
+.chart-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.chart-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.debug-toggle {
+  font-size: 0.85rem;
+}
+
+.debug-hint {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.debug-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
