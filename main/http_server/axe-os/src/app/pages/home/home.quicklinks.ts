@@ -271,6 +271,12 @@ const POOLS: PoolMeta[] = [
     match: (h) => h.includes('powermining.io'),
     quickLink: (a) => `https://pool.powermining.io/#/app/${a}`,
   },
+  {                                                                                                                                                                                                 
+      id: 'blitzpool',                                                                                                                                                                              
+      name: 'blitzpool.yourdevice.ch',                                                                                                                                                              
+      match: (h) => h.includes('blitzpool.yourdevice.ch'),                                                                                                                                          
+      quickLink: (a) => `https://blitzpool.yourdevice.ch/#/app/${a}`,                                                                                                                               
+  },     
 ];
 
 /* ------------------------------------------------------------------
