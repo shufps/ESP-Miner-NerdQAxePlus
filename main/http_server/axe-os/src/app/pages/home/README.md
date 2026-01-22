@@ -99,7 +99,41 @@ When loading, best-effort migration is performed (v0/v1 shapes are accepted) and
 ## Debug Hooks
 
 `chart/home.debug-hooks.ts` installs `globalThis.__nerdCharts`.
-Typical keys:
+
+### Enable hooks
+Some builds only install the lightweight bootstrap. In that case, run:
+
+```js
+__nerdCharts.enable(true)  // persist across reloads
+// or:
+__nerdCharts.enable()
+```
+
+You can inspect available commands via:
+
+```js
+__nerdCharts.list()
+__nerdCharts.help()
+```
+
+### Useful commands
+
+```js
+// Clear history (in-memory, immediate)
+__nerdCharts.clearChartHistoryNow()
+
+// Clear history once (persists a flag + seeds timestamps; reload to apply)
+__nerdCharts.clearChartHistoryOnce(); location.reload()
+
+// Force a render tick of the history-drain loop
+__nerdCharts.flushHistoryDrainRender()
+
+// Restart device (optional hook; may require a TOTP depending on backend configuration)
+__nerdCharts.restart()
+__nerdCharts.restart("123456")
+```
+
+### Storage keys (typical)
 - `__nerdCharts_debugMode` (debug active)
 - `__nerdCharts_axisPaddingOverrideEnabled` / `__nerdCharts_axisPadding` (axis padding overrides)
 - `__nerdCharts_clearChartHistoryOnce` (delete once)
@@ -137,6 +171,11 @@ The defaults are logically grouped in `HOME_CFG`. Here is a practical overview (
 - minimum tick steps (more stable axis for small ranges)
 - used in: `chart/home.axis-scale.ts`
 
+**Axis / X viewport**
+- `HOME_CFG.xAxis.fixedWindowMs`
+- Implemented time window for the X axis (milliseconds). Keeps the viewport stable (e.g. always show the last 1h), even if there are only a few points.
+- Used in: `home.component.experimental.ts` (sets `scales.x.min/max`), `chart/home.axis-scale.ts` (bounds computed for the active window), `chart/home.chart-state.ts` (trim history to the same window)
+
 **Axis / “latest” views**
 - `HOME_CFG.tempScale.latestPadC`
 - Temperature axis around +/- X°C around the latest values (previously hardcoded `3`)
@@ -168,6 +207,40 @@ The defaults are logically grouped in `HOME_CFG`. Here is a practical overview (
 **Temp scale (“latest” zoom)**
 The `latest` view deliberately uses a fixed band around the latest measurement value to keep small changes visible.
 The band can be adjusted via `HOME_CFG.tempScale.latestPadC`.
+
+**Warmup / Restart gating**
+These knobs control when specific series are allowed to appear after a miner restart (to avoid “half-valid” ramps and visual chaos).
+- `HOME_CFG.warmup.tempMinValidC` / `HOME_CFG.warmup.tempMaxValidC`
+  - Plausibility bounds used to decide whether temperature samples count as “valid” for warmup sequencing.
+  - Used in: `home.warmup.ts`
+- `HOME_CFG.warmup.vregDelayMs` / `HOME_CFG.warmup.asicDelayMs` / `HOME_CFG.warmup.hash1mDelayMs`
+  - Delays (ms) between warmup stages before enabling the next plot (VR temp → ASIC temp → HR 1m).
+  - Used in: `home.warmup.ts`, `home.component.experimental.ts` (wiring)
+- `HOME_CFG.warmup.restartDetectStreak`
+  - How many consecutive “boot-like” polls are required before we treat the situation as a restart.
+  - Used in: `home.warmup.ts`
+
+**Sanitizing (raw sample → plot)**
+Invalid samples become `NaN` which produces a gap instead of a misleading line.
+- `HOME_CFG.sanitize.tempMinC` / `HOME_CFG.sanitize.tempMaxC`
+- `HOME_CFG.sanitize.hashrateMinHs`
+- Used in: `home.component.experimental.ts` (sanitizeLoadedHistory + live update path)
+
+**Startup / GraphGuard behavior**
+Tuning for how we treat hashrate steps/spikes right after a restart.
+- `HOME_CFG.startup.bypassGuardSamples`
+  - Number of initial samples per series that can bypass GraphGuard once startup is “unlocked”.
+- `HOME_CFG.startup.expectedUnlockRatio`
+  - Startup unlock ratio: live must reach `expected * ratio` before bypassing is allowed.
+- `HOME_CFG.startup.hr1mSmoothWindowMs`
+  - Length of the post-restart “super smooth” window for the 1m series (ms).
+- `HOME_CFG.startup.hr1mConfirmStartup` / `HOME_CFG.startup.hr1mConfirmNormal`
+  - GraphGuard confirmSamples used during the smooth window vs. normal running.
+- `HOME_CFG.startup.hr1mReloadAfterSmooth`
+  - Optional one-time auto-reload after the smooth window ends (only after a detected restart).
+- `HOME_CFG.startup.hr1mReloadCooldownMs`
+  - Session-scoped cooldown to prevent reload loops.
+- Used in: `home.component.experimental.ts`, `chart/home.graph-guard.ts`, `home.warmup.ts`
 
 **UI Defaults + Persistence (experimental only)**
 - `HOME_CFG.uiDefaults.viewMode` / `HOME_CFG.uiDefaults.legendHidden`
