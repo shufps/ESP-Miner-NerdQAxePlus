@@ -232,6 +232,8 @@ export interface HomeCfg {
    */
   xAxis: {
     fixedWindowMs: number;
+    /** Tick spacing for the time axis (ms). Used for deterministic 15m labels/grid. */
+    tickStepMs: number;
   };
   yAxis: {
     hashrateMaxTicksDefault: number;
@@ -371,9 +373,13 @@ export const HOME_CFG: HomeCfg = {
       maxPadC: 8.0,
     },
   },
+
   xAxis: {
     // Keep X viewport stable and visually calm: always show a full hour.
     fixedWindowMs: 60 * 60 * 1000,
+
+    // Deterministic time-axis ticks / grid (e.g. 15-minute labels: :00, :15, :30, :45)
+    tickStepMs: 15 * 60 * 1000,
   },
 
   yAxis: {

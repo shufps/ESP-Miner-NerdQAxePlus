@@ -68,7 +68,8 @@ export function computeXWindow(
   const safeWindow = Math.max(0, Math.round(Number(windowMs) || 0));
 
   const last = Array.isArray(labels) && labels.length ? Number(labels[labels.length - 1]) : NaN;
-  const xMaxMs = Number.isFinite(last) ? Math.max(nowMs, last) : nowMs;
+  const xMaxRaw = Number.isFinite(last) ? Math.max(nowMs, last) : nowMs;
+  const xMaxMs = xMaxRaw;
   const xMinMs = xMaxMs - safeWindow;
 
   return { xMinMs, xMaxMs };

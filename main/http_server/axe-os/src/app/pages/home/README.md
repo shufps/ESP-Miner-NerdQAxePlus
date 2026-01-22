@@ -176,6 +176,10 @@ The defaults are logically grouped in `HOME_CFG`. Here is a practical overview (
 - Implemented time window for the X axis (milliseconds). Keeps the viewport stable (e.g. always show the last 1h), even if there are only a few points.
 - Used in: `home.component.experimental.ts` (sets `scales.x.min/max`), `chart/home.axis-scale.ts` (bounds computed for the active window), `chart/home.chart-state.ts` (trim history to the same window)
 
+- `HOME_CFG.xAxis.tickStepMs`
+- Tick spacing for the time axis (milliseconds). Controls the generated tick marks/labels (e.g. 15-minute labels `:00, :15, :30, :45`) without shifting the viewport end.
+- Used in: `chart/home.chart.factory.ts`
+
 **Axis / “latest” views**
 - `HOME_CFG.tempScale.latestPadC`
 - Temperature axis around +/- X°C around the latest values (previously hardcoded `3`)

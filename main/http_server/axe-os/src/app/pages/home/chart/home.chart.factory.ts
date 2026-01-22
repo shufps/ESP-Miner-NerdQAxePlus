@@ -1,4 +1,5 @@
 import { Chart } from 'chart.js';
+import { HOME_CFG } from '../home.cfg';
 import { applyHomeDatasetRenderOrder, createHomeDatasets, HomeChartSeriesRefs } from './home.chart.datasets';
 
 export interface HomeChartFactoryDeps {
@@ -84,13 +85,40 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
       x: {
         type: 'time',
         time: {
-          unit: 'hour',
+          // 1h viewport is enforced elsewhere via scales.x.min/max.
+          // Generate ticks every 15 minutes for a calmer, more informative axis.
+          unit: 'minute',
+          stepSize: Math.max(1, Math.round((Number(HOME_CFG.xAxis.tickStepMs) || 0) / 60000)),
           displayFormats: {
+            minute: deps.getTimeFormatIs12h() ? 'h:mm A' : 'HH:mm',
             hour: deps.getTimeFormatIs12h() ? 'h:mm A' : 'HH:mm',
           },
         },
+        // Chart.js sometimes chooses very dense minute ticks depending on adapter/locale.
+        // Force a predictable tick set at 15-minute boundaries for the current viewport.
+        afterBuildTicks: (scale: any) => {
+          const STEP_MS = Math.max(1, Math.round(Number(HOME_CFG.xAxis.tickStepMs) || 0));
+          const min = Number(scale?.min);
+          const max = Number(scale?.max);
+          if (!Number.isFinite(min) || !Number.isFinite(max) || STEP_MS <= 0) return;
+
+          const start = Math.ceil(min / STEP_MS) * STEP_MS;
+          const ticks: any[] = [];
+          for (let t = start; t <= max; t += STEP_MS) {
+            ticks.push({ value: t });
+          }
+
+          // Make sure we always have at least 2 ticks so the axis doesn't look "broken".
+          if (ticks.length < 2) {
+            ticks.length = 0;
+            ticks.push({ value: min }, { value: max });
+          }
+
+          scale.ticks = ticks;
+        },
         ticks: {
           // color set by theme helper
+          autoSkip: false,
         },
         grid: {
           color: '#80808080',
