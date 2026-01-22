@@ -224,6 +224,15 @@ export interface HomeCfg {
   };
   uiDefaults: HomeUiDefaults;
   axisPadding: AxisPaddingCfg;
+  /**
+   * Implement X-axis viewport size in milliseconds.
+   *
+   * Used to keep the plot area visually stable (e.g. always show a full 1h window)
+   * even if there are only a few points right after a cold start / localStorage clear.
+   */
+  xAxis: {
+    fixedWindowMs: number;
+  };
   yAxis: {
     hashrateMaxTicksDefault: number;
     hashrateTickCountClamp: TickCountClamp;
@@ -358,6 +367,10 @@ export const HOME_CFG: HomeCfg = {
       flatPadC: 2.0,
       maxPadC: 8.0,
     },
+  },
+  xAxis: {
+    // Keep X viewport stable and visually calm: always show a full hour.
+    fixedWindowMs: 60 * 60 * 1000,
   },
 
   yAxis: {

@@ -7,6 +7,8 @@
  * - stable, versioned persisted schema
  */
 
+import { HOME_CFG } from '../home.cfg';
+
 export interface PersistedHomeChartStateV1 {
   schema?: 1;
   labels: number[];
@@ -117,26 +119,34 @@ export class HomeChartState {
   }
 
   /** Trim series to keep only points newer than cutoffMs. */
-  trimToWindow(cutoffMs: number): void {
-    const len = this.labels.length;
-    if (!len) return;
+private trimToCutoff(cutoffMs: number): void {
+  const len = this.labels.length;
+  if (!len) return;
 
-    let idx = 0;
-    while (idx < len && this.labels[idx] < cutoffMs) idx++;
-    if (idx <= 0) return;
+  let idx = 0;
+  while (idx < len && this.labels[idx] < cutoffMs) idx++;
+  if (idx <= 0) return;
 
-    this.labels = this.labels.slice(idx);
-    this.hr1m = this.hr1m.slice(idx);
-    this.hr10m = this.hr10m.slice(idx);
-    this.hr1h = this.hr1h.slice(idx);
-    this.hr1d = this.hr1d.slice(idx);
-    this.vregTemp = this.vregTemp.slice(idx);
-    this.asicTemp = this.asicTemp.slice(idx);
-  }
+  this.labels = this.labels.slice(idx);
+  this.hr1m = this.hr1m.slice(idx);
+  this.hr10m = this.hr10m.slice(idx);
+  this.hr1h = this.hr1h.slice(idx);
+  this.hr1d = this.hr1d.slice(idx);
+  this.vregTemp = this.vregTemp.slice(idx);
+  this.asicTemp = this.asicTemp.slice(idx);
 
-  trimToLastHour(nowMs: number): void {
-    this.trimToWindow(nowMs - 3600 * 1000);
-  }
+}
+
+/**
+ * Trim series to the last `windowMs` relative to `nowMs`.
+ *
+ * `windowMs` defaults to HOME_CFG.xAxis.fixedWindowMs so callers don't need
+ * to thread config through multiple layers.
+ */
+trimToWindow(nowMs: number, windowMs: number = HOME_CFG.xAxis.fixedWindowMs): void {
+  const w = Math.max(0, Math.round(Number(windowMs) || 0));
+  this.trimToCutoff(nowMs - w);
+}
 
   /**
    * Convert in-memory state to a persisted, versioned schema.

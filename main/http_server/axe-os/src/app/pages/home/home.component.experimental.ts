@@ -18,6 +18,7 @@ import {
   createSystemInfoPolling$,
   installNerdChartsDebugBootstrap,
   GraphGuard,
+  computeXWindow,
   computeAxisBounds,
   applyAxisBoundsToChartOptions,
   HomeWarmupMachine,
@@ -44,6 +45,26 @@ import {
 
 export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDestroy {
   @ViewChild('myChart') ctx!: ElementRef<HTMLCanvasElement>;
+
+  private applyXWindowToChart(xMinMs: number, xMaxMs: number): void {
+    // Update shared chart options (used on theme refresh etc.)
+    try {
+      const x = (this.chartOptions as any)?.scales?.x;
+      if (x) {
+        x.min = xMinMs;
+        x.max = xMaxMs;
+      }
+    } catch {}
+
+    // Update the live chart instance options so the viewport changes immediately
+    try {
+      const x = (this.chart as any)?.options?.scales?.x;
+      if (x) {
+        x.min = xMinMs;
+        x.max = xMaxMs;
+      }
+    } catch {}
+  }
 
   // --- GraphGuard
   // Step-Confirmation: how many consecutive "suspicious" samples in the same direction
@@ -824,15 +845,15 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
     if (!this.chart || !this.chartOptions?.scales) return;
 
+    // Always enforce a stable X-window (e.g. 1h), regardless of how many points exist.
+    const { xMinMs, xMaxMs } = computeXWindow(this.dataLabel || [], HOME_CFG.xAxis.fixedWindowMs);
+    this.applyXWindowToChart(xMinMs, xMaxMs);
+
     const labels = this.dataLabel || [];
 
+    // If there are no labels yet, we still keep the fixed X-window (handled above),
+    // but we can't compute Y-bounds without data.
     if (!labels.length) return;
-
-    const xScale: any = (this.chart as any).scales?.x;
-    const xMaxMs = Number.isFinite(xScale?.max) ? Number(xScale.max) : labels[labels.length - 1];
-    let xMinMs = Number.isFinite(xScale?.min) ? Number(xScale.min) : labels[Math.max(0, labels.length - (this.axisPadCfg?.hashrate?.windowPoints ?? 180))];
-
-    if (!Number.isFinite(xMinMs)) xMinMs = labels[0];
 
     const hr10m = this.chart.isDatasetVisible(1) ? this.dataData10m : null;
     const hr1h = this.chart.isDatasetVisible(2) ? this.dataData1h : null;
@@ -1353,7 +1374,8 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
   private filterOldData(): void {
     const now = new Date().getTime();
-    this.chartState.trimToLastHour(now);
+    // Keep the in-memory series consistent with the configured x-axis viewport.
+    this.chartState.trimToWindow(now);
 
     if (this.chartState.labels.length) {
       this.storeTimestamp(this.chartState.labels[this.chartState.labels.length - 1]);

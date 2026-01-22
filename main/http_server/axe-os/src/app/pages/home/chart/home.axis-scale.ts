@@ -53,6 +53,27 @@ export interface ComputedAxisBounds {
   };
 }
 
+/**
+ * Compute a width X window.
+ *
+ * Chart.js will auto-fit the x-range to existing data unless min/max are set.
+ * This helper keeps the viewport stable (e.g. always 1 hour), even when only
+ * a few points exist (or right after the history has been cleared).
+ */
+export function computeXWindow(
+  labels: number[],
+  windowMs: number,
+  nowMs: number = Date.now(),
+): { xMinMs: number; xMaxMs: number } {
+  const safeWindow = Math.max(0, Math.round(Number(windowMs) || 0));
+
+  const last = Array.isArray(labels) && labels.length ? Number(labels[labels.length - 1]) : NaN;
+  const xMaxMs = Number.isFinite(last) ? Math.max(nowMs, last) : nowMs;
+  const xMinMs = xMaxMs - safeWindow;
+
+  return { xMinMs, xMaxMs };
+}
+
 function isFiniteNumber(v: any): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
