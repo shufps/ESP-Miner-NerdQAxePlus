@@ -136,7 +136,8 @@ export function computeAxisBounds(input: AxisScaleInputs): ComputedAxisBounds {
     const padTop = clamp(Math.max(range * padPctTop, minPadHs, flatPad), 0, maxAbs * maxPadPctOfMax);
     const padBottom = clamp(Math.max(range * padPctBottom, minPadHs, flatPad), 0, maxAbs * maxPadPctOfMax);
 
-    let adjMin = hm.mn - padBottom;
+    // Never allow negative minima (hashrate cannot be negative).
+    let adjMin = Math.max(0, hm.mn - padBottom);
     let adjMax = hm.mx + padTop;
 
     const live = input.liveRefHs;
@@ -167,8 +168,11 @@ export function computeAxisBounds(input: AxisScaleInputs): ComputedAxisBounds {
     if (stepThs < input.hashrateMinStepThs) stepThs = input.hashrateMinStepThs;
 
     const stepHs = stepThs * HS_PER_THS;
-    const minAligned = Math.floor(adjMin / stepHs) * stepHs;
+    let minAligned = Math.floor(adjMin / stepHs) * stepHs;
     const maxAligned = Math.ceil(adjMax / stepHs) * stepHs;
+
+    // Clamp again after alignment (alignment can drop slightly below 0).
+    minAligned = Math.max(0, minAligned);
 
     out.y = {
       min: minAligned,
@@ -180,7 +184,8 @@ export function computeAxisBounds(input: AxisScaleInputs): ComputedAxisBounds {
 
   // Temperature axis
   if (tm.mn !== undefined && tm.mx !== undefined) {
-    const targetMin = tm.mn - 2;
+    // Temps cannot be negative; clamp min to 0 to avoid whitespace artifacts.
+    const targetMin = Math.max(0, tm.mn - 2);
     const targetMax = tm.mx + 3;
 
     const maxTicks = Math.max(2, Math.round(Number(input.maxTicks || 7)));
@@ -197,8 +202,10 @@ export function computeAxisBounds(input: AxisScaleInputs): ComputedAxisBounds {
     }
     if (stepC < input.tempMinStepC) stepC = input.tempMinStepC;
 
-    const minAligned = Math.floor(targetMin / stepC) * stepC;
+    let minAligned = Math.floor(targetMin / stepC) * stepC;
     const maxAligned = Math.ceil(targetMax / stepC) * stepC;
+
+    minAligned = Math.max(0, minAligned);
 
     out.y_temp = {
       min: minAligned,
