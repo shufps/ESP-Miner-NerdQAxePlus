@@ -446,9 +446,9 @@ export const HOME_CFG: HomeCfg = {
     // Absolute sanity cap for temps.
     tempMaxValidC: 130,
     // Sequencing delays (after first valid sample of each stage)
-    vregDelayMs: 2500,
-    asicDelayMs: 500,
-    hash1mDelayMs: 1500,
+    vregDelayMs: 1337,
+    asicDelayMs: 750,
+    hash1mDelayMs: 250,
     // Hard-cut immediately on the strong signature (temps drop below min + no live hashrate).
     // The streak is only a fallback and should stay low to prevent any 0-line dip.
     restartDetectStreak: 1,
@@ -468,14 +468,14 @@ export const HOME_CFG: HomeCfg = {
 
   startup: {
     bypassGuardSamples: 0,
-    expectedUnlockRatio: 0.75,
+    expectedUnlockRatio: 0.98,
     // Super smooth startup: apply stronger GraphGuard confirmation for 1m for a short window after restart.
-    hr1mSmoothWindowMs: 120_000, // 2 minutes
+    hr1mSmoothWindowMs: 15_000, // 15 seconds
     hr1mConfirmStartup: 5,
     hr1mConfirmNormal: 3,
     // Optional: reload the page after the smooth window finishes.
     // Guarded to trigger only once per miner restart (hard cut) and session-cooled down.
-    hr1mReloadAfterSmooth: true,
+    hr1mReloadAfterSmooth: false,
     hr1mReloadCooldownMs: 600_000, // 10 minutes
   },
 };
