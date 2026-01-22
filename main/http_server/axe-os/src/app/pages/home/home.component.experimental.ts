@@ -20,6 +20,7 @@ import {
   GraphGuard,
   computeAxisBounds,
   applyAxisBoundsToChartOptions,
+  HomeWarmupMachine,
 } from './chart';
 
 import { NbThemeService } from '@nebular/theme';
@@ -58,6 +59,8 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   private graphGuardLiveRefStableSamples: number = HOME_CFG.graphGuard.cfg.liveRefStableSamples;
   private graphGuardLiveRefStableRel: number = HOME_CFG.graphGuard.cfg.liveRefStableRel;
   private lastLivePoolSumHs: number = 0;
+  // Timestamp of the last inserted NaN break-point (hard cut). Used to avoid collisions with history timestamps
+  private lastHardBreakTs: number = 0;
   // Controls how many tick labels are shown on the left hashrate Y axis (Chart.js 'maxTicksLimit').
   private hashrateYAxisMaxTicks: number = HOME_CFG.yAxis.hashrateMaxTicksDefault;
   private hashrateYAxisMinStepThs: number = HOME_CFG.yAxis.minTickSteps.hashrateMinStepThs;
@@ -185,6 +188,31 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   private readonly debugModeKey: string = "__nerdCharts_debugMode";
   // Adaptive axis padding so lines don't stick to frame; tweak here.
   private axisPadCfg = createAxisPaddingCfg();
+
+  // --- Warmup / restart gating (controlled start sequence after miner restarts)
+  private readonly warmupMachine = new HomeWarmupMachine(HOME_CFG.warmup);
+  private warmupStagePrev: string = this.warmupMachine.getStage();
+
+  // --- Startup behavior for hashrate (GraphGuard bypass for initial points)
+  private expectedHashrateHsLast: number = 0;
+  private startupUnlocked: boolean = false;
+  private bypassRemaining: Record<string, number> = {};
+  // 1m hashrate plotting must not start from 0 after restart; gate the very first plotted point.
+  private hr1mStarted: boolean = false;
+  // Timestamp (ms) when the first visible 1m hashrate point was plotted after a restart.
+  // Used for "super smooth" startup: temporarily require more confirmation before accepting
+  // short-lived dips. After the window, we switch to a snappier confirmation level.
+  private hr1mStartTsMs: number | null = null;
+  // Smooth startup should only trigger after an actual miner restart (hard cut), not on normal page loads.
+  private hr1mSmoothArmed: boolean = false;
+  private hr1mRestartTokenMs: number | null = null;
+  private hr1mReloadTimer: any = null;
+  private readonly hr1mReloadConsumedKey: string = '__nerdCharts_hr1mReloadConsumedToken';
+  private readonly hr1mReloadCooldownUntilKey: string = '__nerdCharts_hr1mReloadCooldownUntil';
+  // NOTE: For hashrate charts, the pill/live value is used ONLY as a warmup gate signal.
+  // The plotted data continues to come from the history series (as before).
+  // To avoid a visible "shoot" or a brief drop right after restart, we simply do NOT start
+  // plotting 1m until the HISTORY 1m value itself is valid and has reached the expected unlock ratio.
 
   private debugAxisPadding: boolean = false;
   private readonly axisPadOverrideEnabledKey: string = '__nerdCharts_axisPaddingOverrideEnabled';
@@ -350,6 +378,42 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
         if (!this.chart) {
           return;
         }
+
+        // --- Warmup / startup signals (use live values, not history series)
+        // expectedHashRate$ returns an "expected" value used in UI. For internal comparisons
+        // we keep everything in H/s to match live pool sums and chart values.
+        try {
+          const expectedGh = Math.floor(Number(info.frequency) * ((Number(info.smallCoreCount) * Number(info.asicCount)) / 1000));
+          const expectedHs = Number.isFinite(expectedGh) && expectedGh > 0 ? expectedGh * 1e9 : 0;
+          this.expectedHashrateHsLast = expectedHs;
+        } catch {
+          this.expectedHashrateHsLast = 0;
+        }
+
+        const nowMs = Date.now();
+        const liveHs = this.getPoolHashrateHsSum();
+        const unlockRatio = Number(HOME_CFG.startup.expectedUnlockRatio ?? 0.75);
+        // 1m hashrate warmup gate: only unlock once expected is known and live reaches
+        // the configured ratio (e.g. 75%). If expected is 0/unknown, keep locked.
+        const unlockOk = this.expectedHashrateHsLast > 0
+          ? (Number.isFinite(liveHs) && liveHs >= this.expectedHashrateHsLast * unlockRatio)
+          : false;
+
+        // "systemOk" is a cheap proxy to detect restarts even if temperatures remain high.
+        // After a real restart, expectedHashrate/frequency often drops to 0 or becomes unstable for a moment.
+        const systemOk = Number.isFinite(this.expectedHashrateHsLast) && this.expectedHashrateHsLast > 0;
+        this.warmupMachine.observeLive({
+          nowMs,
+          vregTempC: (info as any).vrTemp,
+          asicTempC: (info as any).temp,
+          liveHashrateHs: liveHs,
+          expectedHashrateHs: this.expectedHashrateHsLast,
+          systemOk,
+          unlockOk,
+        });
+
+        // Track stage changes (useful for debug, but also allows future hooks).
+        this.warmupStagePrev = this.warmupMachine.getStage();
 
         // Only drain on cold start (no cached points yet)
         if (this.dataLabel.length === 0) {
@@ -625,6 +689,8 @@ ngOnInit() {
     // Clean up theme subscription to avoid memory leaks when navigating away.
     this.themeSubscription?.unsubscribe();
     this.historyDrainer?.stop();
+    // Cancel any pending auto-reload timer.
+    this.clearHr1mReloadTimer();
     if (this.timeFormatListener) {
       window.removeEventListener('timeFormatChanged', this.timeFormatListener);
     }
@@ -795,6 +861,161 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     applyAxisBoundsToChartOptions(this.chartOptions, bounds);
   }
 
+  // --- Sanitizing helpers (invalid samples become NaN => visual gap / never plotted)
+
+  private sanitizeHashrateHs(v: any): number {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return NaN;
+    if (n < HOME_CFG.sanitize.hashrateMinHs) return NaN;
+    return n;
+  }
+
+  private sanitizeTempC(v: any): number {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return NaN;
+    // Never plot negative temps or crazy sensor values. Warmup gating is handled separately.
+    if (n < HOME_CFG.sanitize.tempMinC) return NaN;
+    if (n > HOME_CFG.sanitize.tempMaxC) return NaN;
+    return n;
+  }
+
+  // --- Optional: one-time page reload after smooth 1m startup (only after miner restart)
+
+  private clearHr1mReloadTimer(): void {
+    if (this.hr1mReloadTimer != null) {
+      try { clearTimeout(this.hr1mReloadTimer); } catch {}
+      this.hr1mReloadTimer = null;
+    }
+  }
+
+  private scheduleHr1mReloadAfterSmooth(): void {
+    if (!HOME_CFG.startup.hr1mReloadAfterSmooth) return;
+    if (!this.hr1mSmoothArmed) return;
+    if (this.hr1mRestartTokenMs == null) return;
+
+    const windowMs = Math.max(0, Math.round(Number(HOME_CFG.startup.hr1mSmoothWindowMs ?? 0)));
+    if (!windowMs) return;
+
+    // Guard: only once per restart token (session-scoped) + cooldown to avoid loops.
+    const token = String(this.hr1mRestartTokenMs);
+    try {
+      const consumed = sessionStorage.getItem(this.hr1mReloadConsumedKey);
+      if (consumed === token) {
+        this.hr1mSmoothArmed = false;
+        return;
+      }
+
+      const now = Date.now();
+      const cooldownUntil = Number(sessionStorage.getItem(this.hr1mReloadCooldownUntilKey) ?? 0);
+      if (Number.isFinite(cooldownUntil) && cooldownUntil > now) {
+        this.hr1mSmoothArmed = false;
+        return;
+      }
+
+      sessionStorage.setItem(this.hr1mReloadConsumedKey, token);
+      const cooldownMs = Math.max(0, Math.round(Number(HOME_CFG.startup.hr1mReloadCooldownMs ?? 0)));
+      if (cooldownMs) {
+        sessionStorage.setItem(this.hr1mReloadCooldownUntilKey, String(now + cooldownMs));
+      }
+    } catch {
+      // If sessionStorage is not available, still try to reload (best effort).
+    }
+
+    this.clearHr1mReloadTimer();
+    this.hr1mSmoothArmed = false; // ensure we don't schedule twice for the same restart
+    this.hr1mReloadTimer = setTimeout(() => {
+      try {
+        window.location.reload();
+      } catch {
+        try { (location as any).reload(); } catch {}
+      }
+    }, windowMs);
+  }
+
+  /**
+   * Inserts a single NaN break-point across all series to create a hard visual cut.
+   * This is used on restarts so charts don't "fall" to 0 but end cleanly.
+   */
+  private insertHardBreakSample(breakAtMs: number): void {
+    // Reset startup/bypass state per restart.
+    this.startupUnlocked = false;
+    this.bypassRemaining = {};
+    this.hr1mStarted = false;
+    this.hr1mStartTsMs = null;
+
+    // Cancel any pending auto-reload from a previous restart cycle.
+    this.clearHr1mReloadTimer();
+
+    // Arm smooth-start behavior ONLY after an actual restart/hard cut.
+    // This prevents smooth mode (and optional reload) from triggering on normal page loads/refreshes.
+    this.hr1mSmoothArmed = true;
+
+    // Start a fresh guard baseline for the new post-restart segment.
+    // (Otherwise the first post-restart point may be compared against stale pre-restart state.)
+    try { this.graphGuardEngine.reset(); } catch {}
+
+    const last = this.dataLabel.length ? this.dataLabel[this.dataLabel.length - 1] : 0;
+    const ts = Math.max(Number(breakAtMs) || Date.now(), last > 0 ? last + 1 : 0);
+    if (last > 0 && ts <= last) return;
+
+    // Remember the break timestamp to prevent a later in-place overwrite when the next
+    // history point happens to have the same timestamp (would remove the visual gap).
+    this.lastHardBreakTs = ts;
+
+    // Use the break timestamp as a per-restart token for "run once" logic.
+    this.hr1mRestartTokenMs = ts;
+
+    this.dataLabel.push(ts);
+    this.dataData1m.push(NaN);
+    this.dataData10m.push(NaN);
+    this.dataData1h.push(NaN);
+    this.dataData1d.push(NaN);
+    this.dataVregTemp.push(NaN);
+    this.dataAsicTemp.push(NaN);
+
+    // Advance stored timestamp so polling doesn't keep refetching the same restart window.
+    this.storeTimestamp(ts);
+  }
+
+  private ensureStartupUnlocked(livePoolSumHs: number): void {
+    if (this.startupUnlocked) return;
+
+    const live = Number(livePoolSumHs);
+    const expected = Number(this.expectedHashrateHsLast);
+    if (!Number.isFinite(live) || live <= 0) return;
+    if (!Number.isFinite(expected) || expected <= 0) return;
+
+    const ratio = Number(HOME_CFG.startup.expectedUnlockRatio ?? 0.75);
+    if (live >= expected * ratio) {
+      this.startupUnlocked = true;
+      const n = Math.max(0, Math.round(Number(HOME_CFG.startup.bypassGuardSamples ?? 0)));
+      this.bypassRemaining = {
+        // Do NOT bypass GraphGuard for 1m hashrate.
+        // The 1m history stream can emit a short transient low plateau shortly after restart
+        // (typically 2–3 ticks) even though the miner is already hashing steadily.
+        // Bypassing the guard for 1m would let that dip through and create the visible "Zack".
+        // We keep the optional bypass for the slower series only.
+        hashrate_1m: 0,
+        hashrate_10m: n,
+        hashrate_1h: n,
+        hashrate_1d: n,
+      };
+    }
+  }
+
+  private shouldBypassHashGuard(key: string): boolean {
+    if (!this.startupUnlocked) return false;
+    const left = Math.max(0, Math.round(Number(this.bypassRemaining?.[key] ?? 0)));
+    return left > 0;
+  }
+
+  private consumeBypassHashGuard(key: string): void {
+    if (!this.startupUnlocked) return;
+    const left = Math.max(0, Math.round(Number(this.bypassRemaining?.[key] ?? 0)));
+    if (left <= 0) return;
+    this.bypassRemaining[key] = left - 1;
+  }
+
   private updateChartData(data: any): void {
     if (!data) return;
 
@@ -842,43 +1063,181 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
     newData.sort((a, b) => a.timestamp - b.timestamp);
 
+    // If a restart was detected (warmup reset), insert a single NaN "break" sample
+    // to end all curves cleanly. We place it just before the next incoming history point
+    // so it can never be overwritten by a duplicate timestamp.
+    if (this.warmupMachine.consumeBreakPending()) {
+      const nextTs = newData.length ? Number(newData[0].timestamp) : Date.now();
+      const breakAt = Number.isFinite(nextTs) ? (nextTs - 1) : Date.now();
+      this.insertHardBreakSample(breakAt);
+    }
+
     // Append only new data (spike-guarded, line-break free)
     // If we push duplicates, Chart.js draws a vertical segment at the same X ("treppenhaus").
     for (const entry of newData) {
+      // If we inserted a hard NaN break-point, ensure the next incoming history sample
+      // cannot overwrite it via the duplicate-timestamp in-place update path.
+      if (this.lastHardBreakTs && Number(entry.timestamp) <= this.lastHardBreakTs) {
+        entry.timestamp = this.lastHardBreakTs + 1;
+      }
+      // Warmup gates (progress is driven by live values from polling)
+      const vregEnabled = this.warmupMachine.isVregEnabled();
+      const asicEnabled = this.warmupMachine.isAsicEnabled();
+      const hr1mEnabled = this.warmupMachine.isHr1mEnabled();
+      const otherHashEnabled = this.warmupMachine.isOtherHashEnabled();
+
+      // Startup unlock for optional GraphGuard bypass (uses hashrate pill / live pool sum)
+      this.ensureStartupUnlocked(livePoolSum);
+
+      // Sanitize raw inputs (invalid => NaN => never plotted)
+      const hr1mRaw = this.sanitizeHashrateHs(entry.hashrate_1m);
+      const hr10mRaw = this.sanitizeHashrateHs(entry.hashrate_10m);
+      const hr1hRaw = this.sanitizeHashrateHs(entry.hashrate_1h);
+      const hr1dRaw = this.sanitizeHashrateHs(entry.hashrate_1d);
+      const vregRaw = this.sanitizeTempC(entry.vregTemp);
+      const asicRaw = this.sanitizeTempC(entry.asicTemp);
+
+      // 1m hashrate: avoid starting from 0/low history samples.
+      // When warmup enables 1m, we seed the first visible point from the live pill.
+      // Afterwards, if the history 1m value is still bogus (<=0 / NaN) but the pill is live,
+      // we keep plotting the live pill as a proxy to prevent brief drops.
+            // 1m hashrate start gating:
+      // - Pill/live is ONLY used to decide when we're allowed to start (startupUnlocked).
+      // - The plotted value still comes from the history (hr1mRaw), as before.
+      // - To avoid any visible "shoot" from 0 or a short drop, we only start once the HISTORY 1m
+      //   itself is valid and has reached the expected unlock ratio as well.
+      let hr1mCandidate: number = NaN;
+      if (hr1mEnabled) {
+        const expectedHs = Number(this.expectedHashrateHsLast);
+        const ratio = Number(HOME_CFG.startup.expectedUnlockRatio ?? 0.75);
+        const histOk = Number.isFinite(hr1mRaw) && hr1mRaw > 0;
+
+        // Require the history value to also be at/above the unlock ratio on first start.
+        // After start, we keep using the history value (GraphGuard will smooth rare glitches).
+        const histUnlockOk = (expectedHs > 0)
+          ? (histOk && hr1mRaw >= expectedHs * ratio)
+          : histOk;
+
+        if (!this.hr1mStarted) {
+          if (this.startupUnlocked && histUnlockOk) {
+            this.hr1mStarted = true;
+            // Smooth startup + optional reload should only trigger after an actual restart (hard cut).
+            // On normal page loads, we keep snappy behavior (no smooth window).
+            if (this.hr1mSmoothArmed) {
+              this.hr1mStartTsMs = Number(entry.timestamp);
+              this.scheduleHr1mReloadAfterSmooth();
+            } else {
+              this.hr1mStartTsMs = null;
+            }
+            hr1mCandidate = hr1mRaw;
+          } else {
+            hr1mCandidate = NaN;
+          }
+        } else {
+          hr1mCandidate = hr1mRaw;
+        }
+      }
+      // --- Restart hard-cut detection based on incoming history samples.
+      // We intentionally do NOT rely on temperatures dropping quickly.
+      // If live hashrate (pill) is gone and the history starts emitting boot/glitch samples
+      // (0/NaN temps or 0 hashrate), we cut immediately so the curve doesn't fall to the 0-line.
+      const liveOkNow = Number.isFinite(livePoolSum) && livePoolSum > 0;
+      const stageNow = this.warmupMachine.getStage();
+      const historyHr1m = Number(entry.hashrate_1m);
+      const restartMarker = (!liveOkNow) && (
+        (!Number.isFinite(vregRaw) || !Number.isFinite(asicRaw)) || (Number.isFinite(historyHr1m) && historyHr1m <= 0)
+      );
+
+      if (stageNow === 'READY' && restartMarker) {
+        this.warmupMachine.reset(entry.timestamp);
+        // Consume the break flag immediately and insert the cut at the current timestamp.
+        this.warmupMachine.consumeBreakPending();
+        // Place the break just before the first post-restart timestamp so the cut
+        // can't be overwritten by an in-place update at the same X.
+        this.insertHardBreakSample(entry.timestamp - 1);
+        // Do not append this (bogus) sample; also advance the stored timestamp.
+        this.storeTimestamp(entry.timestamp);
+        continue;
+      }
+
+      // While locked (restart window / VR delay), do not append any new points (no tracking).
+      // Curves were already terminated via the break marker.
+      if (this.warmupMachine.isLocked()) {
+        this.storeTimestamp(entry.timestamp);
+        continue;
+      }
+
+      const applyHash = (key: string, v: number, thr: number): number => {
+        if (!Number.isFinite(v)) return NaN;
+        // Optional startup bypass for GraphGuard: allow the first N samples after warmup
+        // to be plotted unguarded (prevents brief artificial drops caused by an unstable
+        // live reference right after restart). This does NOT trigger on frequency changes
+        // because startupUnlocked is only set once when live reaches the expected ratio.
+        if (this.shouldBypassHashGuard(key)) {
+          this.consumeBypassHashGuard(key);
+          return v;
+        }
+        // Super smooth startup for 1m: for ~2 minutes after restart-start, require more
+        // confirmation to accept short-lived dips (prevents 2-3 tick artifacts). After
+        // that, switch to a snappier confirmation level.
+        let confirmOverride: number | undefined = undefined;
+        if (key === 'hashrate_1m') {
+          if (this.hr1mStarted) {
+            const start = this.hr1mStartTsMs;
+            const inStartupWindow = start != null && (Number(entry.timestamp) - start) <= HOME_CFG.startup.hr1mSmoothWindowMs;
+            confirmOverride = inStartupWindow ? HOME_CFG.startup.hr1mConfirmStartup : HOME_CFG.startup.hr1mConfirmNormal;
+          } else {
+            // If not started yet (or restored from storage), default to snappy.
+            confirmOverride = HOME_CFG.startup.hr1mConfirmNormal;
+          }
+        }
+
+        return this.enableHashrateSpikeGuard
+          ? this.graphGuardEngine.apply(key, v, thr, livePoolSum, confirmOverride)
+          : v;
+      };
+
+      const applyTemp = (key: string, v: number, thr: number): number => {
+        if (!Number.isFinite(v)) return NaN;
+        return this.graphGuardEngine.apply(key, v, thr);
+      };
+
       const lastIdx = this.dataLabel.length - 1;
       if (lastIdx >= 0 && this.dataLabel[lastIdx] === entry.timestamp) {
-        this.dataData1m[lastIdx] = this.enableHashrateSpikeGuard
-          ? this.graphGuardEngine.apply('hashrate_1m', entry.hashrate_1m, HOME_CFG.graphGuard.thresholds.hashrate1m, livePoolSum)
-          : entry.hashrate_1m;
-        this.dataVregTemp[lastIdx] = this.graphGuardEngine.apply('vregTemp', entry.vregTemp, HOME_CFG.graphGuard.thresholds.vregTemp);
-        this.dataAsicTemp[lastIdx] = this.graphGuardEngine.apply('asicTemp', entry.asicTemp, HOME_CFG.graphGuard.thresholds.asicTemp);
-        this.dataData10m[lastIdx] = this.enableHashrateSpikeGuard
-          ? this.graphGuardEngine.apply('hashrate_10m', entry.hashrate_10m, HOME_CFG.graphGuard.thresholds.hashrate10m, livePoolSum)
-          : entry.hashrate_10m;
-        this.dataData1h[lastIdx] = this.enableHashrateSpikeGuard
-          ? this.graphGuardEngine.apply('hashrate_1h', entry.hashrate_1h, HOME_CFG.graphGuard.thresholds.hashrate1h, livePoolSum)
-          : entry.hashrate_1h;
-        this.dataData1d[lastIdx] = this.enableHashrateSpikeGuard
-          ? this.graphGuardEngine.apply('hashrate_1d', entry.hashrate_1d, HOME_CFG.graphGuard.thresholds.hashrate1d, livePoolSum)
-          : entry.hashrate_1d;
+        // In-place update for duplicate timestamp (keep gating + sanitizing)
+        this.dataVregTemp[lastIdx] = vregEnabled ? applyTemp('vregTemp', vregRaw, HOME_CFG.graphGuard.thresholds.vregTemp) : NaN;
+        this.dataAsicTemp[lastIdx] = asicEnabled ? applyTemp('asicTemp', asicRaw, HOME_CFG.graphGuard.thresholds.asicTemp) : NaN;
+
+        const hr1mOut = hr1mEnabled
+          ? applyHash('hashrate_1m', hr1mCandidate, HOME_CFG.graphGuard.thresholds.hashrate1m)
+          : NaN;
+        this.dataData1m[lastIdx] = hr1mOut;
+        if (hr1mEnabled && Number.isFinite(hr1mOut)) {
+          this.warmupMachine.notifyHr1mFlow(entry.timestamp);
+        }
+
+        this.dataData10m[lastIdx] = otherHashEnabled ? applyHash('hashrate_10m', hr10mRaw, HOME_CFG.graphGuard.thresholds.hashrate10m) : NaN;
+        this.dataData1h[lastIdx] = otherHashEnabled ? applyHash('hashrate_1h', hr1hRaw, HOME_CFG.graphGuard.thresholds.hashrate1h) : NaN;
+        this.dataData1d[lastIdx] = otherHashEnabled ? applyHash('hashrate_1d', hr1dRaw, HOME_CFG.graphGuard.thresholds.hashrate1d) : NaN;
         continue;
       }
 
       this.dataLabel.push(entry.timestamp);
-      this.dataData1m.push(this.enableHashrateSpikeGuard
-        ? this.graphGuardEngine.apply('hashrate_1m', entry.hashrate_1m, HOME_CFG.graphGuard.thresholds.hashrate1m, livePoolSum)
-        : entry.hashrate_1m);
-      this.dataVregTemp.push(this.graphGuardEngine.apply('vregTemp', entry.vregTemp, HOME_CFG.graphGuard.thresholds.vregTemp));
-      this.dataAsicTemp.push(this.graphGuardEngine.apply('asicTemp', entry.asicTemp, HOME_CFG.graphGuard.thresholds.asicTemp));
-      this.dataData10m.push(this.enableHashrateSpikeGuard
-        ? this.graphGuardEngine.apply('hashrate_10m', entry.hashrate_10m, HOME_CFG.graphGuard.thresholds.hashrate10m, livePoolSum)
-        : entry.hashrate_10m);
-      this.dataData1h.push(this.enableHashrateSpikeGuard
-        ? this.graphGuardEngine.apply('hashrate_1h', entry.hashrate_1h, HOME_CFG.graphGuard.thresholds.hashrate1h, livePoolSum)
-        : entry.hashrate_1h);
-      this.dataData1d.push(this.enableHashrateSpikeGuard
-        ? this.graphGuardEngine.apply('hashrate_1d', entry.hashrate_1d, HOME_CFG.graphGuard.thresholds.hashrate1d, livePoolSum)
-        : entry.hashrate_1d);
+
+      this.dataVregTemp.push(vregEnabled ? applyTemp('vregTemp', vregRaw, HOME_CFG.graphGuard.thresholds.vregTemp) : NaN);
+      this.dataAsicTemp.push(asicEnabled ? applyTemp('asicTemp', asicRaw, HOME_CFG.graphGuard.thresholds.asicTemp) : NaN);
+
+      const hr1mOut = hr1mEnabled
+        ? applyHash('hashrate_1m', hr1mCandidate, HOME_CFG.graphGuard.thresholds.hashrate1m)
+        : NaN;
+      this.dataData1m.push(hr1mOut);
+      if (hr1mEnabled && Number.isFinite(hr1mOut)) {
+        this.warmupMachine.notifyHr1mFlow(entry.timestamp);
+      }
+
+      this.dataData10m.push(otherHashEnabled ? applyHash('hashrate_10m', hr10mRaw, HOME_CFG.graphGuard.thresholds.hashrate10m) : NaN);
+      this.dataData1h.push(otherHashEnabled ? applyHash('hashrate_1h', hr1hRaw, HOME_CFG.graphGuard.thresholds.hashrate1h) : NaN);
+      this.dataData1d.push(otherHashEnabled ? applyHash('hashrate_1d', hr1dRaw, HOME_CFG.graphGuard.thresholds.hashrate1d) : NaN);
     }
   }
 
@@ -891,6 +1250,20 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
     try {
       this.chartState = HomeChartState.fromPersisted(persisted);
+
+      // IMPORTANT: persisted history can contain bogus 0/invalid samples (e.g. during restarts)
+      // that must never be plotted. During a normal run, warmup gating prevents these samples
+      // from being pushed, but on a page refresh we restore raw arrays and must sanitize them
+      // again so refreshes never re-introduce spikes to the 0-line.
+      this.sanitizeLoadedHistory();
+
+      // If we already have finite 1m points (from persisted history), treat startup as already started.
+      try {
+        const lastFinite = findLastFinite(this.dataData1m);
+        this.hr1mStarted = Number.isFinite(lastFinite as any);
+      } catch {
+        this.hr1mStarted = false;
+      }
 
       // Keep chartData in sync with the restored arrays.
       if (this.chartData) {
@@ -923,20 +1296,44 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     const outAsic: number[] = [];
 
     for (let i = 0; i < len; i++) {
-      out1m.push(this.enableHashrateSpikeGuard
-        ? this.graphGuardEngine.apply('hashrate_1m', this.dataData1m[i], HOME_CFG.graphGuard.thresholds.hashrate1m)
-        : this.dataData1m[i]);
-      outVreg.push(this.graphGuardEngine.apply('vregTemp', this.dataVregTemp[i], HOME_CFG.graphGuard.thresholds.vregTemp));
-      outAsic.push(this.graphGuardEngine.apply('asicTemp', this.dataAsicTemp[i], HOME_CFG.graphGuard.thresholds.asicTemp));
-      out10m.push(this.enableHashrateSpikeGuard
-        ? this.graphGuardEngine.apply('hashrate_10m', this.dataData10m[i], HOME_CFG.graphGuard.thresholds.hashrate10m)
-        : this.dataData10m[i]);
-      out1h.push(this.enableHashrateSpikeGuard
-        ? this.graphGuardEngine.apply('hashrate_1h', this.dataData1h[i], HOME_CFG.graphGuard.thresholds.hashrate1h)
-        : this.dataData1h[i]);
-      out1d.push(this.enableHashrateSpikeGuard
-        ? this.graphGuardEngine.apply('hashrate_1d', this.dataData1d[i], HOME_CFG.graphGuard.thresholds.hashrate1d)
-        : this.dataData1d[i]);
+      const hr1m = this.sanitizeHashrateHs(this.dataData1m[i]);
+      const hr10m = this.sanitizeHashrateHs(this.dataData10m[i]);
+      const hr1h = this.sanitizeHashrateHs(this.dataData1h[i]);
+      const hr1d = this.sanitizeHashrateHs(this.dataData1d[i]);
+      const vreg = this.sanitizeTempC(this.dataVregTemp[i]);
+      const asic = this.sanitizeTempC(this.dataAsicTemp[i]);
+
+      out1m.push(Number.isFinite(hr1m)
+        ? (this.enableHashrateSpikeGuard
+          ? this.graphGuardEngine.apply('hashrate_1m', hr1m, HOME_CFG.graphGuard.thresholds.hashrate1m)
+          : hr1m)
+        : NaN);
+
+      out10m.push(Number.isFinite(hr10m)
+        ? (this.enableHashrateSpikeGuard
+          ? this.graphGuardEngine.apply('hashrate_10m', hr10m, HOME_CFG.graphGuard.thresholds.hashrate10m)
+          : hr10m)
+        : NaN);
+
+      out1h.push(Number.isFinite(hr1h)
+        ? (this.enableHashrateSpikeGuard
+          ? this.graphGuardEngine.apply('hashrate_1h', hr1h, HOME_CFG.graphGuard.thresholds.hashrate1h)
+          : hr1h)
+        : NaN);
+
+      out1d.push(Number.isFinite(hr1d)
+        ? (this.enableHashrateSpikeGuard
+          ? this.graphGuardEngine.apply('hashrate_1d', hr1d, HOME_CFG.graphGuard.thresholds.hashrate1d)
+          : hr1d)
+        : NaN);
+
+      outVreg.push(Number.isFinite(vreg)
+        ? this.graphGuardEngine.apply('vregTemp', vreg, HOME_CFG.graphGuard.thresholds.vregTemp)
+        : NaN);
+
+      outAsic.push(Number.isFinite(asic)
+        ? this.graphGuardEngine.apply('asicTemp', asic, HOME_CFG.graphGuard.thresholds.asicTemp)
+        : NaN);
     }
 
     this.dataData1m = out1m;
@@ -987,7 +1384,7 @@ private updateTempScaleFromLatest(): void {
   const maxLast = Math.max(...vals);
 
   const pad = HOME_CFG.tempScale.latestPadC;
-  const min = Math.floor(minLast - pad);
+  const min = Math.max(0, Math.floor(minLast - pad));
   const max = Math.ceil(maxLast + pad);
 
   if (this.chartOptions?.scales?.y_temp) {
