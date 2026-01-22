@@ -130,6 +130,8 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     type: 'line',
     label: t('HOME.HASHRATE_1D'),
     data: series.hr1d,
+    hidden: true,
+    excludeFromLegend: true,
     yAxisID: 'y',
     fill: false,
     backgroundColor: hrColor(0),

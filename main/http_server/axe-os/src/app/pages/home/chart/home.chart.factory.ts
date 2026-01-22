@@ -32,6 +32,10 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
         labels: {
           // color set by theme helper
           sort: (a: any, b: any) => a.datasetIndex - b.datasetIndex,
+          filter: (legendItem: any, data: any) => {
+            const ds = data?.datasets?.[legendItem?.datasetIndex];
+            return !ds?.excludeFromLegend;
+          },
         },
         onClick: (_evt: any, legendItem: any, legend: any) => {
           const chart = legend.chart;
