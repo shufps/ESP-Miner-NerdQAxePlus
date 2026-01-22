@@ -121,7 +121,7 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
           autoSkip: false,
         },
         grid: {
-          color: '#80808080',
+          color: HOME_CFG.colors.chartGridColor,
           drawBorder: false,
           display: true,
         },
@@ -147,7 +147,7 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
           callback: (value: number) => `${Math.round(Number(value))} °C`,
         },
         grid: {
-          color: '#80808080',
+          color: HOME_CFG.colors.chartGridColor,
           drawBorder: false,
         },
       },

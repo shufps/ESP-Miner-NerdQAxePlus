@@ -1,3 +1,5 @@
+import { HOME_CFG } from '../home.cfg';
+
 // Auto-extracted from the original HomeExperimentalComponent constructor.
 // Visual/design layer only.
 
@@ -13,7 +15,7 @@ export interface HomeChartSeriesRefs {
 
 export function createHomeDatasets(opts: { t: (key: string) => string; series: HomeChartSeriesRefs }): any[] {
   const { t, series } = opts;
-  const HR_BASE_COLOR = '#a564f6';
+  const HR_BASE_COLOR = HOME_CFG.colors.hashrateBase;
 
   function hrColor(alpha: number = 1): string {
     if (alpha >= 1) return HR_BASE_COLOR;
@@ -40,7 +42,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     const ctx = chart?.ctx;
     const chartArea = chart?.chartArea;
 
-    const baseHex = '#2DA8B7';
+    const baseHex = HOME_CFG.colors.vregTemp;
     const topAlpha = 0.01;
     const bottomAlpha = 0.12;
 
@@ -63,7 +65,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     const ctx = chart?.ctx;
     const chartArea = chart?.chartArea;
 
-    const baseHex = '#C84847';
+    const baseHex = HOME_CFG.colors.asicTemp;
     const topAlpha = 0.01;
     const bottomAlpha = 0.21;
 
@@ -148,7 +150,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     data: series.vregTemp,
     yAxisID: 'y_temp',
     fill: true,
-    borderColor: '#2DA8B7',
+    borderColor: HOME_CFG.colors.vregTemp,
     backgroundColor: (context: any) => vrTempAreaGradient(context),
     tension: .4,
     cubicInterpolationMode: 'monotone',
@@ -161,7 +163,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     data: series.asicTemp,
     yAxisID: 'y_temp',
     fill: true,
-    borderColor: '#C84847',
+    borderColor: HOME_CFG.colors.asicTemp,
     backgroundColor: (context: any) => asicTempAreaGradient(context),
     tension: .4,
     cubicInterpolationMode: 'monotone',

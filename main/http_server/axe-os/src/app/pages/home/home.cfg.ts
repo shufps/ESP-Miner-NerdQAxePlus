@@ -230,6 +230,24 @@ export interface HomeCfg {
    * Used to keep the plot area visually stable (e.g. always show a full 1h window)
    * even if there are only a few points right after a cold start / localStorage clear.
    */
+
+  colors: {
+    /** Grid line color for the chart. Keep it fairly light to reduce visual noise. */
+    chartGridColor: '#80808040',
+    /** Fallback text color if CSS var is missing (e.g. during early boot). */
+    textFallback: '#e5e7eb',
+
+    /** Dataset base colors (centralized so visuals can be tweaked in one place). */
+    hashrateBase: '#a564f6',
+    vregTemp: '#2DA8B7',
+    asicTemp: '#C84847',
+
+    /** Value pills defaults */
+    pillsText: '#ffffff',
+    /** Debug outline stroke used by the pills plugin (only visible in debug mode). */
+    pillsDebugStroke: '#ff00ff',
+  },
+
   xAxis: {
     fixedWindowMs: number;
     /** Tick spacing for the time axis (ms). Used for deterministic 15m labels/grid. */
@@ -373,7 +391,15 @@ export const HOME_CFG: HomeCfg = {
       maxPadC: 8.0,
     },
   },
-
+  colors: {
+    chartGridColor: '#80808040',
+    textFallback: '#e5e7eb',
+    hashrateBase: '#a564f6',
+    vregTemp: '#2DA8B7',
+    asicTemp: '#C84847',
+    pillsText: '#ffffff',
+    pillsDebugStroke: '#ff00ff',
+  },
   xAxis: {
     // Keep X viewport stable and visually calm: always show a full hour.
     fixedWindowMs: 60 * 60 * 1000,
@@ -381,7 +407,6 @@ export const HOME_CFG: HomeCfg = {
     // Deterministic time-axis ticks / grid (e.g. 15-minute labels: :00, :15, :30, :45)
     tickStepMs: 15 * 60 * 1000,
   },
-
   yAxis: {
     hashrateMaxTicksDefault: 5,
     hashrateTickCountClamp: {

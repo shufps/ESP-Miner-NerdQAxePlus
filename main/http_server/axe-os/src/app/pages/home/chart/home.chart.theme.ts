@@ -1,3 +1,5 @@
+import { HOME_CFG } from '../home.cfg';
+
 // Theme helpers for Home chart.
 
 export interface HomeChartTheme {
@@ -8,10 +10,10 @@ export interface HomeChartTheme {
 
 export function readHomeChartTheme(): HomeChartTheme {
   const bodyStyle = getComputedStyle(document.body);
-  const text = (bodyStyle.getPropertyValue('--card-text-color') || '').trim() || '#e5e7eb';
+  const text = (bodyStyle.getPropertyValue('--card-text-color') || '').trim() || HOME_CFG.colors.textFallback;
 
-  // Keep the original semi-transparent grey grid.
-  const gridColor = '#80808080';
+  // Use centrally configured grid color.
+  const gridColor = HOME_CFG.colors.chartGridColor;
 
   return {
     textColor: text,

@@ -1,5 +1,6 @@
 import { Chart, Plugin } from 'chart.js';
 import { TimeScale } from 'chart.js/auto';
+import { HOME_CFG } from '../home.cfg';
 
 type ValuePillsSide = 'left' | 'right';
 
@@ -154,7 +155,7 @@ function valuePillsComputePills(chart: any, opts: ValuePillsPluginOptions, measu
       plotGapPx,
       outerPaddingPx,
       bg: (overrides.bg || ds.borderColor || ds.backgroundColor || '#333') as string,
-      fg: (overrides.fg || '#ffffff') as string,
+      fg: (overrides.fg || HOME_CFG.colors.pillsText) as string,
     });
   });
 
@@ -340,7 +341,7 @@ function valuePillsDrawPills(chart: any, opts: ValuePillsPluginOptions, pills: V
 
   if (o.debug) {
     ctx.save();
-    ctx.strokeStyle = '#ff00ff';
+    ctx.strokeStyle = HOME_CFG.colors.pillsDebugStroke;
     ctx.lineWidth = 1;
     ctx.strokeRect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
     ctx.restore();

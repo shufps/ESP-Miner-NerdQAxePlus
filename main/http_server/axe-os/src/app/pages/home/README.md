@@ -180,6 +180,26 @@ The defaults are logically grouped in `HOME_CFG`. Here is a practical overview (
 - Tick spacing for the time axis (milliseconds). Controls the generated tick marks/labels (e.g. 15-minute labels `:00, :15, :30, :45`) without shifting the viewport end.
 - Used in: `chart/home.chart.factory.ts`
 
+- `HOME_CFG.colors.chartGridColor`
+- Gridline color of the chart. Default: `#80808040`.
+- Used in: `chart/home.chart.factory.ts`, `chart/home.chart.theme.ts`
+
+- `HOME_CFG.colors.textFallback`
+- Fallback text color if the CSS variable `--card-text-color` is not yet available (e.g., during early boot).
+- Used in: `chart/home.chart.theme.ts`
+
+- `HOME_CFG.colors.hashrateBase`
+- Base color for the hashrate series (1m/10m/1h).
+- Used in: `chart/home.chart.datasets.ts`
+
+- `HOME_CFG.colors.vregTemp` / `HOME_CFG.colors.asicTemp`
+- Line/fill colors for the temperature series.
+- Used in: `chart/home.chart.datasets.ts`
+
+- `HOME_CFG.colors.pillsText` / `HOME_CFG.colors.pillsDebugStroke`
+- Default text color and debug outline for value pills.
+- Used in: `plugins/value-pills.plugin.ts`
+
 **Axis / “latest” views**
 - `HOME_CFG.tempScale.latestPadC`
 - Temperature axis around +/- X°C around the latest values (previously hardcoded `3`)
