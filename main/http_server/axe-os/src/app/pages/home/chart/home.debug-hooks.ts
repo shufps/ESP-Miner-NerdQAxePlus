@@ -20,6 +20,9 @@ export interface NerdChartsDebugDeps {
   setHashrateMinTickStep: (ths: number) => void;
   dumpAxisScale: () => any;
   flushHistoryDrainRender: () => void;
+
+  // System actions (optional)
+  restart?: (totp?: string) => any;
 }
 
 export interface NerdChartsDebugKeys {
@@ -113,6 +116,20 @@ export function installNerdChartsDebugHooks(globalObj: any, deps: NerdChartsDebu
 
   obj.flushHistoryDrainRender = () => deps.flushHistoryDrainRender();
 
+  // Device restart (calls backend restart endpoint). Optional so existing builds don't break.
+  obj.restart = (totp?: string) => {
+    try {
+      if (typeof deps.restart !== 'function') {
+        return { ok: false, error: 'restart hook not installed' };
+      }
+      return deps.restart(totp);
+    } catch (e: any) {
+      // eslint-disable-next-line no-console
+      console.warn('[nerdCharts] restart failed', e);
+      return { ok: false, error: String(e) };
+    }
+  };
+
   obj.list = () => Object.keys(obj).sort();
 
   obj.help = () => ({
@@ -124,6 +141,9 @@ export function installNerdChartsDebugHooks(globalObj: any, deps: NerdChartsDebu
       clearChartHistoryNow: 'clearChartHistoryNow()',
       clearChartHistoryOnce: 'clearChartHistoryOnce(); location.reload()',
       flushHistoryDrainRender: 'flushHistoryDrainRender()',
+    },
+    system: {
+      restart: 'restart(totp?: string)',
     },
     axes: {
       setAxisPadding: 'setAxisPadding({ hashPadPctTop?, hashPadPctBottom?, hashMinPadThs?, hashFlatPadPctOfMax?, hashMaxPadPctOfMax?, tempPadPct?, tempMinPadC?, debug?, persist? })',

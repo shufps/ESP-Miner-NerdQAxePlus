@@ -1,5 +1,5 @@
 import { Component, AfterViewChecked, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
-import { map, Observable, Subscription } from 'rxjs';
+import { map, Observable, Subscription, firstValueFrom } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
@@ -674,6 +674,19 @@ ngOnInit() {
           if (this.wasLoaded) this.saveChartData();
           this.updateChart();
         } catch {}
+      },
+
+      // Console helper: restart device via backend endpoint.
+      // Note: mirrors the SystemComponent.restart() backend call; OTP is optional depending on device settings.
+      restart: async (totp?: string) => {
+        try {
+          const res = await firstValueFrom(this.systemService.restart('', (totp || '').trim()));
+          return { ok: true, res };
+        } catch (e: any) {
+          // eslint-disable-next-line no-console
+          console.warn('[nerdCharts] restart failed', e);
+          return { ok: false, error: String(e) };
+        }
       },
     });
     this.syncDebugModeFromStorage();
