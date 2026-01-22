@@ -235,6 +235,77 @@ export interface HomeCfg {
     hashrate1m: Hashrate1mSmoothingCfg;
   };
   tempScale: TempScaleCfg;
+
+  // ---- Warmup / restart gating
+
+  /**
+   * Warmup/Restart sequencing so graphs don't "fall apart" after miner restarts.
+   *
+   * This is used by HomeExperimentalComponent + home.warmup.ts.
+   */
+  warmup: {
+    /** Minimum plausible temperature that counts as "valid" for warmup gating. */
+    tempMinValidC: number;
+    /** Hard cap for temperatures (sanity). */
+    tempMaxValidC: number;
+
+    /** Delay after first valid VR temp sample before enabling VR temp plot. */
+    vregDelayMs: number;
+    /** Delay after VR is enabled and first valid ASIC temp sample was seen. */
+    asicDelayMs: number;
+    /** Delay after ASIC is enabled and live hashrate is present before enabling HR 1m plot. */
+    hash1mDelayMs: number;
+
+    /** How many consecutive "boot-like" polls are required to treat as restart. */
+    restartDetectStreak: number;
+  };
+
+  /**
+   * Raw-sample sanitizing to avoid impossible values entering the plot.
+   * (Invalid samples become NaN -> visual gap)
+   */
+  sanitize: {
+    tempMinC: number;
+    tempMaxC: number;
+    hashrateMinHs: number;
+  };
+
+  /**
+   * Startup behavior knobs around GraphGuard.
+   */
+  startup: {
+    /**
+     * Number of initial samples (per hashrate series) that bypass GraphGuard
+     * once startup is "unlocked" (expected vs live reached).
+     */
+    bypassGuardSamples: number;
+    /** Unlock ratio: live must reach expected*ratio once (per restart) before bypass can be used. */
+    expectedUnlockRatio: number;
+
+    /**
+     * 1m hashrate GraphGuard behavior:
+     * After a restart, we run in a "super smooth" mode for a short window to suppress
+     * short-lived dips (e.g. 2–3 ticks). Afterwards, we switch to a snappier mode.
+     */
+    hr1mSmoothWindowMs: number;
+    /** GraphGuard confirmSamples used during the smooth startup window. */
+    hr1mConfirmStartup: number;
+    /** GraphGuard confirmSamples used after the smooth startup window ("snappier"). */
+    hr1mConfirmNormal: number;
+
+    /**
+     * Optional: after the 1m smooth window ends, force a single browser reload (F5/Cmd+R).
+     * Guarded to trigger ONLY after a miner restart (hard cut) and only once per restart.
+     */
+    hr1mReloadAfterSmooth: boolean;
+
+    /**
+     * Cooldown for the optional auto-reload to avoid reload loops (session-scoped).
+     * If the user refreshes manually, we will not auto-reload again until this cooldown passes.
+     */
+    hr1mReloadCooldownMs: number;
+
+  };
 }
 
 /**
@@ -305,10 +376,15 @@ export const HOME_CFG: HomeCfg = {
   graphGuard: {
     cfg: {
       confirmSamples: 2,
-      liveRefTolerance: 0.15,
+      // Live reference tolerance (pool sum) used to suppress short-lived history dips
+      // that do not match the live reference.
+      // Example: a dip from 6.35 TH/s to 5.82 TH/s is ~8.35% and should be rejected
+      // when the live reference is stable.
+      liveRefTolerance: 0.06,
       bigStepRel: 0.20,
-      liveRefStableSamples: 3,
-      liveRefStableRel: 0.08,
+      // Require live reference to be genuinely stable before gating history samples.
+      liveRefStableSamples: 2,
+      liveRefStableRel: 0.05,
     },
     thresholds: {
       // Previously hardcoded relThresholds in updateChartData/sanitizeLoadedHistory.
@@ -346,5 +422,44 @@ export const HOME_CFG: HomeCfg = {
   tempScale: {
     // Previously hardcoded as +/- 3°C around latest min/max.
     latestPadC: 3,
+  },
+
+  warmup: {
+    // Keep boot sensor junk (0..9°C) from unlocking warmup.
+    tempMinValidC: 10,
+    // Absolute sanity cap for temps.
+    tempMaxValidC: 130,
+    // Sequencing delays (after first valid sample of each stage)
+    vregDelayMs: 2500,
+    asicDelayMs: 500,
+    hash1mDelayMs: 1500,
+    // Hard-cut immediately on the strong signature (temps drop below min + no live hashrate).
+    // The streak is only a fallback and should stay low to prevent any 0-line dip.
+    restartDetectStreak: 1,
+  },
+
+  sanitize: {
+    // Never plot 0°C either: in practice this is a boot/sensor artifact for these miners.
+    // (Real operating temps are far above this; treating 0 as invalid prevents "spikes" to the 0-line,
+    // including after page refresh when history is reloaded.)
+    tempMinC: 0.1,
+    tempMaxC: 130,
+    // Hashrate is in H/s in the chart.
+    // NOTE: A value of 0 during runtime is a boot/restart artifact in practice and should never be plotted.
+    // Keep this tiny so legitimate low values (if any) still render.
+    hashrateMinHs: 1,
+  },
+
+  startup: {
+    bypassGuardSamples: 0,
+    expectedUnlockRatio: 0.75,
+    // Super smooth startup: apply stronger GraphGuard confirmation for 1m for a short window after restart.
+    hr1mSmoothWindowMs: 120_000, // 2 minutes
+    hr1mConfirmStartup: 5,
+    hr1mConfirmNormal: 3,
+    // Optional: reload the page after the smooth window finishes.
+    // Guarded to trigger only once per miner restart (hard cut) and session-cooled down.
+    hr1mReloadAfterSmooth: true,
+    hr1mReloadCooldownMs: 600_000, // 10 minutes
   },
 };
