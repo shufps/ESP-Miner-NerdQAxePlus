@@ -346,7 +346,10 @@ export const HOME_CFG: HomeCfg = {
     viewMode: 'bars',
     // Default hidden datasets (Chart.js style: hidden=true).
     legendHidden: {
-      // Example: hr1d: true,
+      // Initial defaults (applied only if the user has no persisted legend selection yet).
+      hr10m: true,
+      hr1h: true,
+      hr1d: true,
     },
   },
 
