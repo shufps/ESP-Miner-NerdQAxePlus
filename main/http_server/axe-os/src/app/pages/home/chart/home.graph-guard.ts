@@ -74,7 +74,7 @@ export class GraphGuard {
     return ((mx - mn) / base) <= rel;
   }
 
-  apply(key: string, raw: any, relThreshold: number, liveRef?: number): number {
+  apply(key: string, raw: any, relThreshold: number, liveRef?: number, confirmSamplesOverride?: number): number {
     const isHash = key.startsWith('hashrate_');
     const isTemp = key.toLowerCase().includes('temp');
     const minValid = (isHash || isTemp) ? 1 : -Infinity;
@@ -89,17 +89,18 @@ export class GraphGuard {
     const fallback = state.window.length ? median(state.window) : (prev ?? 0);
     const candidate = valid ? current : fallback;
 
+    // First sample: never invent a value.
+    // If the first incoming point is invalid (NaN/0/boot junk), keep a gap until a valid
+    // history sample arrives. This prevents "starts from 0" artifacts and keeps plotting
+    // sourced from history only (no seeding from liveRef).
     if (prev === undefined) {
-      let seed = candidate;
-      if (isHash && isFiniteNumber(liveRef) && liveRef > 0) {
-        const live = liveRef;
-        const tol = Math.max(0.05, Number(this.cfg.liveRefTolerance));
-        const rel = Math.abs(seed - live) / live;
-        if (!valid || rel > (tol * 2)) seed = live;
-      } else if (!valid) {
-        seed = fallback;
+      if (!valid) {
+        // Do not seed state.prev here; next valid sample will become the first point.
+        this.states.set(key, state);
+        return NaN;
       }
 
+      const seed = candidate;
       state.prev = seed;
       state.window.push(seed);
       if (state.window.length > 9) state.window.shift();
@@ -111,8 +112,15 @@ export class GraphGuard {
     if (isHash && isFiniteNumber(liveRef) && liveRef > 0) {
       const live = liveRef;
       const liveStep = prev > 0 ? Math.abs(live - prev) / prev : 0;
-      const baseGate = 0.25;
-      const effectiveGate = liveStep > 0.20 ? 0.80 : baseGate;
+      // Gate sensitivity:
+      // Align the rejection threshold to the configured liveRefTolerance so short-lived
+      // history dips that do NOT match the live pool sum are suppressed.
+      // This is especially important shortly after restart where the 1m history stream
+      // may emit a few transient low points even though the miner is already hashing.
+      const baseGate = Math.max(0.03, Number(this.cfg.liveRefTolerance));
+      // If liveRef itself is moving more than the gate, we're likely in a real change
+      // (e.g. frequency change). In that case, don't block history samples.
+      const effectiveGate = liveStep > baseGate ? 0.80 : baseGate;
 
       const liveRel = Math.abs(candidate - live) / live;
       if (liveRel > effectiveGate) {
@@ -164,7 +172,11 @@ export class GraphGuard {
           state.suspectCount = 1;
         }
 
-        if (state.suspectCount >= Math.max(1, Math.round(this.cfg.confirmSamples))) {
+        const confirmN = Number.isFinite(confirmSamplesOverride as any)
+          ? Number(confirmSamplesOverride)
+          : Number(this.cfg.confirmSamples);
+
+        if (state.suspectCount >= Math.max(1, Math.round(confirmN))) {
           out = candidate;
           state.suspectCount = 0;
           state.suspectDir = undefined;
