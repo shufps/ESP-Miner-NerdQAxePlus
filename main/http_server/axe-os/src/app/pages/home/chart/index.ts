@@ -9,3 +9,4 @@ export * from './home.chart.datasets';
 export * from './home.debug-hooks';
 export * from './home.graph-guard';
 export * from './home.axis-scale';
+export * from './home.warmup';
