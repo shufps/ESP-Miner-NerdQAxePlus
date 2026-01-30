@@ -245,6 +245,8 @@ nb-card-header{
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  position: relative;
+  z-index: 2;
 }
 
 .pool-tile-metricbar__left{
@@ -354,6 +356,38 @@ nb-card-header{
 .pool-tile-metricbar{
   position: relative;
 }
+
+/* Dual-pool allocation: show hashrate distribution as a moving fill inside the existing pool metric bars.
+   Track remains transparent so only the fill is visible. */
+.pool-tile-metricbar--alloc{
+  background: transparent !important;
+}
+
+.pool-tile-metricbar__fill{
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  opacity: var(--bar-fill-opacity);
+  transition: width 180ms ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Dotted marker at the end of the filled portion (same visual language as other bars) */
+.pool-tile-metricbar__fill::after{
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -1px;
+  width: 0;
+  border-left: 2px dotted var(--fill-marker-color);
+  pointer-events: none;
+}
+
 
 /* --- Mobile: In dual pool mode, stack the details under the grey bar so
    the pool logo + host/ping/loss never overlap or get hidden. --- */

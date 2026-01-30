@@ -67,7 +67,7 @@
                       </div>
                     </div>
                   </div>
-                </div>
+</div>
 
                   <!-- Row 2: Expected (left) + Uptime (right) -->
                   <div class="pool-summary-square__row2">
@@ -99,8 +99,8 @@
                   </div>
                 </div>
 
-
-                <!-- Right column: All‑time best square -->
+                
+<!-- Right column: All‑time best square -->
                 <div class="pool-summary-square__best" role="img"
                   [attr.aria-label]="('PERFORMANCE.BEST_DIFFICULTY' | translate) + ': ' + (info.bestDiff | humanReadable)">
                   <div class="pool-summary-square__best-inner">
@@ -168,7 +168,11 @@
 
                       <!-- Grey metric bar (full width of the half) -->
                       <div class="pool-tile-metricbar fill-colors" role="group"
-                        [attr.aria-label]="('POOL_INFO.TITLE' | translate) + ': ' + (pool.host ?? '')">
+                        [attr.aria-label]="('POOL_INFO.TITLE' | translate) + ': ' + (pool.host ?? '')"
+                        [class.pool-tile-metricbar--alloc]="isDualPool">
+                        <div class="pool-tile-metricbar__fill" *ngIf="isDualPool"
+                             [style.width.%]="getActiveBalance((idx ?? 0) === 0 ? 0 : 1)"></div>
+
                         <div class="pool-tile-metricbar__inner">
 
                           <!-- LEFT: Since connect (value + label) -->
@@ -303,13 +307,13 @@
                   <div class="power-bars" [attr.aria-label]="'PERFORMANCE.TITLE_POWER_USAGE' | translate">
                     <!-- Measured ASIC voltage bar (keep this in the Power tile) -->
                     <div class="power-bar" role="img"
-					            [class.power-bar--max]="isBarMax(info.coreVoltageActual, asicCoreVoltageMax(info))"
+					  [class.power-bar--max]="isBarMax(info.coreVoltageActual, asicCoreVoltageMax(info))"
                       [attr.aria-label]="('PERFORMANCE.ASIC_VOLTAGE_MEASURED' | translate) + ': ' + (info.coreVoltageActual | number: '1.2-2') + ' V'">
-					            <div class="power-bar__fill" [style.width.%]="toPct(info.coreVoltageActual, 0.9, asicCoreVoltageMax(info))"></div>
+					  <div class="power-bar__fill" [style.width.%]="toPct(info.coreVoltageActual, 0.9, asicCoreVoltageMax(info))"></div>
                       <div class="power-bar__label">{{ 'PERFORMANCE.ASIC_VOLTAGE_MEASURED' | translate }}</div>
-                      <div class="power-bar__value" [class.power-bar__value--overmax]="info.coreVoltageActual > asicCoreVoltageMax(info)">
-                      {{ info.coreVoltageActual | number: '1.2-2' }}<span class="unit">&nbsp;V</span>
-                      </div>
+					  <div class="power-bar__value" [class.power-bar__value--overmax]="info.coreVoltageActual > asicCoreVoltageMax(info)">
+						{{ info.coreVoltageActual | number: '1.2-2' }}<span class="unit">&nbsp;V</span>
+					  </div>
                     </div>
 
                     <!-- Input current bar -->
@@ -336,6 +340,7 @@
                       <div class="power-bar__label">{{ 'PERFORMANCE.INPUT_VOLTAGE' | translate }}</div>
                       <div class="power-bar__value">{{ info.voltage | number: '1.1-1' }}<span class="unit">&nbsp;V</span></div>
                     </div>
+
                   </div>
 
                   <!-- Efficiency square (spans the height of the 3 bars) -->
@@ -373,7 +378,7 @@
                 <div class="heat-bars-layout">
                   <!-- Left group: ASIC temp square + optional ASIC chip temp squares (qx multi-bars) -->
                   <div class="heat-left">
-
+                    
                     <!-- ASIC °C: big square always top-left. If chip temps exist, show wrap mosaic (A1-A4 right, A5+ below). -->
                     <ng-container *ngIf="hasChipTemps; else asicTempSingle">
                       <div class="heat-asic-wrap" role="img"
