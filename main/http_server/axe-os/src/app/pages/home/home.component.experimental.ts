@@ -1,11 +1,23 @@
-import { Component, AfterViewChecked, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
-import { map, Observable, Subscription, firstValueFrom } from 'rxjs';
+import {
+  Component,
+  AfterViewChecked,
+  OnInit,
+  OnDestroy,
+  ElementRef,
+  ViewChild,
+  HostBinding,
+  Renderer2 } from '@angular/core';
+import { map,
+  Observable,
+  Subscription,
+  firstValueFrom } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
 import { Chart } from 'chart.js';  // Import Chart.js
 import { registerHomeChartPlugins } from './plugins';
-import { HOME_CFG, createAxisPaddingCfg } from './home.cfg';
+import { HOME_CFG,
+  createAxisPaddingCfg } from './home.cfg';
 import {
   findLastFinite,
   median,
@@ -22,7 +34,7 @@ import {
   computeAxisBounds,
   applyAxisBoundsToChartOptions,
   HomeWarmupMachine,
-} from './chart';
+  } from './chart';
 
 import { NbThemeService } from '@nebular/theme';
 import { NbTrigger } from '@nebular/theme';
@@ -36,15 +48,52 @@ import {
   isLocalHost,
   DEFAULT_POOL_ICON_URL,
   DEFAULT_EXTERNAL_POOL_ICON_URL,
-} from './home.quicklinks';
+  } from './home.quicklinks';
+
+// Tile helpers (keep this component as a thin container)
+import { maxAsicTemp,
+  splitHumanReadable,
+  toPct,
+  isBarWarn,
+  isBarCrit,
+  isBarMax,
+  BAR_THRESHOLDS,
+  BAR_LIMITS,
+  poolDiff,
+  abbrevMiddle,
+  getAsicFrequencyBoundsFromAsic,
+  FreqBounds,
+  getAsicCoreVoltageBoundsFromAsic,
+  VoltBounds,
+	shutdownTempC,
+	isAsicTempWarn,
+	isAsicTempCrit,
+  isBarOver,
+  formatUptime,
+  normalizeHomeTileInfo,
+  HomeBarDomSync
+} from './tiles/utils';
 @Component({
   selector: 'app-home-experimental',
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss']
+  templateUrl: './home.component.experimental.html',
+  styleUrls: ['./home.component.experimental.scss']
 })
 
 export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDestroy {
   @ViewChild('myChart') ctx!: ElementRef<HTMLCanvasElement>;
+
+  // CSS vars for meter bars (kept in sync with HOME_CFG)
+  @HostBinding('style.--bar-fill') barFill: string = HOME_CFG.colors.hashrateBase;
+  @HostBinding('style.--bar-track') barTrack: string = HOME_CFG.colors.chartGridColor;
+  @HostBinding('style.--asic-temp-pill') asicTempPill: string = HOME_CFG.colors.asicTemp;
+
+  // DOM hook: special-case bar fills without complicating templates
+  private currentInputBarMaxWanted: boolean = false;
+  private vrTempBarCritWanted: boolean = false;
+  private barDomSync: HomeBarDomSync;
+
+  // Track current Nebular theme name so we can apply small light-theme-only overrides.
+  private currentThemeName: string = '';
 
   private applyXWindowToChart(xMinMs: number, xMaxMs: number): void {
     // Update shared chart options (used on theme refresh etc.)
@@ -66,6 +115,73 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     } catch {}
   }
 
+  /**
+   * Tile helpers exposed to the template.
+   * Kept here as public function refs so the HTML can call them.
+   */
+  public maxAsicTemp = maxAsicTemp;
+  public splitHumanReadable = splitHumanReadable;
+  public toPct = toPct;
+  public isBarWarn = isBarWarn;
+  public isBarCrit = isBarCrit;
+  public isBarMax = isBarMax;
+  public isBarOver = isBarOver;
+  public BAR_THRESHOLDS = BAR_THRESHOLDS;
+  public BAR_LIMITS = BAR_LIMITS;
+
+  // ASIC temperature scaling + warn/crit thresholds (used by ASIC °C + A1/A2… squares)
+  public shutdownTempC = shutdownTempC;
+  public isAsicTempWarn = isAsicTempWarn;
+  public isAsicTempCrit = isAsicTempCrit;
+
+  /**
+   * Uptime formatting for the hashrate tile (months/weeks/days/hours/minutes).
+   * Always shows minutes.
+   */
+  public formatUptime = (totalSeconds: number): string =>
+    formatUptime(totalSeconds, HOME_CFG.tiles.uptime);
+
+
+  // ASIC frequency scaling (device-specific)
+  private _freqBoundsCacheKey: any = null;
+  private _freqBoundsCacheVal: FreqBounds = { min: 200, max: 1000 };
+
+  // Snapshot of `/asic` endpoint (same data source as SETTINGS.FREQUENCY)
+  private _asicInfo: any = null;
+  public asicFreqBounds(info: any): FreqBounds {
+    if (info && info === this._freqBoundsCacheKey) return this._freqBoundsCacheVal;
+    const bounds = getAsicFrequencyBoundsFromAsic(info, this._asicInfo);
+    this._freqBoundsCacheKey = info;
+    this._freqBoundsCacheVal = bounds;
+    return bounds;
+  }
+  public asicFreqMin(info: any): number { return this.asicFreqBounds(info).min; }
+  public asicFreqMax(info: any): number { return this.asicFreqBounds(info).max; }
+
+
+  // ASIC core-voltage scaling (device-specific, Settings-aligned)
+  private _voltBoundsCacheKey: any = null;
+  private _voltBoundsCacheVal: VoltBounds = { min: 0.9, max: 1.8 };
+
+  public asicVoltBounds(info: any): VoltBounds {
+    if (info && info === this._voltBoundsCacheKey) return this._voltBoundsCacheVal;
+    const bounds = getAsicCoreVoltageBoundsFromAsic(info, this._asicInfo);
+    this._voltBoundsCacheKey = info;
+    this._voltBoundsCacheVal = bounds;
+    return bounds;
+  }
+  public asicVoltMin(info: any): number { return this.asicVoltBounds(info).min; }
+  public asicVoltMax(info: any): number { return this.asicVoltBounds(info).max; }
+
+	/**
+	 * Backwards-compatible alias used by the template.
+	 * (The template calls asicCoreVoltageMax(info) to match the label in the UI.)
+	 */
+	public asicCoreVoltageMax(info: any): number { return this.asicVoltMax(info); }
+	public asicCoreVoltageMin(info: any): number { return this.asicVoltMin(info); }
+
+  public poolDiff = poolDiff;
+  public abbrevMiddle = abbrevMiddle;
   // --- GraphGuard
   // Step-Confirmation: how many consecutive "suspicious" samples in the same direction
   // are required before accepting a step. Increase to 3 to be more conservative.
@@ -245,6 +361,12 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
       this.chartInitialized = true; // Prevent re-initialization
       this.initChart();
     }
+
+    // Keep the Input Current bar coloring in sync even when it hits 100%
+    this.barDomSync.syncCurrentInputBarMaxFill(!!this.currentInputBarMaxWanted, this.currentThemeName);
+
+    // Keep the VR Temp bar coloring in sync for the CRIT band (>= 99%)
+    this.barDomSync.syncVrTempBarCritFill(!!this.vrTempBarCritWanted, this.currentThemeName);
   }
 
   private initChart(): void {
@@ -289,7 +411,9 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     private themeService: NbThemeService,
     private systemService: SystemService,
     private translateService: TranslateService,
-    private localStorage: LocalStorageService
+    private localStorage: LocalStorageService,
+    private hostEl: ElementRef<HTMLElement>,
+    private renderer: Renderer2
   ) {
     // Local persistence wrapper for chart state/settings
     this.chartStorage = new HomeChartStorage({
@@ -297,6 +421,8 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
       setItem: (k, v) => this.localStorageSet(k, v),
       removeItem: (k) => this.localStorageRemove(k),
     });
+
+    this.barDomSync = new HomeBarDomSync(this.hostEl, this.renderer, HOME_CFG.tiles.domSync);
 
     this.historyDrainer = new HomeHistoryDrainer(
       {
@@ -444,27 +570,17 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
         }
       },
       mapInfo: (info) => {
-        // Keep the same normalization as before (format/round values for UI)
-        info.minVoltage = parseFloat(info.minVoltage.toFixed(1));
-        info.maxVoltage = parseFloat(info.maxVoltage.toFixed(1));
-        info.minPower = parseFloat(info.minPower.toFixed(1));
-        info.maxPower = parseFloat(info.maxPower.toFixed(1));
-        info.power = parseFloat(info.power.toFixed(1));
-        info.voltage = parseFloat((info.voltage / 1000).toFixed(1));
+        // Normalize/derive everything the tiles need (bars + squares).
+        const derived = normalizeHomeTileInfo(info as any, {
+          powerUsageAliases: HOME_CFG.tiles.powerUsageAliases,
+          vrTempLimits: (BAR_LIMITS as any).vrTemp,
+        });
 
-        info.current = parseFloat((info.current / 1000).toFixed(1));
-        info.coreVoltageActual = parseFloat((info.coreVoltageActual / 1000).toFixed(2));
-        info.coreVoltage = parseFloat((info.coreVoltage / 1000).toFixed(2));
-        info.temp = parseFloat(info.temp.toFixed(1));
-        info.vrTemp = parseFloat(info.vrTemp.toFixed(1));
-        info.overheat_temp = parseFloat(info.overheat_temp.toFixed(1));
+        this.currentInputBarMaxWanted = derived.currentInputBarMaxWanted;
+        this.vrTempBarCritWanted = derived.vrTempBarCritWanted;
 
-        this.isDualPool = (info.stratum?.activePoolMode ?? 0) === 1;
-        const chipTemps = info?.asicTemps ?? [];
-        this.hasChipTemps =
-          Array.isArray(chipTemps) &&
-          chipTemps.length > 0 &&
-          chipTemps.some((v: any) => v != null && !Number.isNaN(Number(v)) && Number(v) !== 0);
+        this.isDualPool = derived.isDualPool;
+        this.hasChipTemps = derived.hasChipTemps;
 
         return info;
       },
@@ -504,13 +620,16 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   }
 
   /**
-   * Indicates whether the given stratum pool supports ICMP ping.
+   * Ensure the "Input current" meter bar can still colorize correctly.
    *
-   * Some pools intentionally block or ignore ping requests.
-   * This helper centralizes pool-specific exceptions.
+   * The HTML expects these aliases:
+   *  - info.currentA
+   *  - info.minCurrentA
+   *  - info.maxCurrentA
    *
-   * @param stratumURL Stratum pool URL or host
-   * @returns `true` if ping is supported, otherwise `false`
+   * Priority for limits:
+   *  1) If the backend already provides explicit current limits (in A or mA), keep them.
+   *  2) Otherwise derive maxCurrentA from configured power/voltage bounds.
    */
   public supportsPing(stratumURL: string): boolean {
     return supportsPing(stratumURL);
@@ -692,8 +811,13 @@ ngOnInit() {
     this.syncDebugModeFromStorage();
     this.graphGuardEngine.configure({ debug: !!this.debugSpikeGuard });
     this.loadAxisPaddingOverrides();
-    this.themeSubscription = this.themeService.getJsTheme().subscribe(() => {
+    this.themeSubscription = this.themeService.getJsTheme().subscribe((t: any) => {
+      // Nebular emits the current theme object here (includes a `name`).
+      this.currentThemeName = String(t?.name ?? '').trim();
       this.updateThemeColors();
+      // Re-apply any bar overrides that are theme-dependent.
+      this.barDomSync.syncCurrentInputBarMaxFill(!!this.currentInputBarMaxWanted, this.currentThemeName);
+      this.barDomSync.syncVrTempBarCritFill(!!this.vrTempBarCritWanted, this.currentThemeName);
     });
 
     // Listen for timeFormat changes
@@ -711,6 +835,19 @@ ngOnInit() {
     } catch {
       // ignore
     }
+
+    // Pull `/asic` once so the Current Frequency bar can use the same
+    // model-specific frequency table as the Settings screen.
+    (async () => {
+      try {
+        const asic = await firstValueFrom(this.systemService.getAsicInfo(''));
+        this._asicInfo = asic;
+        this._freqBoundsCacheKey = null;
+        this._voltBoundsCacheKey = null;
+      } catch {
+        // ignore
+      }
+    })();
 }
 
   ngOnDestroy(): void {
@@ -1644,24 +1781,28 @@ private updateTempScaleFromLatest(): void {
     }
   }
 
-  public rejectRate(id: number) {
-    const stratum = this._info.stratum;
+  public rejectRate(id?: number): number {
+  // Template can call this before the first info payload arrived.
+  // Be defensive to avoid breaking the whole dashboard render.
+  const pools = this._info?.stratum?.pools;
+  if (!Array.isArray(pools) || pools.length === 0) return 0;
 
-    if (stratum === undefined) {
-      return 0;
-    }
+  // In some template contexts (e.g. single pool tile) `idx` may be undefined.
+  // For UI consistency we default to the PRIMARY pool (index 0), which also matches the Shares card.
+  const idx = (typeof id === 'number' && Number.isFinite(id)) ? id : 0;
 
-    const rejected = stratum.pools[id].rejected;
-    const accepted = stratum.pools[id].accepted;
+  const pool = pools[idx];
+  if (!pool) return 0;
 
-    if (accepted == 0 && rejected == 0) {
-      return 0.0;
-    }
-    return rejected / (accepted + rejected) * 100;
-  }
+  const rejected = Number(pool.rejected ?? 0);
+  const accepted = Number(pool.accepted ?? 0);
 
+  const total = accepted + rejected;
+  if (!total) return 0;
 
-  private importHistoricalDataChunked(history: any): void {
+  return (rejected / total) * 100;
+}
+private importHistoricalDataChunked(history: any): void {
     this.historyDrainer.ingest(history);
   }
 }
