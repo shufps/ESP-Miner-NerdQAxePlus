@@ -82,6 +82,10 @@ import { maxAsicTemp,
 export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDestroy {
   @ViewChild('myChart') ctx!: ElementRef<HTMLCanvasElement>;
 
+  // Persisted UI state: chart collapsed (visual-only; data continues tracking).
+  public isChartCollapsed: boolean = false;
+  private readonly chartCollapsedKey: string = HOME_CFG.storage.keys.chartCollapsed;
+
   // CSS vars for meter bars (kept in sync with HOME_CFG)
   @HostBinding('style.--bar-fill') barFill: string = HOME_CFG.colors.hashrateBase;
   @HostBinding('style.--bar-track') barTrack: string = HOME_CFG.colors.chartGridColor;
@@ -422,6 +426,9 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
       removeItem: (k) => this.localStorageRemove(k),
     });
 
+    // Restore chart collapsed state (visual-only)
+    this.isChartCollapsed = this.localStorageGet(this.chartCollapsedKey) === '1';
+
     this.barDomSync = new HomeBarDomSync(this.hostEl, this.renderer, HOME_CFG.tiles.domSync);
 
     this.historyDrainer = new HomeHistoryDrainer(
@@ -598,6 +605,26 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     this.fallbackQuickLink$ = this.info$.pipe(
       map(info => this.getQuickLink(info.fallbackStratumURL, info.fallbackStratumUser))
     );
+  }
+
+  public toggleChartCollapsed(evt?: Event): void {
+    this.isChartCollapsed = !this.isChartCollapsed;
+
+    // Remove focus after click so Nebular doesn't keep the button in a "pressed"/focused visual state.
+    // (Keeps the interaction clean while still allowing keyboard users to focus intentionally.)
+    try { (evt?.currentTarget as HTMLElement | null)?.blur?.(); } catch {}
+
+    if (this.isChartCollapsed) {
+      this.localStorageSet(this.chartCollapsedKey, '1');
+      return;
+    }
+
+    // Expanded again: clear persisted flag and make sure Chart.js recalculates layout.
+    this.localStorageRemove(this.chartCollapsedKey);
+    setTimeout(() => {
+      try { (this.chart as any)?.resize?.(); } catch {}
+      try { this.chart?.update?.('none' as any); } catch {}
+    }, 280);
   }
 
   /**

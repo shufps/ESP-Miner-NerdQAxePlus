@@ -827,6 +827,164 @@ nb-card-header{
   gap: 1rem;
 }
 
+/* Chart collapse/expand toggle (top-right in chart header) */
+.nerd-chart-header .chart-toggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  line-height: 1;
+
+  /* Toggle color is theme-controlled (explicit per user requirement).
+     We intentionally do NOT rely on --fill-color here because it can be semi-transparent
+     / overridden per theme. */
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+  opacity: 1 !important;
+
+  /* Make the toggle look like plain text (transparent button).
+     Nebular's nbButton ghost styles can otherwise add chrome. */
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0.15rem 0.35rem !important;
+  min-height: 0 !important;
+  height: auto !important;
+  border-radius: 6px;
+  position: relative;
+  z-index: 2;
+
+  /* Prevent the button from showing a persistent focus/active ring after click.
+     (We also blur it in TS for good measure.) */
+  outline: none !important;
+
+  &:focus,
+  &:active{
+    background: transparent !important;
+  }
+
+  &:hover{
+    background: var(--chart-toggle-hover-bg, rgba(0, 0, 0, 0.04)) !important;
+  }
+
+  /* CDK focus classes can keep a persistent "button" look after click.
+     Keep the toggle visually clean unless the user intentionally tabs to it. */
+  &.cdk-focused,
+  &.cdk-program-focused,
+  &.cdk-mouse-focused{
+    box-shadow: none !important;
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  &:focus-visible{
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+.nerd-chart-header .chart-toggle__label{
+  font-size: 0.85rem;
+  opacity: 1;
+
+  /* Force label color (do not rely on inheritance or nbButton ghost styles). */
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+}
+
+/* SVG chevron: same color as label (bar fill token). */
+.nerd-chart-header .chart-toggle__icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Force icon color to match label. */
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+}
+
+.nerd-chart-header .chart-toggle__icon svg{
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.nerd-chart-header .chart-toggle__icon svg path{
+  fill: none;
+  /* Force stroke directly (some UI kits override `color`). */
+  stroke: var(--chart-toggle-color, var(--text-basic-color)) !important;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nerd-chart-header .chart-toggle__icon--up svg{
+  transform: rotate(180deg);
+}
+
+
+/* Nerd* Chart card: remove the divider/underline below the header in all states. */
+.nerd-chart-header{
+  border-bottom: none !important;
+  box-shadow: none !important;
+
+  /* Symmetric header padding: keep a small, consistent gap above and below
+     the title/label row (same top + bottom). */
+  /* User-tuned symmetric padding */
+  padding: 1rem 1rem !important;
+  min-height: 0 !important;
+  line-height: 1;
+  margin: 0 !important;
+}
+
+/* Subtle hover background depends on theme (transparent by default). */
+:host-context(.nb-theme-default) .nerd-chart-card,
+:host-context(.nb-theme-corporate) .nerd-chart-card,
+:host-context(.nb-theme-light) .nerd-chart-card{
+  /* Light theme: explicit toggle color (same for label + icon) */
+  --chart-toggle-color: #8080803F;
+  --chart-toggle-hover-bg: rgba(0, 0, 0, 0.045);
+}
+
+:host-context(.nb-theme-dark) .nerd-chart-card,
+:host-context(.nb-theme-cosmic) .nerd-chart-card{
+  /* Dark theme: white toggle color (same for label + icon) */
+  --chart-toggle-color: #ffffff;
+  --chart-toggle-hover-bg: rgba(255, 255, 255, 0.09);
+}
+
+.nerd-chart-header .chart-header-row{
+  min-height: 0;
+}
+.nerd-chart-card > nb-card-body{
+  border-top: none !important;
+}
+
+/* Reduce the default Nebular body padding so the chart sits closer to the header.
+   (Collapsed state still forces padding:0 via .chart-card-body--collapsed.) */
+.nerd-chart-card > nb-card-body.chart-card-body{
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+/* Smooth visual-only collapse of the chart body.
+   The chart stays mounted (data continues tracking), we only collapse the container. */
+.chart-card-body{
+  overflow: hidden;
+  max-height: 1100px; /* safely above the tallest layout */
+  opacity: 1;
+  min-height: 0;
+  height: auto;
+  flex: 0 0 auto;
+  transition: max-height 280ms ease, opacity 180ms ease, padding 280ms ease;
+}
+
+.chart-card-body--collapsed{
+  max-height: 0;
+  height: 0 !important;
+  min-height: 0 !important;
+  flex: 0 0 0 !important;
+  opacity: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
 
 /* --- Chart layout (full width) --- */
 .chart-canvas{
@@ -900,6 +1058,18 @@ nb-card-header{
   --fill-warn-color: var(--color-warning-500);
   --fill-crit-color: var(--color-danger-500);
   --fill-max-color: var(--asic-temp-pill, var(--color-danger-500));
+}
+
+/* Light themes: the UI expects a solid, darker gray fill (like the metric boxes).
+   `HOME_CFG.colors.chartGridColor` is semi-transparent (e.g. #80808040) and looks
+   *very* light on white, which is why the toggle label/icon ends up faint.
+   Set a solid fill token here so bars + metric boxes + the chart toggle match.
+   (User-tuned value: #CDCFD3)
+*/
+:host-context(.nb-theme-default) .fill-colors,
+:host-context(.nb-theme-corporate) .fill-colors,
+:host-context(.nb-theme-light) .fill-colors{
+  --fill-color: #CDCFD3;
 }
 
 :host{
@@ -983,13 +1153,7 @@ nb-card-header{
   --chip-glyph-opacity: 1;
 }
 
-/* Light theme: use a unified fill for bars + metric squares */
-:host-context(.nb-theme-default) .fill-colors,
-:host-context(.nb-theme-corporate) .fill-colors,
-:host-context(.nb-theme-light) .fill-colors{
-  /* Light theme fill for bars + metric squares */
-  --fill-color: #CDCFD3;
-}
+/* Light theme: keep fill color sourced from --bar-track to match bars everywhere */
 
 /* In light theme the filled metric squares/boxes use a light fill.
    Restore the default dark text colors (units/secondary labels still use --unit-color). */

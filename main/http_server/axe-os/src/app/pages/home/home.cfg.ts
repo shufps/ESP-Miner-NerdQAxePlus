@@ -206,6 +206,8 @@ export interface HomeStorageKeys {
   legendVisibility: string;
   viewMode: string;
   minHistoryTimestampMs: string;
+  /** Visual-only collapse state for the Home chart container. */
+  chartCollapsed: string;
 }
 
 /**
@@ -423,6 +425,8 @@ export const HOME_CFG: HomeCfg = {
       // Historical name was tempViewMode_exp; we call it viewMode in code.
       viewMode: 'tempViewMode_exp',
       minHistoryTimestampMs: 'minHistoryTimestampMs_exp',
+      // Visual-only: remember if the user collapsed the chart container.
+      chartCollapsed: 'chartCollapsed_exp',
     },
     // Keep storage reasonably bounded; chart can still hold more live points.
     maxPersistedPoints: 20000,

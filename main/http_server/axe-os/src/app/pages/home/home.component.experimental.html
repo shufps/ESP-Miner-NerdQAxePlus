@@ -12,14 +12,40 @@
       <!-- Chart (full width, top) -->
       <div class="row d-flex align-items-stretch">
         <div class="col-12">
-          <nb-card class="h-100">
-            <nb-card-header>
+          <!-- Note: do NOT force h-100 here; it creates excess whitespace when the chart is collapsed. -->
+          <nb-card class="nerd-chart-card">
+            <nb-card-header class="nerd-chart-header">
               <div class="chart-header-row">
                 <span class="text-hint">{{ 'HOME.HASH_RATE_CHART' | translate }}</span>
+
+                <button
+                  nbButton
+                  ghost
+                  size="tiny"
+                  class="chart-toggle"
+                  type="button"
+                  (click)="toggleChartCollapsed($event)"
+                  [attr.aria-expanded]="!isChartCollapsed"
+                >
+                  <span class="chart-toggle__label">
+                    {{ (isChartCollapsed ? 'HOME.SHOW_CHART' : 'HOME.HIDE_CHART') | translate }}
+                  </span>
+
+                  <!-- Thick, high-contrast chevron (SVG) for better visibility than nb-icon. -->
+                  <span
+                    class="chart-toggle__icon"
+                    [class.chart-toggle__icon--up]="!isChartCollapsed"
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 16 16" focusable="false">
+                      <path d="M3.25 5.75 L8 10.5 L12.75 5.75" />
+                    </svg>
+                  </span>
+                </button>
               </div>
             </nb-card-header>
 
-            <nb-card-body>
+            <nb-card-body class="chart-card-body" [class.chart-card-body--collapsed]="isChartCollapsed">
               <div class="chart-canvas">
                 <div class="chart-canvas__wrap chart-canvas__wrap--tall">
                   <canvas #myChart></canvas>
