@@ -305,15 +305,25 @@
                   </ng-template>
 
                   <ng-template #poolDisconnectedLeft>
-                    <nb-alert status="danger" size="small" class="mb-0">
-                      Stratum not connected for this pool.
-                    </nb-alert>
+                    <!-- Use the existing pool metric bar UI for the disconnected warning (no extra alert chrome). -->
+                    <div class="pool-tile-half pool-tile-half--disconnected" dir="ltr" [class.pool-tile-half--dual]="isDualPool">
+                      <div class="pool-tile-metricbar pool-tile-metricbar--warn pool-tile-metricbar--disconnected fill-colors" role="status" aria-live="polite">
+                        <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
+                          <div class="pool-tile-metricbar__dc-msg">Stratum not connected for this pool.</div>
+                        </div>
+                      </div>
+                    </div>
                   </ng-template>
 
                   <ng-template #poolDisconnectedRight>
-                    <nb-alert status="danger" size="small" class="mb-0">
-                      Stratum not connected for this pool.
-                    </nb-alert>
+                    <!-- Use the existing pool metric bar UI for the disconnected warning (no extra alert chrome). -->
+                    <div class="pool-tile-half pool-tile-half--disconnected" dir="ltr" [class.pool-tile-half--dual]="isDualPool">
+                      <div class="pool-tile-metricbar pool-tile-metricbar--warn pool-tile-metricbar--disconnected fill-colors" role="status" aria-live="polite">
+                        <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
+                          <div class="pool-tile-metricbar__dc-msg">Stratum not connected for this pool.</div>
+                        </div>
+                      </div>
+                    </div>
                   </ng-template>
 
                 </nb-card-body>
