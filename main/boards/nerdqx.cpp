@@ -54,10 +54,10 @@ NerdQX::NerdQX() : NerdQaxePlus2() {
     m_pidSettings.d = 1000; // 10.00
 
     m_flipScreen = true;
-    m_maxPin = 250.0;
+    m_maxPin = 240.0;
     m_minPin = 50.0;
-    m_maxVin = 12.7;
-    m_minVin = 11.7;
+    m_maxVin = 13.0;
+    m_minVin = 11.0;
     m_minCurrentA = 0.0f;
     m_maxCurrentA = 20.0f;
 
