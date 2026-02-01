@@ -246,6 +246,11 @@
                           %&nbsp;/&nbsp;{{ (pool.rejected ?? 0) | number: '1.0-0' }}
                           &nbsp;{{ 'HOME.REJECTED' | translate }}
                         </div>
+
+                        <div class="pool-tile-metricbar__rejected">
+                          <span class="pool-tile-info__value">{{ (poolDiff(pool)) | number: '1.0-0' }}</span>
+                          <span class="pool-tile-info__label">&nbsp;{{ 'POOL_INFO.DIFF' | translate }}</span>
+                        </div>
                       </div>
 
                     </div>
@@ -315,11 +320,6 @@
                         <span class="pool-tile-info__label">&nbsp;{{ 'POOL_INFO.LOSS' | translate }}</span>
                       </div>
 
-                      <div class="pool-tile-info__line pool-tile-info__line--diff">
-                        <span
-                          class="pool-tile-info__value pool-tile-info__diff-value">{{ (poolDiff(pool)) | number: '1.0-0' }}</span>
-                        <span class="pool-tile-info__label">&nbsp;{{ 'POOL_INFO.DIFF' | translate }}</span>
-                      </div>
                     </div>
 
                   </div>
@@ -376,7 +376,8 @@
                       <div class="power-bar__fill"
                            [style.width.%]="toPct(info.coreVoltageActual, 0.9, asicCoreVoltageMax(info))"></div>
                       <div class="power-bar__label">{{ 'PERFORMANCE.ASIC_VOLTAGE_MEASURED' | translate }}</div>
-                      <div class="power-bar__value">
+                      <div class="power-bar__value"
+                           [class.power-bar__value--overmax]="info.coreVoltageActual > asicCoreVoltageMax(info)">
                         {{ info.coreVoltageActual | number: '1.2-2' }}<span class="unit">&nbsp;V</span>
                       </div>
                     </div>
@@ -397,8 +398,9 @@
 
                     <!-- Input voltage bar -->
                     <div class="power-bar" role="img"
-                         [class.power-bar--warn]="isInputVoltageWarn(info.voltage)"
-                         [class.power-bar--max]="info.maxVoltage ? isBarMax(info.voltage, info.maxVoltage) : false"
+                         [class.power-bar--warn]="isBarWarn(info.voltage, info.minVoltage, info.maxVoltage)"
+                         [class.power-bar--crit]="isBarCrit(info.voltage, info.minVoltage, info.maxVoltage)"
+                         [class.power-bar--max]="isBarMax(info.voltage, info.maxVoltage)"
                          [attr.aria-label]="('PERFORMANCE.INPUT_VOLTAGE' | translate) + ': ' + (info.voltage | number: '1.1-1') + ' V'">
                       <div class="power-bar__fill"
                            [style.width.%]="toPct(info.voltage, info.minVoltage, info.maxVoltage)">
@@ -423,6 +425,8 @@
 
                   <!-- Power bar (full width under the 3 bars + square) -->
                   <div class="power-bar power-bar--full" role="img"
+                       [class.power-bar--warn]="info.maxPower ? isBarWarn(info.power, info.minPower ?? 0, info.maxPower) : false"
+                       [class.power-bar--crit]="info.maxPower ? isBarCrit(info.power, info.minPower ?? 0, info.maxPower) : false"
                        [class.power-bar--max]="info.maxPower ? isBarMax(info.power, info.maxPower) : false"
                        [attr.aria-label]="('PERFORMANCE.POWER' | translate) + ': ' + (info.power | number: '1.1-1') + ' W'">
                     <div class="power-bar__fill"
@@ -524,8 +528,8 @@
                   <div class="heat-bars">
                     <!-- VR temp bar -->
                     <div class="power-bar" *ngIf="info.vrTemp > 0" role="img" data-bar="vr-temp"
-                         [class.power-bar--warn]="isVrTempWarn(info.vrTemp)"
-                         [class.power-bar--crit]="isVrTempCrit(info.vrTemp)"
+                         [class.power-bar--warn]="isBarWarn(info.vrTemp, BAR_LIMITS.vrTemp.min, BAR_LIMITS.vrTemp.max, BAR_LIMITS.vrTemp.warnRel)"
+                         [class.power-bar--crit]="isBarCrit(info.vrTemp, BAR_LIMITS.vrTemp.min, BAR_LIMITS.vrTemp.max, BAR_LIMITS.vrTemp.critRel)"
                          [class.power-bar--max]="isBarMax(info.vrTemp, BAR_LIMITS.vrTemp.max)"
                          [attr.aria-label]="('PERFORMANCE.VR_TEMP' | translate) + ': ' + (info.vrTemp | number: '1.1-1') + ' °C'">
                       <div class="power-bar__fill"

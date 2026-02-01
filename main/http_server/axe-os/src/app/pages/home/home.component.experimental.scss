@@ -22,6 +22,7 @@
 .pool-tile-metricbar__user-label,
 .pool-tile-metricbar__shares-label,
 .pool-tile-metricbar__rejected,
+.pool-tile-metricbar__diff .pool-tile-info__label,
 .pool-tile-info__label,
 .pool-summary-square__uptime-label{
   text-transform: var(--POOL_LABEL_TEXT_TRANSFORM, uppercase);
@@ -591,6 +592,12 @@ nb-card-header{
 .pool-tile-info__bottom a,
 .pool-tile-info__bottom span{
   font-size: inherit;
+}
+
+/* Add a small bottom gap under the last info line (Ping/Loss in current layout)
+   so it doesn't visually stick to the bottom edge. */
+.pool-tile-info__bottom .pool-tile-info__line:last-child{
+  margin-bottom: 5px;
 }
 
 /* Labels (User/Host/Port/Ping/Loss): match “Since connect” label look */
