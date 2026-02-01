@@ -10,14 +10,12 @@
     background-color: #cae6fc;
 }
 
-/* Disable explicit coloring for specific pool metric labels (USER / SINCE CONNECT / SHARES).
-   Applies to single + dual pool layouts; labels inherit the surrounding text color. */
-.pool-tile-metricbar__since .pool-tile-metricbar__label-inline,
+/* Pool metricbar labels inside the filled (grey) box should match the same unit/suffix tone
+   used elsewhere (Best Difficulty, Efficiency, etc.). */
 .pool-tile-metricbar__user-label,
 .pool-tile-metricbar__shares-label{
-  color: inherit !important;
+  color: var(--unit-in-fill-color, var(--unit-color)) !important;
 }
-
 
 /* Uppercase label casing (labels are translated via i18n; CSS controls presentation only). */
 .pool-tile-metricbar__since .pool-tile-metricbar__label-inline,
@@ -27,9 +25,6 @@
 .pool-tile-info__label,
 .pool-summary-square__uptime-label{
   text-transform: var(--POOL_LABEL_TEXT_TRANSFORM, uppercase);
-}
-.blue-500{
-    color: #2196f3;
 }
 
 :host{
@@ -255,45 +250,58 @@ nb-card-header{
   overflow: hidden;
 }
 
-/* Disconnected pool state: reuse the pool metric bar as the warning surface (no nb-alert).
-   Color uses the same warning token as ASIC temp "warn" state. */
-.pool-tile-half--disconnected{
-  gap: 0;
-}
 
+
+/* Disconnected Stratum warning should reuse the existing pool metric bar UI.
+   Yellow warn surface + centered message; text color should follow the normal bar text rules. */
 .pool-tile-metricbar--warn{
   background: var(--fill-warn-color, var(--color-warning-500));
-  /* Ensure text stays readable on the colored surface (especially in light themes). */
-  --bar-label-color: #fff;
-  --bar-value-color: #fff;
-  --unit-color: rgba(255, 255, 255, 0.85);
 }
 
+
 .pool-tile-metricbar--disconnected{
-  /* Fill the whole half so we don't leave an empty details column. */
   flex: 1 1 auto;
   max-width: 100%;
   height: 100%;
 }
 
-/* NOTE: .pool-tile-metricbar__inner base styles are defined later in this file.
-   Use a more specific selector so our disconnected layout wins.
-   We want the warning message vertically centered, but left-aligned. */
-.pool-tile-metricbar__inner.pool-tile-metricbar__inner--disconnected{
-  flex-direction: column;
+.pool-tile-metricbar__inner--disconnected{
+  /* Center the disconnected label both vertically and horizontally */
+  display: flex;
   justify-content: center;
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
+  text-align: center;
   height: 100%;
+  width: 100%;
+  padding: 0;
 }
 
+/* Safety: if the template uses the base inner class, keep the disconnected message centered */
+.pool-tile-metricbar--disconnected .pool-tile-metricbar__inner{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+}
+
+
 .pool-tile-metricbar__dc-msg{
-  /* Make the warning clearly readable without clipping inside the bar */
+  /* Make the warning clearly readable and truly centered inside the bar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: inherit;
   font-size: clamp(0.9rem, 1.0vw + 0.65rem, 1.15rem);
   font-weight: 900;
   line-height: 1.15;
   padding: 8px 12px;
   width: 100%;
+  height: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -332,6 +340,11 @@ nb-card-header{
   line-height: 1;
   display: flex;
   align-items: baseline;
+
+  /* Units inside the filled (grey) pool bar should match other filled-box units */
+  .unit{
+    color: var(--unit-in-fill-color, var(--unit-color));
+  }
 }
 
 /* Inline label that sits directly after the unit (dual pool: only shown for pool 1) */
@@ -584,7 +597,7 @@ nb-card-header{
 .pool-tile-info__label{
   font-size: 10px;
   /* Match the unit/suffix tone (since connect, units, etc.) */
-  color: var(--unit-color);
+  color: var(--unit-in-fill-color, var(--unit-color)) !important;
   opacity: 1;
   font-weight: 400;
   line-height: 1.2;
@@ -994,9 +1007,7 @@ nb-card-header{
 :host-context(.nb-theme-default) .nerd-chart-card,
 :host-context(.nb-theme-corporate) .nerd-chart-card,
 :host-context(.nb-theme-light) .nerd-chart-card{
-  /* Light theme: use the project's existing dark-gray text token.
-     Avoid hard-coded semi-transparent greys so the i18n-driven label and the
-     chevron icon stay readable and consistent with the rest of the UI. */
+  /* Light theme: explicit toggle color (same for label + icon) */
   --chart-toggle-color: var(--card-text-color, var(--text-hint-color, var(--text-basic-color)));
   --chart-toggle-hover-bg: rgba(0, 0, 0, 0.045);
 }
@@ -1116,7 +1127,8 @@ nb-card-header{
 
   /* Optional state colors (override centrally if desired) */
   --fill-warn-color: var(--color-warning-500);
-  --fill-crit-color: var(--color-danger-500);
+  /* Use the same red as the ASIC temp pill everywhere (avoid Nebular "danger" pinks). */
+  --fill-crit-color: var(--asic-temp-pill, var(--color-danger-500));
   --fill-max-color: var(--asic-temp-pill, var(--color-danger-500));
 }
 
@@ -1190,27 +1202,18 @@ nb-card-header{
   /* Units + quieter labels (suffixes, since connect, shares, host/ping/loss, etc.) */
   --unit-color: #9C9CA6;
 
-  
+
   /* Slightly darker labels/units inside filled (grey) boxes for readability */
   --unit-in-fill-color: #7E7E8A;
 
 
-/* Ensure warn/crit bar text stays readable (white) on colored fills in light theme */
-.power-bar--warn .power-bar__label,
-.power-bar--warn .power-bar__value,
-.power-bar--warn .power-bar__value .unit,
+/* Ensure crit (red) bar text stays readable (white) on colored fills in light theme */
 .power-bar--crit .power-bar__label,
 .power-bar--crit .power-bar__value,
 .power-bar--crit .power-bar__value .unit{
   color: #fff !important;
 }
 
-/* Light theme: disconnected pool warning bar should also use white text on the warning surface. */
-.pool-tile-metricbar--warn{
-  --bar-label-color: #fff;
-  --bar-value-color: #fff;
-  --unit-color: rgba(255, 255, 255, 0.85);
-}
 /* dotted end marker on light surfaces */
   --fill-marker-color: rgba(0, 0, 0, 0.2);
 
@@ -1402,11 +1405,12 @@ nb-card-header{
   background: var(--fill-warn-color, var(--color-warning-500));
 }
 
-/* In warn state (yellow), keep text readable like in crit (red): use white text. */
-.power-bar--warn .power-bar__label,
-.power-bar--warn .power-bar__value,
-.power-bar--warn .power-bar__value .unit{
+/* In crit state (red), keep text readable and strong. */
+.power-bar--crit .power-bar__label,
+.power-bar--crit .power-bar__value,
+.power-bar--crit .power-bar__value .unit{
   color: #fff;
+  font-weight: 800;
 }
 
 .power-bar--crit .power-bar__fill{
@@ -1864,6 +1868,21 @@ nb-card-header{
   top: -3px;
 }
 
+/* Warn/Crit typography for ASIC °C + chip squares:
+   - warn: yellow fill + BLACK bold text
+   - crit: ASIC red fill + WHITE bold text */
+.heat-metric-box.power-bar--warn .heat-metric-box__inner,
+.chip-square.power-bar--warn .chip-square__inner{
+  color: #000;
+  font-weight: 800;
+}
+
+.heat-metric-box.power-bar--crit .heat-metric-box__inner,
+.chip-square.power-bar--crit .chip-square__inner{
+  color: #fff;
+  font-weight: 800;
+}
+
 /* Small label above the value inside the Efficiency square (match ASIC temp label style) */
 .power-watt-box__label-top{
   font-size: 1.05rem; /* overlay label */
@@ -1974,6 +1993,6 @@ nb-card-header{
 .pool-summary-square__uptime-label{
   font-size: 10px;
   font-weight: 500;
-  color: var(--bar-label-color);
+  color: var(--unit-in-fill-color, var(--unit-color));
   line-height: 1.1;
 }

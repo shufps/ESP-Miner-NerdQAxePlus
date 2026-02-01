@@ -59,8 +59,8 @@ export const BAR_THRESHOLDS = {
  *  - crit at 95% of shutdown range
  */
 export const ASIC_TEMP_THRESHOLDS = {
-  warnRel: 0.90,
-  critRel: 0.95,
+  warnRel: 0.94,
+  critRel: 0.98,
 } as const;
 
 export type BarLimits = {
@@ -163,7 +163,7 @@ export function isBarWarn(
 }
 
 /**
- * crit: value is >= 99% of the (min..max) range.
+ * crit: value is >= 98% of the (min..max) range.
  *
  * Note: This intentionally includes `>= max` so templates can combine
  * `power-bar--crit` with `power-bar--max` when desired.
@@ -221,6 +221,42 @@ export function isBarOver(
   if (!isFinite(v) || !isFinite(mx)) return false;
   return v > mx;
 }
+
+/**
+ * Safe ratio helper for threshold logic.
+ * Returns 0 when inputs are not finite or max <= 0.
+ */
+
+/**
+ * Returns true when a value is outside the inclusive [low, high] band.
+ * Useful for "normal within band, warn when low/high" UI without additional states.
+ */
+export function isOutsideBand(value: any, low: number, high: number): boolean {
+  const v = Number(value);
+  const lo = Number(low);
+  const hi = Number(high);
+  if (!Number.isFinite(v) || !Number.isFinite(lo) || !Number.isFinite(hi)) return false;
+  return v < lo || v > hi;
+}
+
+
+/** Returns true when value >= threshold. */
+export function isAtLeast(value: any, threshold: number): boolean {
+  const v = Number(value);
+  const t = Number(threshold);
+  if (!Number.isFinite(v) || !Number.isFinite(t)) return false;
+  return v >= t;
+}
+
+/** Returns true when low <= value < high. */
+export function isBetween(value: any, low: number, high: number): boolean {
+  const v = Number(value);
+  const lo = Number(low);
+  const hi = Number(high);
+  if (!Number.isFinite(v) || !Number.isFinite(lo) || !Number.isFinite(hi)) return false;
+  return v >= lo && v < hi;
+}
+
 
 /**
  * Pool difficulty accessor that is tolerant to backend shape changes.
@@ -349,43 +385,28 @@ export function shutdownTempC(info: any, fallback: number = 70): number {
  */
 export function getAsicFrequencyBoundsFromAsic(
   info: any,
-  asic: any,
-  fallback: FreqBounds = { min: 200, max: 1000 }
+  asic: any
 ): FreqBounds {
+  // Frequency bars should start at 0. The max should be device-specific.
+  // We derive max from /asic frequencyOptions when available, otherwise fall back to the current reading.
   const raw = asic?.frequencyOptions;
 
   const nums = Array.isArray(raw)
     ? raw
-      .map((v: any) => Number(v))
-      .filter((v: number) => Number.isFinite(v) && v > 0)
+        .map((v: any) => Number(v))
+        .filter((v: number) => Number.isFinite(v) && v >= 0)
     : [];
 
   const cur = Number(info?.frequency);
-  const curOk = Number.isFinite(cur) && cur > 0;
+  const curOk = Number.isFinite(cur) && cur >= 0;
 
-  if (!nums.length) {
-    if (!curOk) return { ...fallback };
-    return {
-      min: Math.min(fallback.min, cur),
-      max: Math.max(fallback.max, cur),
-    };
-  }
+  const candidates = curOk ? nums.concat([cur]) : nums;
+  const max = candidates.length ? Math.max(...candidates) : (curOk ? cur : 1);
 
-  let min = Math.min(...nums);
-  let max = Math.max(...nums);
+  // Safety net: keep max at least 1 (toPct would otherwise collapse).
+  const safeMax = Number.isFinite(max) && max > 0 ? max : 1;
 
-  if (curOk) {
-    min = Math.min(min, cur);
-    max = Math.max(max, cur);
-  }
-
-  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
-    return curOk
-      ? { min: Math.min(fallback.min, cur), max: Math.max(fallback.max, cur) }
-      : { ...fallback };
-  }
-
-  return { min, max };
+  return { min: 0, max: safeMax };
 }
 
 // -----------------------------------------------------------------------------

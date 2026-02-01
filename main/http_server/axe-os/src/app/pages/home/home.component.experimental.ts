@@ -57,7 +57,6 @@ import { maxAsicTemp,
   isBarWarn,
   isBarCrit,
   isBarMax,
-  BAR_THRESHOLDS,
   BAR_LIMITS,
   poolDiff,
   abbrevMiddle,
@@ -69,6 +68,9 @@ import { maxAsicTemp,
 	isAsicTempWarn,
 	isAsicTempCrit,
   isBarOver,
+  isOutsideBand,
+  isAtLeast,
+  isBetween,
   formatUptime,
   normalizeHomeTileInfo,
   HomeBarDomSync
@@ -130,9 +132,27 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   public isBarCrit = isBarCrit;
   public isBarMax = isBarMax;
   public isBarOver = isBarOver;
-  public BAR_THRESHOLDS = BAR_THRESHOLDS;
   public BAR_LIMITS = BAR_LIMITS;
 
+  /**
+   * Input Voltage warn-band (yellow) should be data-driven (HOME_CFG) and centralized.
+   * We keep the template free of thresholds by routing through this method.
+   */
+  public isInputVoltageWarn(voltage: any): boolean {
+    const band = HOME_CFG.tiles.inputVoltageBand;
+    return isOutsideBand(voltage, band.low, band.high);
+  }
+
+  /** Voltage Regulator temperature bands (yellow/red) are configured in HOME_CFG. */
+  public isVrTempWarn(vrTempC: any): boolean {
+    const band = HOME_CFG.tiles.vrTempBand;
+    return isBetween(vrTempC, band.warnC, band.critC);
+  }
+
+  public isVrTempCrit(vrTempC: any): boolean {
+    const band = HOME_CFG.tiles.vrTempBand;
+    return isAtLeast(vrTempC, band.critC);
+  }
   // ASIC temperature scaling + warn/crit thresholds (used by ASIC °C + A1/A2… squares)
   public shutdownTempC = shutdownTempC;
   public isAsicTempWarn = isAsicTempWarn;
@@ -145,10 +165,9 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   public formatUptime = (totalSeconds: number): string =>
     formatUptime(totalSeconds, HOME_CFG.tiles.uptime);
 
-
   // ASIC frequency scaling (device-specific)
   private _freqBoundsCacheKey: any = null;
-  private _freqBoundsCacheVal: FreqBounds = { min: 200, max: 1000 };
+  private _freqBoundsCacheVal: FreqBounds = { min: 0, max: 1 };
 
   // Snapshot of `/asic` endpoint (same data source as SETTINGS.FREQUENCY)
   private _asicInfo: any = null;
@@ -159,7 +178,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     this._freqBoundsCacheVal = bounds;
     return bounds;
   }
-  public asicFreqMin(info: any): number { return this.asicFreqBounds(info).min; }
   public asicFreqMax(info: any): number { return this.asicFreqBounds(info).max; }
 
 
@@ -182,7 +200,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
 	 * (The template calls asicCoreVoltageMax(info) to match the label in the UI.)
 	 */
 	public asicCoreVoltageMax(info: any): number { return this.asicVoltMax(info); }
-	public asicCoreVoltageMin(info: any): number { return this.asicVoltMin(info); }
 
   public poolDiff = poolDiff;
   public abbrevMiddle = abbrevMiddle;
@@ -306,7 +323,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   public historyDrainRunning = false;
   private historyDrainer: HomeHistoryDrainer;
   public hasChipTemps: boolean = false;
-  public viewMode: 'gauge' | 'bars' = HOME_CFG.uiDefaults.viewMode;
   public isDualPool: boolean = false;
   private historyMinTimestampMs: number | null = null;
   // History drain rendering (to avoid "laggy" incremental build)
@@ -325,8 +341,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     debug: this.debugSpikeGuard,
   });
   public debugPillsLayout: boolean = false;
-  public debugMode: boolean = false;
-  private readonly debugModeKey: string = "__nerdCharts_debugMode";
   // Adaptive axis padding so lines don't stick to frame; tweak here.
   private axisPadCfg = createAxisPaddingCfg();
 
@@ -462,11 +476,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     const bodyStyle = getComputedStyle(document.body);
     const textColor = bodyStyle.getPropertyValue('--card-text-color');
     const textColorSecondary = bodyStyle.getPropertyValue('--card-text-color');
-
-    // Load persisted view mode early
-    const persistedView = this.chartStorage.loadViewMode();
-    if (persistedView) this.viewMode = persistedView;
-
     // Load optional min-history timestamp (used after debug clear to prevent immediate refill)
     try {
       const v = Number(this.chartStorage.loadMinHistoryTimestampMs());
@@ -755,26 +764,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     }
   }
 
-
-  private syncDebugModeFromStorage(): void {
-    this.debugMode = this.localStorageGet(this.debugModeKey) === "1";
-  }
-
-  public onDebugModeToggle(enabled: boolean): void {
-    const g: any = globalThis as any;
-    const nerd = g?.__nerdCharts;
-
-    if (enabled) {
-      try { nerd?.enable?.(true); } catch {}
-      try { this.localStorageSet(this.debugModeKey, "1"); } catch {}
-    } else {
-      try { nerd?.disable?.(true); } catch {}
-      try { this.localStorageRemove(this.debugModeKey); } catch {}
-    }
-
-    this.debugMode = enabled;
-  }
-
 ngOnInit() {
     // Chart.js plugins are global; register once.
     registerHomeChartPlugins();
@@ -835,7 +824,6 @@ ngOnInit() {
         }
       },
     });
-    this.syncDebugModeFromStorage();
     this.graphGuardEngine.configure({ debug: !!this.debugSpikeGuard });
     this.loadAxisPaddingOverrides();
     this.themeSubscription = this.themeService.getJsTheme().subscribe((t: any) => {
@@ -1628,96 +1616,6 @@ private updateTempScaleFromLatest(): void {
   }
 
   // Toggle only if feature exists, then persist
-  public onTempViewClick(event: Event): void {
-    // Prevent toggling when chip temps aren't available
-    if (!this.hasChipTemps) return;
-
-    // Toggle mode
-    this.viewMode = this.viewMode === 'bars' ? 'gauge' : 'bars';
-
-    // Persist to local storage
-    this.chartStorage.saveViewMode(this.viewMode);
-  }
-
-  public poolBadgeStatus(): string {
-    const stratum = this._info.stratum;
-
-    if (stratum === undefined) {
-      return "warning";
-    }
-
-    const pool = stratum.pools[0];
-
-    if (!pool.connected) {
-      return 'danger';
-    }
-
-    // Failover mode: same behavior as before
-    return stratum.usingFallback ? 'warning' : 'success';
-  }
-
-  public getPoolPercent(idx: 0 | 1): number {
-    const balance = this._info.stratum.poolBalance ?? 50;
-    return idx === 0 ? balance : 100 - balance;
-  }
-
-  public showPoolBadge(idx: 0 | 1): boolean {
-    return this.getPoolPercent(idx) > 0;
-  }
-
-  public poolBadgeLabel(): string {
-    const stratum = this._info.stratum;
-
-    if (stratum === undefined) {
-      return this.translateService.instant('HOME.DISCONNECTED');
-    }
-    const pool = stratum.pools[0];
-
-    if (!pool.connected) {
-      return this.translateService.instant('HOME.DISCONNECTED');
-    }
-    return stratum.usingFallback
-      ? this.translateService.instant('HOME.FALLBACK_POOL')
-      : this.translateService.instant('HOME.PRIMARY_POOL');
-  }
-
-  public dualPoolBadgeLabel(i: 0 | 1) {
-    const percent = this.getActiveBalance(i);
-    return `Pool ${i + 1} (${percent} %)`;
-  }
-
-  public dualPoolBadgeTooltip(i: 0 | 1) {
-    const stratum = this._info.stratum;
-    const pool = stratum.pools[i];
-    const connected = pool.connected;
-    const diffErr = pool.poolDiffErr;
-
-    if (diffErr) {
-      return this.translateService.instant('HOME.SHARE_TOO_SMALL');
-    }
-
-    if (connected) {
-      return this.translateService.instant('HOME.CONNECTED');
-    }
-
-    return this.translateService.instant('HOME.DISCONNECTED');
-  }
-
-  public dualPoolBadgeStatus(i: 0 | 1) {
-    const pool = this._info.stratum.pools[i];
-    const connected = pool.connected;
-    const diffErr = pool.poolDiffErr;
-
-    if (diffErr) {
-      return "warning";
-    }
-
-    if (connected) {
-      return "success";
-    }
-
-    return "danger";
-  }
 
   public getPoolHashrate(i: 0 | 1) {
     const balance = this.getActiveBalance(i);
@@ -1771,10 +1669,6 @@ private updateTempScaleFromLatest(): void {
     };
   }
 
-  public getPoolCardIndices(): (0 | 1 | undefined)[] {
-    return (this._info.stratum?.activePoolMode ?? 0) === 0 ? [undefined] : [0, 1];
-  }
-
   private clearChartHistoryInternal(updateChartNow: boolean): void {
     this.historyDrainer?.stop();
     this.historyDrainRunning = false;
@@ -1800,13 +1694,6 @@ private updateTempScaleFromLatest(): void {
 
   // edge case where chart data in the browser is not consistent
   // this happens when adding new charts
-  private validateOrResetHistory(): void {
-    try {
-      this.chartState.validateLengthsOrReset();
-    } catch {
-      this.chartState.clear();
-    }
-  }
 
   public rejectRate(id?: number): number {
   // Template can call this before the first info payload arrived.

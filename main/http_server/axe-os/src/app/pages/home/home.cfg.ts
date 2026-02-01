@@ -283,6 +283,24 @@ export interface HomeTilesCfg {
   uptime: UptimeFormatCfg;
   powerUsageAliases: PowerUsageAliasCfg;
   domSync: BarDomSyncCfg;
+
+  /** Visual-only thresholds for the Input Current (A) bar. */
+  inputCurrent: {
+    warnRel: number;
+    critRel: number;
+  };
+
+  /** Visual-only normal band for Input Voltage (V). */
+  inputVoltageBand: {
+    low: number;
+    high: number;
+  };
+
+  /** Voltage regulator temperature thresholds in °C (absolute). */
+  vrTempBand: {
+    warnC: number;
+    critC: number;
+  };
 }
 export interface HomeCfg {
   storage: {
@@ -488,6 +506,33 @@ export const HOME_CFG: HomeCfg = {
       lightThemeHints: ['default', 'corporate', 'light'],
       darkThemeHints: ['dark', 'cosmic'],
     },
+
+    /**
+     * Input current (A) bar rendering thresholds (visual-only).
+     *
+     * - < warnRel: normal grey fill
+     * - >= warnRel and <= critRel: grey->yellow gradient
+     * - > critRel: solid ASIC-temp-pill red with white text
+     */
+    inputCurrent: {
+      warnRel: 0.94,
+      critRel: 0.98,
+    },
+
+    /**
+     * Input voltage (V) "normal" band.
+     * Outside this band we show a grey->yellow gradient (visual-only).
+     */
+    inputVoltageBand: {
+      low: 11.5,
+      high: 12.6,
+    },
+    /** Voltage regulator temperature thresholds (°C). */
+    vrTempBand: {
+      warnC: 94,
+      critC: 115,
+    },
+
   },
 
   axisPadding: {
