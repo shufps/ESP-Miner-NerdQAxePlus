@@ -80,8 +80,8 @@ NerdOctaxeGamma::NerdOctaxeGamma() : NerdQaxePlus2() {
         m_numPhases = 4;
         m_imax = 180;        // 33.2kΩ → 180A max (45A per phase with 4 phases)
         m_ifault = 160.0;
-        m_maxPin = 200.0;
-        m_minPin = 100.0;
+        m_maxPin = 250.0;
+        m_minPin = 50.0;
         m_minCurrentA = 0.0f;
         m_maxCurrentA = 20.0f;
         // m_asicFrequencies and m_absMaxAsicFrequency inherited from parent (500-600 MHz, max 800)
