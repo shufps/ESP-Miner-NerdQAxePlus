@@ -95,9 +95,9 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
           },
           label: (x: any) => {
             if (x?.dataset?.yAxisID === 'y_temp') {
-              return `${x.dataset.label}: ${Number(x.raw).toFixed(1)} °C`;
+              return `\u00A0${x.dataset.label}: ${Number(x.raw).toFixed(2)} °C`;
             }
-            return `${x.dataset.label}: ${deps.formatHashrate(x.raw)}`;
+            return `\u00A0${x.dataset.label}: ${deps.formatHashrate(x.raw)}`;
           },
         },
       },
@@ -173,10 +173,37 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
       },
       y_temp: {
         position: 'right',
+        // Force the right temperature axis to show only whole-degree tick labels (50, 51, 52...),
+        // while allowing the underlying data and pills to remain fractional.
+        afterBuildTicks: (scale: any) => {
+          const maxTicks = Math.max(2, Math.round(Number(deps.maxTicksLimit || 7)));
+          const min = Number(scale?.min);
+          const max = Number(scale?.max);
+          if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+
+          const minI = Math.ceil(min);
+          const maxI = Math.floor(max);
+          if (maxI < minI) return;
+
+          const values: number[] = [];
+          for (let v = minI; v <= maxI; v += 1) values.push(v);
+
+          // If there are too many whole-degree ticks, downsample but keep the end tick.
+          if (values.length > maxTicks) {
+            const step = Math.ceil((values.length - 1) / (maxTicks - 1));
+            const reduced: number[] = [];
+            for (let i = 0; i < values.length; i += step) reduced.push(values[i]);
+            if (reduced[reduced.length - 1] !== values[values.length - 1]) reduced.push(values[values.length - 1]);
+            scale.ticks = reduced.map((v) => ({ value: v }));
+            return;
+          }
+
+          scale.ticks = values.map((v) => ({ value: v }));
+        },
         ticks: {
           // color set by theme helper
           maxTicksLimit: deps.maxTicksLimit,
-          callback: (value: number) => `${Math.round(Number(value))} °C`,
+          callback: (value: number) => `${Number(value)} °C`,
         },
         grid: {
           color: HOME_CFG.colors.chartGridColor,
