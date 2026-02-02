@@ -223,6 +223,8 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   private hashrateYAxisMaxTicks: number = HOME_CFG.yAxis.hashrateMaxTicksDefault;
   private hashrateYAxisMinStepThs: number = HOME_CFG.yAxis.minTickSteps.hashrateMinStepThs;
   private tempYAxisMinStepC: number = HOME_CFG.yAxis.minTickSteps.tempMinStepC;
+  private lastTempAxisMin: number | null = null;
+  private lastTempAxisMax: number | null = null;
   // Chunk size for the history drainer (0 means no limit)
   private chunkSizeDrainer: number = HOME_CFG.historyDrain.chunkSize;
   // --- Rendering smoothing (visual only)
@@ -1558,7 +1560,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     return this.chartStorage.loadLastTimestamp();
   }
 
-private updateTempScaleFromLatest(): void {
+  private updateTempScaleFromLatest(): void {
   // Keep temp axis zoomed: latest temps +/- latestPadC (makes fluctuations visible).
   const lastV = findLastFinite(this.dataVregTemp as any[]);
   const lastA = findLastFinite(this.dataAsicTemp as any[]);
@@ -1571,12 +1573,30 @@ private updateTempScaleFromLatest(): void {
   const maxLast = Math.max(...vals);
 
   const pad = HOME_CFG.tempScale.latestPadC;
-  const min = Math.max(0, Math.floor(minLast - pad));
-  const max = Math.ceil(maxLast + pad);
+  const hysteresis = Math.max(0, Number(HOME_CFG.tempScale.hysteresisC ?? 0));
+  const targetMin = Math.max(0, Math.floor(minLast - pad));
+  const targetMax = Math.ceil(maxLast + pad);
+
+  let min = targetMin;
+  let max = targetMax;
+
+  // If we already have a stable axis, only update when the change is meaningful.
+  if (Number.isFinite(this.lastTempAxisMin as any) && Number.isFinite(this.lastTempAxisMax as any)) {
+    const prevMin = Number(this.lastTempAxisMin);
+    const prevMax = Number(this.lastTempAxisMax);
+    const minDiff = Math.abs(targetMin - prevMin);
+    const maxDiff = Math.abs(targetMax - prevMax);
+    if (minDiff < hysteresis && maxDiff < hysteresis) {
+      min = prevMin;
+      max = prevMax;
+    }
+  }
 
   if (this.chartOptions?.scales?.y_temp) {
     this.chartOptions.scales.y_temp.min = min;
     this.chartOptions.scales.y_temp.max = max;
+    this.lastTempAxisMin = min;
+    this.lastTempAxisMax = max;
   }
 }
 

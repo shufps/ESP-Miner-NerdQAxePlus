@@ -1,4 +1,5 @@
 import { median } from './math';
+import { HOME_CFG } from '../home.cfg';
 
 export interface GraphGuardConfig {
   confirmSamples: number;
@@ -77,8 +78,10 @@ export class GraphGuard {
   apply(key: string, raw: any, relThreshold: number, liveRef?: number, confirmSamplesOverride?: number): number {
     const isHash = key.startsWith('hashrate_');
     const isTemp = key.toLowerCase().includes('temp');
-    const minValid = (isHash || isTemp) ? 1 : -Infinity;
-    const maxValid = isTemp ? 120 : Infinity;
+    const minValid = isHash
+      ? HOME_CFG.sanitize.hashrateMinHs
+      : (isTemp ? HOME_CFG.sanitize.tempMinC : -Infinity);
+    const maxValid = isTemp ? HOME_CFG.sanitize.tempMaxC : Infinity;
 
     const current = Number(raw);
     const valid = Number.isFinite(current) && current > minValid && current < maxValid;
