@@ -1609,8 +1609,6 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     this.chartData.datasets[4].data = this.dataVregTemp;
     this.chartData.datasets[5].data = this.dataAsicTemp;
 
-    this.updateTempScaleFromLatest();
-
     // Update hashrate pill display value from live pool sum.
     if (this.chartOptions?.plugins?.valuePills) {
       this.chartOptions.plugins.valuePills.hashrateDisplayValue = this.getPoolHashrateHsSum();
@@ -1621,6 +1619,8 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     }
 
     this.updateAxesScaleAdaptive();
+    // Ensure temp axis reflects the latest values (overrides adaptive temp bounds).
+    this.updateTempScaleFromLatest();
     this.applyHashrate1mSmoothing();
 
     this.chart.update();
