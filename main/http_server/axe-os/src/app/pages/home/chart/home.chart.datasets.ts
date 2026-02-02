@@ -88,6 +88,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
   {
     type: 'line',
     label: t('HOME.HASHRATE_1M'),
+    tooltipOrderKey: 'hr_1m',
     data: series.hr1m,
     yAxisID: 'y',
     fill: 'start',
@@ -102,6 +103,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
   {
     type: 'line',
     label: t('HOME.HASHRATE_10M'),
+    tooltipOrderKey: 'hr_10m',
     data: series.hr10m,
     yAxisID: 'y',
     fill: false,
@@ -117,6 +119,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
   {
     type: 'line',
     label: t('HOME.HASHRATE_1H'),
+    tooltipOrderKey: 'hr_1h',
     data: series.hr1h,
     yAxisID: 'y',
     fill: false,
@@ -131,6 +134,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
   {
     type: 'line',
     label: t('HOME.HASHRATE_1D'),
+    tooltipOrderKey: 'hr_1d',
     data: series.hr1d,
     hidden: true,
     excludeFromLegend: true,
@@ -147,6 +151,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
   {
     type: 'line',
     label: t('PERFORMANCE.VR_TEMP_LEGEND'),
+    tooltipOrderKey: 'temp_vreg',
     data: series.vregTemp,
     yAxisID: 'y_temp',
     fill: true,
@@ -160,6 +165,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
   {
     type: 'line',
     label: t('PERFORMANCE.ASIC_TEMP_LEGEND'),
+    tooltipOrderKey: 'temp_asic',
     data: series.asicTemp,
     yAxisID: 'y_temp',
     fill: true,

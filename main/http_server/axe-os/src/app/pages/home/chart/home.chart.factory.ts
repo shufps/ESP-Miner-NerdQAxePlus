@@ -28,6 +28,18 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
   const chartOptions: any = {
     animation: false,
     maintainAspectRatio: false,
+    // Make tooltips usable without having to hit points exactly.
+    // Hovering anywhere in the plot area will snap to the nearest X index
+    // and show all dataset values for that timestamp.
+    interaction: {
+      mode: 'index',
+      intersect: false,
+      axis: 'x',
+    },
+    hover: {
+      mode: 'index',
+      intersect: false,
+    },
     plugins: {
       legend: {
         labels: {
@@ -53,6 +65,26 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
         },
       },
       tooltip: {
+        mode: 'index',
+        intersect: false,
+        // Stable tooltip ordering independent of dataset labels.
+        itemSort: (a: any, b: any) => {
+          const ORDER: Record<string, number> = {
+            hr_1m: 0,
+            hr_10m: 1,
+            hr_1h: 2,
+            hr_1d: 3,
+            temp_vreg: 4,
+            temp_asic: 5,
+          };
+
+          const ra = ORDER[a?.dataset?.tooltipOrderKey] ?? 999;
+          const rb = ORDER[b?.dataset?.tooltipOrderKey] ?? 999;
+
+          if (ra !== rb) return ra - rb;
+          // Fallback to datasetIndex for stable ordering if keys are missing.
+          return (a?.datasetIndex ?? 0) - (b?.datasetIndex ?? 0);
+        },
         callbacks: {
           title: (context: any) => {
             const date = new Date(context[0].parsed.x);
