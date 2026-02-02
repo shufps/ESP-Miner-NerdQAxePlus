@@ -206,33 +206,20 @@ export function computeAxisBounds(input: AxisScaleInputs): ComputedAxisBounds {
 
   // Temperature axis
   if (tm.mn !== undefined && tm.mx !== undefined) {
-    // Temps cannot be negative; clamp min to 0 to avoid whitespace artifacts.
-    const targetMin = Math.max(0, tm.mn - 2);
-    const targetMax = tm.mx + 3;
+    // We intentionally keep temperature bounds *strict* so the pills match the
+    // intended padding: bottom <= -2°C and top <= +3°C relative to data.
+    //
+    // Previously we aligned to a "nice" tick step (e.g. 5°C) via floor/ceil.
+    // That can push the max well beyond +3°C (e.g. 61°C -> 65°C), which makes
+    // the top padding look wrong.
+    const targetMin = Math.max(0, tm.mn - 1);
+    const targetMax = tm.mx + 2;
 
     const maxTicks = Math.max(2, Math.round(Number(input.maxTicks || 7)));
-    const rangeC = Math.max(0, targetMax - targetMin);
-    const desired = rangeC / Math.max(1, maxTicks - 1);
-
-    const niceStepsC = [0.5, 1, 2, 5, 10];
-    let stepC = niceStepsC[niceStepsC.length - 1];
-    for (const s of niceStepsC) {
-      if (s >= desired) {
-        stepC = s;
-        break;
-      }
-    }
-    if (stepC < input.tempMinStepC) stepC = input.tempMinStepC;
-
-    let minAligned = Math.floor(targetMin / stepC) * stepC;
-    const maxAligned = Math.ceil(targetMax / stepC) * stepC;
-
-    minAligned = Math.max(0, minAligned);
 
     out.y_temp = {
-      min: minAligned,
-      max: maxAligned,
-      stepSize: stepC,
+      min: targetMin,
+      max: targetMax,
       maxTicksLimit: maxTicks,
     };
   }
