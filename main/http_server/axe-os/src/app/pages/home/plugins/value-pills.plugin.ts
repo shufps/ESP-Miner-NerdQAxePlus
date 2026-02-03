@@ -170,10 +170,12 @@ function valuePillsComputePills(chart: any, opts: ValuePillsPluginOptions, measu
     p.targetY = scale.getPixelForValue(p.value);
     p.y = p.targetY;
 
-    // Temperature pills: allow only a small, scale-coupled vertical offset (+3°C / -2°C)
+    // Temperature pills: allow only a small, scale-coupled vertical offset (+up / -down °C)
     if (p.axisId === 'y_temp') {
-      const yUp = scale.getPixelForValue(p.value + 3);
-      const yDown = scale.getPixelForValue(p.value - 2);
+      const upC = Number(HOME_CFG.tempScale.axisMaxPadC ?? 2);
+      const downC = Number(HOME_CFG.tempScale.axisMinPadC ?? 1);
+      const yUp = scale.getPixelForValue(p.value + upC);
+      const yDown = scale.getPixelForValue(p.value - downC);
       p.yUpLimit = Math.min(yUp, yDown);
       p.yDownLimit = Math.max(yUp, yDown);
     }

@@ -1046,6 +1046,30 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       liveRefHs: this.lastLivePoolSumHs,
     });
 
+    // Stabilize temp axis: keep full 1h window visible, but avoid jitter by only
+    // expanding bounds when values push outside the current range by >= hysteresis.
+    if (bounds.y_temp) {
+      const hysteresis = Math.max(0, Number(HOME_CFG.tempScale.hysteresisC ?? 0));
+      let min = bounds.y_temp.min;
+      let max = bounds.y_temp.max;
+
+      if (Number.isFinite(this.lastTempAxisMin as any) && Number.isFinite(this.lastTempAxisMax as any)) {
+        const prevMin = Number(this.lastTempAxisMin);
+        const prevMax = Number(this.lastTempAxisMax);
+
+        if (min < prevMin - hysteresis) min = min;
+        else min = prevMin;
+
+        if (max > prevMax + hysteresis) max = max;
+        else max = prevMax;
+      }
+
+      bounds.y_temp.min = min;
+      bounds.y_temp.max = max;
+      this.lastTempAxisMin = min;
+      this.lastTempAxisMax = max;
+    }
+
     applyAxisBoundsToChartOptions(this.chartOptions, bounds);
   }
 
@@ -1332,8 +1356,11 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       const liveOkNow = Number.isFinite(livePoolSum) && livePoolSum > 0;
       const stageNow = this.warmupMachine.getStage();
       const historyHr1m = Number(entry.hashrate_1m);
+      const tempMinValidC = Number(HOME_CFG.warmup.tempMinValidC ?? 10);
+      const vregLow = !Number.isFinite(vregRaw) || vregRaw <= tempMinValidC;
+      const asicLow = !Number.isFinite(asicRaw) || asicRaw <= tempMinValidC;
       const restartMarker = (!liveOkNow) && (
-        (!Number.isFinite(vregRaw) || !Number.isFinite(asicRaw)) || (Number.isFinite(historyHr1m) && historyHr1m <= 0)
+        vregLow || asicLow || (Number.isFinite(historyHr1m) && historyHr1m <= 0)
       );
 
       if (stageNow === 'READY' && restartMarker) {
@@ -1560,46 +1587,6 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     return this.chartStorage.loadLastTimestamp();
   }
 
-  private updateTempScaleFromLatest(): void {
-  // Keep temp axis zoomed: latest temps +/- latestPadC (makes fluctuations visible).
-  const lastV = findLastFinite(this.dataVregTemp as any[]);
-  const lastA = findLastFinite(this.dataAsicTemp as any[]);
-  if (lastV == null && lastA == null) return;
-
-  const vals = [lastV, lastA].filter(v => v != null && Number.isFinite(Number(v))) as number[];
-  if (!vals.length) return;
-
-  const minLast = Math.min(...vals);
-  const maxLast = Math.max(...vals);
-
-  const pad = HOME_CFG.tempScale.latestPadC;
-  const hysteresis = Math.max(0, Number(HOME_CFG.tempScale.hysteresisC ?? 0));
-  const targetMin = Math.max(0, Math.floor(minLast - pad));
-  const targetMax = Math.ceil(maxLast + pad);
-
-  let min = targetMin;
-  let max = targetMax;
-
-  // If we already have a stable axis, only update when the change is meaningful.
-  if (Number.isFinite(this.lastTempAxisMin as any) && Number.isFinite(this.lastTempAxisMax as any)) {
-    const prevMin = Number(this.lastTempAxisMin);
-    const prevMax = Number(this.lastTempAxisMax);
-    const minDiff = Math.abs(targetMin - prevMin);
-    const maxDiff = Math.abs(targetMax - prevMax);
-    if (minDiff < hysteresis && maxDiff < hysteresis) {
-      min = prevMin;
-      max = prevMax;
-    }
-  }
-
-  if (this.chartOptions?.scales?.y_temp) {
-    this.chartOptions.scales.y_temp.min = min;
-    this.chartOptions.scales.y_temp.max = max;
-    this.lastTempAxisMin = min;
-    this.lastTempAxisMax = max;
-  }
-}
-
   private updateChart() {
     this.chartData.labels = this.dataLabel;
     this.chartData.datasets[0].data = this.dataData1m;
@@ -1619,8 +1606,6 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     }
 
     this.updateAxesScaleAdaptive();
-    // Ensure temp axis reflects the latest values (overrides adaptive temp bounds).
-    this.updateTempScaleFromLatest();
     this.applyHashrate1mSmoothing();
 
     this.chart.update();
