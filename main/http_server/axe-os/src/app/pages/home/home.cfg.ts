@@ -292,6 +292,9 @@ export interface HomeTilesCfg {
 
   /** Visual-only thresholds for the Input Current (A) bar. */
   inputCurrent: {
+    lowMaxAThreshold?: number;
+    lowWarnRel?: number;
+    lowCritRel?: number;
     warnRel: number;
     critRel: number;
   };
@@ -521,8 +524,14 @@ export const HOME_CFG: HomeCfg = {
      * - > critRel: solid ASIC-temp-pill red with white text
      */
     inputCurrent: {
-      warnRel: 0.94,
-      critRel: 0.98,
+      /** If maxCurrentA is below this, use the "low" warn/crit ratios. */
+      lowMaxAThreshold: 8,
+      /** Warn ratio for devices below lowMaxAThreshold (e.g. <=8A). */
+      lowWarnRel: 0.98,
+      /** Crit ratio for devices below lowMaxAThreshold (e.g. <=8A). */
+      lowCritRel: 0.99,
+      warnRel: 0.96,
+      critRel: 0.99,
     },
 
     /**

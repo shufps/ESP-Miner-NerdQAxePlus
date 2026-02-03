@@ -384,8 +384,8 @@
 
                     <!-- Input current bar -->
                     <div class="power-bar" role="img"
-                         [class.power-bar--warn]="isBarWarn(info.currentA, info.minCurrentA ?? 0, info.maxCurrentA ?? 6)"
-                         [class.power-bar--crit]="isBarCrit(info.currentA, info.minCurrentA ?? 0, info.maxCurrentA ?? 6)"
+                         [class.power-bar--warn]="isInputCurrentWarn(info.currentA, info.minCurrentA ?? 0, info.maxCurrentA ?? 6)"
+                         [class.power-bar--crit]="isInputCurrentCrit(info.currentA, info.minCurrentA ?? 0, info.maxCurrentA ?? 6)"
                          [class.power-bar--max]="isBarMax(info.currentA, info.maxCurrentA ?? 6)"
                          [attr.aria-label]="('PERFORMANCE.INPUT_CURRENT' | translate) + ': ' + (info.currentA | number: '1.2-2') + ' A'">
                       <div class="power-bar__fill"

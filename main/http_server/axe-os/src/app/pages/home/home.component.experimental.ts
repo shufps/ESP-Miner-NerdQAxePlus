@@ -143,6 +143,27 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     return isOutsideBand(voltage, band.low, band.high);
   }
 
+  /**
+   * Input current warning thresholds depend on device max current.
+   * - For devices < lowMaxAThreshold: warn/crit at 98% / 99%
+   * - For devices >= lowMaxAThreshold: use default warn/crit
+   */
+  public isInputCurrentWarn(currentA: any, minA: any, maxA: any): boolean {
+    const cfg = HOME_CFG.tiles.inputCurrent;
+    const max = Number(maxA);
+    const useLow = Number.isFinite(max) && max < Number(cfg.lowMaxAThreshold ?? 8);
+    const warnRel = useLow ? Number(cfg.lowWarnRel ?? 0.98) : Number(cfg.warnRel ?? 0.94);
+    return isBarWarn(currentA, minA, maxA, warnRel);
+  }
+
+  public isInputCurrentCrit(currentA: any, minA: any, maxA: any): boolean {
+    const cfg = HOME_CFG.tiles.inputCurrent;
+    const max = Number(maxA);
+    const useLow = Number.isFinite(max) && max < Number(cfg.lowMaxAThreshold ?? 8);
+    const critRel = useLow ? Number(cfg.lowCritRel ?? 0.99) : Number(cfg.critRel ?? 0.98);
+    return isBarCrit(currentA, minA, maxA, critRel);
+  }
+
   /** Voltage Regulator temperature bands (yellow/red) are configured in HOME_CFG. */
   public isVrTempWarn(vrTempC: any): boolean {
     const band = HOME_CFG.tiles.vrTempBand;
