@@ -398,8 +398,8 @@
 
                     <!-- Input voltage bar -->
                     <div class="power-bar" role="img"
-                         [class.power-bar--warn]="isBarWarn(info.voltage, info.minVoltage, info.maxVoltage)"
-                         [class.power-bar--crit]="isBarCrit(info.voltage, info.minVoltage, info.maxVoltage)"
+                         [class.power-bar--warn]="isInputVoltageWarn(info.voltage)"
+                         [class.power-bar--crit]="false"
                          [class.power-bar--max]="isBarMax(info.voltage, info.maxVoltage)"
                          [attr.aria-label]="('PERFORMANCE.INPUT_VOLTAGE' | translate) + ': ' + (info.voltage | number: '1.1-1') + ' V'">
                       <div class="power-bar__fill"
@@ -528,9 +528,9 @@
                   <div class="heat-bars">
                     <!-- VR temp bar -->
                     <div class="power-bar" *ngIf="info.vrTemp > 0" role="img" data-bar="vr-temp"
-                         [class.power-bar--warn]="isBarWarn(info.vrTemp, BAR_LIMITS.vrTemp.min, BAR_LIMITS.vrTemp.max, BAR_LIMITS.vrTemp.warnRel)"
-                         [class.power-bar--crit]="isBarCrit(info.vrTemp, BAR_LIMITS.vrTemp.min, BAR_LIMITS.vrTemp.max, BAR_LIMITS.vrTemp.critRel)"
-                         [class.power-bar--max]="isBarMax(info.vrTemp, BAR_LIMITS.vrTemp.max)"
+                         [class.power-bar--warn]="isVrTempWarn(info.vrTemp)"
+                         [class.power-bar--crit]="isVrTempCrit(info.vrTemp)"
+                         [class.power-bar--max]="isVrTempCrit(info.vrTemp)"
                          [attr.aria-label]="('PERFORMANCE.VR_TEMP' | translate) + ': ' + (info.vrTemp | number: '1.1-1') + ' °C'">
                       <div class="power-bar__fill"
                            [style.width.%]="toPct(info.vrTemp, BAR_LIMITS.vrTemp.min, BAR_LIMITS.vrTemp.max)"></div>
