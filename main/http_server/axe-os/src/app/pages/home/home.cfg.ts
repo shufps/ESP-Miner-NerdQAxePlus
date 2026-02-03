@@ -196,6 +196,12 @@ export interface TempScaleCfg {
    * This creates a small deadband so the chart doesn't "jump" on tiny changes.
    */
   hysteresisC?: number;
+  /**
+   * Padding applied to temperature axis bounds (adaptive scaling).
+   * Example: axisMinPadC=1, axisMaxPadC=2 => min = mn - 1, max = mx + 2.
+   */
+  axisMinPadC?: number;
+  axisMaxPadC?: number;
 }
 
 
@@ -638,6 +644,9 @@ export const HOME_CFG: HomeCfg = {
     latestPadC: 3,
     // Keep temp axis stable unless it needs to move by >= 1°C.
     hysteresisC: 1,
+    // Adaptive temp axis padding (bottom / top).
+    axisMinPadC: 1,
+    axisMaxPadC: 2,
   },
 
   warmup: {
