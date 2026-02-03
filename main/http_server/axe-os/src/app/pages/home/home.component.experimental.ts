@@ -32,9 +32,10 @@ import {
   GraphGuard,
   computeXWindow,
   computeAxisBounds,
+  computeHashrateBoundsSoftInclude,
   applyAxisBoundsToChartOptions,
   HomeWarmupMachine,
-  } from './chart';
+} from './chart';
 
 import { NbThemeService } from '@nebular/theme';
 import { NbTrigger } from '@nebular/theme';
@@ -1043,16 +1044,26 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     // but we can't compute Y-bounds without data.
     if (!labels.length) return;
 
-    const hr10m = this.chart.isDatasetVisible(1) ? this.dataData10m : null;
-    const hr1h = this.chart.isDatasetVisible(2) ? this.dataData1h : null;
-    const hr1d = this.chart.isDatasetVisible(3) ? this.dataData1d : null;
+    // Keep hashrate axis scaling anchored to a single series.
+    // Prefer 1m if visible; otherwise fall back to the first visible long-term series.
+    let baseHash = this.dataData1m;
+    if (!this.chart.isDatasetVisible(0)) {
+      if (this.chart.isDatasetVisible(1)) baseHash = this.dataData10m;
+      else if (this.chart.isDatasetVisible(2)) baseHash = this.dataData1h;
+      else if (this.chart.isDatasetVisible(3)) baseHash = this.dataData1d;
+    }
+
+    // Other hashrate series should render within the existing scale without shifting the plot.
+    const hr10m = null;
+    const hr1h = null;
+    const hr1d = null;
     const temp4 = this.chart.isDatasetVisible(4);
     const temp5 = this.chart.isDatasetVisible(5);
     const vreg = temp4 ? this.dataVregTemp : (!temp4 && !temp5 ? this.dataVregTemp : null);
     const asic = temp5 ? this.dataAsicTemp : (!temp4 && !temp5 ? this.dataAsicTemp : null);
     const bounds = computeAxisBounds({
       labels,
-      hr1m: this.dataData1m,
+      hr1m: baseHash,
       hr10m,
       hr1h,
       hr1d,
@@ -1066,6 +1077,30 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       tempMinStepC: this.tempYAxisMinStepC,
       liveRefHs: this.lastLivePoolSumHs,
     });
+
+    // Soft-include other visible hashrate series without letting them re-scale the chart.
+    if (bounds.y && labels.length) {
+      const otherSeries: Array<number[] | null | undefined> = [];
+      if (this.chart.isDatasetVisible(0) && baseHash !== this.dataData1m) otherSeries.push(this.dataData1m);
+      if (this.chart.isDatasetVisible(1) && baseHash !== this.dataData10m) otherSeries.push(this.dataData10m);
+      if (this.chart.isDatasetVisible(2) && baseHash !== this.dataData1h) otherSeries.push(this.dataData1h);
+      if (this.chart.isDatasetVisible(3) && baseHash !== this.dataData1d) otherSeries.push(this.dataData1d);
+
+      const softY = computeHashrateBoundsSoftInclude({
+        labels,
+        xMinMs,
+        xMaxMs,
+        axisPadCfg: this.axisPadCfg,
+        maxTicks: this.hashrateYAxisMaxTicks,
+        hashrateMinStepThs: this.hashrateYAxisMinStepThs,
+        baseSeries: baseHash,
+        otherSeries,
+        liveRefHs: this.lastLivePoolSumHs,
+        softIncludeRel: HOME_CFG.yAxis.hashrateSoftIncludeRel,
+      });
+
+      if (softY) bounds.y = softY;
+    }
 
     // Stabilize temp axis: keep full 1h window visible, but avoid jitter by only
     // expanding bounds when values push outside the current range by >= hysteresis.

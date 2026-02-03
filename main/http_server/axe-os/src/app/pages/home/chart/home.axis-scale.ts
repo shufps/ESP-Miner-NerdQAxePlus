@@ -54,6 +54,19 @@ export interface ComputedAxisBounds {
   };
 }
 
+export interface HashrateSoftIncludeInputs {
+  labels: number[];
+  xMinMs: number;
+  xMaxMs: number;
+  axisPadCfg: AxisPadCfg;
+  maxTicks: number;
+  hashrateMinStepThs: number;
+  baseSeries: number[];
+  otherSeries?: Array<number[] | null | undefined>;
+  liveRefHs?: number;
+  softIncludeRel?: number;
+}
+
 /**
  * Compute a width X window.
  *
@@ -228,6 +241,65 @@ export function computeAxisBounds(input: AxisScaleInputs): ComputedAxisBounds {
   }
 
   return out;
+}
+
+/**
+ * Compute hashrate axis bounds based on a single base series and optionally
+ * soft-include other series without rescaling the entire chart.
+ */
+export function computeHashrateBoundsSoftInclude(input: HashrateSoftIncludeInputs): ComputedAxisBounds['y'] | undefined {
+  const { labels, xMinMs, xMaxMs } = input;
+  const baseBounds = computeAxisBounds({
+    labels,
+    hr1m: input.baseSeries,
+    hr10m: null,
+    hr1h: null,
+    hr1d: null,
+    vregTemp: null,
+    asicTemp: null,
+    xMinMs,
+    xMaxMs,
+    axisPadCfg: input.axisPadCfg,
+    maxTicks: input.maxTicks,
+    hashrateMinStepThs: input.hashrateMinStepThs,
+    tempMinStepC: 0,
+    liveRefHs: input.liveRefHs,
+  }).y;
+
+  if (!baseBounds) return undefined;
+
+  const softRel = Math.max(0, Number(input.softIncludeRel ?? 0));
+  if (!softRel || !input.otherSeries?.length || !labels.length) return baseBounds;
+
+  const range = Math.max(1, baseBounds.max - baseBounds.min);
+  const maxExpand = range * softRel;
+
+  const { from, to } = indicesForWindow(labels, xMinMs, xMaxMs);
+
+  let otherMin = Infinity;
+  let otherMax = -Infinity;
+  for (const arr of input.otherSeries) {
+    if (!arr || !arr.length) continue;
+    const end = Math.min(arr.length, to);
+    for (let i = from; i < end; i++) {
+      const v = arr[i];
+      if (!isFiniteNumber(v)) continue;
+      if (v < otherMin) otherMin = v;
+      if (v > otherMax) otherMax = v;
+    }
+  }
+
+  let min = baseBounds.min;
+  let max = baseBounds.max;
+
+  if (otherMin !== Infinity) {
+    min = Math.max(baseBounds.min - maxExpand, Math.min(baseBounds.min, otherMin));
+  }
+  if (otherMax !== -Infinity) {
+    max = Math.min(baseBounds.max + maxExpand, Math.max(baseBounds.max, otherMax));
+  }
+
+  return { ...baseBounds, min, max };
 }
 
 export function applyAxisBoundsToChartOptions(chartOptions: any, bounds: ComputedAxisBounds): void {

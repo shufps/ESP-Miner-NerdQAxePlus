@@ -353,6 +353,8 @@ export interface HomeCfg {
     hashrateMaxTicksDefault: number;
     hashrateTickCountClamp: TickCountClamp;
     minTickSteps: MinTickSteps;
+    /** Max relative expansion to keep other hashrate series visible without rescaling. */
+    hashrateSoftIncludeRel: number;
   };
   graphGuard: GraphGuardTuning;
   historyDrain: HistoryDrainCfg;
@@ -595,6 +597,7 @@ export const HOME_CFG: HomeCfg = {
       hashrateMinStepThs: 0.005,
       tempMinStepC: 2,
     },
+    hashrateSoftIncludeRel: 0.05,
   },
 
   graphGuard: {
