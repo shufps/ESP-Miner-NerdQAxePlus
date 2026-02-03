@@ -201,7 +201,8 @@ The defaults are logically grouped in `HOME_CFG`. Here is a practical overview (
 - Used in: `plugins/value-pills.plugin.ts`
 
 **Axis / “latest” views**
-- `HOME_CFG.tempScale.latestPadC`
+- `HOME_CFG.tempScale.axisMinPadC`
+- `HOME_CFG.tempScale.axisMaxPadC`
 - Temperature axis around +/- X°C around the latest values (previously hardcoded `3`)
 - Used in: `home.component.experimental.ts` (latest temp min/max)
 
@@ -230,7 +231,7 @@ The defaults are logically grouped in `HOME_CFG`. Here is a practical overview (
 
 **Temp scale (“latest” zoom)**
 The `latest` view deliberately uses a fixed band around the latest measurement value to keep small changes visible.
-The band can be adjusted via `HOME_CFG.tempScale.latestPadC`.
+The band can be adjusted via `HOME_CFG.tempScale.axisMinPadC` / `HOME_CFG.tempScale.axisMaxPadC`.
 
 **Warmup / Restart gating**
 These knobs control when specific series are allowed to appear after a miner restart (to avoid “half-valid” ramps and visual chaos).

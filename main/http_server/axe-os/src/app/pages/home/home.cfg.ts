@@ -187,11 +187,6 @@ export interface Hashrate1mSmoothingCfg {
  */
 export interface TempScaleCfg {
   /**
-   * Pads min/max around the latest window by +/- this many °C.
-   * (used when you want a stable, readable temp scale)
-   */
-  latestPadC: number;
-  /**
    * Minimum delta (°C) required before we update the temp axis bounds.
    * This creates a small deadband so the chart doesn't "jump" on tiny changes.
    */
@@ -640,8 +635,6 @@ export const HOME_CFG: HomeCfg = {
   },
 
   tempScale: {
-    // Previously hardcoded as +/- 3°C around latest min/max.
-    latestPadC: 3,
     // Keep temp axis stable unless it needs to move by >= 1°C.
     hysteresisC: 1,
     // Adaptive temp axis padding (bottom / top).
