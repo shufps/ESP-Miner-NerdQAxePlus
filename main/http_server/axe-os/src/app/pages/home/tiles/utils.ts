@@ -38,6 +38,55 @@ export type BarDomSyncCfg = {
 
 export type ValueUnit = { value: string; unit: string };
 
+export function parseCssColorToRgb(input: string): { r: number; g: number; b: number } | null {
+  const s = (input || '').trim();
+  if (!s) return null;
+
+  const m = s.match(/^rgba?\((\s*\d+\s*),\s*(\d+\s*),\s*(\d+\s*)(?:,\s*([\d.]+)\s*)?\)$/i);
+  if (m) {
+    const r = Number(m[1]);
+    const g = Number(m[2]);
+    const b = Number(m[3]);
+    if ([r, g, b].every((v) => Number.isFinite(v))) {
+      return { r: max(0, min(255, r)), g: max(0, min(255, g)), b: max(0, min(255, b)) };
+    }
+    return null;
+  }
+
+  const h = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (h) {
+    const hex = h[1];
+    if (hex.length == 3) {
+      const r = int(hex[0] + hex[0], 16);
+      const g = int(hex[1] + hex[1], 16);
+      const b = int(hex[2] + hex[2], 16);
+      return { r, g, b };
+    }
+    const r = int(hex.slice(0, 2), 16);
+    const g = int(hex.slice(2, 4), 16);
+    const b = int(hex.slice(4, 6), 16);
+    return { r, g, b };
+  }
+
+  return null;
+
+  function int(x: string, base: number): number {
+    return parseInt(x, base);
+  }
+  function min(a: number, b: number): number {
+    return a < b ? a : b;
+  }
+  function max(a: number, b: number): number {
+    return a > b ? a : b;
+  }
+}
+
+export function hexToRgba(input: string, alpha: number): string {
+  const rgb = parseCssColorToRgb(input);
+  if (!rgb) return input;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
 /**
  * Centralized bar threshold defaults.
  *
@@ -754,55 +803,12 @@ export class HomeBarDomSync {
     try {
       const css = getComputedStyle(document.body);
       const c = (css.getPropertyValue('--text-basic-color') || css.color || '').trim();
-      const rgb = this.parseCssColorToRgb(c);
+      const rgb = parseCssColorToRgb(c);
       if (!rgb) return false;
       const lum = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
       return lum < 0.5;
     } catch {
       return false;
-    }
-  }
-
-  private parseCssColorToRgb(input: string): { r: number; g: number; b: number } | null {
-    const s = (input || '').trim();
-    if (!s) return null;
-
-    const m = s.match(/^rgba?\((\s*\d+\s*),\s*(\d+\s*),\s*(\d+\s*)(?:,\s*([\d.]+)\s*)?\)$/i);
-    if (m) {
-      const r = Number(m[1]);
-      const g = Number(m[2]);
-      const b = Number(m[3]);
-      if ([r, g, b].every((v) => Number.isFinite(v))) {
-        return { r: max(0, min(255, r)), g: max(0, min(255, g)), b: max(0, min(255, b)) };
-      }
-      return null;
-    }
-
-    const h = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-    if (h) {
-      const hex = h[1];
-      if (hex.length == 3) {
-        const r = int(hex[0] + hex[0], 16);
-        const g = int(hex[1] + hex[1], 16);
-        const b = int(hex[2] + hex[2], 16);
-        return { r, g, b };
-      }
-      const r = int(hex.slice(0, 2), 16);
-      const g = int(hex.slice(2, 4), 16);
-      const b = int(hex.slice(4, 6), 16);
-      return { r, g, b };
-    }
-
-    return null;
-
-    function int(x: string, base: number): number {
-      return parseInt(x, base);
-    }
-    function min(a: number, b: number): number {
-      return a < b ? a : b;
-    }
-    function max(a: number, b: number): number {
-      return a > b ? a : b;
     }
   }
 }

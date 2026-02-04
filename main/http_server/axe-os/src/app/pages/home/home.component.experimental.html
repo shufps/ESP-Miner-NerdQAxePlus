@@ -198,6 +198,17 @@
 
               </div>
 
+              <!-- Nerd*OS logo (single pool) -->
+              <div class="nerdos-logo-wrap nerdos-logo-wrap--single" *ngIf="!isDualPool">
+                <div class="nerdos-logo-wrap__inner" [style.--nerdos-logo-color]="nerdOsLogoColor">
+                  <div
+                    class="nerdos-logo"
+                    aria-label="01001110 01100101 01110010 01100100 00101010 01001111 01010011"
+                  ></div>
+                  <span class="nerdos-logo-tooltip">01001110 01100101 01110010 01100100 00101010 01001111 01010011</span>
+                </div>
+              </div>
+
               <!-- Templates -->
               <ng-template #poolHalf let-pool="pool" let-idx="idx" let-usingFallback="usingFallback">
                 <div class="pool-tile-half" dir="ltr" [class.pool-tile-half--dual]="isDualPool">
@@ -557,6 +568,19 @@
                     <div class="heat-spacer" aria-hidden="true"></div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nerd*OS logo (dual pool) -->
+          <div class="nerdos-logo-row nerdos-logo-row--dual" *ngIf="isDualPool">
+            <div class="nerdos-logo-wrap nerdos-logo-wrap--dual">
+              <div class="nerdos-logo-wrap__inner" [style.--nerdos-logo-color]="nerdOsLogoColor">
+                <div
+                  class="nerdos-logo"
+                  aria-label="01001110 01100101 01110010 01100100 00101010 01001111 01010011"
+                ></div>
+                <span class="nerdos-logo-tooltip">01001110 01100101 01110010 01100100 00101010 01001111 01010011</span>
               </div>
             </div>
           </div>

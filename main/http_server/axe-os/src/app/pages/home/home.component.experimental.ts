@@ -74,7 +74,8 @@ import { maxAsicTemp,
   isBetween,
   formatUptime,
   normalizeHomeTileInfo,
-  HomeBarDomSync
+  HomeBarDomSync,
+  hexToRgba
 } from './tiles/utils';
 @Component({
   selector: 'app-home-experimental',
@@ -396,6 +397,7 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   private debugAxisPadding: boolean = false;
   private readonly axisPadOverrideEnabledKey: string = '__nerdCharts_axisPaddingOverrideEnabled';
   private readonly axisPadStorageKey: string = '__nerdCharts_axisPadding';
+  public nerdOsLogoColor: string = hexToRgba(HOME_CFG.colors.hashrateBase, 0.6);
 
   ngAfterViewChecked(): void {
     // Ensure chart is initialized only once when the canvas becomes available

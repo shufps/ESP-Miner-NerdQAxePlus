@@ -55,6 +55,8 @@ nb-card-body.pool-tile-card__body{
   background: var(--tile-surface);
   height: 100%;
   display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 /* Pool tile wrapper: remove card chrome so the body surface matches summary squares exactly */
@@ -162,6 +164,81 @@ nb-card-header{
   min-height: var(--metric-square);
   height: 100%;
   width: 100%;
+}
+
+/* Nerd*OS logo placement */
+.nerdos-logo-row{
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.nerdos-logo-row--dual{
+  padding-right: 0;
+  margin-top: -10px;
+}
+
+@media (max-width: 1200px){
+  .nerdos-logo-row--dual{
+    margin-top: 0;
+  }
+}
+
+.nerdos-logo-wrap{
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  pointer-events: none;
+}
+
+.nerdos-logo-wrap__inner{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: auto;
+  cursor: help;
+}
+
+.nerdos-logo-wrap--single{
+  position: absolute;
+  right: 12px;
+  bottom: 5px;
+}
+
+.nerdos-logo-wrap--dual{
+  padding-top: 0;
+}
+
+.nerdos-logo{
+  width: clamp(90px, 14vw, 150px);
+  height: clamp(32px, 5vw, 70px);
+  background-color: var(--nerdos-logo-color, rgba(120, 120, 120, 0.5));
+  -webkit-mask: url('./NerdOS.svg') no-repeat center / contain;
+  mask: url('./NerdOS.svg') no-repeat center / contain;
+}
+
+.nerdos-logo-tooltip{
+  position: absolute;
+  right: 0;
+  top: -26px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.06s ease-out, transform 0.06s ease-out;
+  pointer-events: none;
+}
+
+.nerdos-logo-wrap__inner:hover .nerdos-logo-tooltip{
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* In the mirrored pool tile we want a TRUE 50/50 split (no inter-half gap)
