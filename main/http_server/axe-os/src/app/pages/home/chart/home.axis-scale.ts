@@ -67,6 +67,20 @@ export interface HashrateSoftIncludeInputs {
   softIncludeRel?: number;
 }
 
+export interface HashrateSeriesSet {
+  hr1m: number[];
+  hr10m: number[];
+  hr1h: number[];
+  hr1d: number[];
+}
+
+export interface HashrateVisibility {
+  hr1m: boolean;
+  hr10m: boolean;
+  hr1h: boolean;
+  hr1d: boolean;
+}
+
 /**
  * Compute a width X window.
  *
@@ -300,6 +314,34 @@ export function computeHashrateBoundsSoftInclude(input: HashrateSoftIncludeInput
   }
 
   return { ...baseBounds, min, max };
+}
+
+/**
+ * Select the base hashrate series for axis scaling.
+ * Prefer 1m if visible, otherwise fall back to the first visible long-term series.
+ */
+export function selectBaseHashrateSeries(series: HashrateSeriesSet, visibility: HashrateVisibility): number[] {
+  if (visibility.hr1m) return series.hr1m;
+  if (visibility.hr10m) return series.hr10m;
+  if (visibility.hr1h) return series.hr1h;
+  if (visibility.hr1d) return series.hr1d;
+  return series.hr1m;
+}
+
+/**
+ * Build the list of other visible hashrate series (excluding the chosen base series).
+ */
+export function collectOtherHashrateSeries(
+  series: HashrateSeriesSet,
+  visibility: HashrateVisibility,
+  base: number[]
+): Array<number[] | null | undefined> {
+  const out: Array<number[] | null | undefined> = [];
+  if (visibility.hr1m && base !== series.hr1m) out.push(series.hr1m);
+  if (visibility.hr10m && base !== series.hr10m) out.push(series.hr10m);
+  if (visibility.hr1h && base !== series.hr1h) out.push(series.hr1h);
+  if (visibility.hr1d && base !== series.hr1d) out.push(series.hr1d);
+  return out;
 }
 
 export function applyAxisBoundsToChartOptions(chartOptions: any, bounds: ComputedAxisBounds): void {

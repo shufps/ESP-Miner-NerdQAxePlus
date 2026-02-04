@@ -33,6 +33,8 @@ import {
   computeXWindow,
   computeAxisBounds,
   computeHashrateBoundsSoftInclude,
+  selectBaseHashrateSeries,
+  collectOtherHashrateSeries,
   applyAxisBoundsToChartOptions,
   HomeWarmupMachine,
 } from './chart';
@@ -496,10 +498,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
         useThrottledRender: this.historyDrainUseThrottledRender,
       }
     );
-    const documentStyle = getComputedStyle(document.documentElement);
-    const bodyStyle = getComputedStyle(document.body);
-    const textColor = bodyStyle.getPropertyValue('--card-text-color');
-    const textColorSecondary = bodyStyle.getPropertyValue('--card-text-color');
     // Load optional min-history timestamp (used after debug clear to prevent immediate refill)
     try {
       const v = Number(this.chartStorage.loadMinHistoryTimestampMs());
@@ -1045,13 +1043,19 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     if (!labels.length) return;
 
     // Keep hashrate axis scaling anchored to a single series.
-    // Prefer 1m if visible; otherwise fall back to the first visible long-term series.
-    let baseHash = this.dataData1m;
-    if (!this.chart.isDatasetVisible(0)) {
-      if (this.chart.isDatasetVisible(1)) baseHash = this.dataData10m;
-      else if (this.chart.isDatasetVisible(2)) baseHash = this.dataData1h;
-      else if (this.chart.isDatasetVisible(3)) baseHash = this.dataData1d;
-    }
+    const visibility = {
+      hr1m: this.chart.isDatasetVisible(0),
+      hr10m: this.chart.isDatasetVisible(1),
+      hr1h: this.chart.isDatasetVisible(2),
+      hr1d: this.chart.isDatasetVisible(3),
+    };
+    const series = {
+      hr1m: this.dataData1m,
+      hr10m: this.dataData10m,
+      hr1h: this.dataData1h,
+      hr1d: this.dataData1d,
+    };
+    const baseHash = selectBaseHashrateSeries(series, visibility);
 
     // Other hashrate series should render within the existing scale without shifting the plot.
     const hr10m = null;
@@ -1080,12 +1084,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
     // Soft-include other visible hashrate series without letting them re-scale the chart.
     if (bounds.y && labels.length) {
-      const otherSeries: Array<number[] | null | undefined> = [];
-      if (this.chart.isDatasetVisible(0) && baseHash !== this.dataData1m) otherSeries.push(this.dataData1m);
-      if (this.chart.isDatasetVisible(1) && baseHash !== this.dataData10m) otherSeries.push(this.dataData10m);
-      if (this.chart.isDatasetVisible(2) && baseHash !== this.dataData1h) otherSeries.push(this.dataData1h);
-      if (this.chart.isDatasetVisible(3) && baseHash !== this.dataData1d) otherSeries.push(this.dataData1d);
-
+      const otherSeries = collectOtherHashrateSeries(series, visibility, baseHash);
       const softY = computeHashrateBoundsSoftInclude({
         labels,
         xMinMs,
