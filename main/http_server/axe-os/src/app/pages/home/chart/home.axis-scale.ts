@@ -471,7 +471,9 @@ export function computeHomeChartScales(input: HomeChartScaleInputs): {
     axisMaxPadC,
   });
 
-  // Sticky temp axis (expand only, with hysteresis)
+  // Sticky temp axis with hysteresis:
+  // - expand immediately when new data exceeds current bounds
+  // - contract gradually when data relaxes, so the chart stays calm
   let tempAxisMin: number | undefined;
   let tempAxisMax: number | undefined;
   if (bounds.y_temp) {
@@ -482,8 +484,24 @@ export function computeHomeChartScales(input: HomeChartScaleInputs): {
     if (Number.isFinite(prevTempMin as any) && Number.isFinite(prevTempMax as any)) {
       const prevMin = Number(prevTempMin);
       const prevMax = Number(prevTempMax);
-      min = min < prevMin - hysteresis ? min : prevMin;
-      max = max > prevMax + hysteresis ? max : prevMax;
+
+      // Lower bound:
+      // - move down immediately if needed (expand)
+      // - move up at most by hysteresis per update (contract)
+      if (min > prevMin + hysteresis) {
+        min = Math.min(min, prevMin + hysteresis);
+      } else {
+        min = min < prevMin - hysteresis ? min : prevMin;
+      }
+
+      // Upper bound:
+      // - move up immediately if needed (expand)
+      // - move down at most by hysteresis per update (contract)
+      if (max < prevMax - hysteresis) {
+        max = Math.max(max, prevMax - hysteresis);
+      } else {
+        max = max > prevMax + hysteresis ? max : prevMax;
+      }
     }
 
     bounds.y_temp.min = min;
