@@ -31,11 +31,7 @@ import {
   installNerdChartsDebugBootstrap,
   GraphGuard,
   computeXWindow,
-  computeAxisBounds,
-  computeHashrateBoundsSoftInclude,
-  computeTempBounds,
-  selectBaseHashrateSeries,
-  collectOtherHashrateSeries,
+  computeHomeChartScales,
   applyAxisBoundsToChartOptions,
   HomeWarmupMachine,
 } from './chart';
@@ -1043,7 +1039,11 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     // but we can't compute Y-bounds without data.
     if (!labels.length) return;
 
-    // Keep hashrate axis scaling anchored to a single series.
+    const temp4 = this.chart.isDatasetVisible(4);
+    const temp5 = this.chart.isDatasetVisible(5);
+    const vreg = temp4 ? this.dataVregTemp : (!temp4 && !temp5 ? this.dataVregTemp : null);
+    const asic = temp5 ? this.dataAsicTemp : (!temp4 && !temp5 ? this.dataAsicTemp : null);
+
     const visibility = {
       hr1m: this.chart.isDatasetVisible(0),
       hr10m: this.chart.isDatasetVisible(1),
@@ -1055,89 +1055,31 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       hr10m: this.dataData10m,
       hr1h: this.dataData1h,
       hr1d: this.dataData1d,
+      vregTemp: vreg ?? [],
+      asicTemp: asic ?? [],
     };
-    const baseHash = selectBaseHashrateSeries(series, visibility);
 
-    // Other hashrate series should render within the existing scale without shifting the plot.
-    const hr10m = null;
-    const hr1h = null;
-    const hr1d = null;
-    const temp4 = this.chart.isDatasetVisible(4);
-    const temp5 = this.chart.isDatasetVisible(5);
-    const vreg = temp4 ? this.dataVregTemp : (!temp4 && !temp5 ? this.dataVregTemp : null);
-    const asic = temp5 ? this.dataAsicTemp : (!temp4 && !temp5 ? this.dataAsicTemp : null);
-    const bounds = computeAxisBounds({
+    const { bounds, tempAxisMin, tempAxisMax } = computeHomeChartScales({
       labels,
-      hr1m: baseHash,
-      hr10m,
-      hr1h,
-      hr1d,
-      vregTemp: null,
-      asicTemp: null,
       xMinMs,
       xMaxMs,
+      series,
+      visibility,
       axisPadCfg: this.axisPadCfg,
       maxTicks: this.hashrateYAxisMaxTicks,
       hashrateMinStepThs: this.hashrateYAxisMinStepThs,
       tempMinStepC: this.tempYAxisMinStepC,
       liveRefHs: this.lastLivePoolSumHs,
-    });
-
-    // Soft-include other visible hashrate series without letting them re-scale the chart.
-    if (bounds.y && labels.length) {
-      const otherSeries = collectOtherHashrateSeries(series, visibility, baseHash);
-      const softY = computeHashrateBoundsSoftInclude({
-        labels,
-        xMinMs,
-        xMaxMs,
-        axisPadCfg: this.axisPadCfg,
-        maxTicks: this.hashrateYAxisMaxTicks,
-        hashrateMinStepThs: this.hashrateYAxisMinStepThs,
-        baseSeries: baseHash,
-        otherSeries,
-        liveRefHs: this.lastLivePoolSumHs,
-        softIncludeRel: HOME_CFG.yAxis.hashrateSoftIncludeRel,
-        baseBounds: bounds.y,
-      });
-
-      if (softY) bounds.y = softY;
-    }
-
-    // Compute temp bounds separately to keep responsibilities clear.
-    bounds.y_temp = computeTempBounds({
-      labels,
-      vregTemp: vreg,
-      asicTemp: asic,
-      xMinMs,
-      xMaxMs,
-      maxTicks: this.hashrateYAxisMaxTicks,
+      softIncludeRel: HOME_CFG.yAxis.hashrateSoftIncludeRel,
       axisMinPadC: HOME_CFG.tempScale.axisMinPadC,
       axisMaxPadC: HOME_CFG.tempScale.axisMaxPadC,
+      tempHysteresisC: HOME_CFG.tempScale.hysteresisC,
+      prevTempMin: this.lastTempAxisMin,
+      prevTempMax: this.lastTempAxisMax,
     });
 
-    // Stabilize temp axis: keep full 1h window visible, but avoid jitter by only
-    // expanding bounds when values push outside the current range by >= hysteresis.
-    if (bounds.y_temp) {
-      const hysteresis = Math.max(0, Number(HOME_CFG.tempScale.hysteresisC ?? 0));
-      let min = bounds.y_temp.min;
-      let max = bounds.y_temp.max;
-
-      if (Number.isFinite(this.lastTempAxisMin as any) && Number.isFinite(this.lastTempAxisMax as any)) {
-        const prevMin = Number(this.lastTempAxisMin);
-        const prevMax = Number(this.lastTempAxisMax);
-
-        if (min < prevMin - hysteresis) min = min;
-        else min = prevMin;
-
-        if (max > prevMax + hysteresis) max = max;
-        else max = prevMax;
-      }
-
-      bounds.y_temp.min = min;
-      bounds.y_temp.max = max;
-      this.lastTempAxisMin = min;
-      this.lastTempAxisMax = max;
-    }
+    if (Number.isFinite(tempAxisMin as any)) this.lastTempAxisMin = tempAxisMin as number;
+    if (Number.isFinite(tempAxisMax as any)) this.lastTempAxisMax = tempAxisMax as number;
 
     applyAxisBoundsToChartOptions(this.chartOptions, bounds);
   }

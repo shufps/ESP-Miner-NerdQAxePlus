@@ -83,6 +83,24 @@ export interface HashrateVisibility {
   hr1d: boolean;
 }
 
+export interface HomeChartScaleInputs {
+  labels: number[];
+  xMinMs: number;
+  xMaxMs: number;
+  series: HashrateSeriesSet & { vregTemp: number[]; asicTemp: number[] };
+  visibility: HashrateVisibility;
+  axisPadCfg: AxisPadCfg;
+  maxTicks: number;
+  hashrateMinStepThs: number;
+  tempMinStepC: number;
+  liveRefHs?: number;
+  softIncludeRel?: number;
+  axisMinPadC?: number;
+  axisMaxPadC?: number;
+  tempHysteresisC?: number;
+  prevTempMin?: number | null;
+  prevTempMax?: number | null;
+}
 export interface TempBoundsInputs {
   labels: number[];
   vregTemp?: number[] | null;
@@ -379,6 +397,102 @@ export function collectOtherHashrateSeries(
   if (visibility.hr1h && base !== series.hr1h) out.push(series.hr1h);
   if (visibility.hr1d && base !== series.hr1d) out.push(series.hr1d);
   return out;
+}
+
+export function computeHomeChartScales(input: HomeChartScaleInputs): {
+  bounds: ComputedAxisBounds;
+  tempAxisMin?: number;
+  tempAxisMax?: number;
+} {
+  const {
+    labels,
+    xMinMs,
+    xMaxMs,
+    series,
+    visibility,
+    axisPadCfg,
+    maxTicks,
+    hashrateMinStepThs,
+    tempMinStepC,
+    liveRefHs,
+    softIncludeRel,
+    axisMinPadC,
+    axisMaxPadC,
+    tempHysteresisC,
+    prevTempMin,
+    prevTempMax,
+  } = input;
+
+  const baseHash = selectBaseHashrateSeries(series, visibility);
+
+  const bounds: ComputedAxisBounds = computeAxisBounds({
+    labels,
+    hr1m: baseHash,
+    hr10m: null,
+    hr1h: null,
+    hr1d: null,
+    vregTemp: null,
+    asicTemp: null,
+    xMinMs,
+    xMaxMs,
+    axisPadCfg,
+    maxTicks,
+    hashrateMinStepThs,
+    tempMinStepC,
+    liveRefHs,
+  });
+
+  if (bounds.y && labels.length) {
+    const otherSeries = collectOtherHashrateSeries(series, visibility, baseHash);
+    const softY = computeHashrateBoundsSoftInclude({
+      labels,
+      xMinMs,
+      xMaxMs,
+      axisPadCfg,
+      maxTicks,
+      hashrateMinStepThs,
+      baseSeries: baseHash,
+      otherSeries,
+      liveRefHs,
+      softIncludeRel,
+      baseBounds: bounds.y,
+    });
+    if (softY) bounds.y = softY;
+  }
+
+  bounds.y_temp = computeTempBounds({
+    labels,
+    vregTemp: series.vregTemp,
+    asicTemp: series.asicTemp,
+    xMinMs,
+    xMaxMs,
+    maxTicks,
+    axisMinPadC,
+    axisMaxPadC,
+  });
+
+  // Sticky temp axis (expand only, with hysteresis)
+  let tempAxisMin: number | undefined;
+  let tempAxisMax: number | undefined;
+  if (bounds.y_temp) {
+    const hysteresis = Math.max(0, Number(tempHysteresisC ?? 0));
+    let min = bounds.y_temp.min;
+    let max = bounds.y_temp.max;
+
+    if (Number.isFinite(prevTempMin as any) && Number.isFinite(prevTempMax as any)) {
+      const prevMin = Number(prevTempMin);
+      const prevMax = Number(prevTempMax);
+      min = min < prevMin - hysteresis ? min : prevMin;
+      max = max > prevMax + hysteresis ? max : prevMax;
+    }
+
+    bounds.y_temp.min = min;
+    bounds.y_temp.max = max;
+    tempAxisMin = min;
+    tempAxisMax = max;
+  }
+
+  return { bounds, tempAxisMin, tempAxisMax };
 }
 
 export function applyAxisBoundsToChartOptions(chartOptions: any, bounds: ComputedAxisBounds): void {
