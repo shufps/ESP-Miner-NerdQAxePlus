@@ -34,6 +34,7 @@ import {
   computeHomeChartScales,
   applyAxisBoundsToChartOptions,
   HomeWarmupMachine,
+  shouldInsertRestartCut,
 } from './chart';
 
 import { NbThemeService } from '@nebular/theme';
@@ -1367,12 +1368,13 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       const liveOkNow = Number.isFinite(livePoolSum) && livePoolSum > 0;
       const stageNow = this.warmupMachine.getStage();
       const historyHr1m = Number(entry.hashrate_1m);
-      const tempMinValidC = Number(HOME_CFG.warmup.tempMinValidC ?? 10);
-      const vregLow = !Number.isFinite(vregRaw) || vregRaw <= tempMinValidC;
-      const asicLow = !Number.isFinite(asicRaw) || asicRaw <= tempMinValidC;
-      const restartMarker = (!liveOkNow) && (
-        vregLow || asicLow || (Number.isFinite(historyHr1m) && historyHr1m <= 0)
-      );
+      const restartMarker = shouldInsertRestartCut({
+        liveOkNow,
+        vregRaw,
+        asicRaw,
+        historyHr1m,
+        tempMinValidC: Number(HOME_CFG.warmup.tempMinValidC ?? 10),
+      });
 
       if (stageNow === 'READY' && restartMarker) {
         this.warmupMachine.reset(entry.timestamp);

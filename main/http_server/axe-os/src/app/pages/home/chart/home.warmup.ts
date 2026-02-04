@@ -17,6 +17,14 @@ export interface HomeWarmupCfg {
   restartDetectStreak: number;
 }
 
+export interface RestartMarkerInputs {
+  liveOkNow: boolean;
+  vregRaw?: number;
+  asicRaw?: number;
+  historyHr1m?: number;
+  tempMinValidC: number;
+}
+
 export interface WarmupLiveInputs {
   nowMs: number;
   vregTempC?: number | null;
@@ -215,4 +223,16 @@ export class HomeWarmupMachine {
   isLocked(): boolean {
     return this.stage === 'LOCKED' || this.stage === 'VREG_DELAY';
   }
+}
+
+/**
+ * Detect restart markers based on live hashrate and temp sanity.
+ * Returns true if a hard-cut should be inserted.
+ */
+export function shouldInsertRestartCut(input: RestartMarkerInputs): boolean {
+  const { liveOkNow, vregRaw, asicRaw, historyHr1m, tempMinValidC } = input;
+  const vregLow = !isFiniteNumber(vregRaw) || (isFiniteNumber(vregRaw) && vregRaw <= tempMinValidC);
+  const asicLow = !isFiniteNumber(asicRaw) || (isFiniteNumber(asicRaw) && asicRaw <= tempMinValidC);
+  const hrLow = isFiniteNumber(historyHr1m) && historyHr1m <= 0;
+  return (!liveOkNow) && (vregLow || asicLow || hrLow);
 }
