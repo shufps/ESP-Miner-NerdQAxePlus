@@ -65,6 +65,8 @@ export interface HashrateSoftIncludeInputs {
   otherSeries?: Array<number[] | null | undefined>;
   liveRefHs?: number;
   softIncludeRel?: number;
+  /** Optionally reuse precomputed base bounds to avoid double work. */
+  baseBounds?: ComputedAxisBounds['y'];
 }
 
 export interface HashrateSeriesSet {
@@ -81,6 +83,16 @@ export interface HashrateVisibility {
   hr1d: boolean;
 }
 
+export interface TempBoundsInputs {
+  labels: number[];
+  vregTemp?: number[] | null;
+  asicTemp?: number[] | null;
+  xMinMs: number;
+  xMaxMs: number;
+  maxTicks: number;
+  axisMinPadC?: number;
+  axisMaxPadC?: number;
+}
 /**
  * Compute a width X window.
  *
@@ -257,28 +269,53 @@ export function computeAxisBounds(input: AxisScaleInputs): ComputedAxisBounds {
   return out;
 }
 
+export function computeTempBounds(input: TempBoundsInputs): ComputedAxisBounds['y_temp'] | undefined {
+  const { labels, xMinMs, xMaxMs } = input;
+  const { from, to } = indicesForWindow(labels, xMinMs, xMaxMs);
+
+  const tempVals: number[] = [];
+  collectWindowed(tempVals, input.vregTemp, from, to);
+  collectWindowed(tempVals, input.asicTemp, from, to);
+
+  const tm = minMax(tempVals);
+  if (tm.mn === undefined || tm.mx === undefined) return undefined;
+
+  const padMin = Number(input.axisMinPadC ?? 1);
+  const padMax = Number(input.axisMaxPadC ?? 2);
+  const targetMin = Math.max(0, tm.mn - padMin);
+  const targetMax = tm.mx + padMax;
+
+  const maxTicks = Math.max(2, Math.round(Number(input.maxTicks || 7)));
+
+  return {
+    min: targetMin,
+    max: targetMax,
+    maxTicksLimit: maxTicks,
+  };
+}
+
 /**
  * Compute hashrate axis bounds based on a single base series and optionally
  * soft-include other series without rescaling the entire chart.
  */
 export function computeHashrateBoundsSoftInclude(input: HashrateSoftIncludeInputs): ComputedAxisBounds['y'] | undefined {
   const { labels, xMinMs, xMaxMs } = input;
-  const baseBounds = computeAxisBounds({
-    labels,
-    hr1m: input.baseSeries,
-    hr10m: null,
-    hr1h: null,
-    hr1d: null,
-    vregTemp: null,
-    asicTemp: null,
-    xMinMs,
-    xMaxMs,
-    axisPadCfg: input.axisPadCfg,
-    maxTicks: input.maxTicks,
-    hashrateMinStepThs: input.hashrateMinStepThs,
-    tempMinStepC: 0,
-    liveRefHs: input.liveRefHs,
-  }).y;
+  const baseBounds = input.baseBounds ?? computeAxisBounds({
+      labels,
+      hr1m: input.baseSeries,
+      hr10m: null,
+      hr1h: null,
+      hr1d: null,
+      vregTemp: null,
+      asicTemp: null,
+      xMinMs,
+      xMaxMs,
+      axisPadCfg: input.axisPadCfg,
+      maxTicks: input.maxTicks,
+      hashrateMinStepThs: input.hashrateMinStepThs,
+      tempMinStepC: 0,
+      liveRefHs: input.liveRefHs,
+    }).y;
 
   if (!baseBounds) return undefined;
 

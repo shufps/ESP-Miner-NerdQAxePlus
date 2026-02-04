@@ -33,6 +33,7 @@ import {
   computeXWindow,
   computeAxisBounds,
   computeHashrateBoundsSoftInclude,
+  computeTempBounds,
   selectBaseHashrateSeries,
   collectOtherHashrateSeries,
   applyAxisBoundsToChartOptions,
@@ -1071,8 +1072,8 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       hr10m,
       hr1h,
       hr1d,
-      vregTemp: vreg,
-      asicTemp: asic,
+      vregTemp: null,
+      asicTemp: null,
       xMinMs,
       xMaxMs,
       axisPadCfg: this.axisPadCfg,
@@ -1096,10 +1097,23 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
         otherSeries,
         liveRefHs: this.lastLivePoolSumHs,
         softIncludeRel: HOME_CFG.yAxis.hashrateSoftIncludeRel,
+        baseBounds: bounds.y,
       });
 
       if (softY) bounds.y = softY;
     }
+
+    // Compute temp bounds separately to keep responsibilities clear.
+    bounds.y_temp = computeTempBounds({
+      labels,
+      vregTemp: vreg,
+      asicTemp: asic,
+      xMinMs,
+      xMaxMs,
+      maxTicks: this.hashrateYAxisMaxTicks,
+      axisMinPadC: HOME_CFG.tempScale.axisMinPadC,
+      axisMaxPadC: HOME_CFG.tempScale.axisMaxPadC,
+    });
 
     // Stabilize temp axis: keep full 1h window visible, but avoid jitter by only
     // expanding bounds when values push outside the current range by >= hysteresis.
