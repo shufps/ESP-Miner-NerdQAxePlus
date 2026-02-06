@@ -537,6 +537,13 @@
                   </div>
 
                   <div class="heat-bars">
+                    @let fanRpm1 = (info.fanrpm ?? 0);
+                    @let fanRpm2 = (info.fanrpm2 ?? 0);
+                    @let fanC1Present = fanRpm1 > 0;
+                    @let fanC2Present = fanRpm2 > 0;
+                    @let showFanC1 = fanC1Present || !fanC2Present;
+                    @let showFanC2 = fanC2Present;
+
                     <!-- VR temp bar -->
                     <div class="power-bar" *ngIf="info.vrTemp > 0" role="img" data-bar="vr-temp"
                          [class.power-bar--warn]="isVrTempWarn(info.vrTemp)"
@@ -551,14 +558,32 @@
                     </div>
 
                     <!-- Fan bar (metric = fan speed %, shows RPM as secondary label) -->
-                    <div class="power-bar" role="img"
+                    <div class="power-bar" *ngIf="showFanC1" role="img"
                          [class.power-bar--max]="isBarMax(info.fanspeed, 100)"
-                         [attr.aria-label]="('HOME.FAN_SPEED' | translate) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm | number: '1.0-0') + ' RPM)'">
+                         [attr.aria-label]="(showFanC2 ? 'Fan C1' : ('HOME.FAN_SPEED' | translate)) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm | number: '1.0-0') + ' RPM)'">
                       <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed, 0, 100)"></div>
-                      <div class="power-bar__label">{{ 'HOME.FAN_SPEED' | translate }}</div>
+                      <div class="power-bar__label">
+                        <ng-container *ngIf="showFanC2; else fanLabelSingle">Fan C1</ng-container>
+                        <ng-template #fanLabelSingle>{{ 'HOME.FAN_SPEED' | translate }}</ng-template>
+                      </div>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
                           <span class="power-bar__subvalue">{{ info.fanrpm | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
+                          <span class="power-bar__sep">/</span>
+                          <span class="power-bar__mainvalue">{{ info.fanspeed | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Fan bar (channel 2, only if present) -->
+                    <div class="power-bar" *ngIf="showFanC2" role="img"
+                         [class.power-bar--max]="isBarMax(info.fanspeed, 100)"
+                         [attr.aria-label]="'Fan C2' + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm2 ?? 0 | number: '1.0-0') + ' RPM)'">
+                      <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed, 0, 100)"></div>
+                      <div class="power-bar__label">Fan C2</div>
+                      <div class="power-bar__value power-bar__value--inline">
+                        <span class="fan-inline">
+                          <span class="power-bar__subvalue">{{ (info.fanrpm2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
                           <span class="power-bar__sep">/</span>
                           <span class="power-bar__mainvalue">{{ info.fanspeed | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
                         </span>

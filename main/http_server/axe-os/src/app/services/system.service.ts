@@ -70,6 +70,8 @@ const defaultInfo: ISystemInfo = {
   fanspeed: 100,
   manualFanSpeed: 100,
   fanrpm: 0,
+  fanrpm2: 0,
+  fanCount: 1,
   autoscreenoff: 0,
   lastResetReason: "Unknown",
   jobInterval: 1200,

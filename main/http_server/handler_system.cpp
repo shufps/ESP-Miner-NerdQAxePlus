@@ -112,6 +112,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["fanspeed"]           = POWER_MANAGEMENT_MODULE.getFanPerc();
     doc["manualFanSpeed"]     = Config::getFanSpeed();
     doc["fanrpm"]             = POWER_MANAGEMENT_MODULE.getFanRPM(0);
+    doc["fanrpm2"]            = (board->getNumFans() > 1) ? POWER_MANAGEMENT_MODULE.getFanRPM(1) : 0;
+    doc["fanCount"]           = board->getNumFans();
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["recentpingloss"]     = get_recent_ping_loss();
     doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
