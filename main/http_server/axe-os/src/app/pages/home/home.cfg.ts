@@ -177,6 +177,20 @@ export interface Hashrate1mSmoothingCfg {
    * (clamped internally to available points)
    */
   medianWindowPoints: number;
+  /** Extra tension to add per zoom step (visual-only). */
+  zoomBoostPerStep: number;
+  /**
+   * EMA smoothing window target in ms (converted to points via median interval).
+   * These values are only used when zoomed out (per zoom step).
+   */
+  emaWindowMsMin: number;
+  emaWindowMsMax: number;
+  emaWindowMsPerStep: number;
+  /** Clamp the EMA window (in points) after conversion. */
+  emaMinPoints: number;
+  emaMaxPoints: number;
+  /** Ensure the last point stays precise (reduces perceived lag). */
+  snapLastPoint: boolean;
 }
 
 
@@ -346,6 +360,12 @@ export interface HomeCfg {
 
   xAxis: {
     fixedWindowMs: number;
+    /** Minimum zoom window (ms). */
+    minWindowMs: number;
+    /** Maximum zoom window (ms). */
+    maxWindowMs: number;
+    /** Zoom step (ms). */
+    zoomStepMs: number;
     /** Tick spacing for the time axis (ms). Used for deterministic 15m labels/grid. */
     tickStepMs: number;
   };
@@ -582,6 +602,10 @@ export const HOME_CFG: HomeCfg = {
   xAxis: {
     // Keep X viewport stable and visually calm: always show a full hour.
     fixedWindowMs: 60 * 60 * 1000,
+    // Zoom limits: 1h .. 3h, 15m step.
+    minWindowMs: 60 * 60 * 1000,
+    maxWindowMs: 3 * 60 * 60 * 1000,
+    zoomStepMs: 15 * 60 * 1000,
 
     // Deterministic time-axis ticks / grid (e.g. 15-minute labels: :00, :15, :30, :45)
     tickStepMs: 15 * 60 * 1000,
@@ -637,12 +661,21 @@ export const HOME_CFG: HomeCfg = {
       enabled: true,
       fastIntervalMs: 6000,
       mediumIntervalMs: 12000,
-      tensionFast: 0.60,
-      tensionMedium: 0.25,
-      tensionSlow: 0.20,
+      tensionFast: 0.45,
+      tensionMedium: 0.18,
+      tensionSlow: 0.12,
       cubicInterpolationMode: 'monotone',
       // Previously effectively 60 in applyHashrate1mSmoothing
       medianWindowPoints: 60,
+      // Add a little smoothing as the user zooms out (15m steps).
+      zoomBoostPerStep: 0.08,
+      // EMA smoothing (time-based, converted to points)
+      emaWindowMsMin: 0,
+      emaWindowMsMax: 180000, // 3 min max smoothing at far zoom
+      emaWindowMsPerStep: 20000, // +20s per zoom step
+      emaMinPoints: 2,
+      emaMaxPoints: 120,
+      snapLastPoint: true,
     },
   },
 

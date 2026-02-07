@@ -37,6 +37,26 @@ export interface WarmupLiveInputs {
   unlockOk?: boolean | null;
 }
 
+export interface StartupUnlockInputs {
+  liveHs: number;
+  expectedHs: number;
+  expectedUnlockRatio: number;
+  liveIsStable: boolean;
+}
+
+export function shouldUnlockStartup(input: StartupUnlockInputs): boolean {
+  const live = Number(input.liveHs);
+  if (!Number.isFinite(live) || live <= 0) return false;
+
+  const expected = Number(input.expectedHs);
+  const ratio = Number(input.expectedUnlockRatio);
+  const expectedOk = Number.isFinite(expected) && expected > 0;
+  const unlockByExpected = expectedOk && live >= expected * ratio;
+  const unlockByStableLive = !expectedOk && !!input.liveIsStable;
+
+  return unlockByExpected || unlockByStableLive;
+}
+
 function isFiniteNumber(v: any): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
