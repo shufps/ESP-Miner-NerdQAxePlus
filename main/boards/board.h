@@ -326,4 +326,8 @@ public:
         return m_shutdown;
     }
 
+    virtual float getVRTempInt() {
+        return 0.0f;
+    }
+
 };

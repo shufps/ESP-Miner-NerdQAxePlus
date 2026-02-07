@@ -48,4 +48,5 @@ class NerdQaxePlus : public Board {
 
     virtual Board::Error getFault(uint32_t *status);
     virtual bool selfTest();
+    virtual float getVRTempInt();
 };

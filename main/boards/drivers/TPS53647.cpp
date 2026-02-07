@@ -346,7 +346,11 @@ float TPS53647::get_temperature(void)
     }
 
     // Get temperature (SLINEAR11)
-    read_word(PMBUS_READ_TEMPERATURE_1, &u16_value);
+    esp_err_t err = read_word(PMBUS_READ_TEMPERATURE_1, &u16_value);
+    if (err != ESP_OK) {
+        return 0.0f;
+    }
+
     //ESP_LOGI(TAG, "raw temp: %04x", u16_value);
     temp = slinear11_to_float(u16_value);
 #ifdef _DEBUG_LOG_

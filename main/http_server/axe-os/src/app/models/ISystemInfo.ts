@@ -19,6 +19,7 @@ export interface ISystemInfo {
     maxCurrentA?: number;
     temp: number,
     vrTemp: number,
+    vrTempInt: number,
     hashRateTimestamp: number,
     hashRate: number,
     hashRate_10m: number,

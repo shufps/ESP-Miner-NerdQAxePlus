@@ -203,9 +203,10 @@ void PowerManagementTask::readAndPublishPowerTelemetry()
     float iout = m_board->getIout();
 
     m_vrTemp = m_board->getVRTemp();
+    m_vrTempInt = m_board->getVRTempInt();
 
-    ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f", vin, iin, pin, vout, iout,
-             pout, m_vrTemp);
+    ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f, vr-temp-int: %.2f", vin, iin, pin, vout, iout,
+             pout, m_vrTemp, m_vrTempInt);
 
     influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 

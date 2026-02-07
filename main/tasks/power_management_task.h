@@ -26,15 +26,16 @@ class PowerManagementTask {
     TimerHandle_t m_timer;
 
     char m_logBuffer[256]{};
-    uint16_t m_fanPerc;
+    uint16_t m_fanPerc = 0;
     uint16_t m_fanRPM[2]{};
-    float m_chipTempMax;
-    float m_vrTemp;
-    float m_voltage;
-    float m_power;
-    float m_current;
+    float m_chipTempMax = 0;
+    float m_vrTemp = 0;
+    float m_vrTempInt = 0;
+    float m_voltage = 0;
+    float m_power = 0;
+    float m_current = 0;
     bool m_shutdown = false;
-    PID *m_pid;
+    PID *m_pid = nullptr;
     Board* m_board = nullptr;
 
     void checkCoreVoltageChanged();
@@ -79,6 +80,10 @@ class PowerManagementTask {
     {
         return m_vrTemp;
     };
+    float getVRTempInt()
+    {
+        return m_vrTempInt;
+    }
 
     uint16_t getFanRPM(int channel);
 

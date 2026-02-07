@@ -272,14 +272,13 @@ float NerdQaxePlus::getTemperature(int index) {
     return TMP1075_read_temperature(index + !!index);
 }
 
+
 float NerdQaxePlus::getVRTemp() {
-    float vrTemp = m_tps->get_temperature();
+    return TMP1075_read_temperature(1);
+}
 
-    // test
-    float tmp = TMP1075_read_temperature(1);
-    ESP_LOGI(TAG, "tmp1075 vs tps: %.2f vs %.2f (diff: %.2f)", tmp, vrTemp, vrTemp - tmp);
-
-    return tmp;
+float NerdQaxePlus::getVRTempInt() {
+    return m_tps->get_temperature();
 }
 
 float NerdQaxePlus::getVin() {
