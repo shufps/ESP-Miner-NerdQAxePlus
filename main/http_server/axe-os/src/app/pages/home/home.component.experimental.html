@@ -18,30 +18,76 @@
               <div class="chart-header-row">
                 <span class="text-hint">{{ 'HOME.HASH_RATE_CHART' | translate }}</span>
 
-                <button
-                  nbButton
-                  ghost
-                  size="tiny"
-                  class="chart-toggle"
-                  type="button"
-                  (click)="toggleChartCollapsed($event)"
-                  [attr.aria-expanded]="!isChartCollapsed"
-                >
-                  <span class="chart-toggle__label">
-                    {{ (isChartCollapsed ? 'HOME.SHOW_CHART' : 'HOME.HIDE_CHART') | translate }}
-                  </span>
+                <div class="chart-header-actions">
+                  <div class="chart-zoom-controls" *ngIf="!isChartCollapsed">
+                    <span class="chart-zoom-label" *ngIf="showZoomWindowLabel" aria-live="polite">
+                      <span class="chart-zoom-label__value">−{{ zoomWindowLabel }}</span>
+                      <span class="chart-zoom-label__title">{{ 'HOME.CHART_SPAN' | translate }}</span>
+                    </span>
+                    <button
+                      nbButton
+                      ghost
+                      size="tiny"
+                      class="chart-zoom-btn"
+                      type="button"
+                      (click)="zoomOut($event)"
+                      [attr.aria-label]="('HOME.CHART_SPAN' | translate) + ' − 15' + ('UNITS.MINUTE_SHORT' | translate)"
+                    >
+                      <span class="chart-zoom-btn__icon">−</span>
+                      <span class="chart-zoom-btn__text">{{ 'HOME.CHART_SPAN' | translate }}</span>
+                    </button>
+                    <button
+                      nbButton
+                      ghost
+                      size="tiny"
+                      class="chart-zoom-btn"
+                      type="button"
+                      (click)="zoomIn($event)"
+                      [attr.aria-label]="('HOME.CHART_SPAN' | translate) + ' + 15' + ('UNITS.MINUTE_SHORT' | translate)"
+                    >
+                      <span class="chart-zoom-btn__icon">+</span>
+                      <span class="chart-zoom-btn__text">{{ 'HOME.CHART_SPAN' | translate }}</span>
+                    </button>
+                    <button
+                      nbButton
+                      ghost
+                      size="tiny"
+                      class="chart-zoom-btn chart-zoom-btn--toggle"
+                      type="button"
+                      (click)="toggleZoomWindow($event)"
+                      aria-label="Toggle zoom range 1 hour to 3 hours"
+                    >
+                      <span class="chart-zoom-btn__text">1{{ 'UNITS.HOUR_SHORT' | translate }}</span>
+                      <span class="chart-zoom-btn__icon">⇄</span>
+                      <span class="chart-zoom-btn__text">3{{ 'UNITS.HOUR_SHORT' | translate }}</span>
+                    </button>
+                  </div>
 
-                  <!-- Thick, high-contrast chevron (SVG) for better visibility than nb-icon. -->
-                  <span
-                    class="chart-toggle__icon"
-                    [class.chart-toggle__icon--up]="!isChartCollapsed"
-                    aria-hidden="true"
+                  <button
+                    nbButton
+                    ghost
+                    size="tiny"
+                    class="chart-toggle"
+                    type="button"
+                    (click)="toggleChartCollapsed($event)"
+                    [attr.aria-expanded]="!isChartCollapsed"
                   >
-                    <svg viewBox="0 0 16 16" focusable="false">
-                      <path d="M3.25 5.75 L8 10.5 L12.75 5.75"/>
-                    </svg>
-                  </span>
-                </button>
+                    <span class="chart-toggle__label">
+                      {{ (isChartCollapsed ? 'HOME.SHOW_CHART' : 'HOME.HIDE_CHART') | translate }}
+                    </span>
+
+                    <!-- Thick, high-contrast chevron (SVG) for better visibility than nb-icon. -->
+                    <span
+                      class="chart-toggle__icon"
+                      [class.chart-toggle__icon--up]="!isChartCollapsed"
+                      aria-hidden="true"
+                    >
+                      <svg viewBox="0 0 16 16" focusable="false">
+                        <path d="M3.25 5.75 L8 10.5 L12.75 5.75"/>
+                      </svg>
+                    </span>
+                  </button>
+                </div>
               </div>
             </nb-card-header>
 
@@ -560,10 +606,10 @@
                     <!-- Fan bar (metric = fan speed %, shows RPM as secondary label) -->
                     <div class="power-bar" *ngIf="showFanC1" role="img"
                          [class.power-bar--max]="isBarMax(info.fanspeed, 100)"
-                         [attr.aria-label]="(showFanC2 ? 'Fan C1' : ('HOME.FAN_SPEED' | translate)) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm | number: '1.0-0') + ' RPM)'">
+                         [attr.aria-label]="(showFanC2 ? ('HOME.FAN_CHANNEL' | translate:{channel: 1}) : ('HOME.FAN_SPEED' | translate)) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm | number: '1.0-0') + ' RPM)'">
                       <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed, 0, 100)"></div>
                       <div class="power-bar__label">
-                        <ng-container *ngIf="showFanC2; else fanLabelSingle">Fan C1</ng-container>
+                        <ng-container *ngIf="showFanC2; else fanLabelSingle">{{ 'HOME.FAN_CHANNEL' | translate:{channel: 1} }}</ng-container>
                         <ng-template #fanLabelSingle>{{ 'HOME.FAN_SPEED' | translate }}</ng-template>
                       </div>
                       <div class="power-bar__value power-bar__value--inline">
@@ -578,9 +624,9 @@
                     <!-- Fan bar (channel 2, only if present) -->
                     <div class="power-bar" *ngIf="showFanC2" role="img"
                          [class.power-bar--max]="isBarMax(info.fanspeed, 100)"
-                         [attr.aria-label]="'Fan C2' + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm2 ?? 0 | number: '1.0-0') + ' RPM)'">
+                         [attr.aria-label]="('HOME.FAN_CHANNEL' | translate:{channel: 2}) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm2 ?? 0 | number: '1.0-0') + ' RPM)'">
                       <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed, 0, 100)"></div>
-                      <div class="power-bar__label">Fan C2</div>
+                      <div class="power-bar__label">{{ 'HOME.FAN_CHANNEL' | translate:{channel: 2} }}</div>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
                           <span class="power-bar__subvalue">{{ (info.fanrpm2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
@@ -590,7 +636,6 @@
                       </div>
                     </div>
 
-                    <div class="heat-spacer" aria-hidden="true"></div>
                   </div>
                 </div>
               </div>

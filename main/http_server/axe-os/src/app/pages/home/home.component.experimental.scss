@@ -1152,6 +1152,68 @@ nb-card-header{
   height: 320px;
 }
 
+.chart-header-actions{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-zoom-controls{
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chart-zoom-label{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+  font-weight: 600;
+  line-height: 1;
+  margin-left: -12px;
+}
+
+.chart-zoom-label__title{
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.chart-zoom-label__value{
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--bar-fill, var(--chart-toggle-color, var(--text-basic-color))) !important;
+}
+
+.chart-zoom-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 52px;
+  height: 26px;
+  padding: 0 8px;
+  line-height: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+}
+
+.chart-zoom-btn--toggle{
+  min-width: 74px;
+}
+
+.chart-zoom-btn__icon{
+  color: var(--bar-fill, var(--chart-toggle-color, var(--text-basic-color))) !important;
+  font-weight: 700;
+}
+
+.chart-zoom-btn__text{
+  color: inherit;
+}
+
 /* Taller variant (used for "stretch over 4 rows" look) */
 .chart-canvas__wrap--tall{
   /* Desktop: make the chart 150px taller */
@@ -2003,12 +2065,6 @@ nb-card-header{
   opacity: 0.9;
   margin-bottom: 8px;
 }
-
-/* Spacer to make the right-side bar column match the metric square height */
-.heat-spacer{
-  height: var(--pbar-h);
-}
-
 
 .heat-bars{
   min-width: 0;
