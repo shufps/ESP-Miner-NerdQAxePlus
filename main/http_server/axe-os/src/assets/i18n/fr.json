@@ -65,6 +65,8 @@
     "HASHRATE_10M": " (10 min)",
     "HASHRATE_1H": " (1 heure)",
     "HASHRATE_1D": " (1 jour)",
+    "CHART_SPAN": "Plage",
+    "FAN_CHANNEL": "Ventilateur C{{channel}}",
     "SHARE_TOO_SMALL": "Pourcentage pour ce pool trop faible!",
     "HIDE_CHART": "masquer",
     "SHOW_CHART": "afficher"
@@ -474,6 +476,8 @@
     "DAY": "jour",
     "HOUR": "heure",
     "MINUTE": "minute",
+    "HOUR_SHORT": "h",
+    "MINUTE_SHORT": "min",
     "SECOND": "seconde",
     "YEAR_SINGULAR": "année",
     "YEAR_PLURAL": "années",

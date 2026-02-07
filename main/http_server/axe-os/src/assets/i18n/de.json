@@ -64,6 +64,8 @@
     "HASHRATE_10M": " (10 min)",
     "HASHRATE_1H": " (1 std)",
     "HASHRATE_1D": " (1 Tag)",
+    "CHART_SPAN": "Spanne",
+    "FAN_CHANNEL": "Lüfter C{{channel}}",
     "SHARE_TOO_SMALL": "Anteil für diesen Pool zu klein!",
     "HIDE_CHART": "ausblenden",
     "SHOW_CHART": "einblenden"
@@ -474,6 +476,8 @@
     "DAY": "Tag",
     "HOUR": "Stunde",
     "MINUTE": "Minute",
+    "HOUR_SHORT": "h",
+    "MINUTE_SHORT": "min",
     "SECOND": "Sekunde",
     "YEAR_SINGULAR": "Jahr",
     "YEAR_PLURAL": "Jahre",
