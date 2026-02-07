@@ -34,26 +34,8 @@ export class ExperimentalDashboardService {
     const prev = this._enabled$.value;
     if (prev === enabled) return;
 
-    // Wipe chart history once so the next dashboard state is clean.
-    this.clearChartHistoryOnceSafe();
-
     this.localStorage.setBool(STORAGE_KEY, enabled);
     this._enabled$.next(enabled);
     window.dispatchEvent(new CustomEvent('experimentalDashboardChanged', { detail: enabled }));
-  }
-
-  private clearChartHistoryOnceSafe(): void {
-    const anyWin = window as any;
-    try {
-      if (anyWin?.__nerdCharts?.clearChartHistoryInternal) {
-        anyWin.__nerdCharts.clearChartHistoryInternal(true);
-      } else {
-        // The reliable wipe function is registered by HomeExperimentalComponent.
-        // If it's not loaded yet, defer the wipe until it is.
-        localStorage.setItem('__pendingChartHistoryWipe', '1');
-      }
-    } catch {
-      // ignore
-    }
   }
 }
