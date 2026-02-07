@@ -20,7 +20,6 @@ import { HOME_CFG,
   createAxisPaddingCfg } from './home.cfg';
 import {
   findLastFinite,
-  median,
   HomeChartState,
   HomeChartStorage,
   HomeHistoryDrainer,
@@ -33,8 +32,19 @@ import {
   computeXWindow,
   computeHomeChartScales,
   applyAxisBoundsToChartOptions,
+  shouldUnlockStartup,
   HomeWarmupMachine,
   shouldInsertRestartCut,
+  syncHomeChartDataAndSmoothing,
+  getHistoryOldestTimestampMs,
+  shouldStartHr1mFromHistory,
+  shouldShowZoomWindowLabel,
+  clampWindowMs,
+  stepWindowMs,
+  toggleWindowMs,
+  ChartZoomCfg,
+  formatZoomWindowLabel,
+  updateChartWithZoomAnimation,
 } from './chart';
 
 import { NbThemeService } from '@nebular/theme';
@@ -89,6 +99,12 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   // Persisted UI state: chart collapsed (visual-only; data continues tracking).
   public isChartCollapsed: boolean = false;
   private readonly chartCollapsedKey: string = HOME_CFG.storage.keys.chartCollapsed;
+  private chartWindowMs: number = HOME_CFG.xAxis.fixedWindowMs;
+  private zoomCfg: ChartZoomCfg = {
+    minWindowMs: HOME_CFG.xAxis.minWindowMs,
+    maxWindowMs: HOME_CFG.xAxis.maxWindowMs,
+    zoomStepMs: HOME_CFG.xAxis.zoomStepMs,
+  };
 
   // CSS vars for meter bars (kept in sync with HOME_CFG)
   @HostBinding('style.--bar-fill') barFill: string = HOME_CFG.colors.hashrateBase;
@@ -121,6 +137,56 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
         x.max = xMaxMs;
       }
     } catch {}
+  }
+
+  private setChartWindowMs(nextMs: number): void {
+    const next = clampWindowMs(nextMs, this.zoomCfg);
+    if (next === this.chartWindowMs) return;
+    const prev = this.chartWindowMs;
+    this.chartWindowMs = next;
+    // Reset sticky temp bounds so the axis re-fits to the new window.
+    this.lastTempAxisMin = null;
+    this.lastTempAxisMax = null;
+
+    if (next > prev) {
+      const oldest = this.dataLabel?.length ? this.dataLabel[0] : null;
+      const cutoff = Date.now() - next;
+      const needsBackfill = !Number.isFinite(oldest as any) || Number(oldest) > cutoff + 2000;
+      if (needsBackfill) {
+        void this.reloadHistoryForWindow(next);
+      }
+    }
+
+    this.updateAxesScaleAdaptive();
+    this.syncChartDatasetsAndSmoothing();
+    // Force immediate dataset refresh so smoothing changes apply before any next tick.
+    try { this.chart?.update?.('none'); } catch {}
+    updateChartWithZoomAnimation(this.chart, 160);
+  }
+
+  public zoomOut(evt?: Event): void {
+    try { (evt?.currentTarget as HTMLElement | null)?.blur?.(); } catch {}
+    this.setChartWindowMs(stepWindowMs(this.chartWindowMs, this.zoomCfg.zoomStepMs, this.zoomCfg));
+  }
+
+  public zoomIn(evt?: Event): void {
+    try { (evt?.currentTarget as HTMLElement | null)?.blur?.(); } catch {}
+    this.setChartWindowMs(stepWindowMs(this.chartWindowMs, -this.zoomCfg.zoomStepMs, this.zoomCfg));
+  }
+
+  public toggleZoomWindow(evt?: Event): void {
+    try { (evt?.currentTarget as HTMLElement | null)?.blur?.(); } catch {}
+    this.setChartWindowMs(toggleWindowMs(this.chartWindowMs, this.zoomCfg));
+  }
+
+  public get zoomWindowLabel(): string {
+    const hourShort = this.translateService.instant('UNITS.HOUR_SHORT');
+    const minuteShort = this.translateService.instant('UNITS.MINUTE_SHORT');
+    return formatZoomWindowLabel(this.chartWindowMs, hourShort, minuteShort);
+  }
+
+  public get showZoomWindowLabel(): boolean {
+    return shouldShowZoomWindowLabel(this.chartWindowMs, this.zoomCfg);
   }
 
   /**
@@ -254,37 +320,6 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   // Applies to the 1min hashrate dataset. This does not modify data, only the curve rendering.
   // Rule: high point density => higher tension, low density => lower tension.
   private hashrate1mSmoothingCfg = { ...HOME_CFG.smoothing.hashrate1m };
-  private applyHashrate1mSmoothing(): void {
-    const ds: any = (this.chartData?.datasets && this.chartData.datasets.length) ? this.chartData.datasets[0] : null;
-    if (!ds) return;
-
-    const cfg = this.hashrate1mSmoothingCfg;
-    if (!cfg || !cfg.enabled) {
-      ds.tension = 0;
-      try { delete (ds as any).cubicInterpolationMode; } catch {}
-      return;
-    }
-
-    const labels = this.dataLabel;
-    let medianIntervalMs = 0;
-
-    if (labels && labels.length >= 3) {
-      const diffs: number[] = [];
-      const n = Math.min(this.hashrate1mSmoothingCfg.medianWindowPoints, labels.length - 1);
-      for (let i = labels.length - n; i < labels.length; i++) {
-        const d = labels[i] - labels[i - 1];
-        if (Number.isFinite(d) && d > 0) diffs.push(d);
-      }
-      medianIntervalMs = diffs.length ? median(diffs) : 0;
-    }
-
-    let tension = cfg.tensionSlow;
-    if (medianIntervalMs && medianIntervalMs <= cfg.fastIntervalMs) tension = cfg.tensionFast;
-    else if (medianIntervalMs && medianIntervalMs <= cfg.mediumIntervalMs) tension = cfg.tensionMedium;
-
-    ds.tension = tension;
-    ds.cubicInterpolationMode = cfg.cubicInterpolationMode;
-  }
 
   private setHashrateYAxisLabelCount(count: number): void {
     const clamp = HOME_CFG.yAxis.hashrateTickCountClamp;
@@ -389,6 +424,7 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   private hr1mReloadTimer: any = null;
   private readonly hr1mReloadConsumedKey: string = '__nerdCharts_hr1mReloadConsumedToken';
   private readonly hr1mReloadCooldownUntilKey: string = '__nerdCharts_hr1mReloadCooldownUntil';
+  private isHistoryImporting: boolean = false;
   // NOTE: For hashrate charts, the pill/live value is used ONLY as a warmup gate signal.
   // The plotted data continues to come from the history series (as before).
   // To avoid a visible "shoot" or a brief drop right after restart, we simply do NOT start
@@ -473,7 +509,8 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
 
     this.historyDrainer = new HomeHistoryDrainer(
       {
-        fetchInfo: (startTimestampMs, chunkSize) => this.systemService.getInfo(startTimestampMs, chunkSize),
+        fetchInfo: (startTimestampMs, chunkSize) =>
+          this.systemService.getInfoWithSpan(startTimestampMs, chunkSize, HOME_CFG.xAxis.maxWindowMs),
         importHistoryChunk: (history) => this.importHistoricalData(history),
         setRunning: (running) => (this.historyDrainRunning = running),
         setSuppressed: (suppressed) => (this.suppressChartUpdatesDuringHistoryDrain = suppressed),
@@ -531,7 +568,9 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
     this.info$ = createSystemInfoPolling$({
       pollMs: 5000,
       chunkSize: this.chunkSizeDrainer,
-      fetchInfo: (startTimestampMs, chunkSize) => this.systemService.getInfo(startTimestampMs, chunkSize),
+      historyWindowMs: HOME_CFG.xAxis.maxWindowMs,
+      fetchInfo: (startTimestampMs, chunkSize) =>
+        this.systemService.getInfoWithSpan(startTimestampMs, chunkSize, HOME_CFG.xAxis.maxWindowMs),
       defaultInfo: () => SystemService.defaultInfo(),
       getStoredLastTimestampMs: () => this.getStoredTimestamp(),
       getForceStartTimestampMs: () => {
@@ -787,6 +826,7 @@ export class HomeExperimentalComponent implements AfterViewChecked, OnInit, OnDe
   }
 
 ngOnInit() {
+    this.chartWindowMs = clampWindowMs(HOME_CFG.xAxis.fixedWindowMs, this.zoomCfg);
     // Chart.js plugins are global; register once.
     registerHomeChartPlugins();
     installNerdChartsDebugBootstrap(globalThis, {
@@ -863,16 +903,6 @@ ngOnInit() {
     };
     window.addEventListener('timeFormatChanged', this.timeFormatListener);
 
-    // If a wipe was requested before the experimental dashboard was loaded, do it now once.
-    try {
-      if (localStorage.getItem('__pendingChartHistoryWipe') === '1') {
-        localStorage.removeItem('__pendingChartHistoryWipe');
-        (this as any).clearChartHistoryInternal();
-      }
-    } catch {
-      // ignore
-    }
-
     // Pull `/asic` once so the Current Frequency bar can use the same
     // model-specific frequency table as the Settings screen.
     (async () => {
@@ -926,7 +956,12 @@ ngOnInit() {
 
   private importHistoricalData(data: any) {
     // relative to absolute time stamps
-    this.updateChartData(data);
+    this.isHistoryImporting = true;
+    try {
+      this.updateChartData(data);
+    } finally {
+      this.isHistoryImporting = false;
+    }
 
     if (data.timestamps && data.timestamps.length) {
       const lastRel = data.timestamps[data.timestamps.length - 1];
@@ -1033,7 +1068,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     if (!this.chart || !this.chartOptions?.scales) return;
 
     // Always enforce a stable X-window (e.g. 1h), regardless of how many points exist.
-    const { xMinMs, xMaxMs } = computeXWindow(this.dataLabel || [], HOME_CFG.xAxis.fixedWindowMs);
+    const { xMinMs, xMaxMs } = computeXWindow(this.dataLabel || [], this.chartWindowMs);
     this.applyXWindowToChart(xMinMs, xMaxMs);
 
     const labels = this.dataLabel || [];
@@ -1085,6 +1120,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     if (Number.isFinite(tempAxisMax as any)) this.lastTempAxisMax = tempAxisMax as number;
 
     applyAxisBoundsToChartOptions(this.chartOptions, bounds);
+
   }
 
   // --- Sanitizing helpers (invalid samples become NaN => visual gap / never plotted)
@@ -1208,11 +1244,15 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
     const live = Number(livePoolSumHs);
     const expected = Number(this.expectedHashrateHsLast);
-    if (!Number.isFinite(live) || live <= 0) return;
-    if (!Number.isFinite(expected) || expected <= 0) return;
-
     const ratio = Number(HOME_CFG.startup.expectedUnlockRatio ?? 0.75);
-    if (live >= expected * ratio) {
+    const liveStable = !!this.graphGuardEngine?.isLiveRefStable?.();
+
+    if (shouldUnlockStartup({
+      liveHs: live,
+      expectedHs: expected,
+      expectedUnlockRatio: ratio,
+      liveIsStable: liveStable,
+    })) {
       this.startupUnlocked = true;
       const n = Math.max(0, Math.round(Number(HOME_CFG.startup.bypassGuardSamples ?? 0)));
       this.bypassRemaining = {
@@ -1345,7 +1385,13 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
           : histOk;
 
         if (!this.hr1mStarted) {
-          if (this.startupUnlocked && histUnlockOk) {
+          if (shouldStartHr1mFromHistory({
+            hr1mStarted: this.hr1mStarted,
+            startupUnlocked: this.startupUnlocked,
+            histOk,
+            histUnlockOk,
+            isHistoryImporting: this.isHistoryImporting,
+          })) {
             this.hr1mStarted = true;
             // Smooth startup + optional reload should only trigger after an actual restart (hard cut).
             // On normal page loads, we keep snappy behavior (no smooth window).
@@ -1499,6 +1545,8 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       if (this.chartData) {
         this.updateChart();
       }
+
+      this.maybeExpandHistoryForZoom();
     } catch (err) {
       console.warn('[HomeComponent] Failed to load chartData from storage (keeping it untouched).', err);
 
@@ -1508,6 +1556,17 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       if (this.chartData) {
         this.updateChart();
       }
+    }
+  }
+
+  private maybeExpandHistoryForZoom(): void {
+    const maxWindow = this.zoomCfg?.maxWindowMs ?? 0;
+    if (!maxWindow || !this.dataLabel?.length) return;
+
+    const oldest = this.dataLabel[0];
+    const cutoff = Date.now() - maxWindow;
+    if (!Number.isFinite(oldest as any) || Number(oldest) > cutoff + 2000) {
+      void this.reloadHistoryForWindow(maxWindow);
     }
   }
 
@@ -1583,8 +1642,8 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
   private filterOldData(): void {
     const now = new Date().getTime();
-    // Keep the in-memory series consistent with the configured x-axis viewport.
-    this.chartState.trimToWindow(now);
+    // Keep the in-memory series consistent with the current x-axis viewport.
+    this.chartState.trimToWindow(now, this.zoomCfg.maxWindowMs);
 
     if (this.chartState.labels.length) {
       this.storeTimestamp(this.chartState.labels[this.chartState.labels.length - 1]);
@@ -1602,27 +1661,35 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     return this.chartStorage.loadLastTimestamp();
   }
 
-  private updateChart() {
-    this.chartData.labels = this.dataLabel;
-    this.chartData.datasets[0].data = this.dataData1m;
-    this.chartData.datasets[1].data = this.dataData10m;
-    this.chartData.datasets[2].data = this.dataData1h;
-    this.chartData.datasets[3].data = this.dataData1d;
-    this.chartData.datasets[4].data = this.dataVregTemp;
-    this.chartData.datasets[5].data = this.dataAsicTemp;
+  private syncChartDatasetsAndSmoothing(): void {
+    syncHomeChartDataAndSmoothing({
+      chartData: this.chartData,
+      chartOptions: this.chartOptions,
+      chart: this.chart,
+      series: {
+        labels: this.dataLabel,
+        hr1m: this.dataData1m,
+        hr10m: this.dataData10m,
+        hr1h: this.dataData1h,
+        hr1d: this.dataData1d,
+        vregTemp: this.dataVregTemp,
+        asicTemp: this.dataAsicTemp,
+      },
+      hashrateDisplayValue: this.getPoolHashrateHsSum(),
+      smoothingCfg: this.hashrate1mSmoothingCfg,
+      windowMs: this.chartWindowMs,
+      zoomCfg: this.zoomCfg,
+    });
+  }
 
-    // Update hashrate pill display value from live pool sum.
-    if (this.chartOptions?.plugins?.valuePills) {
-      this.chartOptions.plugins.valuePills.hashrateDisplayValue = this.getPoolHashrateHsSum();
-    }
+  private updateChart() {
+    this.syncChartDatasetsAndSmoothing();
 
     if (!this.chart) {
       return;
     }
 
     this.updateAxesScaleAdaptive();
-    this.applyHashrate1mSmoothing();
-
     this.chart.update();
   }
 
@@ -1710,6 +1777,52 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     if (updateChartNow) {
       this.updateChart();
     }
+  }
+
+  private async reloadHistoryForWindow(windowMs: number): Promise<void> {
+    const start = Date.now() - Math.max(0, Math.round(Number(windowMs || 0)));
+    let info: any = null;
+    try {
+      info = await firstValueFrom(
+        this.systemService.getInfoWithSpan(start, this.chunkSizeDrainer, windowMs)
+      );
+    } catch {
+      // ignore (next polling tick will retry)
+      return;
+    }
+
+    if (!info?.history?.timestamps?.length) {
+      return;
+    }
+
+    const existingOldest = this.dataLabel.length ? Number(this.dataLabel[0]) : null;
+    const fetchedOldest = getHistoryOldestTimestampMs(info.history);
+    const shouldReplace = !this.dataLabel.length
+      || (Number.isFinite(existingOldest as any)
+        && Number.isFinite(fetchedOldest as any)
+        && (fetchedOldest as number) < (existingOldest as number) - 2000);
+
+    // If the fetched history does NOT extend further back than what we already have,
+    // avoid wiping local history (e.g. after a miner reboot when firmware history reset).
+    if (!shouldReplace) {
+      this.importHistoricalData(info.history);
+      return;
+    }
+
+    // Reset state so older points can be re-imported in one pass.
+    this.historyDrainer?.stop();
+    this.historyDrainRunning = false;
+    this.suppressChartUpdatesDuringHistoryDrain = false;
+
+    this.clearChartData();
+    this.graphGuardEngine.reset();
+
+    this.chartStorage.clearPersistedState();
+    this.chartStorage.clearLastTimestamp();
+    this.chartStorage.clearMinHistoryTimestampMs();
+    this.historyMinTimestampMs = null;
+
+    this.importHistoricalData(info.history);
   }
 
   // edge case where chart data in the browser is not consistent
