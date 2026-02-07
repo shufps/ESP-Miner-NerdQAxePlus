@@ -224,7 +224,12 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
                 ? date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric' })
                 : date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, month: 'short', day: 'numeric' });
             },
-            label: (x: any) => `${x.dataset.label}: ${HashSuffixPipe.transform(x.raw)}`
+            label: (x: any) => {
+              if (x?.dataset?.yAxisID === 'y_temp') {
+                return `${x.dataset.label}: ${Number(x.raw).toFixed(2)} °C`;
+              }
+              return `${x.dataset.label}: ${HashSuffixPipe.transform(x.raw)}`;
+            }
           }
         },
       },
