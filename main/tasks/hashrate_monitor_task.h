@@ -105,4 +105,17 @@ class HashrateMonitor {
     float getHashrate() {
       return m_hashrate;
     }
+
+    // CAN slave hashrate accumulator.
+    // Master calls this whenever telemetry arrives from slaves.
+    void setExternalHashrate(float ghs) {
+        m_externalHashrate = ghs;
+    }
+
+    float getExternalHashrate() {
+        return m_externalHashrate;
+    }
+
+  private:
+    float m_externalHashrate = 0.0f;
 };

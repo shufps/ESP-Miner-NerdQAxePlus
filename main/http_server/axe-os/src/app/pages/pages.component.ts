@@ -1,35 +1,43 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 import { NbMenuItem } from '@nebular/theme';
+import { catchError } from 'rxjs/operators';
+import { of, Subscription } from 'rxjs';
+import { ISystemInfo } from '../models/ISystemInfo';
 
 @Component({
     selector: 'ngx-pages',
     styleUrls: ['pages.component.scss'],
     templateUrl: './pages.component.html',
   })
-  export class PagesComponent implements OnInit, OnDestroy{
+  export class PagesComponent implements OnInit, OnDestroy {
     menu: NbMenuItem[] = [];
 
-    constructor(private translateService: TranslateService)
-    {
+    private canEnabled = false;
+    private langSub?: Subscription;
 
-    }
+    constructor(private translateService: TranslateService, private http: HttpClient) {}
 
     ngOnInit(): void {
-        this.buildMenu();
+        this.http.get<ISystemInfo>('/api/system/info').pipe(
+            catchError(() => of(null))
+        ).subscribe(info => {
+            this.canEnabled = info?.canMaster === 1;
+            this.buildMenu();
+        });
 
-        // Listen for language changes
-        this.translateService.onLangChange.subscribe(() => {
+        this.langSub = this.translateService.onLangChange.subscribe(() => {
             this.buildMenu();
         });
     }
 
     ngOnDestroy(): void {
-
+        this.langSub?.unsubscribe();
     }
 
     private buildMenu(): void {
-        this.menu = [
+        const items: NbMenuItem[] = [
             {
                 title: this.translateService.instant('NAVIGATION.DASHBOARD'),
                 icon: 'home-outline',
@@ -61,11 +69,22 @@ import { NbMenuItem } from '@nebular/theme';
                 icon: 'shield-outline',
                 link: '/pages/security',
             },
-            {
-                title: this.translateService.instant('NAVIGATION.SYSTEM'),
-                icon: 'menu-outline',
-                link: '/pages/system',
-            },
         ];
+
+        if (this.canEnabled) {
+            items.push({
+                title: 'CAN Fleet',
+                icon: 'share-outline',
+                link: '/pages/can-fleet',
+            });
+        }
+
+        items.push({
+            title: this.translateService.instant('NAVIGATION.SYSTEM'),
+            icon: 'menu-outline',
+            link: '/pages/system',
+        });
+
+        this.menu = items;
     }
 }

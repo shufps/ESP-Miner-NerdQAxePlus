@@ -135,6 +135,8 @@ class StratumManager {
     bool isAnyConnected();
     int getNumConnectedPools();
 
+    void reconnectAll();
+
     virtual bool isDualPool() const { return false; }
     virtual bool isFallback() const { return false; }
 

@@ -492,6 +492,16 @@ nb-card-header{
   white-space: pre-line !important;
 }
 
+.pool-verify-tooltip {
+  width: 280px !important;
+  white-space: pre-line !important;
+}
+
+.pool-verify-tooltip {
+  width: 280px !important;
+  white-space: pre-line !important;
+}
+
 .pool-tile-metricbar__shares-label{
   font-size: 10px;
   /* Shares label should match unit/suffix color */
@@ -2297,6 +2307,28 @@ nb-card-header{
   line-height: 1.1;
 }
 
+// In CAN master mode the left col needs to grow to contain hashrate + metric row
+.pool-summary-square--fleet .pool-summary-square__left {
+  height: auto;
+}
+
+// ── CAN Master fleet metrics row ─────────────────────────────────────────────
+// 3 equal tiles (efficiency, best diff, fleet power) below the hashrate value.
+.fleet-metrics {
+  display: flex;
+  gap: var(--metric-gap, 12px);
+  margin-top: var(--metric-gap, 12px);
+
+  // Override fixed sizing from power-watt-box and pool-summary-square__best
+  &__tile {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    height: var(--metric-square, 120px) !important;
+    aspect-ratio: unset !important;
+    grid-column: unset !important;
+    grid-row: unset !important;
+  }
+}
 /* ── Block Header card ──────────────────────────────────────────── */
 .block-header-box{
   width: 100%;

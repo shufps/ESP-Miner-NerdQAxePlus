@@ -6,10 +6,6 @@
 #include "nerdqaxeplus.h"
 
 class NerdQaxePlus2 : public NerdQaxePlus {
-  protected:
-    void LDO_enable();
-    void LDO_disable();
-
   public:
     NerdQaxePlus2();
     float getTemperature(int index);

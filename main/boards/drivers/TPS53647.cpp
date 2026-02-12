@@ -316,21 +316,6 @@ bool TPS53647::init(int num_phases, int imax, float ifault)
     return true;
 }
 
-void TPS53647::power_enable()
-{
-    gpio_pad_select_gpio(TPS53647_EN_PIN);
-    gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(TPS53647_EN_PIN, 1);
-}
-
-void TPS53647::power_disable()
-{
-    gpio_pad_select_gpio(TPS53647_EN_PIN);
-    gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(TPS53647_EN_PIN, 0);
-}
-
-
 void TPS53647::clear_faults() {
     write_command(PMBUS_CLEAR_FAULTS);
 }
@@ -479,9 +464,6 @@ float TPS53647::get_iout(void)
 bool TPS53647::set_vout(float volts)
 {
     if (volts == 0) {
-        // turn off output
-        // write_byte(PMBUS_OPERATION, OPERATION_OFF);
-        power_disable();
         return true;
     }
 
@@ -490,9 +472,6 @@ bool TPS53647::set_vout(float volts)
         ESP_LOGE(TAG, "ERR- Voltage requested (%f V) is out of range", volts);
         return false;
     }
-
-    //    write_byte(PMBUS_OPERATION, OPERATION_ON);
-    power_enable();
 
     // set output voltage
     write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(volts));

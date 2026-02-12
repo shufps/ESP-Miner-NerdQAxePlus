@@ -7,6 +7,9 @@
 
 LV_IMG_DECLARE(ui_img_overheat_png);      // overheating screen
 LV_IMG_DECLARE(ui_img_safe_png);
+LV_IMG_DECLARE(ui_img_eth_png);
+LV_IMG_DECLARE(ui_img_can_png);
+LV_IMG_DECLARE(ui_img_wifi_png);
 
 #define LV_FONT_CUSTOM_DECLARE
 LV_FONT_DECLARE(ui_font_DigitalNumbers16);
@@ -81,6 +84,7 @@ protected:
     lv_obj_t *ui_lblhighFee = nullptr;
     lv_obj_t *ui_qrScreen = nullptr;
     lv_obj_t *ui_PowerOffScreen = nullptr;
+    lv_obj_t* ui_imgNet = nullptr;
 
     Board* m_board;
     Theme* m_theme;
