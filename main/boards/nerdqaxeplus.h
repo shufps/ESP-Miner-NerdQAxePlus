@@ -12,8 +12,13 @@ class NerdQaxePlus : public Board {
     float m_ifault;
     int m_initVoltageMillis;
 
-    void LDO_enable();
-    void LDO_disable();
+    virtual void LDO_enable();
+    virtual void LDO_disable();
+
+    virtual void VREG_enable();
+    virtual void VREG_disable();
+
+    virtual void setAsicReset(bool state);
 
     int detectNumTempSensors();
 

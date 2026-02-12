@@ -59,14 +59,16 @@ void System::initSystem() {
     m_display->loadSettings();
     m_display->init(m_board);
 
-    m_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-
     m_hostname = Config::getHostname();
 
     m_history = new History();
     if (!m_history->init(m_board->getAsicCount())) {
         ESP_LOGE(TAG, "history couldn't be initialized!");
     }
+}
+
+esp_netif_t* System::getWifiInterface() {
+    return esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 }
 
 void System::loadSettings() {

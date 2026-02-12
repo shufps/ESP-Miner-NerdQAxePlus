@@ -9,7 +9,7 @@
 
 class NerdQX : public NerdQaxePlus2 {
   protected:
-    Tmp451Mux m_tmp451;
+    Tmp451Mux* m_tmp451 = nullptr;
 
     // flag to remember if we found the tmux
     bool m_hasTMux = false;

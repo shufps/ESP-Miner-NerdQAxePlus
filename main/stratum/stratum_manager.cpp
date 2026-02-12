@@ -322,6 +322,20 @@ void StratumManager::loadSettings(bool reconnect)
     }
 }
 
+void StratumManager::reconnectAll() {
+    for (int i=0;i<2;i++) {
+        // trigger a reconnect
+        if (m_stratumTasks[i]) {
+            m_stratumTasks[i]->triggerReconnect();
+        }
+
+        // reset ping stats
+        if (m_pingTasks[i]) {
+            m_pingTasks[i]->reset();
+        }
+    }
+}
+
 void StratumManager::saveSettings(const JsonDocument &doc) {
     if (doc["poolMode"].is<uint16_t>()) {
         Config::setPoolMode(doc["poolMode"].as<uint16_t>());

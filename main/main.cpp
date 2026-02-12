@@ -20,6 +20,7 @@
 #include "boards/nerdqaxeplus.h"
 #include "boards/nerdqaxeplus2.h"
 #include "boards/nerdqx.h"
+#include "boards/q1370.h"
 #include "create_jobs_task.h"
 #include "discord.h"
 #include "global_state.h"
@@ -39,6 +40,7 @@
 #include "wifi_health.h"
 #include "guards.h"
 #include "utils.h"
+#include "w5500.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -57,6 +59,8 @@ AsicJobs asicJobs;
 
 OTP otp;
 SNTP sntp;
+
+W5500 w5500;
 
 static const char *TAG = "nerd*axe";
 
@@ -80,6 +84,26 @@ uint32_t now()
 bool is_time_synced(void)
 {
     return (sntp.isTimeSynced() && now() >= 1609459200);
+}
+
+static void request_stratum_reconnect()
+{
+    if (!STRATUM_MANAGER) {
+        return;
+    }
+    STRATUM_MANAGER->reconnectAll();
+}
+
+static void on_eth_link_up()
+{
+    ESP_LOGW(TAG, "ETH got IP -> request stratum reconnect (prefer ETH)");
+    request_stratum_reconnect();
+}
+
+static void on_eth_link_down()
+{
+    ESP_LOGW(TAG, "ETH link down -> request stratum reconnect (fallback WiFi)");
+    request_stratum_reconnect();
 }
 
 static void setup_wifi()
@@ -209,6 +233,27 @@ extern "C" void app_main(void)
     // migrate config
     Config::migrate_config();
 
+    esp_err_t err = gpio_install_isr_service(0);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "gpio_install_isr_service failed: %s", esp_err_to_name(err));
+    }
+
+    ESP_ERROR_CHECK(esp_netif_init());
+
+    err = esp_event_loop_create_default();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_ERROR_CHECK(err);
+    }
+
+    err = w5500.init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "w5500 init failed");
+    }
+    w5500.setHookLinkUp(on_eth_link_up);
+    w5500.setHookLinkDown(on_eth_link_down);
+
+
+
 #ifdef NERDQAXEPLUS
     Board *board = new NerdQaxePlus();
 #endif
@@ -235,6 +280,9 @@ extern "C" void app_main(void)
 #endif
 #ifdef NERDQX
     Board *board = new NerdQX();
+#endif
+#ifdef Q1370
+    Board *board = new Q1370B();
 #endif
 
     // initialize everything non-asic-specific like

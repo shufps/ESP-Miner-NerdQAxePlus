@@ -15,6 +15,7 @@ SRCS
     "boards/nerdhaxegamma.cpp"
     "boards/nerdqx.cpp"
     "boards/nerdeko.cpp"
+    "boards/q1370.cpp"
     "boards/drivers/EMC2302.cpp"
     "boards/drivers/TMP1075.cpp"
     "boards/drivers/TPS53647.cpp"
@@ -25,7 +26,10 @@ SRCS
     "boards/drivers/nerdaxe/TPS546.cpp"
     "boards/drivers/nerdaxe/adc.cpp"
     "boards/drivers/i2c_master.cpp"
+    "boards/drivers/tmp451.cpp"
     "boards/drivers/tmp451_mux.cpp"
+    "boards/drivers/tmp451_mux_exp.cpp"
+    "boards/drivers/fxl6408.cpp"
     "history.cpp"
     "discord.cpp"
     "fan_controller.cpp"
@@ -95,7 +99,7 @@ INCLUDE_DIRS
     "displays/images"
     "boards"
     "boards/drivers"
-    "../components/connect/include"
+    "network"
     "../components/dns_server/include"
     "../components/bm1397/include"
     "../components/influx/include"
@@ -124,7 +128,7 @@ REQUIRES
     "esp-tls"
     "stratum_v2"
     "libsecp256k1"
-    "coinbase_decoder"
+    "esp_eth"
 
 )
 

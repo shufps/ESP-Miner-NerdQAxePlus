@@ -108,6 +108,10 @@ bool NerdQaxePlus::initBoard()
     gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(TPS53647_EN_PIN, 0);
 
+    gpio_pad_select_gpio(TPS53647_EN_PIN);
+    gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(TPS53647_EN_PIN, 0);
+
     gpio_pad_select_gpio(LDO_EN_PIN);
     gpio_set_direction(LDO_EN_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(LDO_EN_PIN, 0);
@@ -115,6 +119,7 @@ bool NerdQaxePlus::initBoard()
     gpio_pad_select_gpio(BM1368_RST_PIN);
     gpio_set_direction(BM1368_RST_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(BM1368_RST_PIN, 0);
+
 
     return true;
 }
@@ -131,6 +136,10 @@ void NerdQaxePlus::shutdown() {
     Board::shutdown();
 }
 
+void NerdQaxePlus::setAsicReset(bool state) {
+    gpio_set_level(BM1368_RST_PIN, !!state);
+}
+
 bool NerdQaxePlus::initAsics()
 {
     // disable buck (disables EN pin)
@@ -140,7 +149,7 @@ bool NerdQaxePlus::initAsics()
     LDO_disable();
 
     // set reset low
-    gpio_set_level(BM1368_RST_PIN, 0);
+    setAsicReset(0);
 
     // wait 250ms
     vTaskDelay(pdMS_TO_TICKS(250));
@@ -164,7 +173,7 @@ bool NerdQaxePlus::initAsics()
     m_isBuckInitialized = true;
 
     // release reset pin
-    gpio_set_level(BM1368_RST_PIN, 1);
+    setAsicReset(1);
 
     // delay for 250ms
     vTaskDelay(pdMS_TO_TICKS(250));
@@ -230,13 +239,28 @@ void NerdQaxePlus::LDO_disable()
     gpio_set_level(LDO_EN_PIN, 0);
 }
 
+void NerdQaxePlus::VREG_enable()
+{
+    gpio_set_level(TPS53647_EN_PIN, 1);
+}
+
+void NerdQaxePlus::VREG_disable()
+{
+    gpio_set_level(TPS53647_EN_PIN, 0);
+}
+
 bool NerdQaxePlus::setVoltage(float core_voltage)
 {
     if (!validateVoltage(core_voltage)) {
         return false;
     }
 
+    if (core_voltage == 0.0) {
+        VREG_disable();
+        return true;
+    }
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
+    VREG_enable();
     return m_tps->set_vout(core_voltage);
 }
 

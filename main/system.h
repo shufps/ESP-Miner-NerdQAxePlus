@@ -54,7 +54,6 @@ class System {
     History *m_history;
 
     // Network interface
-    esp_netif_t *m_netif;         // ESP32 network interface structure
     esp_netif_ip_info_t m_ipInfo; // IP information for the network interface
 
     // FreeRTOS queue for handling user input
@@ -221,4 +220,6 @@ class System {
     }
 
     void pushHistory();
+
+    esp_netif_t* getWifiInterface();
 };

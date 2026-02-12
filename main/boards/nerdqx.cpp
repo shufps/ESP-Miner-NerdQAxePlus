@@ -65,6 +65,7 @@ NerdQX::NerdQX() : NerdQaxePlus2() {
     m_asicMinDifficulty = 1024;
     m_asicMinDifficultyDualPool = 256;
 
+    m_tmp451 = new Tmp451Mux(GPIO_NUM_2, GPIO_NUM_3, 0x4c, true);
 #ifdef NERDQX
     m_theme = new ThemeNerdqx();
 #endif
@@ -77,7 +78,7 @@ NerdQX::NerdQX() : NerdQaxePlus2() {
 bool NerdQX::initBoard() {
     bool ret = NerdQaxePlus::initBoard();
 
-    m_hasTMux = m_tmp451.init() == ESP_OK;
+    m_hasTMux = m_tmp451->init() == ESP_OK;
 
     if (!m_hasTMux) {
         ESP_LOGE(TAG, "TMUX probe failed. Assuming non-QX board; applying safety limits.");
@@ -111,7 +112,7 @@ void NerdQX::requestChipTemps() {
     }
 
     for (int i=0;i<m_asicCount;i++) {
-        float temp = m_tmp451.get_temperature(i);
+        float temp = m_tmp451->get_temperature(i);
         // ESP_LOGI(TAG, "temperature of chip %d: %.3f", i, temp);
         if (!isnan(temp)) {
             setChipTemp(i, temp);
