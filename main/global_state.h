@@ -12,6 +12,7 @@
 #include "stratum/stratum_manager_dual_pool.h"
 #include "stratum/stratum_manager_fallback.h"
 #include "tasks/apis_task.h"
+#include "network/network_manager.h"
 
 #include "boards/nerdqaxeplus.h"
 #include "system.h"
@@ -33,6 +34,7 @@ extern DiscordAlerter discordAlerter;
 
 extern OTP otp;
 
+extern NetworkManager NETWORK;
 uint64_t now_ms();
 uint32_t now();
 bool is_time_synced(void);

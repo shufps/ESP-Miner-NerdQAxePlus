@@ -40,7 +40,7 @@
 #include "wifi_health.h"
 #include "guards.h"
 #include "utils.h"
-#include "w5500.h"
+#include "network/network_manager.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -60,7 +60,7 @@ AsicJobs asicJobs;
 OTP otp;
 SNTP sntp;
 
-W5500 w5500;
+NetworkManager NETWORK;
 
 static const char *TAG = "nerd*axe";
 
@@ -94,63 +94,48 @@ static void request_stratum_reconnect()
     STRATUM_MANAGER->reconnectAll();
 }
 
-static void on_eth_link_up()
+// Reconnect when preferred route changes (ETH<->WiFi) or when ETH becomes available
+static void on_preferred_changed()
 {
-    ESP_LOGW(TAG, "ETH got IP -> request stratum reconnect (prefer ETH)");
+    ESP_LOGW(TAG, "Network preferred route changed -> request stratum reconnect");
     request_stratum_reconnect();
 }
 
-static void on_eth_link_down()
+static void setup_network()
 {
-    ESP_LOGW(TAG, "ETH link down -> request stratum reconnect (fallback WiFi)");
-    request_stratum_reconnect();
-}
-
-static void setup_wifi()
-{
-    // pull the wifi credentials and hostname out of NVS
     char *wifi_ssid = Config::getWifiSSID();
     char *wifi_pass = Config::getWifiPass();
     char *hostname  = Config::getHostname();
 
-    // release on exit of scope (RAII)
     MemoryGuard gSsid(wifi_ssid);
     MemoryGuard gWifiPass(wifi_pass);
     MemoryGuard gHostname(hostname);
 
-    // copy the wifi ssid to the global state
     SYSTEM_MODULE.setSsid(wifi_ssid);
 
-    // init and connect to wifi (asynchronous setup)
-    wifi_init(wifi_ssid, wifi_pass, hostname);
+    NETWORK.setHookPreferredChanged(on_preferred_changed);
 
-    // start rest server (needed in AP fallback for config)
+    ESP_ERROR_CHECK(NETWORK.start(wifi_ssid, wifi_pass, hostname));
+
+    // REST server for AP fallback/config (and also reachable via LAN/WiFi)
     start_rest_server(NULL);
 
-    // initial blocking wait: CONNECTED or FAIL
-    EventBits_t bits = wifi_connect();
-
-    if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "Connected to SSID: %s", wifi_ssid);
-        SYSTEM_MODULE.setWifiStatus("Connected!");
-        return;
-    }
-
-    // Initial connect failed: stay in AP fallback, keep waiting for STA recovery
-    ESP_LOGW(TAG, "Initial WiFi connect failed. Staying in AP fallback and waiting for STA recovery...");
-
+    // Wait until ANY interface has an IP
     for (;;) {
-        // Wait up to 30s for STA to come up (retries run in background)
-        EventBits_t w = wifi_wait_connected_ms(pdMS_TO_TICKS(30000));
+        EventBits_t bits = NETWORK.waitAnyIpMs(pdMS_TO_TICKS(30000));
 
-        if (w & WIFI_CONNECTED_BIT) {
-            ESP_LOGI(TAG, "STA recovered and connected to SSID: %s", wifi_ssid);
-            SYSTEM_MODULE.setWifiStatus("Connected!");
-            return; // continue normal init after this
+        if (bits != 0) {
+            if (NETWORK.hasEthIp()) {
+                ESP_LOGI(TAG, "Network up via ETH (preferred)");
+                SYSTEM_MODULE.setWifiStatus("LAN Connected!");
+            } else {
+                ESP_LOGI(TAG, "Network up via WiFi");
+                SYSTEM_MODULE.setWifiStatus("WiFi Connected!");
+            }
+            return;
         }
 
-        // Heartbeat while waiting in AP mode
-        ESP_LOGI(TAG, "Still waiting for STA to connect... (AP is available for config)");
+        ESP_LOGI(TAG, "Waiting for network IP... (AP is available for config)");
     }
 }
 
@@ -245,14 +230,7 @@ extern "C" void app_main(void)
         ESP_ERROR_CHECK(err);
     }
 
-    err = w5500.init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "w5500 init failed");
-    }
-    w5500.setHookLinkUp(on_eth_link_up);
-    w5500.setHookLinkDown(on_eth_link_down);
-
-
+    NETWORK.earlyEthSpiInit();
 
 #ifdef NERDQAXEPLUS
     Board *board = new NerdQaxePlus();
@@ -314,10 +292,13 @@ extern "C" void app_main(void)
 
     STRATUM_MANAGER->loadSettings();
 
+    SYSTEM_MODULE.init();
+    SYSTEM_MODULE.initDisplay();
+
+    setup_network();
+
     xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
     xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
-
-    setup_wifi();
 
     // set the startup_done flag
     SYSTEM_MODULE.setStartupDone();
@@ -364,6 +345,7 @@ extern "C" void app_main(void)
             HASHRATE_MONITOR.start(board, board->getAsics());
         }
     }
+
     // char* taskList = (char*) malloc(8192);
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(10000));

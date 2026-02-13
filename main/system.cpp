@@ -33,7 +33,7 @@ System::System() {
     // NOP
 }
 
-void System::initSystem() {
+void System::init() {
     m_screenPage = 0;
     m_startTime = esp_timer_get_time();
     m_startupDone = false;
@@ -57,7 +57,6 @@ void System::initSystem() {
     // Initialize the display
     m_display = new DisplayDriver();
     m_display->loadSettings();
-    m_display->init(m_board);
 
     m_hostname = Config::getHostname();
 
@@ -65,6 +64,10 @@ void System::initSystem() {
     if (!m_history->init(m_board->getAsicCount())) {
         ESP_LOGE(TAG, "history couldn't be initialized!");
     }
+}
+
+void System::initDisplay() {
+    m_display->init(m_board);
 }
 
 esp_netif_t* System::getWifiInterface() {
@@ -77,15 +80,8 @@ void System::loadSettings() {
     }
 }
 
-void System::updateHashrate() {}
-void System::updateBestDiff() {}
-void System::clearDisplay() {}
-void System::updateSystemInfo() {}
-void System::updateEsp32Info() {}
-void System::initConnection() {}
-
 void System::updateConnection() {
-    m_display->updateWifiStatus(m_wifiStatus);
+    //m_display->updateWifiStatus(m_wifiStatus);
 }
 
 void System::updateSystemPerformance() {}
@@ -223,9 +219,6 @@ void System::pushHistory() {
 }
 
 void System::task() {
-    initSystem();
-    clearDisplay();
-    initConnection();
     startTimer();
 
     ESP_LOGI(TAG, "SYSTEM_task started");
@@ -236,32 +229,18 @@ void System::task() {
     wifi_mode_t wifiMode;
     esp_err_t result;
 
-    while (!m_startupDone) {
-        // Check if STA has a valid IP
-        char ip[20] = {0};
-        bool sta_has_ip = connect_get_ip_addr(ip, sizeof(ip)); // returns true if ip_valid
-
-        // Check whether AP is active
-        result = esp_wifi_get_mode(&wifiMode);
-        bool ap_active = (result == ESP_OK) && (wifiMode == WIFI_MODE_AP || wifiMode == WIFI_MODE_APSTA);
-
-        if (!sta_has_ip && ap_active) {
-            // STA not connected yet -> show captive/config info
-            showApInformation(nullptr);
-            vTaskDelay(pdMS_TO_TICKS(5000)); // avoid flicker/spam
-        } else {
-            // Either STA is connected or AP is off -> show normal connection UI
-            updateConnection();
-            vTaskDelay(pdMS_TO_TICKS(100));
-        }
+    while (!NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress))) {
+        // STA not connected yet -> show captive/config info
+        showApInformation(nullptr);
+        vTaskDelay(pdMS_TO_TICKS(5000)); // avoid flicker/spam
     }
 
+    m_display->updateIpAddress(m_ipAddress);
+    updateConnection();
     m_display->miningScreen();
 
     char lastIpAddress[20] = {0};
 
-    // show initial 0.0.0.0
-    m_display->updateIpAddress(m_ipAddress);
     int lastFoundBlocks = 0;
 
     int toggle = 1;
@@ -277,7 +256,7 @@ void System::task() {
         }
 
         // update IP on the screen if it is available
-        if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
+        if (NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress))) {
             if (strcmp(m_ipAddress, lastIpAddress) != 0) {
                 ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
                 m_display->updateIpAddress(m_ipAddress);

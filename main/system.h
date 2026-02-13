@@ -70,12 +70,6 @@ class System {
     TimerHandle_t m_timer;
 
     // Internal helper methods for system management
-    void initSystem();                                 // Initialize system components
-    void updateHashrate();                             // Update the hashrate
-    void updateBestDiff();                             // Update the best difficulty found
-    void clearDisplay();                               // Clear the display
-    void updateSystemInfo();                           // Update system information
-    void updateEsp32Info();                            // Update ESP32-specific information
     void initConnection();                             // Initialize network connection
     void updateConnection();                           // Update connection status
     void updateSystemPerformance();                    // Update performance metrics
@@ -87,6 +81,9 @@ class System {
     static void timerWrapper(TimerHandle_t xTimer);
   public:
     System();
+
+    void init();                                 // Initialize system components
+    void initDisplay();
 
     // Task wrapper for FreeRTOS task creation
     static void taskWrapper(void *pvParameters);
