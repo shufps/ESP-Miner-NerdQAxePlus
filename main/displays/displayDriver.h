@@ -197,6 +197,8 @@ class DisplayDriver {
     void waitForSplashs();
     void loadSettings();                                            // (re)load settings
 
+    void setNetworkIcon(bool eth_connected);
+
     void setScreenAnimationRunning(bool state) {
       m_screenAnimationRunning = state;
     }

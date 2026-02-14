@@ -125,7 +125,7 @@ bool DiscordAlerter::httpPost(const char *message)
 bool DiscordAlerter::enqueueMessage(const char *message)
 {
     char ip[20] = {0};
-    NETWORK.getPreferredIpAddr(ip, sizeof(ip));
+    NETWORK.getPreferredIpAddr(ip, sizeof(ip), nullptr);
     const char *mac = SYSTEM_MODULE.getMacAddress();
 
     alerter_msg_t msg = {};

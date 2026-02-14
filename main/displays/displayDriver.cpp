@@ -1014,6 +1014,21 @@ void DisplayDriver::updateIpAddress(const char *ip_address_str)
     lv_label_set_text(m_ui->ui_lbIPSet, ip_address_str); // Update label
 }
 
+void DisplayDriver::setNetworkIcon(bool eth_connected)
+{
+    if (m_ui->ui_imgNet == nullptr)
+        return;
+
+    if (eth_connected)
+    {
+        lv_img_set_src(m_ui->ui_imgNet, &ui_img_eth_png);
+    }
+    else
+    {
+        lv_img_set_src(m_ui->ui_imgNet, &ui_img_wifi_png);
+    }
+}
+
 void DisplayDriver::logMessage(const char *message)
 {
     PThreadGuard lock(m_lvglMutex);

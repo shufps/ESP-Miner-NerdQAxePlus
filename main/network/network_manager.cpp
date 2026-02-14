@@ -163,7 +163,7 @@ void NetworkManager::onEthLinkDown()
 }
 
 
-bool NetworkManager::getPreferredIpAddr(char *buf, size_t buf_len) const
+bool NetworkManager::getPreferredIpAddr(char *buf, size_t buf_len, bool* isEth) const
 {
     if (!buf || buf_len == 0) {
         return false;
@@ -174,7 +174,13 @@ bool NetworkManager::getPreferredIpAddr(char *buf, size_t buf_len) const
     buf[buf_len - 1] = '\0';
 
     // Prefer Ethernet if it has an IP
+    if (isEth) {
+        *isEth = false;
+    }
     if (m_ethHasIp && m_eth.hasIp()) {
+        if (isEth) {
+            *isEth = true;
+        }
         const char *ip = m_eth.getIpStr();
         if (ip && ip[0] != '\0') {
             strncpy(buf, ip, buf_len);

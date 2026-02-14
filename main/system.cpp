@@ -229,7 +229,7 @@ void System::task() {
     wifi_mode_t wifiMode;
     esp_err_t result;
 
-    while (!NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress))) {
+    while (!NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress), nullptr)) {
         // STA not connected yet -> show captive/config info
         showApInformation(nullptr);
         vTaskDelay(pdMS_TO_TICKS(5000)); // avoid flicker/spam
@@ -256,13 +256,17 @@ void System::task() {
         }
 
         // update IP on the screen if it is available
-        if (NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress))) {
+        bool isEth = false;
+        if (NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress), &isEth)) {
             if (strcmp(m_ipAddress, lastIpAddress) != 0) {
                 ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
                 m_display->updateIpAddress(m_ipAddress);
+
+                m_display->setNetworkIcon(isEth);
             }
             strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
         }
+
 
         if (m_boardError != Board::Error::NONE) {
             showError(Board::errorToStr(m_boardError), m_errorCode);

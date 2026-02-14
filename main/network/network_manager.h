@@ -24,7 +24,7 @@ class NetworkManager {
     /* Wait until either WiFi or ETH has an IP */
     EventBits_t waitAnyIpMs(TickType_t ticks);
 
-    bool getPreferredIpAddr(char *buf, size_t buf_len) const;
+    bool getPreferredIpAddr(char *buf, size_t buf_len, bool* isEth) const;
 
     bool hasWifiIp() const
     {
