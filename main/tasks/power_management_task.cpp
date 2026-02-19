@@ -246,6 +246,16 @@ void PowerManagementTask::applyAsicSettings()
     checkVrFrequencyChanged();
 }
 
+void PowerManagementTask::requestChipTemps() {
+    // temperature measurements don't work before ASICs
+    // are initialized
+    if (!m_board->isInitialized()) {
+        return;
+    }
+
+    m_board->requestChipTemps();
+}
+
 void PowerManagementTask::task()
 {
     m_board = SYSTEM_MODULE.getBoard();
@@ -307,7 +317,7 @@ void PowerManagementTask::task()
         checkPidSettingsChanged();
 
         // request chip temps
-        m_board->requestChipTemps();
+        requestChipTemps();
 
         logChipTemps();
 

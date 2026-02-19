@@ -50,6 +50,7 @@ class PowerManagementTask {
     void trigger();
 
     void logChipTemps();
+    void requestChipTemps();
 
   public:
     PowerManagementTask();
