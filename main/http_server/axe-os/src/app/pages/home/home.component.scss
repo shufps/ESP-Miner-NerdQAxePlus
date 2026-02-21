@@ -1,66 +1,104 @@
-.bg-orange-100 {
+.bg-orange-100{
     background-color: #fde0c2;
 }
 
-.orange-500 {
+.orange-500{
     color: #f57c00;
 }
 
-.bg-blue-100 {
+.bg-blue-100{
     background-color: #cae6fc;
 }
 
-.blue-500 {
-    color: #2196f3;
+/* Pool metricbar labels inside the filled (grey) box should match the same unit/suffix tone
+   used elsewhere (Best Difficulty, Efficiency, etc.). */
+.pool-tile-metricbar__user-label,
+.pool-tile-metricbar__shares-label{
+  color: var(--unit-in-fill-color, var(--unit-color)) !important;
 }
 
-nb-card {
+/* Uppercase label casing (labels are translated via i18n; CSS controls presentation only). */
+.pool-tile-metricbar__since .pool-tile-metricbar__label-inline,
+.pool-tile-metricbar__user-label,
+.pool-tile-metricbar__shares-label,
+.pool-tile-metricbar__rejected,
+.pool-tile-metricbar__diff .pool-tile-info__label,
+.pool-tile-info__label,
+.pool-summary-square__uptime-label{
+  text-transform: var(--POOL_LABEL_TEXT_TRANSFORM, uppercase);
+}
+
+:host{
+  /* Keep UI labels uppercase (text still comes from i18n). */
+  --POOL_LABEL_TEXT_TRANSFORM: uppercase;
+}
+
+nb-card{
     padding: 0;
     margin: 0;
 }
 
 
-nb-card-body {
+nb-card-body{
     padding-top: 0px;
     padding-bottom: 0px;
     padding-left: 5px;
     padding-right: 5px;
     margin: 5px;
+    }
+
+/* Pool tiles must align pixel-perfect with the summary squares (Best Difficulty / ASIC °C).
+   The global nb-card-body rules above add extra inset; override it for pool tiles only. */
+nb-card-body.pool-tile-card__body{
+  padding: 12px !important;
+  margin: 0 !important;
+  background: var(--tile-surface);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
-nb-card-header {
+/* Pool tile wrapper: remove card chrome so the body surface matches summary squares exactly */
+nb-card.pool-tile-card{
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+nb-card-header{
     padding: 5px;
     margin: 5px;
 }
 
-.font-weight-bold {
+.font-weight-bold{
     font-weight: bold;
 }
 
-.text-lg {
+.text-lg{
     font-size: 17.5px;
 }
 
-.mb-3 {
+.mb-3{
     margin-bottom: 0px !important;
 }
 
-.no-scroll {
+.no-scroll{
     max-height: 100%;
     overflow-x: hidden;
     overflow-y: hidden;
 }
 
-.col-fixed-width {
+.col-fixed-width{
   width: 100px;
   min-width: 100px;
   flex-shrink: 0;
 }
-.break-all {
+.break-all{
   word-break: break-all;
 }
 
-.ellipsis-magic {
+.ellipsis-magic{
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -69,13 +107,13 @@ nb-card-header {
   user-select: none;
   padding-right: 50px;
 
-  .start {
+  .start{
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     flex-shrink: 1;
   }
-  .end {
+  .end{
     white-space: nowrap;
     flex-basis: content;
     flex-grow: 0;
@@ -83,70 +121,2046 @@ nb-card-header {
   }
 }
 
-.icon-xxs {
-  /* Eva icons scale with font-size */
-  font-size: 1.2rem;
-  line-height: 1;
-  vertical-align: middle;
-  cursor: help;
-  margin-top: -3px;
-}
-
-.icon-help-primary  { color: var(--color-primary-500); }
-.icon-help-success  { color: var(--color-success-500); }
-.icon-help-warning  { color: var(--color-warning-500); }
-.icon-help-muted    { color: var(--text-hint-color); }
-
-.badge-no-select {
+.badge-no-select{
   cursor: default;
 }
 
-.pool-header {
+.pool-header{
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.pool-header__icon {
+.pool-header__icon{
   width: 21px;
   height: 21px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-.pool-header__icon {
+.pool-header__icon{
   opacity: 0.85;
 }
 
-.pool-header__title {
+/* --- Pool tile layout (mirrored: details left, metric square right) --- */
+.pool-tile-layout{
+  display: flex;
+  align-items: stretch;
+  gap: var(--metric-gap);
+  flex: 1 1 auto;
+
+  /* nb-card-body already provides consistent padding across tiles; avoid double-padding */
+  padding: 0;
+
+  /* keep the metric square exactly the same size as in the Hashrate tile */
+  --pbar-h: 44px;
+  --metric-gap: 12px;
+  --metric-square: calc((var(--pbar-h) * 3) + (var(--metric-gap) * 2));
+
+  /* Shared dotted divider / underline color (matches bar-end dots) */
+  --pool-divider-dot: rgba(120, 120, 120, 0.45);
+
+  /* Match the visual height of the summary square next to it */
+  min-height: var(--metric-square);
+  height: 100%;
+  width: 100%;
+}
+
+/* Nerd*OS logo placement */
+.nerdos-logo-row{
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.nerdos-logo-row--dual{
+  padding-right: 0;
+  margin-top: -10px;
+}
+
+@media (max-width: 1200px){
+  .nerdos-logo-row--dual{
+    margin-top: 0;
+  }
+}
+
+.nerdos-logo-wrap{
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  pointer-events: none;
+}
+
+.nerdos-logo-wrap__inner{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: auto;
+  cursor: help;
+}
+
+.nerdos-logo-wrap--single{
+  position: absolute;
+  right: 12px;
+  bottom: 5px;
+}
+
+.nerdos-logo-wrap--dual{
+  padding-top: 0;
+}
+
+.nerdos-logo{
+  width: clamp(90px, 14vw, 150px);
+  height: clamp(32px, 5vw, 70px);
+  background-color: var(--nerdos-logo-color, rgba(120, 120, 120, 0.5));
+  -webkit-mask: url('./NerdOS.svg') no-repeat center / contain;
+  mask: url('./NerdOS.svg') no-repeat center / contain;
+}
+
+.nerdos-logo-tooltip{
+  position: absolute;
+  right: 0;
+  top: -26px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.06s ease-out, transform 0.06s ease-out;
+  pointer-events: none;
+}
+
+.nerdos-logo-wrap__inner:hover .nerdos-logo-tooltip{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* In the mirrored pool tile we want a TRUE 50/50 split (no inter-half gap)
+   so the grey square can end exactly on the 50% edge. */
+.pool-tile-layout--mirror{
+  gap: 0;
+  flex-direction: column;
+}
+
+/* Dual pool: stack pool 2 under pool 1 inside the same white container.
+   Gap matches the A1/A2 chip-square spacing. */
+.pool-tile-layout--dual{
+  /* same as --chip-gap in the A1/A2 chip grid */
+  gap: 6px;
+
+  /* Dual mode must NOT change the overall tile height. The white pool container
+     stays exactly as high as the hashrate container next to it.
+     We split that fixed height into two equal rows (pool 1 top, pool 2 bottom). */
+  height: 100%;
+  min-height: var(--metric-square);
+}
+
+.pool-tile-section{
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+/* Dual mode: two equal-height rows inside the fixed-height tile */
+.pool-tile-layout--dual .pool-tile-section{
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* When stacking (dual pool), the template root (.pool-tile-half) must stretch
+   to the full available width of the white container (otherwise it shrinks to
+   content width and leaves empty space on the right). */
+.pool-tile-section > .pool-tile-half{
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+/* In dual mode the pool block becomes a single row:
+   - left: grey metric bar (up to ~2/3)
+   - right: pool header + host/ping/loss
+   This keeps the content compact so two pools fit without increasing tile height. */
+.pool-tile-half--dual{
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  column-gap: var(--metric-gap);
+  align-items: stretch;
+}
+
+.pool-tile-half--dual .pool-tile-metricbar{
+  height: 100%;
+}
+
+.pool-tile-half--dual .pool-tile-details{
+  margin-top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pool-tile-half{
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
   min-width: 0;
+  height: 100%;
+}
+
+/* Full-width grey metric "square" (same height as before, spans the whole half) */
+.pool-tile-metricbar{
+  flex: 0 0 66.6667%;
+  max-width: 66.6667%;
+  /* Grey box should take exactly 50% of the white container height */
+  height: 50%;
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  color: var(--bar-value-color);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+
+
+/* Disconnected Stratum warning should reuse the existing pool metric bar UI.
+   Yellow warn surface + centered message; text color should follow the normal bar text rules. */
+.pool-tile-metricbar--warn{
+  background: var(--fill-warn-color, var(--color-warning-500));
+}
+
+
+.pool-tile-metricbar--disconnected{
+  flex: 1 1 auto;
+  max-width: 100%;
+  height: 100%;
+}
+
+.pool-tile-metricbar__inner--disconnected{
+  /* Center the disconnected label both vertically and horizontally */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+}
+
+/* Safety: if the template uses the base inner class, keep the disconnected message centered */
+.pool-tile-metricbar--disconnected .pool-tile-metricbar__inner{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+}
+
+
+.pool-tile-metricbar__dc-msg{
+  /* Make the warning clearly readable and truly centered inside the bar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: inherit;
+  font-size: clamp(0.9rem, 1.0vw + 0.65rem, 1.15rem);
+  font-weight: 900;
+  line-height: 1.15;
+  padding: 8px 12px;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pool-tile-metricbar__inner{
+  height: 100%;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  z-index: 2;
+}
+
+.pool-tile-metricbar__left{
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
+  height: 100%;
+  min-width: 0;
+}
+
+/* Since-connect block: right-align the label to the value's unit */
+.pool-tile-metricbar__since{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.pool-tile-metricbar__value{
+  /* Match the "Best Difficulty" value sizing */
+  font-size: 1.9rem;
+  font-weight: 900;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+
+  /* Units inside the filled (grey) pool bar should match other filled-box units */
+  .unit{
+    color: var(--unit-in-fill-color, var(--unit-color));
+    /* Slightly upscaled to match the visual 15px target in pool header context. */
+    font-size: 0.5263em;
+  }
+}
+
+/* Inline label that sits directly after the unit (dual pool: only shown for pool 1) */
+.pool-tile-metricbar__label-inline{
+  font-size: 10px;
+  /* Inside filled (grey) box: use the same unit tone as other filled-box units */
+  font-weight: 500;
+  line-height: 1;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.pool-tile-metricbar__right{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  align-items: flex-end;
+  text-align: right;
+  line-height: 1;
+  justify-content: flex-end;
+}
+
+.pool-tile-metricbar__shares{
+  display: flex;
+  /* DOM order: label then value; visual order: value on top, label under it */
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 0;
+  line-height: 1;
+}
+
+.pool-tile-metricbar__shares-value{
+  /* Restore the original pool-square typography */
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* User line inside the grey bar (bottom-left) */
+.pool-tile-metricbar__user{
+  margin-top: auto;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pool-tile-metricbar__user-label{
+  font-size: 10px;
+  opacity: 0.9;
+  font-weight: 400;
+  margin-right: 2px;
+}
+
+.pool-tile-metricbar__user-value{
+  font-size: 10px;
+  color: var(--bar-value-color);
+  font-weight: 800;
+}
+
+.pool-tile-metricbar__shares-label{
+  font-size: 10px;
+  /* Shares label should match unit/suffix color */
+  opacity: 0.9;
+  font-weight: 500;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.pool-tile-metricbar__rejected{
+  font-size: 10px;
+  /* Rejected uses the ASIC temp pill color */
+  color: var(--asic-temp-pill, var(--danger-color));
+  opacity: 0.9;
+  font-weight: 700;
+  /* slight breathing room below the SHARES line */
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.pool-tile-metricbar{
+  position: relative;
+}
+
+/* Dual-pool allocation: show hashrate distribution as a moving fill inside the existing pool metric bars.
+   Track remains transparent so only the fill is visible. */
+.pool-tile-metricbar--alloc{
+  background: transparent !important;
+}
+
+.pool-tile-metricbar__fill{
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  opacity: var(--bar-fill-opacity);
+  transition: width 180ms ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Dotted marker at the end of the filled portion (same visual language as other bars) */
+.pool-tile-metricbar__fill::after{
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -1px;
+  width: 0;
+  border-left: 2px dotted var(--fill-marker-color);
+  pointer-events: none;
+}
+
+
+/* --- Mobile: In dual pool mode, stack the details under the grey bar so
+   the pool logo + host/ping/loss never overlap or get hidden. --- */
+@media (max-width: 768px){
+  .pool-tile-card--dual{
+    height: auto;
+  }
+
+  .pool-tile-layout--dual{
+    height: auto;
+    min-height: 0;
+  }
+
+  .pool-tile-layout--dual .pool-tile-section{
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .pool-tile-half--dual{
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    row-gap: 12px;
+  }
+
+  .pool-tile-half--dual .pool-tile-metricbar{
+    height: auto;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .pool-tile-half--dual .pool-tile-details{
+    height: auto;
+    justify-content: flex-start;
+  }
+}
+
+/* DIFF moved out of the grey box (now shown above Ping/Loss in the details column) */
+.pool-tile-info__diff-value{
+  font-weight: 900;
+}
+
+/* Small spacing under DIFF so it doesn't visually stick to the pool % in dual mode */
+.pool-tile-info__line--diff{
+  margin-bottom: 3px;
+}
+
+/* Details column (Pool + Host/Port/Ping/Loss) sits right next to the metric bar */
+.pool-tile-details{
+  flex: 1 1 33.3333%;
+  min-width: 0;
+  /* Details should align vertically with the grey box */
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keep host/port/ping/loss aligned to the bottom edge of the grey box */
+.pool-tile-info__bottom{
+  margin-top: auto;
+}
+
+@media (max-width: 768px) {
+  .pool-tile-half{
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pool-tile-metricbar{
+    flex: 0 0 auto;
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+  }
+
+  .pool-tile-details{
+    height: auto;
+  }
+}
+
+/* Details below the bar */
+.pool-tile-details{
+  min-width: 0;
+}
+
+.pool-tile-details__header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pool-tile-details__header-left{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pool-tile-details__header-right{
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.pool-tile-details__allocpct{
+  font-weight: 700;
+  /* Match J/Th unit color */
+  color: var(--unit-in-fill-color, var(--unit-color));
+  font-size: inherit;
+  line-height: 1;
+}
+
+/* Host/Port/Ping/Loss block should be visually smaller (same size as labels) */
+.pool-tile-info__bottom{
+  /* Keep Host/Port/Ping/Loss within the same vertical band as the grey box */
+  margin-top: auto;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--text-basic-color);
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.pool-tile-info__bottom a,
+.pool-tile-info__bottom span{
+  font-size: inherit;
+}
+
+/* Add a small bottom gap under the last info line (Ping/Loss in current layout)
+   so it doesn't visually stick to the bottom edge. */
+.pool-tile-info__bottom .pool-tile-info__line:last-child{
+  margin-bottom: 5px;
+}
+
+/* Labels (User/Host/Port/Ping/Loss): match “Since connect” label look */
+.pool-tile-info__label{
+  font-size: 10px;
+  /* Match the unit/suffix tone (since connect, units, etc.) */
+  color: var(--unit-in-fill-color, var(--unit-color)) !important;
+  opacity: 1;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+/* Values: bold + black */
+.pool-tile-info__value{
+  font-weight: 700;
+  color: var(--text-basic-color);
+}
+
+/* DIFF line (placed above Ping/Loss in the details column) */
+.pool-tile-info__diff-value{
+  font-weight: 900;
+}
+
+/* Host link: black text with dotted underline in the divider color */
+.pool-tile-hostlink{
+  color: var(--text-basic-color);
+  text-decoration: none;
+  border-bottom: 2px dotted var(--pool-divider-dot, rgba(120, 120, 120, 0.45));
+  padding-bottom: 1px;
+}
+
+.pool-tile-hostlink:hover{
+  opacity: 0.85;
+}
+
+.pool-tile-info__line{
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0;
+  white-space: nowrap;
+}
+
+.pool-tile-details{
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* Title (icon + label) placed to the right of the square */
+.pool-tile-details__header{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 575.98px) {
+  .pool-tile-layout{
+    flex-direction: column;
+  }
+}
+
+/* --- Pool summary square (Hashrate / Expected / ASIC Frequency) --- */
+.pool-summary-square{
+  width: 100%;
+  height: 100%;
+  background: var(--tile-surface);
+  border: none;
+  border-radius: 0;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  /* Keep both columns (left content + best square) aligned to the same visual block height */
+  align-items: center;
+  min-height: 100%;
+
+  /* ensure the reused .power-bar typography matches the rest of the UI */
+  --pbar-h: 44px;
+  --metric-gap: 12px;
+  /* keep square size consistent with the Efficiency square (3 bars + gaps) */
+  --metric-square: calc((var(--pbar-h) * 3) + (var(--metric-gap) * 2));
+  /* Minimal / industrial: tighter typography (labels ~16px, values ~24-26px) */
+  --bar-label-fs: 1rem;
+  --bar-value-fs: 1.45rem;
+}
+
+.pool-summary-square__left{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* Make the left stack match the best square height so the frequency bar can sit flush at the bottom */
+  height: var(--metric-square);
+  align-self: center;
+  justify-content: flex-start;
+}
+
+.pool-summary-square__best{
+  width: var(--metric-square);
+  height: var(--metric-square);
+  max-width: none;
+  /* Must inherit the SAME fill color token as bars */
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  overflow: hidden;
+}
+
+/* Best difficulty square background tinted like the bar fill */
+.pool-summary-square__best::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  /* Squares should use the same flat surface as bars (no fill-tint overlay) */
+  opacity: 0;
+  z-index: 0;
+}
+
+.pool-summary-square__best-inner{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: transparent;
+}
+
+.pool-summary-square__best-label{
+  font-size: var(--bar-label-fs);
+  font-weight: 400;
+  opacity: 0.85;
+  margin-bottom: 10px;
+  color: var(--bar-label-color);
+}
+
+.pool-summary-square__best-sub{
+  margin-top: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  opacity: 0.9;
+  /* In the filled Best-Difficulty square, match the unit tone used in other filled boxes (e.g. J/TH). */
+  color: var(--unit-in-fill-color, var(--unit-color));
+}
+
+.pool-summary-square__best-value{
+  font-size: 1.9rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--bar-value-color);
+}
+
+.pool-summary-square__best-value .unit{
+  /* Slightly upscaled to match the visual 15px target in Best Difficulty square. */
+  font-size: 0.5263em;
+  font-weight: 700;
+  color: var(--unit-in-fill-color, var(--unit-color));
+  opacity: 0.9;
+}
+
+.pool-summary-square__top{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Hashrate: show total big number, and (in dual pool mode) smaller per-pool numbers to the right */
+.pool-summary-square__hashrate{
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Main (total) hashrate + optional dotted separator in dual-pool mode */
+.pool-summary-square__hashrate-main{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.pool-summary-square__hashrate-main-divider{
+  display: inline-block;
+  width: 0;
+  height: 2.2rem;
+  border-left: 2px dotted var(--fill-marker-color);
+  margin-left: 4px;
+}
+
+/* Dual pool: per-pool hashrates stacked, no units, with assignment % */
+.pool-summary-square__hashrate-split{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--unit-color);
+}
+
+.pool-summary-square__hashrate-split-row{
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8px;
+  line-height: 1;
+}
+
+.pool-summary-square__hashrate-split-value{
+  /* Same color as the main hashrate, but faint */
+  color: var(--bar-fill, var(--text-basic-color));
+  opacity: 0.85;
+}
+
+.pool-summary-square__hashrate-split-divider{
+  display: inline-block;
+  width: 0;
+  height: 0.95em;
+  border-left: 2px dotted var(--fill-marker-color);
+  opacity: 0.9;
+}
+
+.pool-summary-square__hashrate-split-pct{
+  /* 1.05rem parent -> 15px unit target */
+  font-size: 0.8929em;
+  /* Match J/Th unit color */
+  color: var(--unit-in-fill-color, var(--unit-color));
+  opacity: 1;
+}
+
+.pool-summary-square__hashrate-value{
+  font-weight: 900;
+  line-height: 1;
+  font-size: 2.4rem;
+  /* use hashrate pill color if provided, otherwise follow theme */
+  color: var(--bar-fill, var(--text-basic-color));
+
+  /* Keep the unit on the same line without introducing extra vertical whitespace */
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+}
+
+.pool-summary-square__hashrate-unit{
+  font-size: 16px;
+  font-weight: 500;
+  opacity: 1;
+  margin-left: 6px;
+  color: var(--hashrate-main-unit-color);
+}
+
+.pool-summary-square__expected{
+  font-size: 1.1rem;
+  line-height: 1.1;
+  color: var(--unit-color);
+}
+
+.pool-summary-square__expected-value{
+  font-weight: 800;
+  color: var(--text-basic-color);
+}
+
+.pool-summary-square__expected-unit,
+.pool-summary-square__expected-label{
+  font-size: 16px;
+  font-weight: 400;
+  opacity: 1;
+  color: var(--unit-in-fill-color, var(--unit-color));
+}
+
+.pool-summary-square__expected-unit{
+  margin-left: 6px;
+}
+
+.pool-summary-square__expected-label{
+  margin-left: 8px;
+}
+
+.pool-summary-square__bottom{
+  /* Push the frequency bar to the bottom of the left column so it lines up with the square */
+  margin-top: auto;
+}
+
+.pool-summary-square__bar{
+  /* keep same sizing as other bars */
+  height: var(--pbar-h, 44px);
+}
+
+/* In the summary box, let the box provide the surface. Bars stay transparent. */
+.pool-summary-square .power-bar{
+  background: transparent;
 }
 
 
 /* --- Debug mode toggle (Step 7) --- */
-.chart-header-row {
+.chart-header-row{
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.chart-header-actions {
+/* Chart collapse/expand toggle (top-right in chart header) */
+.nerd-chart-header .chart-toggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  line-height: 1;
+
+  /* Toggle color is theme-controlled (explicit per user requirement).
+     We intentionally do NOT rely on --fill-color here because it can be semi-transparent
+     / overridden per theme. */
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+  opacity: 1 !important;
+
+  /* Make the toggle look like plain text (transparent button).
+     Nebular's nbButton ghost styles can otherwise add chrome. */
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0.15rem 0.35rem !important;
+  min-height: 0 !important;
+  height: auto !important;
+  border-radius: 6px;
+  position: relative;
+  z-index: 2;
+
+  /* Prevent the button from showing a persistent focus/active ring after click.
+     (We also blur it in TS for good measure.) */
+  outline: none !important;
+
+  &:focus,
+  &:active{
+    background: transparent !important;
+  }
+
+  &:hover{
+    background: var(--chart-toggle-hover-bg, rgba(0, 0, 0, 0.04)) !important;
+  }
+
+  /* CDK focus classes can keep a persistent "button" look after click.
+     Keep the toggle visually clean unless the user intentionally tabs to it. */
+  &.cdk-focused,
+  &.cdk-program-focused,
+  &.cdk-mouse-focused{
+    box-shadow: none !important;
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  &:focus-visible{
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+.nerd-chart-header .chart-toggle__label{
+  font-size: 0.85rem;
+  opacity: 1;
+
+  /* Force label color (do not rely on inheritance or nbButton ghost styles). */
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+}
+
+/* SVG chevron: same color as label (bar fill token). */
+.nerd-chart-header .chart-toggle__icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Force icon color to match label. */
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+}
+
+.nerd-chart-header .chart-toggle__icon svg{
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.nerd-chart-header .chart-toggle__icon svg path{
+  fill: none;
+  /* Force stroke directly (some UI kits override `color`). */
+  stroke: var(--chart-toggle-color, var(--text-basic-color)) !important;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nerd-chart-header .chart-toggle__icon--up svg{
+  transform: rotate(180deg);
+}
+
+
+/* Nerd* Chart card: remove the divider/underline below the header in all states. */
+.nerd-chart-header{
+  border-bottom: none !important;
+  box-shadow: none !important;
+
+  /* Symmetric header padding: keep a small, consistent gap above and below
+     the title/label row (same top + bottom). */
+  /* User-tuned symmetric padding */
+  padding: 1rem 1rem !important;
+  min-height: 0 !important;
+  line-height: 1;
+  margin: 0 !important;
+}
+
+/* Subtle hover background depends on theme (transparent by default). */
+:host-context(.nb-theme-default) .nerd-chart-card,
+:host-context(.nb-theme-corporate) .nerd-chart-card,
+:host-context(.nb-theme-light) .nerd-chart-card{
+  /* Light theme: explicit toggle color (same for label + icon) */
+  --chart-toggle-color: var(--card-text-color, var(--text-hint-color, var(--text-basic-color)));
+  --chart-toggle-hover-bg: rgba(0, 0, 0, 0.045);
+}
+
+:host-context(.nb-theme-dark) .nerd-chart-card,
+:host-context(.nb-theme-cosmic) .nerd-chart-card{
+  /* Dark theme: white toggle color (same for label + icon) */
+  --chart-toggle-color: #ffffff;
+  --chart-toggle-hover-bg: rgba(255, 255, 255, 0.09);
+}
+
+.nerd-chart-header .chart-header-row{
+  min-height: 0;
+}
+.nerd-chart-card > nb-card-body{
+  border-top: none !important;
+}
+
+/* Reduce the default Nebular body padding so the chart sits closer to the header.
+   (Collapsed state still forces padding:0 via .chart-card-body--collapsed.) */
+.nerd-chart-card > nb-card-body.chart-card-body{
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+/* Smooth visual-only collapse of the chart body.
+   The chart stays mounted (data continues tracking), we only collapse the container. */
+.chart-card-body{
+  overflow: hidden;
+  max-height: 1100px; /* safely above the tallest layout */
+  opacity: 1;
+  min-height: 0;
+  height: auto;
+  flex: 0 0 auto;
+  transition: max-height 280ms ease, opacity 180ms ease, padding 280ms ease;
+}
+
+.chart-card-body--collapsed{
+  max-height: 0;
+  height: 0 !important;
+  min-height: 0 !important;
+  flex: 0 0 0 !important;
+  opacity: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+
+/* --- Chart layout (full width) --- */
+.chart-canvas{
+  min-width: 0;
+}
+
+.chart-canvas__wrap{
+  position: relative;
+  width: 100%;
+  height: 320px;
+}
+
+.chart-header-actions{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-zoom-controls{
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chart-zoom-label{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+  font-weight: 600;
+  line-height: 1;
+  margin-left: -12px;
+}
+
+.chart-zoom-label__title{
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.chart-zoom-label__value{
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--bar-fill, var(--chart-toggle-color, var(--text-basic-color))) !important;
+}
+
+.chart-zoom-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 52px;
+  height: 26px;
+  padding: 0 8px;
+  line-height: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--chart-toggle-color, var(--text-basic-color)) !important;
+}
+
+.chart-zoom-btn--toggle{
+  min-width: 74px;
+}
+
+.chart-zoom-btn__icon{
+  color: var(--bar-fill, var(--chart-toggle-color, var(--text-basic-color))) !important;
+  font-weight: 700;
+}
+
+.chart-zoom-btn__text{
+  color: inherit;
+}
+
+/* Taller variant (used for "stretch over 4 rows" look) */
+.chart-canvas__wrap--tall{
+  /* Desktop: make the chart 150px taller */
+  height: 570px;
+}
+
+/* "Tile wrap" breakpoint: around 1200px the layout starts wrapping.
+   Keep the tall chart capped here (but do NOT affect the true tablet breakpoint). */
+@media (max-width: 1200px){
+  .chart-canvas__wrap--tall{
+    height: 400px;
+  }
+}
+
+.chart-canvas__wrap canvas{
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+@media (max-width: 992px) {
+  .chart-canvas__wrap{
+    height: 260px;
+  }
+
+  .chart-canvas__wrap--tall{
+    /* Tablet: revert tall chart height */
+    height: 320px;
+  }
+}
+
+@media (max-width: 576px) {
+  .chart-canvas__wrap--tall{
+    height: 280px;
+  }
+}
+
+
+/* --- Power usage bars (Current/Voltage) --- */
+.power-usage{
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Colors (from home.cfg.ts)
+   - hashrateBase: #a564f6 (hashrate pill)
+   - chartGridColor: #80808040 (chart grid)
+*/
+
+/* Central fill-color token class.
+   Attach `.fill-colors` to a container (e.g. the Home root) to control bar + square fills in one place. */
+.fill-colors{
+  /* Default: follow the chart grid color supplied via HostBinding (`--bar-track`) */
+  --fill-color: var(--bar-track, rgba(128, 128, 128, 0.25));
+
+  /* Optional state colors (override centrally if desired) */
+  --fill-warn-color: var(--color-warning-500);
+  /* Use the same red as the ASIC temp pill everywhere (avoid Nebular "danger" pinks). */
+  --fill-crit-color: var(--asic-temp-pill, var(--color-danger-500));
+  --fill-max-color: var(--asic-temp-pill, var(--color-danger-500));
+}
+
+/* Light themes: the UI expects a solid, darker gray fill (like the metric boxes).
+   `HOME_CFG.colors.chartGridColor` is semi-transparent (e.g. #80808040) and looks
+   *very* light on white, which is why the toggle label/icon ends up faint.
+   Set a solid fill token here so bars + metric boxes + the chart toggle match.
+   (User-tuned value: #CDCFD3)
+*/
+:host-context(.nb-theme-default) .fill-colors,
+:host-context(.nb-theme-corporate) .fill-colors,
+:host-context(.nb-theme-light) .fill-colors{
+  --fill-color: #CDCFD3;
+}
+
+:host{
+  /*
+    Theme-aware surfaces:
+    - fallback uses white/black @ 50%
+    - if supported, prefers Nebular background token mixed with transparency
+  */
+  /* Default + Dark should look the same (per request) */
+  --bar-surface: rgba(0, 0, 0, 0.5);
+
+  /* Labels + values: same styling as dark theme */
+  --bar-label-color: #fff;
+  --bar-value-color: #fff;
+
+  /* Fill color is already provided with alpha (e.g. #RRGGBBAA from HOME_CFG). Keep opacity at 1
+     so bars + all square fills match pixel-perfect in both themes. */
+  --bar-fill-opacity: 1;
+
+  /* Units (suffixes like MHz, V, A, W, °C, %) should be quieter than the numbers */
+  /* Unify all quiet labels/suffixes (units, hints, A1/A2 glyph labels) */
+  --unit-color: #C2C8D7;
+  /* Main hashrate unit should be theme-aware (dark/cosmic follow unit tone). */
+  --hashrate-main-unit-color: var(--unit-color);
+
+  /* Metric squares share the same surface as the bars */
+  --square-surface: var(--bar-surface, rgba(0, 0, 0, 0.5));
+
+  /* Tile/container surfaces (cards/sections) – keep distinct from bar surfaces */
+  --tile-surface: var(--bar-surface, rgba(0, 0, 0, 0.5));
+
+  /* End marker at the fill edge (dotted line) */
+  --fill-marker-color: rgba(255, 255, 255, 0.4);
+
+  /* Subtle label shadow for readability (reduced) */
+  --label-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
+
+  /* Chip background glyphs (A1/A2…)
+     Use an explicit color + opacity so alpha doesn't multiply away */
+  /* Use alpha in the color itself (no double-alpha with chartGridColor) */
+  --chip-glyph-color: rgba(255, 255, 255, 0.18);
+  --chip-glyph-opacity: 1;
+
+  /* Cutout color for A1/A2… glyphs inside chip squares */
+  --chip-cutout-color: var(--bar-surface);
+}
+
+/* Light/default themes: flip text to dark so labels are readable */
+:host-context(.nb-theme-default),
+:host-context(.nb-theme-corporate),
+:host-context(.nb-theme-light){
+  /* Light theme: industrial bluish-gray, visible but not dominant */
+  --bar-surface: rgba(40, 55, 85, 0.10);
+  /* Keep tile containers white/translucent like before */
+  --tile-surface: rgba(255, 255, 255, 0.5);
+  --square-surface: var(--bar-surface, rgba(40, 55, 85, 0.10));
+  --bar-label-color: #000;
+  --bar-value-color: #000;
+
+  /* Units + quieter labels (suffixes, since connect, shares, host/ping/loss, etc.) */
+  --unit-color: #9C9CA6;
+  /* In light themes keep the main hashrate unit black. */
+  --hashrate-main-unit-color: #000;
+
+
+  /* Slightly darker labels/units inside filled (grey) boxes for readability */
+  --unit-in-fill-color: #7E7E8A;
+
+
+/* Ensure crit (red) bar text stays readable (white) on colored fills in light theme */
+.power-bar--crit .power-bar__label,
+.power-bar--crit .power-bar__value,
+.power-bar--crit .power-bar__value .unit{
+  color: #fff !important;
+}
+
+/* dotted end marker on light surfaces */
+  --fill-marker-color: rgba(0, 0, 0, 0.2);
+
+  --label-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+
+  --chip-glyph-color: rgba(0, 0, 0, 0.25);
+  --chip-glyph-opacity: 1;
+}
+
+/* Light theme: keep fill color sourced from --bar-track to match bars everywhere */
+
+/* In light theme the filled metric squares/boxes use a light fill.
+   Restore the default dark text colors (units/secondary labels still use --unit-color). */
+:host-context(.nb-theme-default) .pool-summary-square__best,
+:host-context(.nb-theme-corporate) .pool-summary-square__best,
+:host-context(.nb-theme-light) .pool-summary-square__best,
+:host-context(.nb-theme-default) .pool-tile-metricbar,
+:host-context(.nb-theme-corporate) .pool-tile-metricbar,
+:host-context(.nb-theme-light) .pool-tile-metricbar,
+:host-context(.nb-theme-default) .power-watt-box,
+:host-context(.nb-theme-corporate) .power-watt-box,
+:host-context(.nb-theme-light) .power-watt-box{
+  --bar-label-color: #000;
+  --bar-value-color: #000;
+}
+
+/* In light themes: ONLY the metric containers (hashrate/power/temp) use the translucent white surface.
+   Other nb-cards (chart etc.) keep Nebular defaults. */
+:host-context(.nb-theme-default) .pool-summary-square,
+:host-context(.nb-theme-corporate) .pool-summary-square,
+:host-context(.nb-theme-light) .pool-summary-square,
+:host-context(.nb-theme-default) .power-usage-box,
+:host-context(.nb-theme-corporate) .power-usage-box,
+:host-context(.nb-theme-light) .power-usage-box,
+:host-context(.nb-theme-default) .heat-usage-box,
+:host-context(.nb-theme-corporate) .heat-usage-box,
+:host-context(.nb-theme-light) .heat-usage-box{
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Pool tile container should be solid white in light theme (no translucency) */
+:host-context(.nb-theme-default) nb-card-body.pool-tile-card__body,
+:host-context(.nb-theme-corporate) nb-card-body.pool-tile-card__body,
+:host-context(.nb-theme-light) nb-card-body.pool-tile-card__body{
+  background: #fff;
+}
+
+/* Prefer Nebular background tokens when color-mix is supported */
+@supports (background: color-mix(in srgb, white 50%, transparent)){
+  :host{
+    --bar-surface: color-mix(in srgb, var(--background-basic-color-2) 50%, transparent);
+  }
+}
+
+/* Ensure light themes keep the intended bluish-gray surface even when color-mix is supported */
+@supports (background: color-mix(in srgb, white 50%, transparent)){
+  :host-context(.nb-theme-default),
+:host-context(.nb-theme-corporate),
+:host-context(.nb-theme-light){
+    --bar-surface: rgba(40, 55, 85, 0.10);
+  }
+}
+
+/* Power usage boxed container (same look as the pool summary square) */
+.power-usage-box{
+  width: 100%;
+  height: 100%;
+  background: var(--tile-surface);
+  border: none;
+  border-radius: 0;
+  padding: 12px;
+}
+
+/* In the boxed power usage container, let the box provide the surface.
+   Bars themselves should be transparent so the fill stands out. */
+.power-usage-box .power-bar{
+  background: transparent;
+}
+.power-usage-box .power-watt-box{
+  /* Efficiency square: inherit the same fill token as bars */
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+}
+
+/* Heat boxed container (same look as other sections) */
+.heat-usage-box{
+  width: 100%;
+  height: 100%;
+  background: var(--tile-surface);
+  border: none;
+  border-radius: 0;
+  padding: 12px;
+}
+
+/* In the boxed heat container, let the box provide the surface. */
+.heat-usage-box .power-bar{
+  background: transparent;
+}
+
+/* Plain sections (no nb-card “tile” box) */
+.plain-section{
+  width: 100%;
+}
+
+.power-bars-layout{
+  /* 2-column grid: (bars) + (square), with a full-width power bar below */
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 12px;
+  align-items: stretch;
+
+  /* Tune these to match the sketch */
+  --pbar-h: 44px;
+  --metric-gap: 12px;
+  /* keep square size consistent with the Efficiency square (3 bars + gaps) */
+  --metric-square: calc((var(--pbar-h) * 3) + (var(--metric-gap) * 2));
+  --pbar-gap: 12px;
+  /* Minimal / industrial typography */
+  --bar-label-fs: 1rem;
+  --bar-value-fs: 1.45rem;
+
+}
+
+.power-bars{
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Single bar like in the sketch: label left, value right, and a light fill showing the current value */
+.power-bar{
+  position: relative;
+  height: var(--pbar-h);
+  border-radius: 0; /* sketch is square */
+  overflow: hidden;
+
+  /* Requested: white surface (50% opacity) and no outlines */
+  border: none;
+  background: var(--bar-surface);
+}
+
+.power-bar__fill{
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+
+  /* Fill color: chart grid color (theme-independent) with subtle opacity */
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  opacity: var(--bar-fill-opacity);
+  transition: width 180ms ease;
+}
+
+/* Dotted marker at the end of the filled portion */
+.power-bar__fill::after{
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -1px;
+  width: 0;
+  border-left: 2px dotted var(--fill-marker-color);
+  pointer-events: none;
+}
+
+/* Marker state at thresholds:
+   - warn (>=94%): yellow dotted
+   - crit (>=99%): red dotted
+   - max (>=100%): solid 5px using ASIC temp pill color */
+.power-bar--warn .power-bar__fill::after{
+  border-left-color: var(--fill-warn-color, var(--color-warning-500));
+}
+
+.power-bar--crit .power-bar__fill::after{
+  border-left-color: var(--fill-crit-color, var(--color-danger-500));
+}
+
+.power-bar--max .power-bar__fill::after{
+  border-left: 5px solid var(--fill-max-color, var(--asic-temp-pill));
+}
+
+/* Gauge-like fill coloring (matches legacy <app-gauge> semantics)
+   Warn/Crit only affect color; width stays value-based. */
+.power-bar--warn .power-bar__fill{
+  background: var(--fill-warn-color, var(--color-warning-500));
+}
+
+/* In crit state (red), keep text readable and strong. */
+.power-bar--crit .power-bar__label,
+.power-bar--crit .power-bar__value,
+.power-bar--crit .power-bar__value .unit{
+  color: #fff;
+  font-weight: 800;
+}
+
+.power-bar--crit .power-bar__fill{
+  background: var(--fill-crit-color, var(--color-danger-500));
+}
+
+/* Variant B only: subtle 45° hatch overlay (uses chart-grid color). */
+.power-bar__label,
+.power-bar__value{
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform: none;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  line-height: 1.15;
+  font-size: var(--bar-label-fs);
+  color: var(--bar-label-color);
+  /* subtle shadow for readability on mixed backgrounds */
+  text-shadow: var(--label-shadow);
+  pointer-events: none;
 }
 
-.debug-toggle {
-  font-size: 0.85rem;
+.power-bar__label{
+  font-weight: 400;
+  left: 14px;
+  right: 50%;
+  justify-content: flex-start;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.debug-hint {
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-  opacity: 0.8;
+.power-bar__value{
+  right: 14px;
+  left: 50%;
+  justify-content: flex-end;
+  font-size: var(--bar-value-fs);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--bar-value-color);
 }
 
-.debug-hint code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+/* Current ASIC Voltage:
+   - at the supported max: only the end marker turns red (power-bar--max)
+   - above max (+1 and higher): value + unit turn red (bar remains grey) */
+.power-bar__value.power-bar__value--overmax{
+  color: var(--fill-max-color, var(--asic-temp-pill, var(--color-danger-500))) !important;
+}
+.power-bar__value.power-bar__value--overmax .unit{
+  color: var(--fill-max-color, var(--asic-temp-pill, var(--color-danger-500))) !important;
+}
+
+/* Units in values (MHz, V, °C, %, ...) */
+.unit{
+  color: var(--unit-color);
+  font-weight: 500;
+  /* Default target: match MHz-sized units in bar values (1.45rem parent -> ~15px) */
+  font-size: 0.65em;
+  letter-spacing: 0.01em;
+  opacity: 0.9;
+  display: inline-block;
+  line-height: 1;
+}
+
+/* In-bar units should match the J/Th unit tone */
+.power-bar .unit{
+  color: var(--unit-in-fill-color, var(--unit-color));
+}
+
+/* In bars, the value block is vertically centered; nudge units down so they sit on the value's bottom edge */
+.power-bar__value:not(.power-bar__value--inline) .unit{
+  position: relative;
+  top: 0.22em;
+}
+
+/* Inline values (Fan: RPM / %)
+   Requirement:
+   - main % value stays vertically centered in the bar
+   - all auxiliary bits (RPM, units, slash) align to the BOTTOM/baseline of the main % value */
+.power-bar__value.power-bar__value--inline{
+  /* keep the whole group vertically centered */
+  align-items: center;
+}
+
+.power-bar__value--inline .fan-inline{
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  line-height: 1;
+}
+
+.power-bar__value--inline .fan-inline > span{
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+}
+
+/* In the inline Fan value, do NOT nudge units down; baseline handles it. */
+.power-bar__value--inline .fan-inline .unit{
+  position: relative;
+  top: 0;
+}
+
+/* Keep inline fan units at the same visual unit size target across both sides. */
+.power-bar__subvalue .unit{
+  /* 1rem parent -> 15px unit target */
+  font-size: 0.9375em;
+}
+
+.power-bar__mainvalue .unit{
+  /* 1.45rem parent -> 15px unit target */
+  font-size: 0.65em;
+}
+
+/* Square metric display spanning the height of the 3 bars (now used for Efficiency) */
+.power-watt-box{
+  grid-column: 2;
+  grid-row: 1;
+  flex: 0 0 auto;
+  height: calc((var(--pbar-h) * 3) + (var(--pbar-gap) * 2));
+  aspect-ratio: 1 / 1;
+  position: relative;
+  overflow: hidden;
+  /* Efficiency square: inherit the same fill token as bars */
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Efficiency square background tinted like the bar fill (without affecting text opacity) */
+.power-watt-box::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  /* Squares should use the same flat surface as bars (no fill-tint overlay) */
+  opacity: 0;
+  z-index: 0;
+}
+
+/* Power bar under the bars + square, spanning the full width */
+.power-bar--full{
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/* Full-width power bar under the 3 bars + square */
+.power-bar--full{
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.power-watt-box__inner{
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: var(--bar-value-color);
+  text-shadow: none;
+}
+
+
+/* Small label placed above the value inside the Efficiency square */
+.power-watt-box__label-top{
+  font-size: var(--bar-label-fs);
+  font-weight: 400;
+  /* Efficiency label stays like other primary labels (black in light theme, white in dark) */
+  color: var(--bar-label-color);
+
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+.power-watt-box__value{
+  font-size: calc(var(--bar-value-fs) + 0.2rem);
+  line-height: 1;
+  font-weight: 800;
+}
+
+
+.power-watt-box__value .unit{
+  /* calc(1.45rem + 0.2rem) parent -> 15px unit target */
+  font-size: 0.5682em;
+  color: var(--unit-in-fill-color, var(--unit-color));
+  opacity: 0.9;
+  font-weight: 600;
+}
+
+/* --- Heat tile bars (styled like Power Usage) --- */
+.heat-usage{
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.heat-bars-layout{
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: stretch;
+
+  /* reuse the same bar sizing as power usage */
+  --pbar-h: 44px;
+  --metric-gap: 12px;
+  /* keep square size consistent with the Efficiency square (3 bars + gaps) */
+  --metric-square: calc((var(--pbar-h) * 3) + (var(--metric-gap) * 2));
+  --pbar-gap: 12px;
+
+  --bar-label-fs: 1rem;
+  --bar-value-fs: 1.45rem;
+
+  /* square size (same as Efficiency / 3 bars) */
+  --heat-box-h: calc((var(--pbar-h) * 3) + (var(--pbar-gap) * 2));
+}
+
+/* Left side of Heat tile: ASIC temp square + optional chip temp squares */
+.heat-left{
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+
+/* qx multi-bars: per-ASIC temps as small squares (wrap layout)
+   - Up to 4 chips: shown to the right of the big ASIC square (2x2)
+   - More than 4: remaining chips continue BELOW the big ASIC square (still inside the ASIC °C frame)
+*/
+.heat-asic-wrap{
+  display: grid;
+  /* big square + (up to) 2x2 chip area to the right */
+  grid-template-columns: var(--heat-box-h) auto;
+  /* Only create a second row (and its gap) when we actually render A5.. */
+  grid-template-rows: var(--heat-box-h);
+  --chip-gap: 12px;
+  column-gap: var(--chip-gap);
+  row-gap: 0;
+  background: transparent;
+  border: none;
+  align-items: start;
+  justify-items: start;
+}
+
+.heat-asic-wrap--has-bottom{
+  grid-template-rows: var(--heat-box-h) auto;
+  row-gap: var(--chip-gap);
+}
+
+.heat-asic-main{
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.heat-chips{
+  /* chip squares are sized so that 2 fit exactly into the big square height */
+  --chip-gap: 12px;
+  --chip-size: calc((var(--heat-box-h) - var(--chip-gap)) / 2);
+
+  display: grid;
+  grid-template-columns: repeat(2, var(--chip-size));
+  grid-auto-rows: var(--chip-size);
+  gap: var(--chip-gap);
+  align-content: start;
+  align-items: stretch;
+  justify-content: start;
+  position: relative;
+}
+
+.heat-chips--right{
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.heat-chips--bottom{
+  grid-column: 1;
+  grid-row: 2;
+}
+
+
+.chip-square{
+  position: relative;
+  overflow: hidden;
+  width: var(--chip-size);
+  height: var(--chip-size);
+  /* ASIC/A1… squares: keep the remainder transparent.
+     Only the filled portion (bottom) should carry the surface tone. */
+  background: transparent;
+  border: none;
+}
+
+/* Thin top indicator line for chip squares (2px, bar-fill color) */
+.chip-square::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  opacity: var(--bar-fill-opacity);
+  z-index: 2;
+}
+
+.chip-square__fill{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  opacity: var(--bar-fill-opacity);
+  transition: height 180ms ease;
+  z-index: 0;
+}
+
+/* Dotted marker at the end of the filled portion (same visual language as bars) */
+.chip-square__fill::after{
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 0;
+  border-top: 2px dotted var(--fill-marker-color);
+  pointer-events: none;
+}
+
+.chip-square__bglabel{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  /* A1/A2… glyphs should sit near the top (not vertically centered) */
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15px;
+  font-size: 2.1rem;
+  font-weight: 900;
+  /* Use the same color as units/suffixes, but at 50% transparency */
+  color: var(--unit-color);
+  opacity: 0.5;
+  pointer-events: none;
+  /* keep the glyph above the fill so it stays visible even when the fill is opaque */
+  z-index: 1;
+}
+
+/* Cutout overlay: where the fill reaches, show the box surface color */
+.chip-square__bglabel::after{
+  display: none;
+}
+
+
+.chip-square__inner{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  text-align: right;
+  color: var(--bar-value-color);
+  z-index: 3;
+  padding: 8px;
+  text-shadow: none;
+}
+
+.chip-square__temp{
+  font-size: calc(var(--bar-label-fs) + 0.15rem);
+  font-weight: 700;
+  line-height: 1;
+  opacity: 1;
+}
+
+
+.heat-metric-box{
+  flex: 0 0 auto;
+  /* match the Efficiency square height (3 bars + 2 gaps) */
+  --heat-box-h: calc((var(--pbar-h) * 3) + (var(--pbar-gap) * 2));
+  height: var(--heat-box-h);
+  width: var(--heat-box-h);
+  /* ASIC °C remainder should be transparent; only the fill at the bottom is tinted */
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ASIC temp square as vertical bar (dark remainder + light fill) */
+.heat-metric-box--vertical{
+  position: relative;
+  overflow: hidden;
+
+  /* empty remainder is transparent; fill provides the tint */
+  background: transparent;
+}
+
+/* Thin top indicator line for the ASIC °C box (2px, bar-fill color) */
+.heat-metric-box--vertical::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  opacity: var(--bar-fill-opacity);
+  z-index: 1;
+}
+
+.heat-metric-box__fill{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  /* Filled portion uses the same surface tone as bars/squares */
+  background: var(--fill-color, var(--bar-track, rgba(128, 128, 128, 0.25)));
+  opacity: var(--bar-fill-opacity);
+  transition: height 180ms ease;
+  z-index: 0;
+}
+
+/* Dotted marker at the end of the filled portion (same as bars) */
+.heat-metric-box__fill::after{
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 0;
+  border-top: 2px dotted var(--fill-marker-color);
+  pointer-events: none;
+}
+
+/* ASIC °C + A1/A2… squares: reuse bar state classes for warn/crit/max coloring.
+   Crit uses the ASIC temp pill red (not the generic danger red). */
+.heat-metric-box.power-bar--warn::before,
+.chip-square.power-bar--warn::before{
+  background: var(--fill-warn-color, var(--color-warning-500));
+}
+
+.heat-metric-box.power-bar--crit::before,
+.chip-square.power-bar--crit::before{
+  background: var(--asic-temp-pill, var(--fill-max-color, var(--color-danger-500)));
+}
+
+.heat-metric-box.power-bar--warn .heat-metric-box__fill,
+.chip-square.power-bar--warn .chip-square__fill{
+  background: var(--fill-warn-color, var(--color-warning-500));
+}
+
+.heat-metric-box.power-bar--crit .heat-metric-box__fill,
+.chip-square.power-bar--crit .chip-square__fill{
+  background: var(--asic-temp-pill, var(--fill-max-color, var(--color-danger-500)));
+}
+
+.heat-metric-box.power-bar--warn .heat-metric-box__fill::after,
+.chip-square.power-bar--warn .chip-square__fill::after{
+  border-top-color: var(--fill-warn-color, var(--color-warning-500));
+}
+
+.heat-metric-box.power-bar--crit .heat-metric-box__fill::after,
+.chip-square.power-bar--crit .chip-square__fill::after{
+  border-top-color: var(--asic-temp-pill, var(--fill-max-color, var(--color-danger-500)));
+}
+
+.heat-metric-box.power-bar--max .heat-metric-box__fill::after,
+.chip-square.power-bar--max .chip-square__fill::after{
+  border-top: 5px solid var(--fill-max-color, var(--asic-temp-pill, var(--color-danger-500)));
+  top: -3px;
+}
+
+/* Warn/Crit typography for ASIC °C + chip squares:
+   - warn: yellow fill + BLACK bold text
+   - crit: ASIC red fill + WHITE bold text */
+.heat-metric-box.power-bar--warn .heat-metric-box__inner,
+.chip-square.power-bar--warn .chip-square__inner{
+  color: #000;
+  font-weight: 800;
+}
+
+.heat-metric-box.power-bar--crit .heat-metric-box__inner,
+.chip-square.power-bar--crit .chip-square__inner{
+  color: #fff;
+  font-weight: 800;
+}
+
+/* Small label above the value inside the Efficiency square (match ASIC temp label style) */
+.power-watt-box__label-top{
+  font-size: 1.05rem; /* overlay label */
+  font-weight: 400;
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.heat-metric-box__inner{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--bar-value-color);
+  z-index: 2;
+  padding: 10px;
+  text-shadow: none;
+}
+
+
+.heat-metric-box__value{
+  font-size: calc(var(--bar-value-fs) + 0.2rem);
+  line-height: 1;
+  font-weight: 800;
+}
+
+/* Small label placed above the value inside the ASIC temp square */
+.heat-metric-box__label-top{
+  font-size: var(--bar-label-fs);
+  font-weight: 400;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.heat-bars{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Inline Fan value container:
+   - keep the whole value block vertically centered in the bar
+   - baseline alignment is handled by the nested .fan-inline wrapper */
+.power-bar__value--inline{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.power-bar__sep{
+  font-size: var(--bar-label-fs);
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.power-bar__subvalue{
+  font-size: var(--bar-label-fs);
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+
+/* Unified muted label color */
+.unit,
+.pool-tile-details .text-hint{
+  color: var(--unit-color);
+}
+
+/* Expected line should use a unified tone. */
+.pool-summary-square__expected-value,
+.pool-summary-square__expected-unit,
+.pool-summary-square__expected-label{
+  color: #7E7E8A;
+}
+
+/* Hashrate tile: model (right) and uptime (right/below) aligned against the Best Difficulty square */
+.pool-summary-square__hashrate-row{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pool-summary-square__row2{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pool-summary-square__uptime{
+  text-align: right;
+}
+
+.pool-summary-square__uptime-value{
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--bar-value-color);
+  line-height: 1;
+}
+
+.pool-summary-square__uptime-label{
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--unit-in-fill-color, var(--unit-color));
+  line-height: 1.1;
 }

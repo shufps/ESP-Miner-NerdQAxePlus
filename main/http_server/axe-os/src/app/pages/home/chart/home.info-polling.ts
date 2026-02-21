@@ -48,7 +48,7 @@ export interface CreateSystemInfoPollingDeps {
 }
 
 /**
- * Creates the polling pipeline used by HomeExperimentalComponent.
+ * Creates the polling pipeline used by HomeComponent.
  *
  * - polls every `pollMs`
  * - computes a startTimestamp (lastTimestamp+1, capped to 1h window)

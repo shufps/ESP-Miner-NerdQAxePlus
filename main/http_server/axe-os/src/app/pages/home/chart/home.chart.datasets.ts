@@ -1,6 +1,6 @@
 import { HOME_CFG } from '../home.cfg';
 
-// Auto-extracted from the original HomeExperimentalComponent constructor.
+// Auto-extracted from the original HomeComponent constructor.
 // Visual/design layer only.
 
 export interface HomeChartSeriesRefs {

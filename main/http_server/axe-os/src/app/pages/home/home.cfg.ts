@@ -1,9 +1,8 @@
 /**
- * Central config for the *Experimental* dashboard.
+ * Central config for the Home dashboard.
  *
- * This config is intentionally scoped to the experimental dashboard implementation.
- * The decision "legacy vs experimental" is controlled by the UI settings via
- * ExperimentalDashboardService.enabled$ (HomeShellComponent) — not from this file.
+ * This config is scoped to the current Home implementation
+ * (`home.component.*`).
  */
 
 import type { HomeChartViewMode } from './chart/home.chart-state';
@@ -217,7 +216,7 @@ export interface TempScaleCfg {
 // ---- Storage
 
 /**
- * Central place for localStorage keys used by the experimental chart.
+ * Central place for localStorage keys used by the Home chart.
  *
  */
 export interface HomeStorageKeys {
@@ -240,7 +239,7 @@ export interface HomeUiDefaults {
 
 
 
-// ---- Tile / bar / square helpers (Experimental dashboard)
+// ---- Tile / bar / square helpers (Home dashboard)
 
 /**
  * Uptime formatting rules used in the Hashrate tile.
@@ -388,7 +387,7 @@ export interface HomeCfg {
   /**
    * Warmup/Restart sequencing so graphs don't "fall apart" after miner restarts.
    *
-   * This is used by HomeExperimentalComponent + home.warmup.ts.
+   * This is used by HomeComponent + home.warmup.ts.
    */
   warmup: {
     /** Minimum plausible temperature that counts as "valid" for warmup gating. */
@@ -466,16 +465,14 @@ export function createAxisPaddingCfg(): AxisPaddingCfg {
 export const HOME_CFG: HomeCfg = {
   storage: {
     keys: {
-      // Keep the existing keys used by the experimental dashboard so upgrades
-      // do not silently drop persisted state.
-      chartData: 'chartData_exp',
-      lastTimestamp: 'lastTimestamp_exp',
-      legendVisibility: 'chartLegendVisibility_exp',
-      // Historical name was tempViewMode_exp; we call it viewMode in code.
-      viewMode: 'tempViewMode_exp',
-      minHistoryTimestampMs: 'minHistoryTimestampMs_exp',
+      // Active Home keys.
+      chartData: 'chartData_home',
+      lastTimestamp: 'lastTimestamp_home',
+      legendVisibility: 'chartLegendVisibility_home',
+      viewMode: 'tempViewMode_home',
+      minHistoryTimestampMs: 'minHistoryTimestampMs_home',
       // Visual-only: remember if the user collapsed the chart container.
-      chartCollapsed: 'chartCollapsed_exp',
+      chartCollapsed: 'chartCollapsed_home',
     },
     // Keep storage reasonably bounded; chart can still hold more live points.
     maxPersistedPoints: 20000,

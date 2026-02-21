@@ -168,7 +168,7 @@ export class SystemService {
     return this.httpClient.get<ISystemInfo>(endpoint, { params });
   }
 
-  // Experimental dashboard: request extended history window (span) without affecting other callers.
+  // Home dashboard: request an extended history window (span) without affecting other callers.
   public getInfoWithSpan(ts = 0, limit = 0, spanMs = 0, uri = ''): Observable<ISystemInfo> {
     let params = new HttpParams();
 
@@ -181,7 +181,7 @@ export class SystemService {
         params = params.set('limit', limit);
       }
       if (spanMs > 0) {
-        params = params.set('history_span', spanMs).set('experimental', '1');
+        params = params.set('history_span', spanMs);
       }
     }
     const endpoint = `${uri}/api/system/info`;

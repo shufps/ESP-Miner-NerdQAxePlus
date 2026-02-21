@@ -4,10 +4,8 @@ import { HOME_CFG } from '../home.cfg';
 /**
  * Storage wrapper for Home chart persistence.
  *
- * Step 6 additions:
- * - versioned envelope for the main chartData payload
- * - best-effort migrations from older shapes
- * - light validation / normalization to avoid "poisoned" localStorage
+ * Stores a versioned envelope for the main chartData payload and applies
+ * light validation/normalization to avoid poisoned localStorage values.
  */
 
 export interface StorageAdapter {
@@ -40,10 +38,6 @@ type PersistedEnvelopeV2 = {
   ts: number; // persisted-at timestamp (ms)
   state: PersistedHomeChartStateV1;
 };
-
-function isNumArray(v: any): v is number[] {
-  return Array.isArray(v);
-}
 
 function toNumberArray(v: any): number[] | null {
   if (!Array.isArray(v)) return null;
@@ -112,37 +106,11 @@ function tryParseJson(raw: string): any | null {
   }
 }
 
-function migrateToStateV1(parsed: any): PersistedHomeChartStateV1 | null {
+function parsePersistedState(parsed: any): PersistedHomeChartStateV1 | null {
   if (!parsed || typeof parsed !== 'object') return null;
 
-  // v2 envelope
   if (parsed.v === CURRENT_ENVELOPE_VERSION && parsed.state && typeof parsed.state === 'object') {
     return clampPersistedState(parsed.state as PersistedHomeChartStateV1);
-  }
-
-  // v1 bare state (schema=1)
-  if ((parsed.schema === 1 || parsed.schema == null) && isNumArray(parsed.labels)) {
-    // accept missing schema as v0-ish, we’ll normalize below
-    const hasRequired =
-      isNumArray(parsed.dataData1m) &&
-      isNumArray(parsed.dataData10m) &&
-      isNumArray(parsed.dataData1h) &&
-      isNumArray(parsed.dataData1d);
-
-    if (!hasRequired) return null;
-
-    const v1: PersistedHomeChartStateV1 = {
-      schema: 1,
-      labels: parsed.labels,
-      dataData1m: parsed.dataData1m,
-      dataData10m: parsed.dataData10m,
-      dataData1h: parsed.dataData1h,
-      dataData1d: parsed.dataData1d,
-      dataVregTemp: parsed.dataVregTemp,
-      dataAsicTemp: parsed.dataAsicTemp,
-    };
-
-    return clampPersistedState(v1);
   }
 
   return null;
@@ -155,7 +123,7 @@ export class HomeChartStorage {
   ) {}
 
   /**
-   * Returns a migrated + normalized v1 state (the component/state loader already accepts v1).
+   * Returns a normalized persisted state from the current envelope format.
    * If the stored payload is garbage/unknown, returns null.
    */
   loadPersistedState(): PersistedHomeChartStateV1 | null {
@@ -165,14 +133,14 @@ export class HomeChartStorage {
     const parsed = tryParseJson(raw);
     if (!parsed) return null;
 
-    const migrated = migrateToStateV1(parsed);
-    if (!migrated) return null;
+    const state = parsePersistedState(parsed);
+    if (!state) return null;
 
-    return migrated;
+    return state;
   }
 
   /**
-   * Persist using a versioned envelope. Older readers can still read `state` via migration.
+   * Persist using the current versioned envelope.
    */
   savePersistedState(state: PersistedHomeChartStateV1): void {
     try {

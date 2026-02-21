@@ -7,7 +7,6 @@ import { SystemService } from '../../services/system.service';
 import { eASICModel } from '../../models/enum/eASICModel';
 import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
-import { ExperimentalDashboardService } from 'src/app/services/experimental-dashboard.service';
 import { OtpAuthService, EnsureOtpResult, EnsureOtpOptions } from '../../services/otp-auth.service';
 import { TranslateService } from '@ngx-translate/core';
 import { IStratum } from 'src/app/models/IStratum';
@@ -75,7 +74,6 @@ export class EditComponent implements OnInit {
     private toastrService: NbToastrService,
     private loadingService: LoadingService,
     private localStorageService: LocalStorageService,
-    private experimentalDashboard: ExperimentalDashboardService,
     private dialogService: NbDialogService,
     private otpAuth: OtpAuthService,
     private translate: TranslateService,
@@ -144,7 +142,6 @@ export class EditComponent implements OnInit {
           invertscreen: [info.invertscreen == 1],
           autoscreenoff: [info.autoscreenoff == 1],
           timeFormat: [this.localStorageService.getItem('timeFormat') || '24h'],
-          experimentalDashboardEnabled: [this.experimentalDashboard.enabled],
           stratumURL: [info.stratumURL, [
             Validators.required,
             Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
@@ -228,10 +225,6 @@ export class EditComponent implements OnInit {
           otpEnabled: [info.otp],
         });
 
-        // Client-only toggle: persist immediately (no device reboot / no backend call)
-        this.form.controls['experimentalDashboardEnabled'].valueChanges
-          .subscribe((v: boolean) => this.experimentalDashboard.setEnabled(!!v));
-
         this.stratum = info.stratum;
 
         this.form.controls['autofanspeed'].valueChanges
@@ -282,10 +275,6 @@ export class EditComponent implements OnInit {
       this.localStorageService.setItem('timeFormat', form.timeFormat);
       window.dispatchEvent(new CustomEvent('timeFormatChanged', { detail: form.timeFormat }));
       delete form.timeFormat;
-    }
-    // experimentalDashboardEnabled is a client-only preference; never send to backend
-    if ('experimentalDashboardEnabled' in form) {
-      delete form.experimentalDashboardEnabled;
     }
 
     // Allow empty WiFi password; strip masked fields
@@ -553,4 +542,3 @@ export class EditComponent implements OnInit {
   }
 
 }
-

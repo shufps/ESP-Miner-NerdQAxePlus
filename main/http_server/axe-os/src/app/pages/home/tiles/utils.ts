@@ -32,8 +32,8 @@ export type BarDomSyncCfg = {
 /**
  * Tile helper utilities.
  *
- * Keep these as pure functions so both HomeComponent and HomeExperimentalComponent
- * can expose them to templates without duplicating logic.
+ * Keep these as pure functions so HomeComponent can expose them to templates
+ * without duplicating logic.
  */
 
 export type ValueUnit = { value: string; unit: string };
@@ -459,7 +459,7 @@ export function getAsicFrequencyBoundsFromAsic(
 }
 
 // -----------------------------------------------------------------------------
-// Experimental Home dashboard helpers (bars + squares)
+// Home dashboard helpers (bars + squares)
 // -----------------------------------------------------------------------------
 
 export type HomeTileDerivedFlags = {
@@ -586,8 +586,8 @@ export function computeVrTempBarCritWanted(info: any, limits: BarLimits = (BAR_L
 }
 
 /**
- * Normalize / derive all values that are used by bar + square tiles in the experimental Home.
- * Keeps HomeExperimentalComponent very thin: this function mutates `info` and returns derived flags.
+ * Normalize / derive all values that are used by bar + square tiles in the Home dashboard.
+ * Keeps HomeComponent very thin: this function mutates `info` and returns derived flags.
  */
 export function normalizeHomeTileInfo(
   info: any,

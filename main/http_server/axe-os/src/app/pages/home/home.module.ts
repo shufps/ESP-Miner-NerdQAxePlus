@@ -1,11 +1,8 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HomeComponent } from './home.component';
-import { HomeExperimentalComponent } from './home.component.experimental';
-import { HomeShellComponent } from './home-shell.component';
-import { NbCardModule, NbTooltipModule, NbTrigger, NbBadgeModule, NbAlertModule, NbButtonModule, NbThemeModule, NbIconModule } from '@nebular/theme';
+import { NbCardModule, NbTooltipModule, NbBadgeModule, NbAlertModule, NbButtonModule, NbThemeModule, NbIconModule } from '@nebular/theme';
 import { SystemService } from '../../services/system.service';
-import { Chart } from 'chart.js/auto'; // Ensure Chart.js is properly imported
 import { GaugeModule } from '../../components/gauge/gauge.module';
 import { PipesModule} from '../../pipes/pipes.module';
 import { TranslateModule } from '@ngx-translate/core';
@@ -14,8 +11,6 @@ import { AsicTempBarsModule } from 'src/app/components/asic-temp-bars/asic-temp-
 @NgModule({
   declarations: [
     HomeComponent,
-    HomeExperimentalComponent,
-    HomeShellComponent,
   ],
   imports: [
     CommonModule,
@@ -33,9 +28,6 @@ import { AsicTempBarsModule } from 'src/app/components/asic-temp-bars/asic-temp-
   ],
   providers: [
     SystemService
-  ],
-  exports: [
-    HomeComponent
   ]
 })
 export class HomeModule {}

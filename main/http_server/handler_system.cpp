@@ -45,7 +45,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
     uint64_t current_timestamp = 0;
     uint32_t history_limit = 0;
     bool history_requested = false;
-    bool history_span_enabled = false;
     uint64_t history_span_ms = DEFAULT_HISTORY_SPAN_MS;
     char query_str[128];
     if (httpd_req_get_url_query_str(req, query_str, sizeof(query_str)) == ESP_OK) {
@@ -61,9 +60,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
             if (history_limit > 1000) {
                 history_limit = 1000;
             }
-        }
-        if (httpd_query_key_value(query_str, "experimental", param, sizeof(param)) == ESP_OK) {
-            history_span_enabled = (strtoul(param, NULL, 10) == 1);
         }
         if (httpd_query_key_value(query_str, "history_span", param, sizeof(param)) == ESP_OK) {
             history_span_ms = strtoull(param, NULL, 10);
@@ -160,7 +156,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
     // If history was requested, add the history data as a nested object
     if (!shutdown && history_requested) {
-        uint64_t span = history_span_enabled ? history_span_ms : DEFAULT_HISTORY_SPAN_MS;
+        uint64_t span = history_span_ms;
         uint64_t end_timestamp = start_timestamp + span;
         JsonObject json_history = doc["history"].to<JsonObject>();
 

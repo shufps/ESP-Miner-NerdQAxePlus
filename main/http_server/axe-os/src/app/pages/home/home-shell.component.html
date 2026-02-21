@@ -1,7 +1,0 @@
-<ng-container [ngSwitch]="mode$ | async">
-  <app-home-experimental *ngSwitchCase="'experimental'"></app-home-experimental>
-  <app-home *ngSwitchCase="'normal'"></app-home>
-
-  <!-- Intentionally empty: prevents rendering anything before enabled$ has emitted. -->
-  <ng-container *ngSwitchDefault></ng-container>
-</ng-container>
