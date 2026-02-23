@@ -6,6 +6,9 @@ import {
   ElementRef,
   ViewChild,
   HostBinding,
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  NgZone,
   Renderer2 } from '@angular/core';
 import { map,
   Observable,
@@ -90,7 +93,8 @@ import { maxAsicTemp,
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss']
+  styleUrls: ['./home.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
@@ -160,8 +164,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.updateAxesScaleAdaptive();
     this.syncChartDatasetsAndSmoothing();
     // Force immediate dataset refresh so smoothing changes apply before any next tick.
-    try { this.chart?.update?.('none'); } catch {}
-    updateChartWithZoomAnimation(this.chart, 160);
+    this.ngZone.runOutsideAngular(() => {
+      try { this.chart?.update?.('none'); } catch {}
+      updateChartWithZoomAnimation(this.chart, 160);
+    });
   }
 
   public zoomOut(evt?: Event): void {
@@ -337,7 +343,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       const chart: any = this.chart as any;
       if (chart?.options?.scales?.y?.ticks) {
         chart.options.scales.y.ticks.maxTicksLimit = n;
-        chart.update('none');
+        this.ngZone.runOutsideAngular(() => {
+          chart.update('none');
+        });
       }
     } catch {}
   }
@@ -466,7 +474,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       visibility.forEach((hidden: boolean, i: number) => {
         if (hidden) this.chart.getDatasetMeta(i).hidden = true;
       });
-      this.chart.update();
+      this.ngZone.runOutsideAngular(() => {
+        this.chart!.update();
+      });
     }
 
     try {
@@ -493,7 +503,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     private translateService: TranslateService,
     private localStorage: LocalStorageService,
     private hostEl: ElementRef<HTMLElement>,
-    private renderer: Renderer2
+    private renderer: Renderer2,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {
     // Local persistence wrapper for chart state/settings
     this.chartStorage = new HomeChartStorage({
@@ -664,8 +676,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     });
 
     this.expectedHashRate$ = this.info$.pipe(map(info => {
-      if (!info) return 0; // Return 0 if no info
-      return Math.floor(info.frequency * ((info.smallCoreCount * info.asicCount) / 1000));
+      if (!info || info.frequency == null || info.smallCoreCount == null || info.asicCount == null) return undefined;
+      const val = Math.floor(info.frequency * ((info.smallCoreCount * info.asicCount) / 1000));
+      return Number.isFinite(val) ? val : undefined;
     }));
 
     this.quickLink$ = this.info$.pipe(
@@ -692,8 +705,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     // Expanded again: clear persisted flag and make sure Chart.js recalculates layout.
     this.localStorageRemove(this.chartCollapsedKey);
     setTimeout(() => {
-      try { (this.chart as any)?.resize?.(); } catch {}
-      try { this.chart?.update?.('none' as any); } catch {}
+      this.ngZone.runOutsideAngular(() => {
+        try { (this.chart as any)?.resize?.(); } catch {}
+        try { this.chart?.update?.('none' as any); } catch {}
+      });
     }, 280);
   }
 
@@ -895,6 +910,7 @@ ngOnInit() {
       // Re-apply any bar overrides that are theme-dependent.
       this.barDomSync.syncCurrentInputBarMaxFill(!!this.currentInputBarMaxWanted, this.currentThemeName);
       this.barDomSync.syncVrTempBarCritFill(!!this.vrTempBarCritWanted, this.currentThemeName);
+      this.cdr.markForCheck();
     });
 
     // Listen for timeFormat changes
@@ -911,6 +927,7 @@ ngOnInit() {
         this._asicInfo = asic;
         this._freqBoundsCacheKey = null;
         this._voltBoundsCacheKey = null;
+        this.cdr.markForCheck();
       } catch {
         // ignore
       }
@@ -949,7 +966,9 @@ ngOnInit() {
       };
 
       if (this.chart) {
-        this.chart.update();
+        this.ngZone.runOutsideAngular(() => {
+          this.chart!.update();
+        });
       }
     }
   }
@@ -1689,8 +1708,10 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       return;
     }
 
-    this.updateAxesScaleAdaptive();
-    this.chart.update();
+    this.ngZone.runOutsideAngular(() => {
+      this.updateAxesScaleAdaptive();
+      this.chart!.update();
+    });
   }
 
   private updateThemeColors(): void {
@@ -1698,19 +1719,23 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
     if (this.chart) {
       this.chart.options = this.chartOptions;
-      this.chart.update();
+      this.ngZone.runOutsideAngular(() => {
+        this.chart!.update();
+      });
     }
   }
 
   // Toggle only if feature exists, then persist
 
   public getPoolHashrate(i: 0 | 1) {
+    if (!this._info?.stratum) return 0;
     const balance = this.getActiveBalance(i);
     return this._info.hashRate * balance / 100.0;
   }
 
   public getActiveBalance(i: 0 | 1) {
-    const stratum = this._info.stratum;
+    const stratum = this._info?.stratum;
+    if (!stratum) return 0;
     const connected = stratum.pools.map(p => p.connected);
     const balance = stratum.poolBalance;
 
@@ -1730,7 +1755,10 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
 
   public getPoolInfo(i?: 0 | 1): IPool {
-    const stratum = this._info.stratum;
+    const stratum = this._info?.stratum;
+    if (!this._info || !stratum) {
+      return {} as IPool;
+    }
 
     // failover logic, "current" pool
     if (i === undefined) {

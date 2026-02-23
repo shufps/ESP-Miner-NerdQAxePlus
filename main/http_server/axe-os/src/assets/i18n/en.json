@@ -70,7 +70,8 @@
     "FAN_CHANNEL": "Fan C{{channel}}",
     "SHARE_TOO_SMALL": "Share for this pool too small!",
     "HIDE_CHART": "Hide",
-    "SHOW_CHART": "Show"
+    "SHOW_CHART": "Show",
+    "STRATUM_NOT_CONNECTED": "Stratum not connected for this pool."
   },
   "PERFORMANCE": {
     "TITLE": "Performance",

@@ -68,7 +68,8 @@
     "FAN_CHANNEL": "Lüfter C{{channel}}",
     "SHARE_TOO_SMALL": "Anteil für diesen Pool zu klein!",
     "HIDE_CHART": "ausblenden",
-    "SHOW_CHART": "einblenden"
+    "SHOW_CHART": "einblenden",
+    "STRATUM_NOT_CONNECTED": "Stratum für diesen Pool nicht verbunden."
   },
   "PERFORMANCE": {
     "TITLE": "Leistung",

@@ -1717,12 +1717,6 @@ nb-card-header{
   grid-row: 2;
 }
 
-/* Full-width power bar under the 3 bars + square */
-.power-bar--full{
-  grid-column: 1 / -1;
-  grid-row: 2;
-}
-
 .power-watt-box__inner{
   position: relative;
   z-index: 2;

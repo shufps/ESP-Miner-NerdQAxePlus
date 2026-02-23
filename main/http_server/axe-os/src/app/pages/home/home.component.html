@@ -391,7 +391,7 @@
                     class="pool-tile-metricbar pool-tile-metricbar--warn pool-tile-metricbar--disconnected fill-colors"
                     role="status" aria-live="polite">
                     <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
-                      <div class="pool-tile-metricbar__dc-msg">Stratum not connected for this pool.</div>
+                      <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
                     </div>
                   </div>
                 </div>
@@ -405,7 +405,7 @@
                     class="pool-tile-metricbar pool-tile-metricbar--warn pool-tile-metricbar--disconnected fill-colors"
                     role="status" aria-live="polite">
                     <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
-                      <div class="pool-tile-metricbar__dc-msg">Stratum not connected for this pool.</div>
+                      <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
                     </div>
                   </div>
                 </div>
@@ -624,7 +624,7 @@
                     <!-- Fan bar (channel 2, only if present) -->
                     <div class="power-bar" *ngIf="showFanC2" role="img"
                          [class.power-bar--max]="isBarMax(info.fanspeed, 100)"
-                         [attr.aria-label]="('HOME.FAN_CHANNEL' | translate:{channel: 2}) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm2 ?? 0 | number: '1.0-0') + ' RPM)'">
+                         [attr.aria-label]="('HOME.FAN_CHANNEL' | translate:{channel: 2}) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + ((info.fanrpm2 ?? 0) | number: '1.0-0') + ' RPM)'">
                       <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed, 0, 100)"></div>
                       <div class="power-bar__label">{{ 'HOME.FAN_CHANNEL' | translate:{channel: 2} }}</div>
                       <div class="power-bar__value power-bar__value--inline">

@@ -68,7 +68,8 @@
     "FAN_CHANNEL": "Ventilador C{{channel}}",
     "SHARE_TOO_SMALL": "Porcentaje para este pool demasiado bajo!",
     "HIDE_CHART": "ocultar",
-    "SHOW_CHART": "mostrar"
+    "SHOW_CHART": "mostrar",
+    "STRATUM_NOT_CONNECTED": "Stratum no conectado para este pool."
   },
   "PERFORMANCE": {
     "TITLE": "Rendimiento",
