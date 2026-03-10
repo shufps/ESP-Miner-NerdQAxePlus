@@ -20,6 +20,8 @@
 
 static const char *TAG = "power_management";
 
+#define MEASURE_LOOP_TIME
+
 PowerManagementTask::PowerManagementTask()
 {
     m_mutex = xSemaphoreCreateRecursiveMutex();
@@ -286,13 +288,13 @@ void PowerManagementTask::task()
     vTaskDelay(pdMS_TO_TICKS(1000));
     startTimer();
 
-    // uint64_t last_time = esp_timer_get_time();
+    uint64_t last_time = esp_timer_get_time();
     while (1) {
         pthread_mutex_lock(&m_loop_mutex);
         pthread_cond_wait(&m_loop_cond, &m_loop_mutex); // Wait for the timer
         pthread_mutex_unlock(&m_loop_mutex);
 
-        // uint64_t start = esp_timer_get_time();
+        uint64_t start = esp_timer_get_time();
         lock();
 /*
         // don't suspend power management task in shutdown
@@ -399,13 +401,15 @@ void PowerManagementTask::task()
             m_board->setFanSpeed((float) m_fanPerc / 100.0f);
         }
         unlock();
-        // uint64_t end = esp_timer_get_time();
-        // uint64_t duration = (end - start) / 1000llu;
-        // uint64_t interval = (start - last_time) / 1000llu;
-        // // normally doesn't happen
-        // if (duration > POLL_RATE) {
-        //     ESP_LOGE(TAG, "loop taking more then %dms (%llums, interval: %llu)", POLL_RATE, duration, interval);
-        // }
-        // last_time = start;
+#ifdef MEASURE_LOOP_TIME
+        // checks if loop takes too much time
+        uint64_t end = esp_timer_get_time();
+        uint64_t duration = (end - start) / 1000llu;
+        uint64_t interval = (start - last_time) / 1000llu;
+        if (duration > POLL_RATE) {
+            ESP_LOGE(TAG, "loop taking more then %dms (%llums, interval: %llu)", POLL_RATE, duration, interval);
+        }
+        last_time = start;
+#endif
     }
 }
