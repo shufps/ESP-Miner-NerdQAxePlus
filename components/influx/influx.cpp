@@ -37,21 +37,18 @@ bool Influx::ping()
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
     esp_err_t err = esp_http_client_perform(client);
-    if (err == ESP_OK) {
-        int status_code = esp_http_client_get_status_code(client);
-        esp_http_client_cleanup(client);
-
-        if (status_code == 204) { // 204 No Content is the expected status code for /ping
-            ESP_LOGI(TAG, "Successfully connected to InfluxDB at %s:%d", m_host, m_port);
-            return true;
-        } else {
-            ESP_LOGE(TAG, "InfluxDB ping failed with status code: %d", status_code);
-        }
-    } else {
-        ESP_LOGE(TAG, "InfluxDB ping request failed: %s", esp_err_to_name(err));
-    }
-
+    int status_code = (err == ESP_OK) ? esp_http_client_get_status_code(client) : -1;
     esp_http_client_cleanup(client);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "InfluxDB ping request failed: %s", esp_err_to_name(err));
+        return false;
+    }
+    if (status_code == 204 || status_code == 200) { // 204 = standard /ping response, 200 = some proxied setups
+        ESP_LOGI(TAG, "Successfully connected to InfluxDB at %s:%d", m_host, m_port);
+        return true;
+    }
+    ESP_LOGE(TAG, "InfluxDB ping failed with status code: %d", status_code);
     return false;
 }
 
