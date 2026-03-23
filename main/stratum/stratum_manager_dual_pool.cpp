@@ -9,6 +9,7 @@
 #include "nvs_config.h"
 #include "stratum_manager_dual_pool.h"
 #include "utils.h"
+#include "utils.h"
 
 StratumManagerDualPool::StratumManagerDualPool() : StratumManager(PoolMode::DUAL)
 {
@@ -195,6 +196,10 @@ void StratumManagerDualPool::checkForBestDiff(int pool, double diff, uint32_t nb
         suffixString(std::max(m_bestSessionDiff[0], m_bestSessionDiff[1]), m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
     }
 
+    if (nbits != 0) {
+        m_networkDifficulty[pool] = calculateNetworkDifficulty(nbits);
+    }
+
     StratumManager::checkForBestDiff(pool, diff, nbits);
 }
 
@@ -211,6 +216,7 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
 
         pool["connected"] = m_stratumTasks[i] ? m_stratumTasks[i]->m_isConnected : false;
         pool["poolDifficulty"] = m_poolDifficulty[i];
+        pool["networkDifficulty"] = m_networkDifficulty[i];
         pool["poolDiffErr"] = m_poolDiffErr[i];
         pool["accepted"] = m_accepted[i];
         pool["rejected"] = m_rejected[i];

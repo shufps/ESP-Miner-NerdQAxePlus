@@ -124,5 +124,6 @@ export interface ISwarmInfo {
     ASICModel: eASICModel,
     deviceModel: string,
     poolDifficulty: number,
+    networkDifficulty: number,
     version: string,
 }

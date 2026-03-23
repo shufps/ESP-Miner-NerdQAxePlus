@@ -140,6 +140,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
     // kept for swarm compatibility
     doc["poolDifficulty"]     = STRATUM_MANAGER->getPoolDifficulty();
+    doc["networkDifficulty"]  = STRATUM_MANAGER->getNetworkDifficulty();
     doc["foundBlocks"]        = STRATUM_MANAGER->getFoundBlocks();
     doc["totalFoundBlocks"]   = STRATUM_MANAGER->getTotalFoundBlocks();
     doc["sharesAccepted"]     = STRATUM_MANAGER->getSharesAccepted();

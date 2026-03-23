@@ -14,6 +14,7 @@ class StratumManagerDualPool : public StratumManager {
     uint64_t m_bestSessionDiff[2]{};
     bool m_poolDiffErr[2]{};
     uint32_t m_poolDifficulty[2]{0};
+    double m_networkDifficulty[2]{0};
 
     virtual void reconnectTimerCallback(int index);
     virtual void connectedCallback(int index);
@@ -84,6 +85,10 @@ class StratumManagerDualPool : public StratumManager {
     virtual uint32_t getPoolDifficulty() {
         return (m_balance >= 50) ? m_poolDifficulty[0] : m_poolDifficulty[1];
     };
+
+    virtual double getNetworkDifficulty() {
+        return (m_balance >= 50) ? m_networkDifficulty[0] : m_networkDifficulty[1];
+    }
 
     virtual uint64_t getBestSessionDiff() {
         return std::max(m_bestSessionDiff[0], m_bestSessionDiff[1]);

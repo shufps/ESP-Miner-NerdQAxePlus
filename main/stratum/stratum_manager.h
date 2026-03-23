@@ -158,6 +158,7 @@ class StratumManager {
     virtual int getPoolErrors() = 0;
 
     virtual uint32_t getPoolDifficulty() = 0;
+    virtual double getNetworkDifficulty() { return 0; }
 
     virtual int getCompatPingPoolIndex() = 0;
 
