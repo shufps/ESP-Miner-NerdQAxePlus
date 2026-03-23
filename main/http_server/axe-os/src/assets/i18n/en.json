@@ -401,7 +401,9 @@
     "AUTODETECT_POLARITY": "Autodetect Fan Polarity",
     "AUTODETECT_RECOMMENDED": "Recommended",
     "INVERT_POLARITY": "Invert Fan Polarity",
-    "USE_FAN1_SETTINGS": "Use Fan 1 settings (linked)"
+    "USE_FAN1_SETTINGS": "Sync with Fan 1",
+    "FAN1_CONNECTOR_HINT": "Connect the <strong>ASIC fan</strong> to connector <strong>{{connector}}</strong>.",
+    "FAN2_CONNECTOR_HINT": "Connect the <strong>VReg fan</strong> to connector <strong>{{connector}}</strong>."
   },
   "MISC": {
     "TITLE": "Misc Settings",

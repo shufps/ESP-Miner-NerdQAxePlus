@@ -623,15 +623,15 @@
 
                     <!-- Fan bar (channel 2, only if present) -->
                     <div class="power-bar" *ngIf="showFanC2" role="img"
-                         [class.power-bar--max]="isBarMax(info.fanspeed, 100)"
-                         [attr.aria-label]="('HOME.FAN_CHANNEL' | translate:{channel: 2}) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + ((info.fanrpm2 ?? 0) | number: '1.0-0') + ' RPM)'">
-                      <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed, 0, 100)"></div>
+                         [class.power-bar--max]="isBarMax(info.fanspeed2 ?? 0, 100)"
+                         [attr.aria-label]="('HOME.FAN_CHANNEL' | translate:{channel: 2}) + ': ' + ((info.fanspeed2 ?? 0) | number: '1.0-0') + ' % (' + ((info.fanrpm2 ?? 0) | number: '1.0-0') + ' RPM)'">
+                      <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed2 ?? 0, 0, 100)"></div>
                       <div class="power-bar__label">{{ 'HOME.FAN_CHANNEL' | translate:{channel: 2} }}</div>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
                           <span class="power-bar__subvalue">{{ (info.fanrpm2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
                           <span class="power-bar__sep">/</span>
-                          <span class="power-bar__mainvalue">{{ info.fanspeed | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
+                          <span class="power-bar__mainvalue">{{ (info.fanspeed2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
                         </span>
                       </div>
                     </div>

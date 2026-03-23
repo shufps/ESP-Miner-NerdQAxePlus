@@ -285,8 +285,15 @@
             <nb-tabset>
 
                 <!-- ── Fan 1 ─────────────────────────────────────────── -->
-                <nb-tab tabTitle="{{ fanLabels[0] }}">
+                <nb-tab tabTitle="Fan 1">
                     <nb-card-body>
+
+                        <!-- Connector hint Fan 1 (only when 2-fan board and unlinked) -->
+                        <div *ngIf="fanCount > 1 && form.controls['fan1Mode'].value !== 3 && fanLabels[0]"
+                             style="margin: 6px 0 12px; padding: 8px 12px; background: rgba(128,128,128,0.12); border-radius: 6px; font-size: 0.85em;"
+                             [innerHTML]="'FAN.FAN1_CONNECTOR_HINT' | translate: { connector: fanLabels[0] }">
+                        </div>
+
                         <div class="form-row">
                             <label class="form-label">{{ 'FAN.CONTROLLER' | translate }}:</label>
                             <div class="form-control-wrapper">
@@ -359,7 +366,7 @@
                 </nb-tab>
 
                 <!-- ── Fan 2 (nur bei 2-Lüfter-Boards) ───────────────── -->
-                <nb-tab tabTitle="{{ fanLabels[1] }}" *ngIf="fanCount > 1">
+                <nb-tab tabTitle="Fan 2" *ngIf="fanCount > 1">
                     <nb-card-body>
 
                         <!-- Linked-Checkbox -->
@@ -373,6 +380,11 @@
 
                         <!-- Wenn nicht gelinkt: eigene Einstellungen -->
                         <ng-container *ngIf="form.controls['fan1Mode'].value !== 3">
+
+                            <!-- Connector hint Fan 2 -->
+                            <div *ngIf="fanLabels[1]" style="margin: 6px 0 12px; padding: 8px 12px; background: rgba(128,128,128,0.12); border-radius: 6px; font-size: 0.85em;"
+                                 [innerHTML]="'FAN.FAN2_CONNECTOR_HINT' | translate: { connector: fanLabels[1] }">
+                            </div>
 
                             <div class="form-row">
                                 <label class="form-label">{{ 'FAN.CONTROLLER' | translate }}:</label>

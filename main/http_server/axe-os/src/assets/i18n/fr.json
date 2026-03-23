@@ -399,7 +399,9 @@
     "AUTODETECT_POLARITY": "Détection Auto de la Polarité",
     "AUTODETECT_RECOMMENDED": "Recommandé",
     "INVERT_POLARITY": "Inverser la Polarité",
-    "USE_FAN1_SETTINGS": "Utiliser les réglages du Ventilateur 1 (lié)"
+    "USE_FAN1_SETTINGS": "Synchroniser avec Ventilateur 1",
+    "FAN1_CONNECTOR_HINT": "Branchez le <strong>ventilateur ASIC</strong> sur le connecteur <strong>{{connector}}</strong>.",
+    "FAN2_CONNECTOR_HINT": "Branchez le <strong>ventilateur VReg</strong> sur le connecteur <strong>{{connector}}</strong>."
   },
   "MISC": {
     "TITLE": "Paramètres Divers",

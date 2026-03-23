@@ -399,7 +399,9 @@
     "AUTODETECT_POLARITY": "Automatische Polaritätserkennung",
     "AUTODETECT_RECOMMENDED": "Empfohlen",
     "INVERT_POLARITY": "Polarität umkehren",
-    "USE_FAN1_SETTINGS": "Lüfter 1 Einstellungen verwenden (verknüpft)"
+    "USE_FAN1_SETTINGS": "Mit Lüfter 1 synchronisieren",
+    "FAN1_CONNECTOR_HINT": "Schließe den <strong>ASIC-Lüfter</strong> an Anschluss <strong>{{connector}}</strong> an.",
+    "FAN2_CONNECTOR_HINT": "Schließe den <strong>VReg-Lüfter</strong> an Anschluss <strong>{{connector}}</strong> an."
   },
   "MISC": {
     "TITLE": "Verschiedene Einstellungen",

@@ -66,6 +66,7 @@ export interface ISystemInfo {
     manualFanSpeed: number,
     fanrpm: number,
     fanrpm2?: number,
+    fanspeed2?: number,
     fanCount?: number,
     fans?: {
         label?: string,
