@@ -92,6 +92,10 @@ class StratumManager {
     virtual int getPoolMode() = 0;
 
   public:
+    virtual void resetSessionStats() {
+        PThreadGuard lock(m_mutex);
+        m_foundBlocks = 0;
+    }
     StratumManager(PoolMode mode);
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
 

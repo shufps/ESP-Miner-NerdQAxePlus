@@ -462,3 +462,18 @@ esp_err_t GET_system_asic(httpd_req_t *req)
     doc.clear();
     return ret;
 }
+
+esp_err_t POST_reset_stats(httpd_req_t *req)
+{
+    ConGuard g(http_server, req);
+
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
+    STRATUM_MANAGER->resetSessionStats();
+
+    ESP_LOGI(TAG, "Session stats reset by user");
+    httpd_resp_set_status(req, "204 No Content");
+    return httpd_resp_send(req, NULL, 0);
+}

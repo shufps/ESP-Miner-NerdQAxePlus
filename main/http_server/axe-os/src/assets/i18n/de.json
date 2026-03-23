@@ -69,7 +69,11 @@
     "SHARE_TOO_SMALL": "Anteil für diesen Pool zu klein!",
     "HIDE_CHART": "ausblenden",
     "SHOW_CHART": "einblenden",
-    "STRATUM_NOT_CONNECTED": "Stratum für diesen Pool nicht verbunden."
+    "STRATUM_NOT_CONNECTED": "Stratum für diesen Pool nicht verbunden.",
+    "RESET_STATS": "Sitzungsstatistiken zurücksetzen",
+    "RESET_STATS_CONFIRM": "Alle Sitzungsstatistiken zurücksetzen (Shares, beste Diff, Fehler)?",
+    "RESET_STATS_SUCCESS": "Sitzungsstatistiken zurückgesetzt.",
+    "RESET_STATS_FAILED": "Zurücksetzen fehlgeschlagen."
   },
   "PERFORMANCE": {
     "TITLE": "Leistung",

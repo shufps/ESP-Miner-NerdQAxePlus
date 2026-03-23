@@ -71,7 +71,11 @@
     "SHARE_TOO_SMALL": "Share for this pool too small!",
     "HIDE_CHART": "Hide",
     "SHOW_CHART": "Show",
-    "STRATUM_NOT_CONNECTED": "Stratum not connected for this pool."
+    "STRATUM_NOT_CONNECTED": "Stratum not connected for this pool.",
+    "RESET_STATS": "Reset Session Stats",
+    "RESET_STATS_CONFIRM": "Reset all session stats (shares, best diff, errors)?",
+    "RESET_STATS_SUCCESS": "Session stats reset.",
+    "RESET_STATS_FAILED": "Failed to reset session stats."
   },
   "PERFORMANCE": {
     "TITLE": "Performance",

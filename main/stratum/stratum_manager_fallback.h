@@ -80,6 +80,18 @@ class StratumManagerFallback : public StratumManager {
         return m_networkDifficulty;
     }
 
+    virtual void resetSessionStats() override {
+        PThreadGuard lock(m_mutex);
+        m_foundBlocks = 0;
+        m_accepted = 0;
+        m_rejected = 0;
+        m_bestSessionDiff = 0;
+        suffixString(0, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
+        for (int i = 0; i < 2; i++) {
+            if (m_stratumTasks[i]) m_stratumTasks[i]->m_poolErrors = 0;
+        }
+    }
+
     virtual int getPoolErrors() {
         return m_stratumTasks[0]->m_poolErrors + m_stratumTasks[1]->m_poolErrors;
     }

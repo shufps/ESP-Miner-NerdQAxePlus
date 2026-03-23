@@ -69,7 +69,11 @@
     "SHARE_TOO_SMALL": "Porcentaje para este pool demasiado bajo!",
     "HIDE_CHART": "ocultar",
     "SHOW_CHART": "mostrar",
-    "STRATUM_NOT_CONNECTED": "Stratum no conectado para este pool."
+    "STRATUM_NOT_CONNECTED": "Stratum no conectado para este pool.",
+    "RESET_STATS": "Restablecer estadísticas de sesión",
+    "RESET_STATS_CONFIRM": "¿Restablecer todas las estadísticas de sesión (shares, mejor diff, errores)?",
+    "RESET_STATS_SUCCESS": "Estadísticas de sesión restablecidas.",
+    "RESET_STATS_FAILED": "Error al restablecer las estadísticas."
   },
   "PERFORMANCE": {
     "TITLE": "Rendimiento",

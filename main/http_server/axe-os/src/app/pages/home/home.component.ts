@@ -50,7 +50,7 @@ import {
   updateChartWithZoomAnimation,
 } from './chart';
 
-import { NbThemeService } from '@nebular/theme';
+import { NbThemeService, NbDialogService, NbToastrService } from '@nebular/theme';
 import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { LocalStorageService } from '../../services/local-storage.service';
@@ -505,7 +505,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     private hostEl: ElementRef<HTMLElement>,
     private renderer: Renderer2,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private dialogService: NbDialogService,
+    private toastrService: NbToastrService
   ) {
     // Local persistence wrapper for chart state/settings
     this.chartStorage = new HomeChartStorage({
@@ -1877,6 +1879,24 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
   return (rejected / total) * 100;
 }
+  public openResetStatsDialog(template: any): void {
+    this.dialogService.open(template);
+  }
+
+  public confirmResetStats(ref: any): void {
+    ref.close();
+    this.systemService.resetStats().subscribe({
+      next: () => this.toastrService.success(
+        this.translateService.instant('HOME.RESET_STATS_SUCCESS'),
+        this.translateService.instant('COMMON.SUCCESS')
+      ),
+      error: () => this.toastrService.danger(
+        this.translateService.instant('HOME.RESET_STATS_FAILED'),
+        this.translateService.instant('COMMON.ERROR')
+      )
+    });
+  }
+
 private importHistoricalDataChunked(history: any): void {
     this.historyDrainer.ingest(history);
   }

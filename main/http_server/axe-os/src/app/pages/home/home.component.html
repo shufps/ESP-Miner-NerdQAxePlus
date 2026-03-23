@@ -205,7 +205,17 @@
           @let usingFallback = info.stratum?.usingFallback;
 
           <nb-card class="h-100 pool-tile-card" [class.pool-tile-card--dual]="isDualPool">
-            <nb-card-body class="no-scroll pool-tile-card__body">
+            <nb-card-body class="no-scroll pool-tile-card__body" style="position: relative;">
+
+              <button
+                nbButton ghost size="tiny" type="button"
+                style="position: absolute; top: 4px; right: 4px; z-index: 1; opacity: 0.5;"
+                [attr.aria-label]="'HOME.RESET_STATS' | translate"
+                [nbTooltip]="'HOME.RESET_STATS' | translate"
+                (click)="openResetStatsDialog(resetStatsDialog)"
+              >
+                <nb-icon icon="refresh-outline"></nb-icon>
+              </button>
 
               <div class="pool-tile-layout pool-tile-layout--mirror" [class.pool-tile-layout--dual]="isDualPool">
 
@@ -660,3 +670,16 @@
     </div>
   </div>
 </div>
+
+<ng-template #resetStatsDialog let-ref="dialogRef">
+  <nb-card accent="warning" style="width: 340px">
+    <nb-card-header>{{ 'HOME.RESET_STATS' | translate }}</nb-card-header>
+    <nb-card-body>
+      <p>{{ 'HOME.RESET_STATS_CONFIRM' | translate }}</p>
+      <div class="d-flex justify-content-between">
+        <button nbButton status="warning" (click)="confirmResetStats(ref)">{{ 'COMMON.RESET' | translate }}</button>
+        <button nbButton status="basic" (click)="ref.close()">{{ 'COMMON.CANCEL' | translate }}</button>
+      </div>
+    </nb-card-body>
+  </nb-card>
+</ng-template>

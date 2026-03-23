@@ -97,6 +97,18 @@ class StratumManagerDualPool : public StratumManager {
         return (m_balance >= 50) ? m_networkDifficulty[0] : m_networkDifficulty[1];
     }
 
+    virtual void resetSessionStats() override {
+        PThreadGuard lock(m_mutex);
+        m_foundBlocks = 0;
+        for (int i = 0; i < 2; i++) {
+            m_accepted[i] = 0;
+            m_rejected[i] = 0;
+            m_bestSessionDiff[i] = 0;
+            suffixString(0, m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
+            if (m_stratumTasks[i]) m_stratumTasks[i]->m_poolErrors = 0;
+        }
+    }
+
     virtual uint64_t getBestSessionDiff() {
         return std::max(m_bestSessionDiff[0], m_bestSessionDiff[1]);
     }

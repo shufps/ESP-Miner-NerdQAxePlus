@@ -144,7 +144,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.max_uri_handlers = 30;
+    config.max_uri_handlers = 35;
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
     config.stack_size = 12288;
@@ -207,6 +207,10 @@ esp_err_t start_rest_server(void * pvParameters)
         .user_ctx = NULL
     };
     httpd_register_uri_handler(http_server, &system_restart_options_uri);
+
+    httpd_uri_t system_reset_stats_uri = {
+        .uri = "/api/system/reset-stats", .method = HTTP_POST, .handler = POST_reset_stats, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &system_reset_stats_uri);
 
     httpd_uri_t system_shutdown_uri = {
         .uri = "/api/system/shutdown", .method = HTTP_POST, .handler = POST_shutdown, .user_ctx = rest_context};
