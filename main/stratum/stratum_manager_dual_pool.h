@@ -1,6 +1,7 @@
 #pragma once
 
 #include "stratum_manager.h"
+#include "utils.h"
 
 class StratumManagerDualPool : public StratumManager {
     friend StratumTask; ///< Allows StratumTask to access private members
@@ -25,6 +26,12 @@ class StratumManagerDualPool : public StratumManager {
     virtual void setPoolDifficulty(int pool, uint32_t diff) {
         m_poolDifficulty[pool] = diff;
     };
+
+    virtual void setNetworkDifficulty(int pool, uint32_t nbits) {
+        if (pool >= 0 && pool < 2 && nbits != 0) {
+            m_networkDifficulty[pool] = calculateNetworkDifficulty(nbits);
+        }
+    }
 
     virtual void acceptedShare(int pool)
     {

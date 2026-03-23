@@ -163,6 +163,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     switch (m_stratum_api_v1_message.method) {
     case MINING_NOTIFY: {
+        setNetworkDifficulty(pool, m_stratum_api_v1_message.mining_notification->target);
         create_job_mining_notify(pool, m_stratum_api_v1_message.mining_notification,
                                  m_stratum_api_v1_message.should_abandon_work || selected->m_firstJob);
 

@@ -154,6 +154,7 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
 
     pool["connected"] = m_stratumTasks[m_selected] ? m_stratumTasks[m_selected]->m_isConnected : false;
     pool["poolDifficulty"] = m_poolDifficulty;
+    pool["networkDifficulty"] = m_networkDifficulty;
     pool["poolDiffErr"] = false;
     pool["accepted"] = m_accepted;
     pool["rejected"] = m_rejected;

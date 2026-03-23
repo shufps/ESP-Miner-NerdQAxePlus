@@ -87,6 +87,7 @@ class StratumManager {
     virtual void acceptedShare(int pool) = 0;
     virtual void rejectedShare(int pool) = 0;
     virtual void setPoolDifficulty(int pool, uint32_t diff) = 0;
+    virtual void setNetworkDifficulty(int pool, uint32_t nbits) {}
 
     virtual int getPoolMode() = 0;
 

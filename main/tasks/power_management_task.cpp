@@ -20,7 +20,7 @@
 
 static const char *TAG = "power_management";
 
-#define MEASURE_LOOP_TIME
+//#define MEASURE_LOOP_TIME
 
 PowerManagementTask::PowerManagementTask()
 {

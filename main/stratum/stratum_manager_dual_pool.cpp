@@ -196,10 +196,6 @@ void StratumManagerDualPool::checkForBestDiff(int pool, double diff, uint32_t nb
         suffixString(std::max(m_bestSessionDiff[0], m_bestSessionDiff[1]), m_bestSessionDiffString, DIFF_STRING_SIZE, 0);
     }
 
-    if (nbits != 0) {
-        m_networkDifficulty[pool] = calculateNetworkDifficulty(nbits);
-    }
-
     StratumManager::checkForBestDiff(pool, diff, nbits);
 }
 

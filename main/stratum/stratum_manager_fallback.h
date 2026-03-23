@@ -1,6 +1,7 @@
 #pragma once
 
 #include "stratum_manager.h"
+#include "utils.h"
 
 class StratumManagerFallback : public StratumManager {
     friend StratumTask; ///< Allows StratumTask to access private members
@@ -10,6 +11,7 @@ class StratumManagerFallback : public StratumManager {
     uint64_t m_accepted = 0;
     uint64_t m_rejected = 0;
     uint32_t m_poolDifficulty = 0;
+    double m_networkDifficulty = 0;
     uint64_t m_bestSessionDiff = 0;
 
     virtual void reconnectTimerCallback(int index);
@@ -21,6 +23,12 @@ class StratumManagerFallback : public StratumManager {
     virtual void setPoolDifficulty(int pool, uint32_t diff) {
         m_poolDifficulty = diff;
     };
+
+    virtual void setNetworkDifficulty(int pool, uint32_t nbits) {
+        if (nbits != 0) {
+            m_networkDifficulty = calculateNetworkDifficulty(nbits);
+        }
+    }
 
     virtual void acceptedShare(int pool)
     {
@@ -67,6 +75,10 @@ class StratumManagerFallback : public StratumManager {
     virtual uint32_t getPoolDifficulty() {
         return m_poolDifficulty;
     };
+
+    virtual double getNetworkDifficulty() {
+        return m_networkDifficulty;
+    }
 
     virtual int getPoolErrors() {
         return m_stratumTasks[0]->m_poolErrors + m_stratumTasks[1]->m_poolErrors;
