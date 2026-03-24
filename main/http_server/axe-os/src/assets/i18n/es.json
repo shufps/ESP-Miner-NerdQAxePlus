@@ -89,7 +89,7 @@
     "ASIC_TEMP": "Temp ASIC",
     "VR_TEMP": "Regulador de voltaje",
     "ASIC_TEMP_LEGEND": "ASIC",
-    "VR_TEMP_LEGEND": "VReg.",
+    "VR_TEMP_LEGEND": "Regulador de voltaje",
     "FAN_SPEED": "Velocidad Ventilador",
     "FAN_RPM": "RPM Ventilador",
     "ASIC_FREQUENCY": "Frecuencia ASIC",
@@ -399,14 +399,17 @@
   },
   "FAN": {
     "TITLE": "Controlador de Ventilador",
+    "PRIMARY_CONTROLLER": "Controlador primario",
+    "SECONDARY_CONTROLLER": "Controlador secundario",
     "CONTROLLER": "Controlador de Ventilador",
     "MANUAL": "Manual",
     "AUTODETECT_POLARITY": "Detección Auto de Polaridad",
     "AUTODETECT_RECOMMENDED": "Recomendado",
     "INVERT_POLARITY": "Invertir Polaridad",
-    "USE_FAN1_SETTINGS": "Sincronizar con Ventilador 1",
+    "USE_FAN1_SETTINGS": "Reflejar configuración",
+    "FAN_SETTINGS_HINT": "El controlador secundario del ventilador adopta automaticamente la configuracion del controlador primario. Desactiva este ajuste para configurar el controlador secundario del ventilador por separado.",
     "FAN1_CONNECTOR_HINT": "Conecta el <strong>ventilador ASIC</strong> al conector <strong>{{connector}}</strong>.",
-    "FAN2_CONNECTOR_HINT": "Conecta el <strong>ventilador VReg</strong> al conector <strong>{{connector}}</strong>."
+    "FAN2_CONNECTOR_HINT": "Conecta el <strong>ventilador del regulador de voltaje</strong> al conector <strong>{{connector}}</strong>."
   },
   "MISC": {
     "TITLE": "Configuración Miscelánea",

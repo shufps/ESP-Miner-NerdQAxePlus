@@ -91,7 +91,7 @@
     "ASIC_TEMP": "ASIC Temp",
     "VR_TEMP": "Voltage Regulator",
     "ASIC_TEMP_LEGEND": "ASIC",
-    "VR_TEMP_LEGEND": "VReg.",
+    "VR_TEMP_LEGEND": "Voltage Regulator",
     "FAN_SPEED": "Fan Speed",
     "FAN_RPM": "Fan RPM",
     "ASIC_FREQUENCY": "Current Frequency",
@@ -401,14 +401,17 @@
   },
   "FAN": {
     "TITLE": "Fan Controller",
+    "PRIMARY_CONTROLLER": "Primary controller",
+    "SECONDARY_CONTROLLER": "Secondary controller",
     "CONTROLLER": "Fan Controller",
     "MANUAL": "Manual",
     "AUTODETECT_POLARITY": "Autodetect Fan Polarity",
     "AUTODETECT_RECOMMENDED": "Recommended",
     "INVERT_POLARITY": "Invert Fan Polarity",
-    "USE_FAN1_SETTINGS": "Sync with Fan 1",
+    "USE_FAN1_SETTINGS": "Mirror settings",
+    "FAN_SETTINGS_HINT": "The secondary fan controller automatically adopts the settings from the primary controller. Disable this setting to configure the secondary fan controller separately.",
     "FAN1_CONNECTOR_HINT": "Connect the <strong>ASIC fan</strong> to connector <strong>{{connector}}</strong>.",
-    "FAN2_CONNECTOR_HINT": "Connect the <strong>VReg fan</strong> to connector <strong>{{connector}}</strong>."
+    "FAN2_CONNECTOR_HINT": "Connect the <strong>Voltage Regulator fan</strong> to connector <strong>{{connector}}</strong>."
   },
   "MISC": {
     "TITLE": "Misc Settings",

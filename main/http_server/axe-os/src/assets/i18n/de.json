@@ -89,7 +89,7 @@
     "ASIC_TEMP": "ASIC-Temp",
     "VR_TEMP": "Spannungsregler",
     "ASIC_TEMP_LEGEND": "ASIC",
-    "VR_TEMP_LEGEND": "VReg.",
+    "VR_TEMP_LEGEND": "Spannungsregler",
     "FAN_SPEED": "Lüftergeschwindigkeit",
     "FAN_RPM": "Lüfter-RPM",
     "ASIC_FREQUENCY": "Aktuelle ASIC-Frequenz",
@@ -399,14 +399,17 @@
   },
   "FAN": {
     "TITLE": "Lüftersteuerung",
+    "PRIMARY_CONTROLLER": "Primärer Controller",
+    "SECONDARY_CONTROLLER": "Sekundärer Controller",
     "CONTROLLER": "Lüftersteuerung",
     "MANUAL": "Manuell",
     "AUTODETECT_POLARITY": "Automatische Polaritätserkennung",
     "AUTODETECT_RECOMMENDED": "Empfohlen",
     "INVERT_POLARITY": "Polarität umkehren",
-    "USE_FAN1_SETTINGS": "Mit Lüfter 1 synchronisieren",
+    "USE_FAN1_SETTINGS": "Einstellungen spiegeln",
+    "FAN_SETTINGS_HINT": "Der sekundäre Lüftercontroller übernimmt automatisch die Einstellungen des primären Controllers. Deaktiviere diese Einstellung, um den sekundären Lüftercontroller separat zu konfigurieren.",
     "FAN1_CONNECTOR_HINT": "Schließe den <strong>ASIC-Lüfter</strong> an Anschluss <strong>{{connector}}</strong> an.",
-    "FAN2_CONNECTOR_HINT": "Schließe den <strong>VReg-Lüfter</strong> an Anschluss <strong>{{connector}}</strong> an."
+    "FAN2_CONNECTOR_HINT": "Schließe den <strong>Spannungsregler-Lüfter</strong> an Anschluss <strong>{{connector}}</strong> an."
   },
   "MISC": {
     "TITLE": "Verschiedene Einstellungen",
