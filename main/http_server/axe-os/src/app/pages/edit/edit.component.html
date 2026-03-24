@@ -331,16 +331,24 @@
         </nb-card>
         <nb-card>
             <nb-card-header>{{ 'FAN.TITLE' | translate }}</nb-card-header>
-            <nb-tabset>
+            <nb-card-body>
+                <div class="fan-layout">
+                    <div class="fan-column">
+                        <div class="form-row fan-column-title-row">
+                            <label class="form-label"></label>
+                            <div class="form-control-wrapper">
+                                <h6 class="fan-column__title">{{ 'FAN.PRIMARY_CONTROLLER' | translate }}</h6>
+                            </div>
+                        </div>
 
-                <!-- ── Fan 1 (ASICs) ──────────────────────────────────── -->
-                <nb-tab tabTitle="ASICs">
-                    <nb-card-body>
-
-                        <!-- Connector hint Fan 1 (only when 2-fan board and unlinked) -->
-                        <div *ngIf="fanCount > 1 && form.controls['fan1Mode'].value !== 3 && fanLabels[0]"
-                             style="margin: 6px 0 12px; padding: 8px 12px; background: rgba(128,128,128,0.12); border-radius: 6px; font-size: 0.85em;"
-                             [innerHTML]="'FAN.FAN1_CONNECTOR_HINT' | translate: { connector: fanLabels[0] }">
+                        <div class="form-row fan-hint-row"
+                             *ngIf="fanCount > 1 && form.controls['fan1Mode'].value !== 3 && fanLabels[0]">
+                            <label class="form-label"></label>
+                            <div class="form-control-wrapper">
+                                <div class="fan-hint-box"
+                                     [innerHTML]="'FAN.FAN1_CONNECTOR_HINT' | translate: { connector: fanLabels[0] }">
+                                </div>
+                            </div>
                         </div>
 
                         <div class="form-row">
@@ -354,24 +362,26 @@
                             </div>
                         </div>
 
-                        <!-- Manual fan speed slider -->
                         <div *ngIf="form.controls['autofanspeed'].value === 0">
                             <div class="form-row">
-                                <label>{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['manualFanSpeed'].value }}%</label>
+                                <label class="form-label">{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['manualFanSpeed'].value }}%</label>
                                 <div class="form-control-wrapper">
                                     <div class="progress-wrap">
                                         <input type="range" class="progress" formControlName="manualFanSpeed" min="0" max="100" step="1" />
                                         <div class="progress-foreground" [style.width.%]="form.controls['manualFanSpeed'].value"></div>
+                                        <small class="fan-slider-alert fan-slider-alert--danger"
+                                            *ngIf="form.controls['manualFanSpeed'].value < 40">
+                                            Danger: Could Cause Overheating
+                                        </small>
+                                        <small class="fan-slider-alert fan-slider-alert--warn"
+                                            *ngIf="form.controls['manualFanSpeed'].value === 100">
+                                            S19 Simulator
+                                        </small>
                                     </div>
-                                    <small *ngIf="form.controls['manualFanSpeed'].value < 40"
-                                        style="color: red; margin-left:10px;">Danger: Could Cause Overheating</small>
-                                    <small *ngIf="form.controls['manualFanSpeed'].value === 100"
-                                        style="color: #F2A900; margin-left:10px;">S19 Simulator</small>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- PID Fan Control Settings -->
                         <div *ngIf="form.controls['autofanspeed'].value === 2 && form.controls['pidTargetTemp'].value != -1">
                             <div class="form-row">
                                 <label class="form-label">{{ 'SETTINGS.TARGET_TEMP' | translate }}:</label>
@@ -402,108 +412,114 @@
                             </div>
                         </div>
 
-                        <div class="form-row-separator">
+                        <div class="form-row">
                             <label for="overheat_temp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
                             <div class="form-control-wrapper">
                                 <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" />
                             </div>
                         </div>
+
+                        <div class="form-row fan-sync-row" *ngIf="fanCount > 1">
+                            <label class="form-label"></label>
+                            <div class="form-control-wrapper">
+                                <div class="fan-sync-inner">
+                                    <nb-checkbox
+                                        [checked]="form.controls['fan1Mode'].value === 3"
+                                        (checkedChange)="form.controls['fan1Mode'].setValue($event ? 3 : 0)">
+                                        {{ 'FAN.USE_FAN1_SETTINGS' | translate }}
+                                    </nb-checkbox>
+                                    <small class="fan-sync-hint">{{ 'FAN.FAN_SETTINGS_HINT' | translate }}</small>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-row" *ngIf="supportLevel >= 2">
                             <nb-checkbox formControlName="invertfanpolarity">{{ 'FAN.INVERT_POLARITY' | translate }}</nb-checkbox>
                         </div>
-                    </nb-card-body>
-                </nb-tab>
+                    </div>
 
-                <!-- ── Fan 2 (VReg, nur bei 2-Lüfter-Boards) ─────────── -->
-                <nb-tab tabTitle="VReg" *ngIf="fanCount > 1">
-                    <nb-card-body>
-
-                        <!-- Linked-Checkbox -->
-                        <div class="form-row">
-                            <nb-checkbox
-                                [checked]="form.controls['fan1Mode'].value === 3"
-                                (checkedChange)="form.controls['fan1Mode'].setValue($event ? 3 : 0)">
-                                {{ 'FAN.USE_FAN1_SETTINGS' | translate }}
-                            </nb-checkbox>
+                    <div class="fan-column" *ngIf="fanCount > 1 && form.controls['fan1Mode'].value !== 3">
+                        <div class="form-row fan-column-title-row">
+                            <label class="form-label"></label>
+                            <div class="form-control-wrapper">
+                                <h6 class="fan-column__title">{{ 'FAN.SECONDARY_CONTROLLER' | translate }}</h6>
+                            </div>
                         </div>
 
-                        <!-- Wenn nicht gelinkt: eigene Einstellungen -->
-                        <ng-container *ngIf="form.controls['fan1Mode'].value !== 3">
-
-                            <!-- Connector hint Fan 2 -->
-                            <div *ngIf="fanLabels[1]" style="margin: 6px 0 12px; padding: 8px 12px; background: rgba(128,128,128,0.12); border-radius: 6px; font-size: 0.85em;"
-                                 [innerHTML]="'FAN.FAN2_CONNECTOR_HINT' | translate: { connector: fanLabels[1] }">
+                        <div class="form-row fan-hint-row" *ngIf="fanLabels[1]">
+                            <label class="form-label"></label>
+                            <div class="form-control-wrapper">
+                                <div class="fan-hint-box"
+                                     [innerHTML]="'FAN.FAN2_CONNECTOR_HINT' | translate: { connector: fanLabels[1] }">
+                                </div>
                             </div>
+                        </div>
 
+                        <div class="form-row">
+                            <label class="form-label">{{ 'FAN.CONTROLLER' | translate }}:</label>
+                            <div class="form-control-wrapper">
+                                <nb-select fullWidth formControlName="fan1Mode">
+                                    <nb-option [value]="0">{{ 'FAN.MANUAL' | translate }}</nb-option>
+                                    <nb-option [value]="2">{{ 'SETTINGS.AUTO_FAN' | translate }} (PID)</nb-option>
+                                </nb-select>
+                            </div>
+                        </div>
+
+                        <div *ngIf="form.controls['fan1Mode'].value === 0">
                             <div class="form-row">
-                                <label class="form-label">{{ 'FAN.CONTROLLER' | translate }}:</label>
+                                <label class="form-label">{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['fan1ManualSpeed'].value }}%</label>
                                 <div class="form-control-wrapper">
-                                    <nb-select fullWidth formControlName="fan1Mode">
-                                        <nb-option [value]="0">{{ 'FAN.MANUAL' | translate }}</nb-option>
-                                        <nb-option [value]="2">{{ 'SETTINGS.AUTO_FAN' | translate }} (PID)</nb-option>
-                                    </nb-select>
+                                    <div class="progress-wrap">
+                                        <input type="range" class="progress" formControlName="fan1ManualSpeed" min="0" max="100" step="1" />
+                                        <div class="progress-foreground" [style.width.%]="form.controls['fan1ManualSpeed'].value"></div>
+                                        <small class="fan-slider-alert fan-slider-alert--danger"
+                                            *ngIf="form.controls['fan1ManualSpeed'].value < 40">
+                                            Danger: Could Cause Overheating
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Manual speed slider -->
-                            <div *ngIf="form.controls['fan1Mode'].value === 0">
+                        <div *ngIf="form.controls['fan1Mode'].value === 2">
+                            <div class="form-row">
+                                <label class="form-label">{{ 'SETTINGS.TARGET_TEMP' | translate }}:</label>
+                                <div class="form-control-wrapper">
+                                    <input nbInput type="number" formControlName="fan1PidTargetTemp" />
+                                </div>
+                            </div>
+                            <div *ngIf="supportLevel >= 1" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
+                            <div *ngIf="supportLevel >= 1">
                                 <div class="form-row">
-                                    <label>{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['fan1ManualSpeed'].value }}%</label>
+                                    <label class="form-label">PID P:</label>
                                     <div class="form-control-wrapper">
-                                        <div class="progress-wrap">
-                                            <input type="range" class="progress" formControlName="fan1ManualSpeed" min="0" max="100" step="1" />
-                                            <div class="progress-foreground" [style.width.%]="form.controls['fan1ManualSpeed'].value"></div>
-                                        </div>
-                                        <small *ngIf="form.controls['fan1ManualSpeed'].value < 40"
-                                            style="color: red; margin-left:10px;">Danger: Could Cause Overheating</small>
+                                        <input nbInput type="number" formControlName="fan1PidP" />
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- PID settings -->
-                            <div *ngIf="form.controls['fan1Mode'].value === 2">
                                 <div class="form-row">
-                                    <label class="form-label">{{ 'SETTINGS.TARGET_TEMP' | translate }}:</label>
+                                    <label class="form-label">PID I:</label>
                                     <div class="form-control-wrapper">
-                                        <input nbInput type="number" formControlName="fan1PidTargetTemp" />
+                                        <input nbInput type="number" formControlName="fan1PidI" />
                                     </div>
                                 </div>
-                                <div *ngIf="supportLevel >= 1" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
-                                <div *ngIf="supportLevel >= 1">
-                                    <div class="form-row">
-                                        <label class="form-label">PID P:</label>
-                                        <div class="form-control-wrapper">
-                                            <input nbInput type="number" formControlName="fan1PidP" />
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        <label class="form-label">PID I:</label>
-                                        <div class="form-control-wrapper">
-                                            <input nbInput type="number" formControlName="fan1PidI" />
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        <label class="form-label">PID D:</label>
-                                        <div class="form-control-wrapper">
-                                            <input nbInput type="number" formControlName="fan1PidD" />
-                                        </div>
+                                <div class="form-row">
+                                    <label class="form-label">PID D:</label>
+                                    <div class="form-control-wrapper">
+                                        <input nbInput type="number" formControlName="fan1PidD" />
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                        </ng-container>
-
-                        <div class="form-row-separator">
+                        <div class="form-row">
                             <label for="fan1OverheatTemp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
                             <div class="form-control-wrapper">
                                 <input nbInput id="fan1OverheatTemp" formControlName="fan1OverheatTemp" type="number" />
                             </div>
                         </div>
-
-                    </nb-card-body>
-                </nb-tab>
-
-            </nb-tabset>
+                    </div>
+                </div>
+            </nb-card-body>
         </nb-card>
         <nb-card>
             <nb-card-header>{{ 'MISC.TITLE' | translate }}</nb-card-header>

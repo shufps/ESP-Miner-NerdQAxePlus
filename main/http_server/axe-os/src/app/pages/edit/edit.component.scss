@@ -37,13 +37,15 @@
     }
 
     .form-label {
-        flex: 0 0 120px;
+        flex: 0 0 145px;
         text-align: right;
         margin-right: 16px;
+        white-space: nowrap;
     }
 
     .form-control-wrapper {
         flex: 1;
+        min-width: 0;
     }
 
     .form-control-wrapper-no-label {
@@ -175,6 +177,164 @@
         flex: 0 0 110px;
         text-align: right;
         margin-right: 16px;
+    }
+
+    .fan-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: start;
+    }
+
+    .fan-column {
+        min-width: 0;
+    }
+
+    .fan-column__title {
+        margin: 0 0 8px;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .fan-hint-row {
+        margin-bottom: 10px;
+    }
+
+    .fan-hint-box {
+        margin: 0;
+        padding: 8px 12px;
+        background: rgba(128, 128, 128, 0.12);
+        border-radius: 6px;
+        font-size: 0.85em;
+    }
+
+    .fan-sync-row {
+        margin-top: 18px;
+    }
+
+    .fan-sync-inner {
+        padding-top: 12px;
+    }
+
+    .fan-sync-hint {
+        display: block;
+        margin-top: 4px;
+        margin-left: 1.85rem;
+        padding-left: 0 !important;
+        font-size: 0.8rem;
+        font-weight: 400;
+        opacity: 0.75;
+    }
+
+    .fan-column .form-row {
+        align-items: center;
+    }
+
+    .fan-column .form-label {
+        flex: 0 0 175px;
+        text-align: left;
+        margin-right: 10px;
+        white-space: nowrap;
+    }
+
+    .fan-column .form-control-wrapper {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .fan-column {
+        --fan-control-xpad: 12px;
+    }
+
+    /* Keep all fan controls visually on the exact same width. */
+    .fan-column .form-control-wrapper > input[nbinput],
+    .fan-column .form-control-wrapper > .fan-hint-box,
+    .fan-column .form-control-wrapper > .fan-sync-inner,
+    .fan-column .form-control-wrapper > .progress-wrap {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .fan-column .form-control-wrapper > nb-select {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .fan-column .form-control-wrapper > input[nbinput] {
+        padding-left: var(--fan-control-xpad);
+        padding-right: var(--fan-control-xpad);
+    }
+
+    .fan-column .form-control-wrapper > .fan-hint-box,
+    .fan-column .form-control-wrapper > .fan-sync-inner {
+        padding-left: var(--fan-control-xpad);
+        padding-right: var(--fan-control-xpad);
+    }
+
+    .fan-column .form-control-wrapper > nb-select ::ng-deep button {
+        padding-left: var(--fan-control-xpad) !important;
+        padding-right: var(--fan-control-xpad) !important;
+    }
+
+    .fan-column .progress-wrap {
+        margin-left: 0;
+        height: 2.5rem;
+        display: flex;
+        align-items: center;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        padding: 0;
+        box-sizing: border-box;
+        position: relative;
+        overflow: visible;
+    }
+
+    .fan-column .progress-foreground {
+        left: 0;
+        right: 0;
+        width: auto !important;
+        margin-top: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .fan-column .progress {
+        left: 0;
+        right: 0;
+        width: auto;
+        margin-top: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .fan-slider-alert {
+        position: absolute;
+        left: 0;
+        bottom: 2px;
+        margin: 0;
+        padding: 0;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1;
+        pointer-events: none;
+        background: transparent;
+    }
+
+    .fan-slider-alert--danger {
+        color: #c0392b;
+    }
+
+    .fan-slider-alert--warn {
+        color: #b9770e;
+    }
+
+    @media (max-width: 991.98px) {
+        .fan-layout {
+            grid-template-columns: 1fr;
+        }
     }
 }
 
