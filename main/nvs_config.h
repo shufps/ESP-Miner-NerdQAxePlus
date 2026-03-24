@@ -187,7 +187,7 @@ namespace Config {
     }
     inline uint16_t getFanOverheatTemp(int ch) {
         return ch == 0 ? nvs_config_get_u16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP)
-                       : nvs_config_get_u16(NVS_CONFIG_FAN1_OVERHEAT, 80);
+                       : nvs_config_get_u16(NVS_CONFIG_FAN1_OVERHEAT, CONFIG_OVERHEAT_TEMP);
     }
     inline uint16_t getFanPidTargetTemp(int ch, uint16_t d) {
         return ch == 0 ? nvs_config_get_u16(NVS_CONFIG_PID_TARGET_TEMP, d)

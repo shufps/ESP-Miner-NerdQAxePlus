@@ -20,7 +20,7 @@
 
 static const char *TAG = "power_management";
 
-//#define MEASURE_LOOP_TIME
+// #define MEASURE_LOOP_TIME
 
 PowerManagementTask::PowerManagementTask()
 {
@@ -105,7 +105,6 @@ void PowerManagementTask::checkVrFrequencyChanged()
     }
 }
 
-
 void PowerManagementTask::logChipTemps()
 {
     size_t offset = 0;
@@ -184,8 +183,8 @@ void PowerManagementTask::readAndPublishPowerTelemetry()
     m_vrTemp = m_board->getVRTemp();
     m_vrTempInt = m_board->getVRTempInt();
 
-    ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f, vr-temp-int: %.2f", vin, iin, pin, vout, iout,
-             pout, m_vrTemp, m_vrTempInt);
+    ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f, vr-temp-int: %.2f", vin, iin,
+             pin, vout, iout, pout, m_vrTemp, m_vrTempInt);
 
     influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 
@@ -225,7 +224,8 @@ void PowerManagementTask::applyAsicSettings()
     checkVrFrequencyChanged();
 }
 
-void PowerManagementTask::requestChipTemps() {
+void PowerManagementTask::requestChipTemps()
+{
     // temperature measurements don't work before ASICs
     // are initialized
     if (!m_board->isInitialized()) {
@@ -257,21 +257,6 @@ void PowerManagementTask::task()
 
         uint64_t start = esp_timer_get_time();
         lock();
-/*
-        // don't suspend power management task in shutdown
-        if (m_shutdown) {
-            unlock();
-            ESP_LOGW(TAG, "suspended");
-            vTaskSuspend(NULL);
-        }
-*/
-        uint16_t asic_overheat_temp = Config::getOverheatTemp();
-
-        // overwrite previously allowed 0 value to disable
-        // over-temp shutdown
-        if (!asic_overheat_temp) {
-            asic_overheat_temp = 70;
-        }
 
         applyAsicSettings();
 
@@ -281,7 +266,6 @@ void PowerManagementTask::task()
         logChipTemps();
 
         readAndPublishPowerTelemetry();
-
 
         // collect temperatures
         // get the max of all asic measuring temp sensors
@@ -313,27 +297,24 @@ void PowerManagementTask::task()
 
         influx_task_set_temperature(m_chipTempMax, m_vrTemp);
 
-        float vr_maxTemp = asic_overheat_temp;
-        if (m_board->getVrMaxTemp()) {
-            vr_maxTemp = m_board->getVrMaxTemp();
-        }
+        // Run fan controller (reads RPM, drives fans, updates overheat flags)
+        m_fanController.update(m_chipTempMax, m_vrTemp);
 
-        if (asic_overheat_temp && (m_chipTempMax > asic_overheat_temp || m_vrTemp > vr_maxTemp)) {
-            uint32_t status = ((uint32_t) m_chipTempMax << 24) | ((uint32_t) asic_overheat_temp << 16) |
-                              ((uint32_t) m_vrTemp << 8) | ((uint32_t) vr_maxTemp << 8);
+        // Shutdown if any fan channel reports overheat
+        if (m_fanController.isOverheated(0) || m_fanController.isOverheated(1)) {
+            uint32_t status = ((uint32_t) m_chipTempMax << 24) | ((uint32_t) m_fanController.getOverheatTemp(0) << 16) |
+                              ((uint32_t) m_vrTemp << 8) | ((uint32_t) m_fanController.getOverheatTemp(1));
 
             // over temperature
             SYSTEM_MODULE.setBoardError(Board::Error::TEMP_FAULT, status);
 
             // disables the buck
             m_board->setVoltage(0.0);
-            ESP_LOGE(TAG, "System overheated - Shutting down asic voltage");
+            ESP_LOGE(TAG, "System overheated (chip=%.1f°C/thresh=%d°C vr=%.2f°C/thresh=%d°C) - Shutting down asic voltage",
+                     m_chipTempMax, m_fanController.getOverheatTemp(0), m_vrTemp, m_fanController.getOverheatTemp(1));
         }
-
-        // Run fan controller (reads RPM, drives fans, updates overheat flags)
-        m_fanController.update(m_chipTempMax, m_vrTemp);
-        influx_set_fan(m_fanController.getSpeedPerc(0), (float) m_fanController.getRPM(0),
-                       m_fanController.getSpeedPerc(1), (float) m_fanController.getRPM(1));
+        influx_set_fan(m_fanController.getSpeedPerc(0), (float) m_fanController.getRPM(0), m_fanController.getSpeedPerc(1),
+                       (float) m_fanController.getRPM(1));
         unlock();
 #ifdef MEASURE_LOOP_TIME
         // checks if loop takes too much time
