@@ -284,8 +284,8 @@
             <nb-card-header>{{ 'FAN.TITLE' | translate }}</nb-card-header>
             <nb-tabset>
 
-                <!-- ── Fan 1 ─────────────────────────────────────────── -->
-                <nb-tab tabTitle="Fan 1">
+                <!-- ── Fan 1 (ASICs) ──────────────────────────────────── -->
+                <nb-tab tabTitle="ASICs">
                     <nb-card-body>
 
                         <!-- Connector hint Fan 1 (only when 2-fan board and unlinked) -->
@@ -365,8 +365,8 @@
                     </nb-card-body>
                 </nb-tab>
 
-                <!-- ── Fan 2 (nur bei 2-Lüfter-Boards) ───────────────── -->
-                <nb-tab tabTitle="Fan 2" *ngIf="fanCount > 1">
+                <!-- ── Fan 2 (VReg, nur bei 2-Lüfter-Boards) ─────────── -->
+                <nb-tab tabTitle="VReg" *ngIf="fanCount > 1">
                     <nb-card-body>
 
                         <!-- Linked-Checkbox -->
@@ -442,14 +442,15 @@
                                 </div>
                             </div>
 
-                            <div class="form-row-separator">
-                                <label for="fan1OverheatTemp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
-                                <div class="form-control-wrapper">
-                                    <input nbInput id="fan1OverheatTemp" formControlName="fan1OverheatTemp" type="number" />
-                                </div>
-                            </div>
-
                         </ng-container>
+
+                        <div class="form-row-separator">
+                            <label for="fan1OverheatTemp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput id="fan1OverheatTemp" formControlName="fan1OverheatTemp" type="number" />
+                            </div>
+                        </div>
+
                     </nb-card-body>
                 </nb-tab>
 

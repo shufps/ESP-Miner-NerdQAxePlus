@@ -102,19 +102,19 @@ void FanController::update(float chipTempMax, float vrTemp)
             m_pid[ch]->Compute();
         }
 
-        // LINKED: mirror channel-0 output (ch0 must be processed first)
-        if (m_config[ch].mode == Mode::LINKED && ch > 0) {
-            m_fanPerc[ch] = m_fanPerc[0];
-            m_board->setFanSpeedCh(ch, static_cast<float>(m_fanPerc[ch]) / 100.0f);
-            m_overheated[ch] = false;
-            continue;
-        }
-
-        // Overheat: drive fan to 100% and flag it
+        // Overheat: drive fan to 100% and flag it (checked even in LINKED mode for shutdown purposes)
         if (m_config[ch].overheatTemp && tempInput[ch] > m_config[ch].overheatTemp) {
             m_overheated[ch] = true;
             m_fanPerc[ch]    = 100;
             m_board->setFanSpeedCh(ch, 1.0f);
+            continue;
+        }
+        m_overheated[ch] = false;
+
+        // LINKED: mirror channel-0 output (ch0 must be processed first)
+        if (m_config[ch].mode == Mode::LINKED && ch > 0) {
+            m_fanPerc[ch] = m_fanPerc[0];
+            m_board->setFanSpeedCh(ch, static_cast<float>(m_fanPerc[ch]) / 100.0f);
             continue;
         }
         m_overheated[ch] = false;
@@ -153,4 +153,10 @@ bool FanController::isOverheated(int ch) const
 {
     if (ch < 0 || ch >= m_numChannels) return false;
     return m_overheated[ch];
+}
+
+uint16_t FanController::getOverheatTemp(int ch) const
+{
+    if (ch < 0 || ch >= m_numChannels) return 0;
+    return m_config[ch].overheatTemp;
 }

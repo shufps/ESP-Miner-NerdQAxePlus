@@ -232,7 +232,7 @@ export class EditComponent implements OnInit {
 
           fan1Mode: [fan1cfg?.mode ?? 3, [Validators.required]],
           fan1ManualSpeed: [fan1cfg?.manualSpeed ?? 100, [Validators.min(0), Validators.max(100), Validators.required]],
-          fan1OverheatTemp: [fan1cfg?.overheatTemp ?? 80, [Validators.min(40), Validators.max(90), Validators.required]],
+          fan1OverheatTemp: [fan1cfg?.overheatTemp ?? 70, [Validators.min(40), Validators.max(90), Validators.required]],
           fan1PidTargetTemp: [fan1cfg?.pid?.targetTemp ?? 65, [Validators.min(30), Validators.max(80), Validators.required]],
           fan1PidP: [fan1cfg?.pid?.p ?? 6, [Validators.min(0), Validators.max(100), Validators.required]],
           fan1PidI: [fan1cfg?.pid?.i ?? 0.1, [Validators.min(0), Validators.max(10), Validators.required]],
@@ -292,9 +292,8 @@ export class EditComponent implements OnInit {
     const disable = (ctrl: string) => this.form.controls[ctrl]?.disable({ emitEvent: false });
 
     if (mode === 3) {
-      // LINKED — disable fan1-controls
+      // LINKED — disable fan1-controls (overheatTemp stays enabled for shutdown protection)
       disable('fan1ManualSpeed');
-      disable('fan1OverheatTemp');
       disable('fan1PidTargetTemp');
       disable('fan1PidP');
       disable('fan1PidI');

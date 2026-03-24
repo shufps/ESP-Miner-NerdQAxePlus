@@ -66,6 +66,9 @@ public:
      */
     bool isOverheated(int ch) const;
 
+    /** Configured overheat threshold in °C for the given channel (0 = disabled). */
+    uint16_t getOverheatTemp(int ch) const;
+
 private:
     Board* m_board        = nullptr;
     int    m_numChannels  = 0;
