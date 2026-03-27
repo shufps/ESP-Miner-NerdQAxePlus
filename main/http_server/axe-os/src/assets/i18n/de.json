@@ -357,6 +357,7 @@
     "STEP_UPDATING_FW": "Firmware wird aktualisiert",
     "STEP_DOWNLOADING_WWW": "WWW wird heruntergeladen",
     "STEP_UPDATING_WWW": "WWW wird aktualisiert",
+    "STEP_ERASING_NVS": "Konfiguration wird zurückgesetzt",
     "STEP_REBOOTING": "Neustart...",
     "STEP_ERROR": "Fehler",
     "STEP_UNKNOWN": "Unbekannt",
@@ -366,7 +367,7 @@
     "FILENAME": "Dateiname",
     "KEEP_CONFIG": "Einstellungen beibehalten",
     "SHOW_PRERELEASES": "Vorabversionen anzeigen",
-    "KEEP_SETTINGS_DISABLED": "Das Zurücksetzen der Einstellungen ist noch nicht verfügbar."
+    "KEEP_SETTINGS_TOOLTIP": "Wenn deaktiviert, werden die Einstellungen beim Update auf Werkseinstellungen zurückgesetzt."
   },
   "TOAST": {
     "SUCCESS": "Erfolg",

@@ -19,6 +19,7 @@ public:
         UPDATING_FW,
         DOWNLOADING_WWW,
         UPDATING_WWW,
+        ERASING_NVS,
         REBOOTING,
         ERROR
     };
@@ -30,6 +31,7 @@ protected:
     pthread_cond_t m_cond;
     bool m_running = false;
     bool m_pending = false;
+    bool m_keep_config = true;
 
     char *m_update_url = nullptr;
 
@@ -46,7 +48,8 @@ protected:
 
     esp_err_t do_www_update(uint8_t *data);
     esp_err_t do_firmware_update(esp_http_client_handle_t client);
-    esp_err_t ota_update_from_factory(const char *start_url);
+    esp_err_t ota_update_from_factory(const char *start_url, bool keep_config);
+    esp_err_t erase_nvs_partition();
 
     // Helpers
     void setStep(OtaStep s, const char *logmsg = nullptr);
@@ -61,7 +64,7 @@ public:
     static void taskWrapper(void *pvParameters);
     void task();
 
-    bool trigger(const char *url);
+    bool trigger(const char *url, bool keep_config);
     void getStatus(OtaStatus *out);
 };
 

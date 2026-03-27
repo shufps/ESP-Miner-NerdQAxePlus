@@ -63,6 +63,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   private normalizedModel: string = '';
 
+  public keepConfigCtrl = new FormControl<boolean>(true);
   public includePrereleasesCtrl = new FormControl<boolean>(false);
   public releases$!: Observable<GithubRelease[]>;   // list shown in dropdown
   public selectedRelease: GithubRelease | null = null;
@@ -401,7 +402,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
           this.firmwareUpdateProgress = 0;
 
           // kick the backend update
-          return this.systemService.performGithubOTAUpdate(assetUrl, totp);
+          const keepConfig = this.keepConfigCtrl.value ?? true;
+          return this.systemService.performGithubOTAUpdate(assetUrl, keepConfig, totp);
         })
       )
       .subscribe({

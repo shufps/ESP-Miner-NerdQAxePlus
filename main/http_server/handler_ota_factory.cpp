@@ -249,7 +249,25 @@ esp_err_t FactoryOTAUpdate::do_firmware_update(esp_http_client_handle_t client)
     return ESP_OK;
 }
 
-esp_err_t FactoryOTAUpdate::ota_update_from_factory(const char *start_url)
+esp_err_t FactoryOTAUpdate::erase_nvs_partition()
+{
+    const esp_partition_t *nvs_partition =
+        esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_NVS, "nvs");
+    if (!nvs_partition) {
+        ESP_LOGE(TAG, "NVS partition not found!");
+        return ESP_ERR_NOT_FOUND;
+    }
+    ESP_LOGI(TAG, "erasing NVS partition (reset to factory defaults) ...");
+    esp_err_t err = esp_partition_erase_range(nvs_partition, 0, nvs_partition->size);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "NVS erase failed: %s", esp_err_to_name(err));
+    } else {
+        ESP_LOGI(TAG, "NVS partition erased successfully");
+    }
+    return err;
+}
+
+esp_err_t FactoryOTAUpdate::ota_update_from_factory(const char *start_url, bool keep_config)
 {
     // use PSRAM for the long URL and WWW buffer
     char *url = (char *) MALLOC(URL_SIZE);
@@ -380,6 +398,15 @@ esp_err_t FactoryOTAUpdate::ota_update_from_factory(const char *start_url)
             return err;
         }
         ESP_LOGI(TAG, "www update successful!");
+
+        if (!keep_config) {
+            setStep(OtaStep::ERASING_NVS, "OTA: erasing NVS (reset to factory defaults)");
+            if (erase_nvs_partition() != ESP_OK) {
+                // Non-fatal: log and continue — device will reboot anyway,
+                // config reset is best-effort at this point.
+                ESP_LOGW(TAG, "NVS erase failed, continuing with reboot");
+            }
+        }
     }
 
     ESP_LOGI(TAG, "Restarting System because of Firmware update complete");
@@ -433,6 +460,7 @@ void FactoryOTAUpdate::task()
 
         // Consume the request and mark running
         char *url = m_update_url; // take ownership
+        bool keep_config = m_keep_config;
         m_update_url = NULL;
         m_pending = false;
         m_running = true;
@@ -449,7 +477,7 @@ void FactoryOTAUpdate::task()
             continue;
         }
 
-        esp_err_t err = ota_update_from_factory(url);
+        esp_err_t err = ota_update_from_factory(url, keep_config);
         free(url);
 
         if (err != ESP_OK) { // NOTE: fix typo: ESP_OK (not EPS_OK)
@@ -505,6 +533,8 @@ static const char *stepToStr(FactoryOTAUpdate::OtaStep s)
         return "downloading_www";
     case FactoryOTAUpdate::OtaStep::UPDATING_WWW:
         return "updating_www";
+    case FactoryOTAUpdate::OtaStep::ERASING_NVS:
+        return "erasing_nvs";
     case FactoryOTAUpdate::OtaStep::REBOOTING:
         return "rebooting";
     case FactoryOTAUpdate::OtaStep::ERROR:
@@ -579,7 +609,7 @@ void FactoryOTAUpdate::getStatus(OtaStatus *out)
     pthread_mutex_unlock(&m_mutex);
 }
 
-bool FactoryOTAUpdate::trigger(const char *url)
+bool FactoryOTAUpdate::trigger(const char *url, bool keep_config)
 {
     if (!url || !*url)
         return false;
@@ -597,6 +627,7 @@ bool FactoryOTAUpdate::trigger(const char *url)
 
     free(m_update_url);
     m_update_url = copy;
+    m_keep_config = keep_config;
     m_pending = true;
 
     pthread_cond_signal(&m_cond);
@@ -663,6 +694,9 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "`url` missing");
     }
 
+    // keep_config defaults to true (safe default: don't wipe config unless explicitly requested)
+    bool keep_config = doc["keep_config"] | true;
+
     // Validate URL
     if (!is_safe_github_url(url)) {
         ESP_LOGE(TAG, "Rejected URL: %s", url);
@@ -670,8 +704,8 @@ esp_err_t POST_OTA_update_from_url(httpd_req_t *req)
     }
 
     // Start OTA (non-blocking)
-    ESP_LOGI(TAG, "starting OTA update for URL: %s", url);
-    bool ok = FACTORY_OTA_UPDATER.trigger(url);
+    ESP_LOGI(TAG, "starting OTA update for URL: %s (keep_config=%d)", url, (int) keep_config);
+    bool ok = FACTORY_OTA_UPDATER.trigger(url, keep_config);
     if (!ok) {
         httpd_resp_set_status(req, "409 Conflict");
         return httpd_resp_send(req, "{\"status\":\"busy\"}", HTTPD_RESP_USE_STRLEN);

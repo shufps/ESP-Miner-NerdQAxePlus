@@ -357,6 +357,7 @@
     "STEP_UPDATING_FW": "Mise à jour du firmware",
     "STEP_DOWNLOADING_WWW": "Téléchargement du site web",
     "STEP_UPDATING_WWW": "Mise à jour du site web",
+    "STEP_ERASING_NVS": "Réinitialisation de la configuration",
     "STEP_REBOOTING": "Redémarrage...",
     "STEP_ERROR": "Erreur",
     "STEP_UNKNOWN": "Inconnu",
@@ -366,7 +367,7 @@
     "FILENAME": "Nom de fichier",
     "KEEP_CONFIG": "Conserver les paramètres",
     "SHOW_PRERELEASES": "Afficher les versions préliminaires",
-    "KEEP_SETTINGS_DISABLED": "La réinitialisation des paramètres n’est pas encore disponible."
+    "KEEP_SETTINGS_TOOLTIP": "Si décoché, la configuration sera réinitialisée aux paramètres d’usine lors de la mise à jour."
   },
   "TOAST": {
     "SUCCESS": "Succès",

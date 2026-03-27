@@ -292,11 +292,11 @@ export class SystemService {
   }
 
   // GitHub One-Click OTA
-  public performGithubOTAUpdate(url: string, totp?: string) {
+  public performGithubOTAUpdate(url: string, keepConfig: boolean, totp?: string) {
     const headers: Record<string, string> = {};
     if (totp) headers['X-TOTP'] = totp;
 
-    return this.httpClient.post('/api/system/OTA/github', { url }, {
+    return this.httpClient.post('/api/system/OTA/github', { url, keep_config: keepConfig }, {
       responseType: 'text',
       headers,
     });

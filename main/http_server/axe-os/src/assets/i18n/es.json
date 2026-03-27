@@ -357,6 +357,7 @@
     "STEP_UPDATING_FW": "Actualizando firmware",
     "STEP_DOWNLOADING_WWW": "Descargando sitio web",
     "STEP_UPDATING_WWW": "Actualizando sitio web",
+    "STEP_ERASING_NVS": "Restableciendo configuración",
     "STEP_REBOOTING": "Reiniciando...",
     "STEP_ERROR": "Error",
     "STEP_UNKNOWN": "Desconocido",
@@ -366,7 +367,7 @@
     "FILENAME": "Nombre de archivo",
     "KEEP_CONFIG": "Mantener ajustes",
     "SHOW_PRERELEASES": "Mostrar versiones preliminares",
-    "KEEP_SETTINGS_DISABLED": "El restablecimiento de los ajustes aún no está disponible."
+    "KEEP_SETTINGS_TOOLTIP": "Si está desactivado, la configuración se restablecerá a los valores de fábrica al actualizar."
   },
   "TOAST": {
     "SUCCESS": "Éxito",

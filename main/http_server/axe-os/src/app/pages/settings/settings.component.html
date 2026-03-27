@@ -101,8 +101,8 @@ Web-UI: {{ currentWebVersion }}<br/>
             <nb-icon icon="cloud-download-outline" pack="eva"></nb-icon>&nbsp;
             {{ 'UPDATE.INSTALL_FROM_GITHUB' | translate }}
           </button>
-          <nb-checkbox class="keep-config-toggle" [checked]="true" (click)="$event.preventDefault()"
-            [nbTooltip]="'UPDATE.KEEP_SETTINGS_DISABLED' | translate" nbTooltipPlacement="top">
+          <nb-checkbox class="keep-config-toggle" [formControl]="keepConfigCtrl"
+            [nbTooltip]="'UPDATE.KEEP_SETTINGS_TOOLTIP' | translate" nbTooltipPlacement="top">
             {{ 'UPDATE.KEEP_CONFIG' | translate }}
           </nb-checkbox>
         </div>

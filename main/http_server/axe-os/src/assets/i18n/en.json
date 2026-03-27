@@ -359,6 +359,7 @@
     "STEP_UPDATING_FW": "Updating firmware",
     "STEP_DOWNLOADING_WWW": "Downloading web content",
     "STEP_UPDATING_WWW": "Updating web content",
+    "STEP_ERASING_NVS": "Resetting configuration",
     "STEP_REBOOTING": "Rebooting...",
     "STEP_ERROR": "Error",
     "STEP_UNKNOWN": "Unknown",
@@ -368,7 +369,7 @@
     "FILENAME": "Filename",
     "KEEP_CONFIG": "Keep Settings",
     "SHOW_PRERELEASES": "Show pre-releases",
-    "KEEP_SETTINGS_DISABLED": "Resetting settings is not yet available."
+    "KEEP_SETTINGS_TOOLTIP": "When unchecked, the configuration will be reset to factory defaults on update."
   },
   "TOAST": {
     "SUCCESS": "Success",
