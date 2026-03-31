@@ -212,6 +212,11 @@
         margin-top: 18px;
     }
 
+    .fan-sync-row--top {
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+
     .fan-sync-inner {
         padding-top: 12px;
     }
@@ -224,6 +229,10 @@
         font-size: 0.8rem;
         font-weight: 400;
         opacity: 0.75;
+    }
+
+    .fan-sync-hint--important {
+        margin-top: 8px;
     }
 
     .fan-column .form-row {

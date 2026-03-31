@@ -1514,6 +1514,10 @@ nb-card-header{
   background: var(--bar-surface);
 }
 
+.power-bar--has-tooltip{
+  overflow: visible;
+}
+
 .power-bar__fill{
   position: absolute;
   left: 0;
@@ -1600,6 +1604,67 @@ nb-card-header{
   text-overflow: ellipsis;
 }
 
+
+.power-bar-tooltip{
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: min(360px, calc(100% - 28px));
+  max-width: 360px;
+  padding: 7px 10px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.06s ease-out, transform 0.06s ease-out;
+  pointer-events: none;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.power-bar-tooltip--active{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.power-bar-tooltip__lead,
+.power-bar-tooltip__footer{
+  line-height: 1.35;
+}
+
+.power-bar-tooltip__lead{
+  margin-bottom: 6px;
+}
+
+.power-bar-tooltip__footer{
+  margin-top: 6px;
+}
+
+.power-bar-tooltip__bullet{
+  position: relative;
+  padding-left: 12px;
+  line-height: 1.35;
+}
+
+.power-bar-tooltip__bullet::before{
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.heat-usage-box,
+.heat-bars-layout,
+.heat-bars{
+  overflow: visible;
+}
+
 .power-bar__value{
   right: 14px;
   left: 50%;
@@ -1660,10 +1725,49 @@ nb-card-header{
   line-height: 1;
 }
 
+.power-bar__value--inline .fan-inline--vr{
+  align-items: center;
+}
+
+.power-bar--interactive{
+  cursor: help;
+}
+
 .power-bar__value--inline .fan-inline > span{
   display: inline-flex;
   align-items: baseline;
   line-height: 1;
+}
+
+.power-bar__subvalue--vrmeta{
+  flex-direction: column;
+  align-items: flex-end !important;
+  gap: 2px;
+}
+
+.power-bar__meta-row{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.power-bar__meta-label{
+  color: var(--unit-in-fill-color, var(--unit-color));
+  font-weight: 400;
+}
+
+.power-bar__meta-number{
+  color: var(--bar-value-color);
+  font-weight: 700;
+}
+
+.power-bar__meta-row .unit{
+  color: var(--unit-in-fill-color, var(--unit-color));
+  font-weight: 400;
+}
+
+.power-bar__mainvalue .unit{
+  color: var(--unit-in-fill-color, var(--unit-color)) !important;
 }
 
 /* In the inline Fan value, do NOT nudge units down; baseline handles it. */
@@ -2110,6 +2214,19 @@ nb-card-header{
   font-size: var(--bar-label-fs);
   font-weight: 500;
   opacity: 0.85;
+}
+
+.power-bar__subvalue--vrmeta{
+  font-size: 0.78rem;
+  color: var(--bar-value-color);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.power-bar__subvalue--vrmeta .unit{
+  color: var(--unit-in-fill-color, var(--unit-color));
+  font-weight: 400;
+  opacity: 1;
 }
 
 
