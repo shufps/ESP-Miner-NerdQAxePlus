@@ -248,6 +248,96 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     const band = HOME_CFG.tiles.vrTempBand;
     return isAtLeast(vrTempC, band.critC);
   }
+
+  private readonly lowRpmHintThresholdPct: number = 35;
+  private readonly hoverTooltipOffsetX: number = 14;
+  private readonly hoverTooltipOffsetY: number = 18;
+  private readonly hoverTooltipWidthPx: number = 360;
+  private readonly hoverTooltipHeightPx: number = 140;
+  public activeHoverTooltipId: string | null = null;
+  public hoverTooltipX: number = 0;
+  public hoverTooltipY: number = 0;
+
+  public shouldShowLowRpmHint(percent: any, rpm: any): boolean {
+    const pct = Number(percent);
+    const rpmValue = Number(rpm);
+    return Number.isFinite(pct)
+      && pct > 0
+      && pct < this.lowRpmHintThresholdPct
+      && !(Number.isFinite(rpmValue) && rpmValue > 0);
+  }
+
+  public shouldShowFanRpm(percent: any, rpm: any): boolean {
+    const rpmValue = Number(rpm);
+    return Number.isFinite(rpmValue) && rpmValue > 0;
+  }
+
+  public getFanAriaLabel(channel: number | null, percent: any, rpm: any): string {
+    const pctValue = Number(percent);
+    const rpmValue = Number(rpm);
+    const pctText = `${Number.isFinite(pctValue) ? Math.round(pctValue) : 0} %`;
+    const label = channel != null
+      ? this.translateService.instant('HOME.FAN_CHANNEL', { channel })
+      : this.translateService.instant('HOME.FAN_SPEED');
+
+    if (this.shouldShowLowRpmHint(percent, rpm)) {
+      return `${label}: ${pctText}. ${this.translateService.instant('HOME.FAN_LOW_RPM_HINT')}`;
+    }
+
+    if (!(Number.isFinite(rpmValue) && rpmValue > 0)) {
+      return `${label}: ${pctText}`;
+    }
+
+    const rpmText = `${Number.isFinite(rpmValue) ? Math.round(rpmValue) : 0} RPM`;
+    return `${label}: ${pctText} (${rpmText})`;
+  }
+
+  public showHoverTooltip(id: string, event: MouseEvent): void {
+    this.activeHoverTooltipId = id;
+    this.updateHoverTooltipPosition(event);
+  }
+
+  public showConditionalHoverTooltip(id: string, enabled: boolean, event: MouseEvent): void {
+    if (!enabled) return;
+    this.showHoverTooltip(id, event);
+  }
+
+  public moveHoverTooltip(event: MouseEvent): void {
+    if (!this.activeHoverTooltipId) return;
+    this.updateHoverTooltipPosition(event);
+  }
+
+  public moveConditionalHoverTooltip(enabled: boolean, event: MouseEvent): void {
+    if (!enabled || !this.activeHoverTooltipId) return;
+    this.updateHoverTooltipPosition(event);
+  }
+
+  public hideHoverTooltip(id?: string): void {
+    if (!id || this.activeHoverTooltipId === id) {
+      this.activeHoverTooltipId = null;
+    }
+  }
+
+  private updateHoverTooltipPosition(event: MouseEvent): void {
+    const viewportWidth = window.innerWidth || 0;
+    const viewportHeight = window.innerHeight || 0;
+    const pad = 12;
+
+    let x = event.clientX + this.hoverTooltipOffsetX;
+    let y = event.clientY + this.hoverTooltipOffsetY;
+
+    if (x + this.hoverTooltipWidthPx > viewportWidth - pad) {
+      x = Math.max(pad, viewportWidth - this.hoverTooltipWidthPx - pad);
+    }
+
+    if (y + this.hoverTooltipHeightPx > viewportHeight - pad) {
+      y = Math.max(pad, event.clientY - this.hoverTooltipHeightPx - 10);
+    }
+
+    this.hoverTooltipX = x;
+    this.hoverTooltipY = y;
+  }
+
   // ASIC temperature scaling + warn/crit thresholds (used by ASIC °C + A1/A2… squares)
   public shutdownTempC = shutdownTempC;
   public isAsicTempWarn = isAsicTempWarn;
@@ -666,7 +756,6 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
           powerUsageAliases: HOME_CFG.tiles.powerUsageAliases,
           vrTempLimits: (BAR_LIMITS as any).vrTemp,
         });
-
         this.currentInputBarMaxWanted = derived.currentInputBarMaxWanted;
         this.vrTempBarCritWanted = derived.vrTempBarCritWanted;
 

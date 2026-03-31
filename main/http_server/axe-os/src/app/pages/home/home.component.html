@@ -596,52 +596,107 @@
                   <div class="heat-bars">
                     @let fanRpm1 = (info.fanrpm ?? 0);
                     @let fanRpm2 = (info.fanrpm2 ?? 0);
-                    @let fanC1Present = fanRpm1 > 0;
-                    @let fanC2Present = fanRpm2 > 0;
-                    @let showFanC1 = fanC1Present || !fanC2Present;
-                    @let showFanC2 = fanC2Present;
+                    @let fanC1HasRpm = fanRpm1 > 0;
+                    @let fanC2HasRpm = fanRpm2 > 0;
+                    @let singleFanUsesC2 = !fanC1HasRpm && fanC2HasRpm;
+                    @let primaryFanPercent = singleFanUsesC2 ? (info.fanspeed2 ?? 0) : (info.fanspeed ?? 0);
+                    @let primaryFanRpm = singleFanUsesC2 ? (info.fanrpm2 ?? 0) : (info.fanrpm ?? 0);
+                    @let showFanC1 = (primaryFanPercent > 0) || (primaryFanRpm > 0) || !fanC2HasRpm;
+                    @let showFanC2 = fanC1HasRpm && fanC2HasRpm;
 
                     <!-- VR temp bar -->
-                    <div class="power-bar" *ngIf="info.vrTemp > 0" role="img" data-bar="vr-temp"
+                    <div class="power-bar power-bar--interactive" *ngIf="info.vrTemp > 0" role="img" data-bar="vr-temp"
                          [class.power-bar--warn]="isVrTempWarn(info.vrTemp)"
                          [class.power-bar--crit]="isVrTempCrit(info.vrTemp)"
                          [class.power-bar--max]="isVrTempCrit(info.vrTemp)"
+                         (mouseenter)="showHoverTooltip('vr-temp', $event)"
+                         (mousemove)="moveHoverTooltip($event)"
+                         (mouseleave)="hideHoverTooltip('vr-temp')"
                          [attr.aria-label]="('PERFORMANCE.VR_TEMP' | translate) + ': ' + (info.vrTemp | number: '1.1-1') + ' °C'">
                       <div class="power-bar__fill"
                            [style.width.%]="toPct(info.vrTemp, BAR_LIMITS.vrTemp.min, BAR_LIMITS.vrTemp.max)"></div>
                       <div class="power-bar__label">{{ 'PERFORMANCE.VR_TEMP' | translate }}</div>
-                      <div class="power-bar__value">{{ info.vrTemp | number: '1.1-1' }}<span
-                        class="unit">&nbsp;°C</span></div>
+                      <span class="power-bar-tooltip"
+                            [class.power-bar-tooltip--active]="activeHoverTooltipId === 'vr-temp'"
+                            [style.left.px]="hoverTooltipX"
+                            [style.top.px]="hoverTooltipY"
+                            aria-hidden="true">
+                        <span class="power-bar-tooltip__lead">{{ 'PERFORMANCE.VR_TEMP_TOOLTIP_LINE1' | translate }}</span>
+                        <span class="power-bar-tooltip__bullet">{{ 'PERFORMANCE.VR_TEMP_TOOLTIP_LINE2' | translate }}</span>
+                        <span class="power-bar-tooltip__bullet">{{ 'PERFORMANCE.VR_TEMP_TOOLTIP_LINE3' | translate }}</span>
+                        <span class="power-bar-tooltip__footer">{{ 'PERFORMANCE.VR_TEMP_TOOLTIP_LINE4' | translate }}</span>
+                      </span>
+                      <div class="power-bar__value power-bar__value--inline power-bar__value--vr">
+                        <span class="fan-inline fan-inline--vr">
+                          <span class="power-bar__subvalue power-bar__subvalue--vrmeta" *ngIf="info.vrTempInt > 0">
+                            <span class="power-bar__meta-row">
+                              <span class="power-bar__meta-label">{{ 'PERFORMANCE.VR_TEMP_EXT' | translate }}</span>
+                              <span class="power-bar__meta-number">{{ ((info.vrTempExt != null && info.vrTempExt === info.vrTempExt) ? info.vrTempExt : info.vrTemp) | number: '1.1-1' }}</span><span class="unit">°C</span>
+                            </span>
+                            <span class="power-bar__meta-row">
+                              <span class="power-bar__meta-label">{{ 'PERFORMANCE.VR_TEMP_INT' | translate }}</span>
+                              <span class="power-bar__meta-number">{{ info.vrTempInt | number: '1.1-1' }}</span><span class="unit">°C</span>
+                            </span>
+                          </span>
+                          <span class="power-bar__sep" *ngIf="info.vrTempInt > 0">/</span>
+                          <span class="power-bar__mainvalue">{{ info.vrTemp | number: '1.1-1' }}<span class="unit">°C</span></span>
+                        </span>
+                      </div>
                     </div>
 
                     <!-- Fan bar (metric = fan speed %, shows RPM as secondary label) -->
                     <div class="power-bar" *ngIf="showFanC1" role="img"
-                         [class.power-bar--max]="isBarMax(info.fanspeed, 100)"
-                         [attr.aria-label]="(showFanC2 ? ('HOME.FAN_CHANNEL' | translate:{channel: 1}) : ('HOME.FAN_SPEED' | translate)) + ': ' + (info.fanspeed | number: '1.0-0') + ' % (' + (info.fanrpm | number: '1.0-0') + ' RPM)'">
-                      <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed, 0, 100)"></div>
-                      <div class="power-bar__label">
-                        <ng-container *ngIf="showFanC2; else fanLabelSingle">{{ 'HOME.FAN_CHANNEL' | translate:{channel: 1} }}</ng-container>
-                        <ng-template #fanLabelSingle>{{ 'HOME.FAN_SPEED' | translate }}</ng-template>
-                      </div>
+                         [class.power-bar--interactive]="shouldShowLowRpmHint(primaryFanPercent, primaryFanRpm)"
+                         [class.power-bar--max]="isBarMax(primaryFanPercent, 100)"
+                         (mouseenter)="showConditionalHoverTooltip('fan-c1', shouldShowLowRpmHint(primaryFanPercent, primaryFanRpm), $event)"
+                         (mousemove)="moveConditionalHoverTooltip(shouldShowLowRpmHint(primaryFanPercent, primaryFanRpm), $event)"
+                         (mouseleave)="hideHoverTooltip('fan-c1')"
+                         [attr.aria-label]="getFanAriaLabel(showFanC2 ? 1 : null, primaryFanPercent, primaryFanRpm)">
+                      <div class="power-bar__fill" [style.width.%]="toPct(primaryFanPercent, 0, 100)"></div>
+                      <div class="power-bar__label">{{ 'HOME.FAN_ASICS_LABEL' | translate }}</div>
+                      <span class="power-bar-tooltip"
+                            *ngIf="shouldShowLowRpmHint(primaryFanPercent, primaryFanRpm)"
+                            [class.power-bar-tooltip--active]="activeHoverTooltipId === 'fan-c1'"
+                            [style.left.px]="hoverTooltipX"
+                            [style.top.px]="hoverTooltipY"
+                            aria-hidden="true">
+                        <span>{{ 'HOME.FAN_LOW_RPM_HINT' | translate }}</span>
+                      </span>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
-                          <span class="power-bar__subvalue">{{ info.fanrpm | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
-                          <span class="power-bar__sep">/</span>
-                          <span class="power-bar__mainvalue">{{ info.fanspeed | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
+                          <ng-container *ngIf="shouldShowFanRpm(primaryFanPercent, primaryFanRpm)">
+                            <span class="power-bar__subvalue">{{ primaryFanRpm | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
+                            <span class="power-bar__sep">/</span>
+                          </ng-container>
+                          <span class="power-bar__mainvalue">{{ primaryFanPercent | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
                         </span>
                       </div>
                     </div>
 
                     <!-- Fan bar (channel 2, only if present) -->
                     <div class="power-bar" *ngIf="showFanC2" role="img"
+                         [class.power-bar--interactive]="shouldShowLowRpmHint(info.fanspeed2 ?? 0, info.fanrpm2 ?? 0)"
                          [class.power-bar--max]="isBarMax(info.fanspeed2 ?? 0, 100)"
-                         [attr.aria-label]="('HOME.FAN_CHANNEL' | translate:{channel: 2}) + ': ' + ((info.fanspeed2 ?? 0) | number: '1.0-0') + ' % (' + ((info.fanrpm2 ?? 0) | number: '1.0-0') + ' RPM)'">
+                         (mouseenter)="showConditionalHoverTooltip('fan-c2', shouldShowLowRpmHint(info.fanspeed2 ?? 0, info.fanrpm2 ?? 0), $event)"
+                         (mousemove)="moveConditionalHoverTooltip(shouldShowLowRpmHint(info.fanspeed2 ?? 0, info.fanrpm2 ?? 0), $event)"
+                         (mouseleave)="hideHoverTooltip('fan-c2')"
+                         [attr.aria-label]="getFanAriaLabel(2, info.fanspeed2 ?? 0, info.fanrpm2 ?? 0)">
                       <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed2 ?? 0, 0, 100)"></div>
-                      <div class="power-bar__label">{{ 'HOME.FAN_CHANNEL' | translate:{channel: 2} }}</div>
+                      <div class="power-bar__label">{{ 'HOME.FAN_VR_LABEL' | translate }}</div>
+                      <span class="power-bar-tooltip"
+                            *ngIf="shouldShowLowRpmHint(info.fanspeed2 ?? 0, info.fanrpm2 ?? 0)"
+                            [class.power-bar-tooltip--active]="activeHoverTooltipId === 'fan-c2'"
+                            [style.left.px]="hoverTooltipX"
+                            [style.top.px]="hoverTooltipY"
+                            aria-hidden="true">
+                        <span>{{ 'HOME.FAN_LOW_RPM_HINT' | translate }}</span>
+                      </span>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
-                          <span class="power-bar__subvalue">{{ (info.fanrpm2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
-                          <span class="power-bar__sep">/</span>
+                          <ng-container *ngIf="shouldShowFanRpm(info.fanspeed2 ?? 0, info.fanrpm2 ?? 0)">
+                            <span class="power-bar__subvalue">{{ (info.fanrpm2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
+                            <span class="power-bar__sep">/</span>
+                          </ng-container>
                           <span class="power-bar__mainvalue">{{ (info.fanspeed2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
                         </span>
                       </div>
