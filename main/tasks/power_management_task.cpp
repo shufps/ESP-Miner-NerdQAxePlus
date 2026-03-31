@@ -173,11 +173,20 @@ void PowerManagementTask::readAndPublishPowerTelemetry()
     float vout = m_board->getVout();
     float iout = m_board->getIout();
 
-    m_vrTemp = m_board->getVRTemp();
-    m_vrTempInt = m_board->getVRTempInt();
+    const float vrTempExt = m_board->getVRTemp();
+    const float vrTempInt = m_board->getVRTempInt();
+    m_vrTempExt = vrTempExt;
+    m_vrTempInt = vrTempInt;
 
-    ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vr-temp: %.2f, vr-temp-int: %.2f", vin, iin,
-             pin, vout, iout, pout, m_vrTemp, m_vrTempInt);
+    // Conservative control/limits: use the higher valid VR temperature.
+    if (vrTempExt > 0.0f && vrTempInt > 0.0f) {
+        m_vrTemp = std::max(vrTempExt, vrTempInt);
+    } else {
+        m_vrTemp = (vrTempExt > 0.0f) ? vrTempExt : vrTempInt;
+    }
+
+    ESP_LOGI(TAG, "vin: %.2f, iin: %.2f, pin: %.2f, vout: %.2f, iout: %.2f, pout: %.2f, vrt-ext: %.2f, vtr-int: %.2f, vrt-used: %.2f",
+             vin, iin, pin, vout, iout, pout, vrTempExt, m_vrTempInt, m_vrTemp);
 
     influx_task_set_pwr(vin, iin, pin, vout, iout, pout);
 

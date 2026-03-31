@@ -94,6 +94,11 @@ public:
 
     int m_numFans;
 
+    // Boards expose stable logical fan channels to the rest of the system.
+    // Subclasses can override this when physical connector wiring differs from
+    // the underlying controller register order.
+    virtual int mapFanChannelToHardware(int logicalChannel) const { return logicalChannel; }
+
     bool m_shutdown = false;
 
     // display m_theme

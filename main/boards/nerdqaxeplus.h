@@ -11,6 +11,7 @@ class NerdQaxePlus : public Board {
     int m_imax;
     float m_ifault;
     int m_initVoltageMillis;
+    virtual int mapFanChannelToHardware(int logicalChannel) const override;
 
     void LDO_enable();
     void LDO_disable();
