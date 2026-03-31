@@ -7,11 +7,6 @@
 #include "nvs_config.h"
 
 static const char* TAG = "fan_ctrl";
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
 void FanController::applyConfig(int ch)
 {
     if (!m_pid[ch]) return;
@@ -63,6 +58,30 @@ void FanController::init(Board* board, int sampleTimeMs)
                  m_config[ch].manualSpeed, m_config[ch].overheatTemp,
                  m_config[ch].pid.targetTemp, p, i, d);
     }
+
+    // Apply initial fan outputs immediately after boot so manual channels do not
+    // stay at board/driver fallback speed (often 100%) until the first control tick.
+    for (int ch = 0; ch < m_numChannels; ch++) {
+        uint16_t perc = 100;
+        switch (m_config[ch].mode) {
+        case Mode::MANUAL:
+            perc = m_config[ch].manualSpeed;
+            break;
+        case Mode::LINKED:
+            if (ch > 0 && m_config[0].mode == Mode::MANUAL) {
+                perc = m_config[0].manualSpeed;
+            }
+            break;
+        case Mode::PID:
+        default:
+            // Keep safe/high output until first measured control update.
+            perc = 100;
+            break;
+        }
+
+        m_fanPerc[ch] = perc;
+        m_board->setFanSpeedCh(ch, static_cast<float>(perc) / 100.0f);
+    }
 }
 
 void FanController::loadSettings()
@@ -88,7 +107,7 @@ void FanController::update(float chipTempMax, float vrTemp)
     float tempInput[MAX_FANS] = { chipTempMax, vrTemp };
 
     // only 2nd channel can be linked
-    if (m_config[1].mode == Mode::LINKED) {
+    if (m_numChannels > 1 && m_config[1].mode == Mode::LINKED) {
         tempInput[0] = fmaxf(chipTempMax, vrTemp);
     }
 

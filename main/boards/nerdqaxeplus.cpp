@@ -46,8 +46,8 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_ifault = (float) (m_imax - 5);
 
     m_numFans = 2;
-    m_fanLabels[0] = "M2"; // ASIC/CPU fan connector
-    m_fanLabels[1] = "M1"; // VReg fan connector
+    m_fanLabels[0] = "M1"; // ASIC/CPU fan connector
+    m_fanLabels[1] = "M2"; // VReg fan connector
 
     m_maxPin = 70.0;
     m_minPin = 30.0;
@@ -117,6 +117,15 @@ bool NerdQaxePlus::initBoard()
     gpio_set_level(BM1368_RST_PIN, 0);
 
     return true;
+}
+
+int NerdQaxePlus::mapFanChannelToHardware(int logicalChannel) const
+{
+    // NerdQAxe+ connector wiring is opposite to the EMC2302 register order:
+    // logical ch0/M1 uses hardware channel 1, logical ch1/M2 uses hardware channel 0.
+    if (logicalChannel == 0) return 1;
+    if (logicalChannel == 1) return 0;
+    return logicalChannel;
 }
 
 void NerdQaxePlus::shutdown() {
@@ -241,11 +250,13 @@ bool NerdQaxePlus::setVoltage(float core_voltage)
 }
 
 void NerdQaxePlus::setFanSpeedCh(int channel, float perc) {
-    EMC2302_set_fan_speed(channel, perc);
+    const int emcChannel = mapFanChannelToHardware(channel);
+    EMC2302_set_fan_speed(emcChannel, perc);
 }
 
 void NerdQaxePlus::getFanSpeedCh(int channel, uint16_t* rpm) {
-    EMC2302_get_fan_speed(channel, rpm);
+    const int emcChannel = mapFanChannelToHardware(channel);
+    EMC2302_get_fan_speed(emcChannel, rpm);
 }
 
 void NerdQaxePlus::setFanPolarity(bool invert) {

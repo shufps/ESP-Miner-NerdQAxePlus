@@ -13,8 +13,9 @@ esp_err_t EMC2302_set_fan_speed(int channel, float percent)
     int value = (int) (percent * 255.0 + 0.5);
     value = (value > 255) ? 255 : value;
 
-    // 0: fan2, 1: fan1
-    uint8_t base = !channel ? EMC2302_FAN2 : EMC2302_FAN1;
+    // Raw EMC2302 hardware channel mapping:
+    // channel 0 -> FAN1 register block, channel 1 -> FAN2 register block
+    uint8_t base = !channel ? EMC2302_FAN1 : EMC2302_FAN2;
 
     esp_err_t err;
 
@@ -27,11 +28,12 @@ esp_err_t EMC2302_get_fan_speed(int channel, uint16_t *dst)
     esp_err_t err;
     uint8_t tach_lsb, tach_msb;
 
-    // 0: fan2, 1: fan1
-    uint8_t base = !channel ? EMC2302_FAN2 : EMC2302_FAN1;
+    if (!dst) return ESP_ERR_INVALID_ARG;
 
-    // report only first fan
-    // use channel 2 that is closed to the CPU cooler
+    // Raw EMC2302 hardware channel mapping:
+    // channel 0 -> FAN1 register block, channel 1 -> FAN2 register block
+    uint8_t base = !channel ? EMC2302_FAN1 : EMC2302_FAN2;
+
     err = i2c_master_register_read(EMC2302_ADDR, base + EMC2302_OFS_TACH_READING_MSB, &tach_msb, 1);
     if (err != ESP_OK) {
         *dst = 0;
@@ -43,10 +45,8 @@ esp_err_t EMC2302_get_fan_speed(int channel, uint16_t *dst)
         return err;
     }
 
-    // ESP_LOGI(TAG, "Raw Fan Speed = %02X %02X", tach_msb, tach_lsb);
-
     // 3 LSBs are unused
-    int rpm_raw = (tach_msb << 5) | (tach_lsb >> 3) ;
+    int rpm_raw = (tach_msb << 5) | (tach_lsb >> 3);
 
     const int poles = 2;
     const int n = 5; // number of edges measured (typically five for a two-pole fan)

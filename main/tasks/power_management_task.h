@@ -28,6 +28,7 @@ class PowerManagementTask {
     char m_logBuffer[256]{};
     float m_chipTempMax = 0;
     float m_vrTemp = 0;
+    float m_vrTempExt = 0;
     float m_vrTempInt = 0;
     float m_voltage = 0;
     float m_power = 0;
@@ -77,6 +78,10 @@ class PowerManagementTask {
     float getVRTemp()
     {
         return m_vrTemp;
+    };
+    float getVRTempExt()
+    {
+        return m_vrTempExt;
     };
     float getVRTempInt()
     {

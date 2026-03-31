@@ -112,6 +112,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["maxCurrentA"]        = board->getMaxCurrentA(); // A
     doc["temp"]               = POWER_MANAGEMENT_MODULE.getChipTempMax();
     doc["vrTemp"]             = POWER_MANAGEMENT_MODULE.getVRTemp();
+    doc["vrTempExt"]          = POWER_MANAGEMENT_MODULE.getVRTempExt();
     doc["vrTempInt"]          = POWER_MANAGEMENT_MODULE.getVRTempInt();
     doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
     // set hashrate values to 0 in shutdown
