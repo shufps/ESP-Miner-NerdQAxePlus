@@ -362,6 +362,7 @@
                             </div>
                         </div>
 
+                        <!-- Manual fan speed slider -->
                         <div *ngIf="form.controls['autofanspeed'].value === 0">
                             <div class="form-row">
                                 <label class="form-label">{{ 'SETTINGS.FAN_SPEED' | translate }} {{ form.controls['manualFanSpeed'].value }}%</label>
@@ -382,6 +383,7 @@
                             </div>
                         </div>
 
+                        <!-- PID Fan Control Settings -->
                         <div *ngIf="form.controls['autofanspeed'].value === 2 && form.controls['pidTargetTemp'].value != -1">
                             <div class="form-row">
                                 <label class="form-label">{{ 'SETTINGS.TARGET_TEMP' | translate }}:</label>

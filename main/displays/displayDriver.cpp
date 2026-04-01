@@ -978,11 +978,7 @@ void DisplayDriver::updateGlobalState(int pool)
     lv_label_set_text(m_ui->ui_lbTemp, strData);       // Update label
     lv_label_set_text(m_ui->ui_lblTempPrice, strData); // Update label
 
-    uint16_t displayFanRpm = POWER_MANAGEMENT_MODULE.getFanRPM(0);
-    if (displayFanRpm == 0) {
-        displayFanRpm = POWER_MANAGEMENT_MODULE.getFanRPM(1);
-    }
-    snprintf(strData, sizeof(strData), "%d", displayFanRpm);
+    snprintf(strData, sizeof(strData), "%d", POWER_MANAGEMENT_MODULE.getFanRPM(0));
     lv_label_set_text(m_ui->ui_lbRPM, strData); // Update label
 
     snprintf(strData, sizeof(strData), "%.3fW", POWER_MANAGEMENT_MODULE.getPower());

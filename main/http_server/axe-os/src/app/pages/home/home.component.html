@@ -631,7 +631,7 @@
                           <span class="power-bar__subvalue power-bar__subvalue--vrmeta" *ngIf="info.vrTempInt > 0">
                             <span class="power-bar__meta-row">
                               <span class="power-bar__meta-label">{{ 'PERFORMANCE.VR_TEMP_EXT' | translate }}</span>
-                              <span class="power-bar__meta-number">{{ ((info.vrTempExt != null && info.vrTempExt === info.vrTempExt) ? info.vrTempExt : info.vrTemp) | number: '1.1-1' }}</span><span class="unit">°C</span>
+                              <span class="power-bar__meta-number">{{ info.vrTemp | number: '1.1-1' }}</span><span class="unit">°C</span>
                             </span>
                             <span class="power-bar__meta-row">
                               <span class="power-bar__meta-label">{{ 'PERFORMANCE.VR_TEMP_INT' | translate }}</span>

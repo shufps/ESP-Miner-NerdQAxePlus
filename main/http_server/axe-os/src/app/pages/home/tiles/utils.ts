@@ -660,10 +660,6 @@ export function normalizeHomeTileInfo(
 
   // --- Core voltage/temps come in mV / °C (already numeric)
   try {
-    const vrTempExt = Number(info.vrTempExt);
-    if (Number.isFinite(vrTempExt)) {
-      info.vrTempExt = parseFloat(vrTempExt.toFixed(1));
-    }
     info.coreVoltageActual = parseFloat((Number(info.coreVoltageActual) / 1000).toFixed(2));
     info.coreVoltage = parseFloat((Number(info.coreVoltage) / 1000).toFixed(2));
     info.temp = parseFloat(Number(info.temp).toFixed(1));

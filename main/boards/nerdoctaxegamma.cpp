@@ -34,8 +34,8 @@ NerdOctaxeGamma::NerdOctaxeGamma()
     m_theme = new ThemeNerdoctaxegamma();
 #endif
 
-    m_fanLabels[0] = "M1 (Use a Y-splitter cable for multiple ASIC fans.)";
-    m_fanLabels[1] = "M2";
+    m_fanLabels[0] = "M2 (Use a Y-splitter cable for multiple ASIC fans.)";
+    m_fanLabels[1] = "M1";
 
     m_swarmColorName = "#11d51e"; // green
 
