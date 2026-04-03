@@ -23,6 +23,7 @@
 
 #include "stratum_config.h"
 #include "stratum_manager.h"
+#include "stratum_task_v2.h"
 #include "utils.h"
 
 // ------------  stratum manager
@@ -71,6 +72,14 @@ void StratumManager::taskWrapper(void *pvParameters)
     manager->task();
 }
 
+StratumTaskBase* StratumManager::createTask(int index)
+{
+    if (m_stratumConfig[index]->isSV2()) {
+        return new StratumTaskV2(this, index);
+    }
+    return new StratumTaskV1(this, index);
+}
+
 void StratumManager::task()
 {
     System *system = &SYSTEM_MODULE;
@@ -84,7 +93,7 @@ void StratumManager::task()
 
     // Create the Stratum tasks for both pools
     for (int i = 0; i < 2; i++) {
-        m_stratumTasks[i] = new StratumTask(this, i);
+        m_stratumTasks[i] = createTask(i);
         xTaskCreate(m_stratumTasks[i]->taskWrapper, (i == 0) ? "stratum task (pri)" : "stratum task (sec)", 8192,
                     (void *) m_stratumTasks[i], 5, NULL);
 
@@ -141,7 +150,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
         return;
     }
 
-    StratumTask *selected = m_stratumTasks[pool];
+    StratumTaskBase *selected = m_stratumTasks[pool];
 
     if (!selected) {
         ESP_LOGE(m_tag, "stratum task is null");
@@ -241,7 +250,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 }
 
 void StratumManager::submitShare(int pool, const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
-                                 const uint32_t version)
+                                 const uint32_t version_rolled, const uint32_t version_base)
 {
     if (!m_stratumTasks[pool]) {
         ESP_LOGE(m_tag, "stratum task is null");
@@ -252,7 +261,7 @@ void StratumManager::submitShare(int pool, const char *jobid, const char *extran
         ESP_LOGE(m_tag, "selected pool not connected");
         return;
     }
-    m_stratumTasks[pool]->submitShare(jobid, extranonce_2, ntime, nonce, version);
+    m_stratumTasks[pool]->submitShare(jobid, extranonce_2, ntime, nonce, version_rolled, version_base);
 }
 
 // --- stratum config related; mutexed
@@ -339,6 +348,25 @@ void StratumManager::saveSettings(const JsonDocument &doc) {
     }
     if (doc["fallbackStratumTLS"].is<bool>()) {
         Config::setStratumFallbackTLS(doc["fallbackStratumTLS"].as<bool>());
+    }
+    // SV2 settings
+    if (doc["stratumProtocol"].is<uint16_t>()) {
+        Config::setStratumProtocol(doc["stratumProtocol"].as<uint16_t>());
+    }
+    if (doc["fallbackStratumProtocol"].is<uint16_t>()) {
+        Config::setFallbackStratumProtocol(doc["fallbackStratumProtocol"].as<uint16_t>());
+    }
+    if (doc["sv2AuthorityPubkey"].is<const char*>()) {
+        Config::setSV2AuthorityPubkey(doc["sv2AuthorityPubkey"].as<const char*>());
+    }
+    if (doc["fallbackSv2AuthorityPubkey"].is<const char*>()) {
+        Config::setFallbackSV2AuthorityPubkey(doc["fallbackSv2AuthorityPubkey"].as<const char*>());
+    }
+    if (doc["sv2ChannelType"].is<uint16_t>()) {
+        Config::setSV2ChannelType(doc["sv2ChannelType"].as<uint16_t>());
+    }
+    if (doc["fallbackSv2ChannelType"].is<uint16_t>()) {
+        Config::setFallbackSV2ChannelType(doc["fallbackSv2ChannelType"].as<uint16_t>());
     }
 }
 

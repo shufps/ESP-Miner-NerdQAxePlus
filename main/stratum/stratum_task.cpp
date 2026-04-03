@@ -35,7 +35,11 @@
 // mkfifo /tmp/ncpipe
 // nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
 
-StratumTask::StratumTask(StratumManager *manager, int index)
+// ============================================================================
+// StratumTaskBase
+// ============================================================================
+
+StratumTaskBase::StratumTaskBase(StratumManager *manager, int index)
     : m_manager(manager), m_index(index)
 {
     if (!index) {
@@ -47,13 +51,13 @@ StratumTask::StratumTask(StratumManager *manager, int index)
     m_config = new StratumConfig(index);
 }
 
-bool StratumTask::isWifiConnected()
+bool StratumTaskBase::isWifiConnected()
 {
     wifi_ap_record_t ap_info;
     return esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK;
 }
 
-bool StratumTask::resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len)
+bool StratumTaskBase::resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len)
 {
     struct addrinfo hints;
     struct addrinfo *res;
@@ -86,7 +90,7 @@ bool StratumTask::resolveHostname(const char *hostname, char *ip_str, size_t ip_
     return true;
 }
 
-int StratumTask::connectStratum(const char *host_ip, uint16_t port)
+int StratumTaskBase::connectStratum(const char *host_ip, uint16_t port)
 {
     struct sockaddr_in dest_addr;
     dest_addr.sin_addr.s_addr = inet_addr(host_ip);
@@ -119,7 +123,7 @@ int StratumTask::connectStratum(const char *host_ip, uint16_t port)
     return sock;
 }
 
-bool StratumTask::setupSocketTimeouts(int sock)
+bool StratumTaskBase::setupSocketTimeouts(int sock)
 {
     // we add timeout to prevent recv to hang forever
     // if it times out on the recv we will check the connection state
@@ -171,7 +175,174 @@ bool StratumTask::setupSocketTimeouts(int sock)
     return true;
 }
 
-void StratumTask::stratumLoop()
+void StratumTaskBase::connect()
+{
+    m_stopFlag = false;
+}
+
+void StratumTaskBase::disconnect()
+{
+    m_stopFlag = true;
+}
+
+void StratumTaskBase::triggerReconnect() {
+    m_reconnect = true;
+}
+
+void StratumTaskBase::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
+{
+    StratumTaskBase *self = static_cast<StratumTaskBase *>(pvTimerGetTimerID(xTimer));
+    self->reconnectTimerCallback(xTimer);
+}
+
+// Reconnect Timer Callback
+void StratumTaskBase::reconnectTimerCallback(TimerHandle_t xTimer)
+{
+    m_manager->reconnectTimerCallback(m_index);
+}
+
+// Connected Callback
+void StratumTaskBase::connectedCallback()
+{
+    m_manager->connectedCallback(m_index);
+}
+
+// Disconnected Callback
+void StratumTaskBase::disconnectedCallback()
+{
+    m_manager->disconnectedCallback(m_index);
+}
+
+// Start the reconnect timer
+void StratumTaskBase::startReconnectTimer()
+{
+    if (m_reconnectTimer == NULL) {
+        m_reconnectTimer = xTimerCreate("Reconnect Timer", pdMS_TO_TICKS(30000), pdTRUE, this, reconnectTimerCallbackWrapper);
+    }
+
+    // only start the timer when it is not running
+    if (xTimerIsTimerActive(m_reconnectTimer) == pdFALSE) {
+        xTimerStart(m_reconnectTimer, 0);
+    }
+}
+
+// Stop the reconnect timer
+void StratumTaskBase::stopReconnectTimer()
+{
+    if (m_reconnectTimer != NULL) {
+        xTimerStop(m_reconnectTimer, 0);
+    }
+}
+
+void StratumTaskBase::taskWrapper(void *pvParameters)
+{
+    StratumTaskBase *task = (StratumTaskBase *) pvParameters;
+    task->task();
+}
+
+void StratumTaskBase::task()
+{
+    // Start the reconnect timer
+    startReconnectTimer();
+
+    while (1) {
+        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
+            ESP_LOGW(m_tag, "suspended");
+            vTaskSuspend(NULL);
+        }
+
+        // gets a guaranteed consistent copy of the config
+        m_manager->copyConfigInto(m_index, m_config);
+
+        m_reconnect = false;
+
+        // do we have a stratum host configured?
+        // we do it here because we could reload the config after
+        // it was updated on the UI and settings
+        if (!strlen(m_config->getHost())) {
+            vTaskDelay(pdMS_TO_TICKS(10000));
+            continue;
+        }
+
+        // should stay stopped?
+        if (m_stopFlag) {
+            vTaskDelay(pdMS_TO_TICKS(10000));
+            continue;
+        }
+
+        // check if wifi is connected
+        // esp_wifi_connect is thread safe
+        if (!isWifiConnected()) {
+            ESP_LOGI(m_tag, "WiFi disconnected, attempting to reconnect...");
+            esp_wifi_connect();
+            vTaskDelay(pdMS_TO_TICKS(10000));
+            continue;
+        }
+
+        // resolve the IP of the host
+        char ip[INET_ADDRSTRLEN] = {0};
+        if (!resolveHostname(m_config->getHost(), ip, sizeof(ip))) {
+            ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config->getHost());
+            vTaskDelay(pdMS_TO_TICKS(10000));
+            continue;
+        }
+
+        ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d (%s)", m_config->getHost(), m_config->getPort(), ip);
+
+        // select transport (protocol-specific)
+        m_transport = selectTransport();
+
+        if (!m_transport->connect(m_config->getHost(), ip, m_config->getPort())) {
+            ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config->getHost(), m_config->getPort(), errno);
+            vTaskDelay(pdMS_TO_TICKS(10000));
+            continue;
+        }
+
+        // we are connected but it doesn't mean the server is alive ...
+
+        // protocol-specific loop
+        protocolLoop();
+
+        // track pool errors
+        // reconnect request is not an error
+        if (!m_reconnect) {
+            m_poolErrors++;
+        }
+
+        // shutdown and reconnect
+        ESP_LOGIE(m_reconnect, m_tag, "Shutdown socket ...");
+        m_transport->close();
+
+        disconnectedCallback();
+        m_isConnected = false;
+
+        // skip reconnect delay
+        if (m_reconnect) {
+            continue;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10000)); // Delay before attempting to reconnect
+    }
+    vTaskDelete(NULL);
+}
+
+// ============================================================================
+// StratumTaskV1
+// ============================================================================
+
+StratumTaskV1::StratumTaskV1(StratumManager *manager, int index)
+    : StratumTaskBase(manager, index)
+{
+}
+
+StratumTransport* StratumTaskV1::selectTransport()
+{
+    if (m_config->isTLS()) {
+        return &m_tlsTransport;
+    }
+    return &m_tcpTransport;
+}
+
+void StratumTaskV1::protocolLoop()
 {
     Board *board = SYSTEM_MODULE.getBoard();
 
@@ -262,163 +433,10 @@ void StratumTask::stratumLoop()
     }
 }
 
-void StratumTask::connect()
+void StratumTaskV1::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+                              const uint32_t version_rolled, const uint32_t version_base)
 {
-    m_stopFlag = false;
-}
-
-void StratumTask::disconnect()
-{
-    m_stopFlag = true;
-}
-
-void StratumTask::triggerReconnect() {
-    m_reconnect = true;
-}
-
-
-void StratumTask::reconnectTimerCallbackWrapper(TimerHandle_t xTimer)
-{
-    StratumTask *self = static_cast<StratumTask *>(pvTimerGetTimerID(xTimer));
-    self->reconnectTimerCallback(xTimer);
-}
-
-// Reconnect Timer Callback
-void StratumTask::reconnectTimerCallback(TimerHandle_t xTimer)
-{
-    m_manager->reconnectTimerCallback(m_index);
-}
-
-// Connected Callback
-void StratumTask::connectedCallback()
-{
-    m_manager->connectedCallback(m_index);
-}
-
-// Disconnected Callback
-void StratumTask::disconnectedCallback()
-{
-    m_manager->disconnectedCallback(m_index);
-}
-
-// Start the reconnect timer
-void StratumTask::startReconnectTimer()
-{
-    if (m_reconnectTimer == NULL) {
-        m_reconnectTimer = xTimerCreate("Reconnect Timer", pdMS_TO_TICKS(30000), pdTRUE, this, reconnectTimerCallbackWrapper);
-    }
-
-    // only start the timer when it is not running
-    if (xTimerIsTimerActive(m_reconnectTimer) == pdFALSE) {
-        xTimerStart(m_reconnectTimer, 0);
-    }
-}
-
-// Stop the reconnect timer
-void StratumTask::stopReconnectTimer()
-{
-    if (m_reconnectTimer != NULL) {
-        xTimerStop(m_reconnectTimer, 0);
-    }
-}
-
-void StratumTask::submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
-                              const uint32_t version)
-{
-    m_stratumAPI.submitShare(m_transport, m_config->getUser(), jobid, extranonce_2, ntime, nonce, version);
-}
-
-void StratumTask::taskWrapper(void *pvParameters)
-{
-    StratumTask *task = (StratumTask *) pvParameters;
-    task->task();
-}
-
-void StratumTask::task()
-{
-    // Start the reconnect timer
-    startReconnectTimer();
-
-    while (1) {
-        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
-            ESP_LOGW(m_tag, "suspended");
-            vTaskSuspend(NULL);
-        }
-
-        // gets a guaranteed consistent copy of the config
-        m_manager->copyConfigInto(m_index, m_config);
-
-        m_reconnect = false;
-
-        // do we have a stratum host configured?
-        // we do it here because we could reload the config after
-        // it was updated on the UI and settings
-        if (!strlen(m_config->getHost())) {
-            vTaskDelay(pdMS_TO_TICKS(10000));
-            continue;
-        }
-
-        // should stay stopped?
-        if (m_stopFlag) {
-            vTaskDelay(pdMS_TO_TICKS(10000));
-            continue;
-        }
-
-        // check if wifi is connected
-        // esp_wifi_connect is thread safe
-        if (!isWifiConnected()) {
-            ESP_LOGI(m_tag, "WiFi disconnected, attempting to reconnect...");
-            esp_wifi_connect();
-            vTaskDelay(pdMS_TO_TICKS(10000));
-            continue;
-        }
-
-        // resolve the IP of the host
-        char ip[INET_ADDRSTRLEN] = {0};
-        if (!resolveHostname(m_config->getHost(), ip, sizeof(ip))) {
-            ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config->getHost());
-            vTaskDelay(pdMS_TO_TICKS(10000));
-            continue;
-        }
-
-        ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d (%s)", m_config->getHost(), m_config->getPort(), ip);
-
-        // switch transports
-        if (m_config->isTLS()) {
-            m_transport = &m_tlsTransport;
-        } else {
-            m_transport = &m_tcpTransport;
-        }
-
-        if (!m_transport->connect(m_config->getHost(), ip, m_config->getPort())) {
-            ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config->getHost(), m_config->getPort(), errno);
-            vTaskDelay(pdMS_TO_TICKS(10000));
-            continue;
-        }
-
-        // we are connected but it doesn't mean the server is alive ...
-
-        // stratum loop
-        stratumLoop();
-
-        // track pool errors
-        // reconnect request is not an error
-        if (!m_reconnect) {
-            m_poolErrors++;
-        }
-
-        // shutdown and reconnect
-        ESP_LOGIE(m_reconnect, m_tag, "Shutdown socket ...");
-        m_transport->close();
-
-        disconnectedCallback();
-        m_isConnected = false;
-
-        // skip reconnect delay
-        if (m_reconnect) {
-            continue;
-        }
-        vTaskDelay(pdMS_TO_TICKS(10000)); // Delay before attempting to reconnect
-    }
-    vTaskDelete(NULL);
+    // V1 mining.submit expects version rolling bits (delta), not full version
+    uint32_t version_delta = version_rolled ^ version_base;
+    m_stratumAPI.submitShare(m_transport, m_config->getUser(), jobid, extranonce_2, ntime, nonce, version_delta);
 }

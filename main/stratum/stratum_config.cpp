@@ -26,6 +26,7 @@ StratumConfig::StratumConfig(int pool)
         m_password = Config::getStratumPass();
         m_enonceSub = Config::isStratumEnonceSubscribe();
         m_tls = Config::isStratumTLS();
+        m_protocol = (StratumProtocol) Config::getStratumProtocol();
     } else {
         m_primary = false;
         m_host = Config::getStratumFallbackURL();
@@ -34,6 +35,7 @@ StratumConfig::StratumConfig(int pool)
         m_password = Config::getStratumFallbackPass();
         m_enonceSub = Config::isStratumFallbackEnonceSubscribe();
         m_tls = Config::isStratumFallbackTLS();
+        m_protocol = (StratumProtocol) Config::getFallbackStratumProtocol();
     }
 }
 
@@ -46,6 +48,7 @@ bool StratumConfig::reload()
     char *newPass = m_primary ? Config::getStratumPass() : Config::getStratumFallbackPass();
     bool newEnsub = m_primary ? Config::isStratumEnonceSubscribe() : Config::isStratumFallbackEnonceSubscribe();
     bool newTLS   = m_primary ? Config::isStratumTLS() : Config::isStratumFallbackTLS();
+    StratumProtocol newProto = (StratumProtocol)(m_primary ? Config::getStratumProtocol() : Config::getFallbackStratumProtocol());
     // Compare
     bool same =
         strEq(m_host, newHost) &&
@@ -53,7 +56,8 @@ bool StratumConfig::reload()
         strEq(m_user, newUser) &&
         strEq(m_password, newPass) &&
         m_enonceSub == newEnsub &&
-        m_tls == newTLS;
+        m_tls == newTLS &&
+        m_protocol == newProto;
 
     if (same) {
         // Free temporary values (they were newly allocated by Config::get)
@@ -74,6 +78,7 @@ bool StratumConfig::reload()
     m_password   = newPass;
     m_enonceSub  = newEnsub;
     m_tls        = newTLS;
+    m_protocol   = newProto;
 
     return true;
 }
@@ -91,6 +96,7 @@ void StratumConfig::copyInto(StratumConfig *dst)
     dst->m_password  = m_password ? strdup(m_password) : nullptr;
     dst->m_enonceSub = m_enonceSub;
     dst->m_tls       = m_tls;
+    dst->m_protocol  = m_protocol;
 }
 
 

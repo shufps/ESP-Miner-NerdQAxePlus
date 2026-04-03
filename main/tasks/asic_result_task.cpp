@@ -120,7 +120,7 @@ void ASIC_result_task(void *pvParameters)
         // send duplicates to the server (they will get rejected and counted as rejected)
         if (nonce_diff >= job->pool_diff) {
             STRATUM_MANAGER->submitShare(job->pool_id, job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
-                                    asic_result.rolled_version ^ job->version);
+                                    asic_result.rolled_version, job->version);
         }
 
         STRATUM_MANAGER->checkForBestDiff(job->pool_id, nonce_diff, job->target);

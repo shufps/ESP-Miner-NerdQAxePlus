@@ -4,7 +4,7 @@
 #include "utils.h"
 
 class StratumManagerFallback : public StratumManager {
-    friend StratumTask; ///< Allows StratumTask to access private members
+    friend StratumTaskBase; ///< Allows StratumTaskBase to access private members
 
   protected:
     int m_selected = 0;

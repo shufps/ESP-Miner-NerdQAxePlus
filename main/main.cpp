@@ -274,6 +274,7 @@ extern "C" void app_main(void)
     // set the startup_done flag
     SYSTEM_MODULE.setStartupDone();
 
+
     // when a username is configured we will continue with startup and start mining
     const char *username = Config::nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL); // TODO
     if (username) {

@@ -5,7 +5,13 @@
 #include "psram_allocator.h"
 
 class StratumManager;
-class StratumTask;
+class StratumTaskBase;
+class StratumTaskV1;
+
+enum StratumProtocol {
+    STRATUM_V1 = 0,
+    STRATUM_V2 = 1
+};
 
 class StratumConfig {
   protected:
@@ -16,6 +22,7 @@ class StratumConfig {
     char *m_password = nullptr;
     bool m_enonceSub = false;
     bool m_tls = false;
+    StratumProtocol m_protocol = STRATUM_V1;
 
   public:
     StratumConfig(int pool);
@@ -62,6 +69,14 @@ class StratumConfig {
 
     bool isTLS() {
         return m_tls;
+    }
+
+    StratumProtocol getProtocol() {
+        return m_protocol;
+    }
+
+    bool isSV2() {
+        return m_protocol == STRATUM_V2;
     }
 
     //static void toLog(const StratumConfig &cfg, const char* prefix="");

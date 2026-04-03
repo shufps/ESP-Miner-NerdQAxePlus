@@ -11,18 +11,19 @@
 class StratumTransport {
 public:
     explicit StratumTransport(bool use_tls);
-    ~StratumTransport();
+    virtual ~StratumTransport();
 
-    bool connect(const char* host, const char* ip, uint16_t port);
-    int send(const void* data, size_t len);
-    int recv(void* buf, size_t len);
-    bool isConnected();
-    void close();
+    virtual bool connect(const char* host, const char* ip, uint16_t port);
+    virtual int send(const void* data, size_t len);
+    virtual int recv(void* buf, size_t len);
+    virtual bool isConnected();
+    virtual void close();
 
 private:
+    bool m_use_tls;
     void applyKeepAlive_();
 
-    bool m_use_tls;
+protected:
     esp_transport_handle_t m_t;
 };
 

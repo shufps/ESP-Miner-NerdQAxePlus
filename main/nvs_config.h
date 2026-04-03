@@ -86,6 +86,14 @@
 #define NVS_CONFIG_POOL_MODE_BALANCE "pool_balance"
 #define NVS_CONFIG_POOL_MODE "pool_mode"
 
+// Stratum V2
+#define NVS_CONFIG_STRATUM_PROTOCOL "sv2_proto"
+#define NVS_CONFIG_SV2_AUTHORITY_PUBKEY "sv2_auth_pk"
+#define NVS_CONFIG_SV2_CHANNEL_TYPE "sv2_chan_type"
+#define NVS_CONFIG_FB_STRATUM_PROTOCOL "fbsv2_proto"
+#define NVS_CONFIG_FB_SV2_AUTHORITY_PUBKEY "fbsv2_authpk"
+#define NVS_CONFIG_FB_SV2_CHANNEL_TYPE "fbsv2_chtype"
+
 #if defined(CONFIG_FAN_MODE_MANUAL)
 #define CONFIG_AUTO_FAN_SPEED_VALUE 0
 #elif defined(CONFIG_FAN_MODE_CLASSIC)
@@ -261,6 +269,20 @@ namespace Config {
     inline bool isStratumTLS() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_TLS, CONFIG_STRATUM_TLS_VALUE) != 0; }
     inline bool isStratumFallbackTLS() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_TLS, CONFIG_STRATUM_FALLBACK_TLS_VALUE) != 0; }
     inline bool isShowBlockFoundEnabled() { return nvs_config_get_u16(NVS_CONFIG_SHOW_BLOCK_FOUND_ENABLE, CONFIG_SHOW_BLOCK_FOUND_ENABLE_VALUE) != 0; }
+
+    // Stratum V2
+    inline uint16_t getStratumProtocol() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_PROTOCOL, 0); }
+    inline void setStratumProtocol(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_PROTOCOL, value); }
+    inline uint16_t getFallbackStratumProtocol() { return nvs_config_get_u16(NVS_CONFIG_FB_STRATUM_PROTOCOL, 0); }
+    inline void setFallbackStratumProtocol(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_FB_STRATUM_PROTOCOL, value); }
+    inline char* getSV2AuthorityPubkey() { return nvs_config_get_string(NVS_CONFIG_SV2_AUTHORITY_PUBKEY, ""); }
+    inline void setSV2AuthorityPubkey(const char* value) { nvs_config_set_string(NVS_CONFIG_SV2_AUTHORITY_PUBKEY, value); }
+    inline char* getFallbackSV2AuthorityPubkey() { return nvs_config_get_string(NVS_CONFIG_FB_SV2_AUTHORITY_PUBKEY, ""); }
+    inline void setFallbackSV2AuthorityPubkey(const char* value) { nvs_config_set_string(NVS_CONFIG_FB_SV2_AUTHORITY_PUBKEY, value); }
+    inline uint16_t getSV2ChannelType() { return nvs_config_get_u16(NVS_CONFIG_SV2_CHANNEL_TYPE, 0); }
+    inline void setSV2ChannelType(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_SV2_CHANNEL_TYPE, value); }
+    inline uint16_t getFallbackSV2ChannelType() { return nvs_config_get_u16(NVS_CONFIG_FB_SV2_CHANNEL_TYPE, 0); }
+    inline void setFallbackSV2ChannelType(uint16_t value) { nvs_config_set_u16(NVS_CONFIG_FB_SV2_CHANNEL_TYPE, value); }
 
     // ---- Boolean Setters ----
     inline void setFlipScreen(bool value) { nvs_config_set_u16(NVS_CONFIG_FLIP_SCREEN, value ? 1 : 0); }

@@ -16,9 +16,12 @@ class StratumManagerDualPool;
 
 
 /**
- * @brief Stratum Task handles the connection and communication with a Stratum pool.
+ * @brief Abstract base class for Stratum tasks.
+ *
+ * Handles the connection lifecycle (WiFi, DNS, transport, reconnect timers)
+ * and delegates protocol-specific behavior to derived classes via virtual methods.
  */
-class StratumTask {
+class StratumTaskBase {
     friend StratumManager;
     friend StratumManagerFallback;
     friend StratumManagerDualPool;
@@ -28,11 +31,8 @@ class StratumTask {
     StratumConfig *m_config = nullptr;
     int m_index = 0;                     ///< Index of the Stratum task (0 = primary, 1 = secondary)
 
-    StratumApi m_stratumAPI;     ///< API instance for Stratum communication
     const char *m_tag = nullptr; ///< Debug tag for logging
 
-    TcpStratumTransport m_tcpTransport;
-    TlsStratumTransport m_tlsTransport;
     StratumTransport  *m_transport = nullptr;
 
     bool m_stopFlag = true;    ///< Stop flag for the task
@@ -50,8 +50,6 @@ class StratumTask {
     bool setupSocketTimeouts(int sock);                                          ///< Set up socket timeouts
     char m_lastResolvedIp[INET_ADDRSTRLEN] = {0};                                ///< Last resolved IP (for use by ping_task)
 
-    // Main Stratum loop handling communication
-    void stratumLoop();
     void connect();    ///< Establish a connection to the pool
     void disconnect(); ///< Disconnect from the pool
 
@@ -68,9 +66,11 @@ class StratumTask {
     void connectedCallback();    ///< Called when a pool successfully connects
     void disconnectedCallback(); ///< Called when a pool disconnects
 
-    // Submit mining shares to the pool
-    void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
-                     const uint32_t version);
+    // Pure virtual - protocol specific
+    virtual void protocolLoop() = 0;
+    virtual void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+                             const uint32_t version_rolled, const uint32_t version_base) = 0;
+    virtual StratumTransport* selectTransport() = 0;
 
     // Stratum task function
     void task();
@@ -95,6 +95,29 @@ class StratumTask {
     }
 
   public:
-    StratumTask(StratumManager *manager, int index);
+    StratumTaskBase(StratumManager *manager, int index);
+    virtual ~StratumTaskBase() = default;
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
+};
+
+
+/**
+ * @brief Stratum V1 task - handles JSON-RPC based Stratum V1 protocol.
+ */
+class StratumTaskV1 : public StratumTaskBase {
+    friend StratumManager;
+
+  protected:
+    StratumApi m_stratumAPI;     ///< API instance for Stratum V1 communication
+
+    TcpStratumTransport m_tcpTransport;
+    TlsStratumTransport m_tlsTransport;
+
+    void protocolLoop() override;
+    void submitShare(const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+                     const uint32_t version_rolled, const uint32_t version_base) override;
+    StratumTransport* selectTransport() override;
+
+  public:
+    StratumTaskV1(StratumManager *manager, int index);
 };

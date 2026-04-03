@@ -91,6 +91,15 @@
                 <nb-tab [tabTitle]="poolTabHeader(0)">
                     <nb-card-body>
                         <div class="form-row">
+                            <label class="form-label">{{ 'SETTINGS.STRATUM_PROTOCOL' | translate }}:</label>
+                            <div class="form-control-wrapper">
+                                <nb-select formControlName="stratumProtocol">
+                                    <nb-option [value]="0">{{ 'SETTINGS.STRATUM_V1' | translate }}</nb-option>
+                                    <nb-option [value]="1">{{ 'SETTINGS.STRATUM_V2' | translate }}</nb-option>
+                                </nb-select>
+                            </div>
+                        </div>
+                        <div class="form-row">
                             <label for="stratumURL" class="form-label">{{ 'SETTINGS.STRATUM_HOST' | translate
                                 }}:</label>
                             <div class="form-control-wrapper">
@@ -126,10 +135,31 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="form-row">
+                        <ng-container *ngIf="form.controls['stratumProtocol'].value === 1">
+                            <div class="form-row">
+                                <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 0"
+                                    (checkedChange)="form.controls['sv2ChannelType'].setValue(0)">
+                                    {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
+                                </nb-checkbox>
+                            </div>
+                            <div class="form-row">
+                                <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 1"
+                                    (checkedChange)="form.controls['sv2ChannelType'].setValue(1)">
+                                    {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
+                                </nb-checkbox>
+                            </div>
+                            <div class="form-row">
+                                <label for="sv2AuthorityPubkey" class="form-label">{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY' | translate }}:</label>
+                                <div class="form-control-wrapper">
+                                    <input nbInput id="sv2AuthorityPubkey" type="text" formControlName="sv2AuthorityPubkey" /><br />
+                                    <small>{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY_HINT' | translate }}</small>
+                                </div>
+                            </div>
+                        </ng-container>
+                        <div class="form-row" *ngIf="form.controls['stratumProtocol'].value === 0">
                             <nb-checkbox formControlName="stratumTLS">{{ 'MINING.STRATUM_TLS' | translate}}</nb-checkbox>
                         </div>
-                        <div class="form-row">
+                        <div class="form-row" *ngIf="form.controls['stratumProtocol'].value === 0">
                             <nb-checkbox formControlName="stratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE' |
                                 translate
                                 }}</nb-checkbox>
@@ -140,6 +170,16 @@
                 <nb-tab
                     [tabTitle]="poolTabHeader(1)">
                     <nb-card-body>
+                        <div class="form-row">
+                            <label class="form-label">{{ 'SETTINGS.STRATUM_PROTOCOL' | translate }}:</label>
+                            <div class="form-control-wrapper">
+                                <nb-select formControlName="fallbackStratumProtocol"
+                                    [disabled]="form.controls['poolMode'].value === 1">
+                                    <nb-option [value]="0">{{ 'SETTINGS.STRATUM_V1' | translate }}</nb-option>
+                                    <nb-option [value]="1">{{ 'SETTINGS.STRATUM_V2' | translate }}</nb-option>
+                                </nb-select>
+                            </div>
+                        </div>
                         <div class="form-row">
                             <label for="fallbackStratumURL" class="form-label">{{ 'SETTINGS.STRATUM_HOST' | translate
                                 }}:</label>
@@ -179,10 +219,31 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="form-row">
+                        <ng-container *ngIf="form.controls['fallbackStratumProtocol'].value === 1">
+                            <div class="form-row">
+                                <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 0"
+                                    (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(0)">
+                                    {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
+                                </nb-checkbox>
+                            </div>
+                            <div class="form-row">
+                                <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 1"
+                                    (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(1)">
+                                    {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
+                                </nb-checkbox>
+                            </div>
+                            <div class="form-row">
+                                <label for="fallbackSv2AuthorityPubkey" class="form-label">{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY' | translate }}:</label>
+                                <div class="form-control-wrapper">
+                                    <input nbInput id="fallbackSv2AuthorityPubkey" type="text" formControlName="fallbackSv2AuthorityPubkey" /><br />
+                                    <small>{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY_HINT' | translate }}</small>
+                                </div>
+                            </div>
+                        </ng-container>
+                        <div class="form-row" *ngIf="form.controls['fallbackStratumProtocol'].value === 0">
                             <nb-checkbox formControlName="fallbackStratumTLS">{{ 'MINING.STRATUM_TLS' | translate}}</nb-checkbox>
                         </div>
-                        <div class="form-row">
+                        <div class="form-row" *ngIf="form.controls['fallbackStratumProtocol'].value === 0">
                             <nb-checkbox formControlName="fallbackStratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE'
                                 |
                                 translate }}</nb-checkbox>

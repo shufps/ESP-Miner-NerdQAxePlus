@@ -69,6 +69,11 @@ CONFIG_BT_ENABLED=n
 # enable ansii colors for log
 #CONFIG_LOG_COLORS=y
 
+# Stratum V2 Noise encryption requires ChaCha20-Poly1305
+CONFIG_MBEDTLS_CHACHA20_C=y
+CONFIG_MBEDTLS_CHACHAPOLY_C=y
+CONFIG_MBEDTLS_POLY1305_C=y
+
 # disable wdt at boot
 CONFIG_ESP_TASK_WDT_INIT=n
 

@@ -346,8 +346,9 @@
                               : ('POOL_INFO.PRIMARY' | translate)
                           }}
                           )
+                          {{ (usingFallback ? info.fallbackStratumProtocol : info.stratumProtocol) === 1 ? 'SV2' : 'SV1' }}
                             </span>
-                        <span *ngIf="isDualPool" class="text-hint">Pool {{ (idx ?? 0) + 1 }}</span>
+                        <span *ngIf="isDualPool" class="text-hint">Pool {{ (idx ?? 0) + 1 }} {{ ((idx ?? 0) === 0 ? info.stratumProtocol : info.fallbackStratumProtocol) === 1 ? 'SV2' : 'SV1' }}</span>
                       </div>
 
                       <!-- Dual pool: show the pool allocation % in the title (right-aligned) -->

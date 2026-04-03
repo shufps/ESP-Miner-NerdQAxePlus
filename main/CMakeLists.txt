@@ -53,7 +53,11 @@ SRCS
     "./stratum/stratum_manager.cpp"
     "./stratum/stratum_manager_fallback.cpp"
     "./stratum/stratum_manager_dual_pool.cpp"
+    "./stratum/stratum_transport_noise.cpp"
+    "./stratum/stratum_task_v2.cpp"
     "./tasks/create_jobs_task.cpp"
+    "./tasks/create_jobs_sv2.cpp"
+    "./tasks/mining_info_v2.cpp"
     "./tasks/asic_result_task.cpp"
     "./tasks/influx_task.cpp"
     "./tasks/ping_task.cpp"
@@ -118,6 +122,8 @@ REQUIRES
     "lvgl"
     "lwip"
     "esp-tls"
+    "stratum_v2"
+    "libsecp256k1"
 
 )
 

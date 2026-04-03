@@ -15,8 +15,12 @@
 /**
  * @brief StratumManager handles pool selection, connection management, and failover.
  */
+class StratumTaskV2;
+
 class StratumManager {
-    friend StratumTask;
+    friend StratumTaskBase;
+    friend StratumTaskV1;
+    friend StratumTaskV2;
     friend PingTask;
   public:
     enum Selected
@@ -40,7 +44,7 @@ class StratumManager {
     PoolMode m_poolmode;                                 // default FAILOVER
     uint64_t m_lastSubmitResponseTimestamp = 0;              ///< Timestamp of last submitted share response
 
-    StratumTask *m_stratumTasks[2]{};                      ///< Primary and secondary Stratum tasks
+    StratumTaskBase *m_stratumTasks[2]{};                    ///< Primary and secondary Stratum tasks
     PingTask *m_pingTasks[2]{};
     StratumConfig *m_stratumConfig[2]{};
 
@@ -68,6 +72,9 @@ class StratumManager {
 
     // Handles incoming Stratum responses
     void dispatch(int pool, JsonDocument &doc);
+
+    // Factory method for creating protocol-specific tasks
+    virtual StratumTaskBase* createTask(int index);
 
     // Core Stratum management task
     void task();
@@ -100,8 +107,10 @@ class StratumManager {
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
 
     // Submit shares to the active Stratum pool
+    // version_rolled = full rolled version (base | rolled bits)
+    // version_base   = original block template version
     void submitShare(int pool, const char *jobid, const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
-                     const uint32_t version);
+                     const uint32_t version_rolled, const uint32_t version_base);
 
     void checkForFoundBlock(int pool, double diff, uint32_t nbits);
 
