@@ -34,6 +34,7 @@
 
 #define SLEEP_TIME 20
 #define FREQ_MULT 25.0
+#define NONCE_SPACE 4294967296.0 // 2^32
 
 #define CLOCK_ORDER_CONTROL_0 0x80
 #define CLOCK_ORDER_CONTROL_1 0x84
@@ -119,7 +120,9 @@ public:
     virtual uint16_t getSmallCoreCount() = 0;
 
     void setVrFrequency(uint32_t freq);
+    void setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores);
     virtual uint32_t getDefaultVrFrequency() = 0;
+    virtual uint16_t getCoreCount() = 0;
 
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency) = 0;
     virtual int setMaxBaud(void);

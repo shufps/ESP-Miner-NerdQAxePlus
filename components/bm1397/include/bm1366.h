@@ -19,5 +19,6 @@ public:
     virtual const char* getName() { return "BM1366"; };
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency);
     virtual uint16_t getSmallCoreCount();
+    virtual uint16_t getCoreCount() { return 112; }
 };
 

@@ -199,6 +199,27 @@ void Asic::setVrFrequency(uint32_t freq_hz) {
     setVrFreqReg(vrFreqToReg(freq_hz));
 }
 
+static int next_power_of_two(int num) {
+    if (num <= 1) return 1;
+    int power = 1;
+    while (power < num) power <<= 1;
+    return power;
+}
+
+void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
+    int cores_up = next_power_of_two(cores);
+    int asic_count_up = next_power_of_two(asic_count);
+
+    float hcn_space = (float)NONCE_SPACE / cores_up / asic_count_up;
+    double hcn_max = hcn_space * (double)FREQ_MULT / frequency * 0.5;
+    uint32_t hcn = (uint32_t)hcn_max;
+
+    ESP_LOGI(TAG, "Setting nonce space: cores=%d(%d) asics=%d(%d) freq=%.0f HCN=%lu",
+             cores, cores_up, asic_count, asic_count_up, frequency, (unsigned long)hcn);
+
+    setVrFreqReg(hcn);
+}
+
 // default calculation
 uint8_t Asic::chipIndexFromAddr(uint8_t addr) {
     return addr >> 1;
