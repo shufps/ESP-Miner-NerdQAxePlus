@@ -220,13 +220,13 @@ void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
     setVrFreqReg(hcn);
 }
 
-// default calculation
+// default calculation using address_interval
 uint8_t Asic::chipIndexFromAddr(uint8_t addr) {
-    return addr >> 1;
+    return (m_addressInterval > 0) ? (addr / m_addressInterval) : 0;
 }
 
 uint8_t Asic::addrFromChipIndex(uint8_t idx) {
-    return idx << 1;
+    return idx * m_addressInterval;
 }
 
 void Asic::requestChipTemp() {
@@ -411,7 +411,9 @@ bool Asic::processWork(task_result *result)
 
     uint32_t rolled_version = (reverseUint16(asic_result.version) << 13); // shift the 16 bit value left 13
 
-    int asic_nr = nonceToAsicNr(asic_result.nonce);
+    // Extract ASIC number from nonce using address_interval (Bitaxe-style)
+    uint32_t nonce_h = __bswap32(asic_result.nonce);
+    int asic_nr = (m_addressInterval > 0) ? ((uint8_t)((nonce_h >> 17) & 0xff) / m_addressInterval) : 0;
 
     result->job_id = job_id;
     result->asic_nr = asic_nr;

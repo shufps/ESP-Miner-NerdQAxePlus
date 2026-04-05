@@ -68,9 +68,10 @@ uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     // chain inactive
     sendChainInactive();
 
-    // set chip address
+    // set chip address - distribute evenly across 0-255 range
+    m_addressInterval = (chip_counter > 0) ? (256 / chip_counter) : 2;
     for (uint8_t i = 0; i < chip_counter; i++) {
-        setChipAddress(i * 2);
+        setChipAddress(i * m_addressInterval);
     }
 
     // Core Register Control
@@ -88,21 +89,22 @@ uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     send6(CMD_WRITE_ALL, 0x00, 0x58, 0x02, 0x11, 0x11, 0x11);
 
     for (uint8_t i = 0; i < chip_counter; i++) {
+        uint8_t addr = i * m_addressInterval;
         // Reg_A8
-        send6(CMD_WRITE_SINGLE, i * 2, 0xA8, 0x00, 0x07, 0x01, 0xF0);
+        send6(CMD_WRITE_SINGLE, addr, 0xA8, 0x00, 0x07, 0x01, 0xF0);
         // Misc Control
-        send6(CMD_WRITE_SINGLE, i * 2, 0x18, 0xF0, 0x00, 0xC1, 0x00);
+        send6(CMD_WRITE_SINGLE, addr, 0x18, 0xF0, 0x00, 0xC1, 0x00);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x85, 0x40);
+        send6(CMD_WRITE_SINGLE, addr, 0x3C, 0x80, 0x00, 0x85, 0x40);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x80, 0x20);
+        send6(CMD_WRITE_SINGLE, addr, 0x3C, 0x80, 0x00, 0x80, 0x20);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 2, 0x3C, 0x80, 0x00, 0x82, 0xAA);
+        send6(CMD_WRITE_SINGLE, addr, 0x3C, 0x80, 0x00, 0x82, 0xAA);
     }
 
     doFrequencyTransition(frequency);
 
-    // set nonce search space based on frequency and core count
+    // set nonce search space (register 0x10) based on frequency and core count
     setNonceSpace((float)frequency, asic_count, getCoreCount());
 
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);

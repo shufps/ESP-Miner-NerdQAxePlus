@@ -89,6 +89,11 @@ void PowerManagementTask::checkAsicFrequencyChanged()
         if (!m_board->setAsicFrequency((float) asic_frequency)) {
             ESP_LOGE(TAG, "pll setting not found for %uMHz", asic_frequency);
         }
+        // recalculate nonce space for new frequency (register 0x10)
+        Asic *asics = m_board->getAsics();
+        if (asics) {
+            asics->setNonceSpace((float)asic_frequency, m_board->getAsicCount(), asics->getCoreCount());
+        }
         last_asic_frequency = asic_frequency;
     }
 }
@@ -97,12 +102,15 @@ void PowerManagementTask::checkVrFrequencyChanged()
 {
     static uint32_t lastVrFrequency = 0;
 
-    uint32_t vrFrequency = m_board->getVrFrequency();
-    if (vrFrequency != lastVrFrequency) {
-        m_board->setVrFrequency(vrFrequency);
-        ESP_LOGI(TAG, "setting version rolling frequency to %luHz", vrFrequency);
-        lastVrFrequency = vrFrequency;
-    }
+    // TODO: temporarily disabled for SV2 Standard Channel nonce space testing.
+    // setVrFrequency overwrites register 0x10 with VR frequency value,
+    // which conflicts with the HCN (hash counting number) set during init.
+    // uint32_t vrFrequency = m_board->getVrFrequency();
+    // if (vrFrequency != lastVrFrequency) {
+    //     m_board->setVrFrequency(vrFrequency);
+    //     ESP_LOGI(TAG, "setting version rolling frequency to %luHz", vrFrequency);
+    //     lastVrFrequency = vrFrequency;
+    // }
 }
 
 void PowerManagementTask::logChipTemps()
