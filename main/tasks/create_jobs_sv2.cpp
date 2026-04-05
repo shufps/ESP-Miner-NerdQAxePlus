@@ -89,6 +89,6 @@ void create_job_sv2_set_difficulty(int pool, uint32_t difficulty)
         s_v2_extended[pool]->setDifficulty(difficulty);
         ESP_LOGI(TAG, "(%s) SV2 extended difficulty updated to %lu",
                  pool ? "Sec" : "Pri", (unsigned long)difficulty);
-        // Extended: no trigger needed, next timer tick uses new difficulty
+        trigger_job_creation();
     }
 }
