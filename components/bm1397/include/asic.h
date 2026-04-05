@@ -122,6 +122,8 @@ public:
 
     void setVrFrequency(uint32_t freq);
     void setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores);
+    double calculateSearchSpaceMs(float frequency, uint16_t asic_count, uint16_t cores,
+                                   uint16_t small_cores, uint32_t version_count, float percent);
     virtual uint32_t getDefaultVrFrequency() = 0;
     virtual uint16_t getCoreCount() = 0;
 

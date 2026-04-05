@@ -220,6 +220,30 @@ void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
     setVrFreqReg(hcn);
 }
 
+double Asic::calculateSearchSpaceMs(float frequency, uint16_t asic_count, uint16_t cores,
+                                     uint16_t small_cores, uint32_t version_count, float percent) {
+    if (asic_count <= 0 || frequency <= 0.0f) return 500.0;
+
+    int cores_up = next_power_of_two(cores);
+    int small_cores_up = next_power_of_two(small_cores);
+    int asic_count_up = next_power_of_two(asic_count);
+
+    if (small_cores_up < cores_up) return 500.0;
+
+    // midstates = parallel version searches per core
+    double midstates = (double)small_cores_up / (double)cores_up;
+    double serial_versions = (double)version_count / midstates;
+    double serial_nonces = NONCE_SPACE / (double)cores_up / (double)asic_count_up;
+    double fullspace_ms = serial_versions * serial_nonces / ((double)frequency * 1000.0);
+
+    if (fullspace_ms <= 0.0) return 500.0;
+
+    ESP_LOGI(TAG, "Search space: %.1f seconds (%.0f%% = %.1f seconds)",
+             fullspace_ms / 1000.0, percent * 100.0, fullspace_ms * percent / 1000.0);
+
+    return percent * fullspace_ms;
+}
+
 // default calculation using address_interval
 uint8_t Asic::chipIndexFromAddr(uint8_t addr) {
     return (m_addressInterval > 0) ? (addr / m_addressInterval) : 0;
