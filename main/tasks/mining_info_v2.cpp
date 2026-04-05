@@ -118,7 +118,9 @@ bm_job *MiningInfoV2Standard::buildBmJob(uint32_t extranonce_2, int pool_id, uin
 void MiningInfoV2Standard::setDifficulty(uint32_t difficulty)
 {
     m_difficulty = difficulty;
-    m_jobSent = false; // force resend with new difficulty
+    // Do NOT reset m_jobSent. Never resend the same Standard Channel job.
+    // ASIC keeps mining with version rolling. New difficulty applies to
+    // the NEXT job from the pool (matches Bitaxe behavior).
 }
 
 bool MiningInfoV2Standard::isValid() const { return m_ntime != 0 && !m_jobSent; }
