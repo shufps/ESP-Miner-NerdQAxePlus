@@ -136,7 +136,8 @@
                             </div>
                         </div>
                         <ng-container *ngIf="form.controls['stratumProtocol'].value === 1">
-                            <ng-container *ngIf="form.controls['poolMode'].value !== 1">
+                            <!-- Channel type selection hidden for now - set to false to re-enable -->
+                            <ng-container *ngIf="false">
                                 <div class="form-row">
                                     <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 0"
                                         (checkedChange)="form.controls['sv2ChannelType'].setValue(0)">
@@ -222,7 +223,8 @@
                             </div>
                         </div>
                         <ng-container *ngIf="form.controls['fallbackStratumProtocol'].value === 1">
-                            <ng-container *ngIf="form.controls['poolMode'].value !== 1">
+                            <!-- Channel type selection hidden for now - set to false to re-enable -->
+                            <ng-container *ngIf="false">
                                 <div class="form-row">
                                     <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 0"
                                         (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(0)">

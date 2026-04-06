@@ -98,11 +98,13 @@ bool StratumTaskV2::loadAuthorityPubkey(uint8_t out[32])
 
 void StratumTaskV2::protocolLoop()
 {
-    // Determine channel type from config
-    uint16_t chan_cfg = m_config->isPrimary()
-        ? Config::getSV2ChannelType()
-        : Config::getFallbackSV2ChannelType();
-    m_channelType = (chan_cfg == 1) ? SV2_CHANNEL_STANDARD : SV2_CHANNEL_EXTENDED;
+    // Extended Channel only for now - Standard Channel support disabled
+    // To re-enable, uncomment the config read below:
+    // uint16_t chan_cfg = m_config->isPrimary()
+    //     ? Config::getSV2ChannelType()
+    //     : Config::getFallbackSV2ChannelType();
+    // m_channelType = (chan_cfg == 1) ? SV2_CHANNEL_STANDARD : SV2_CHANNEL_EXTENDED;
+    m_channelType = SV2_CHANNEL_EXTENDED;
 
     // Reset connection state
     memset(&m_sv2_conn, 0, sizeof(m_sv2_conn));
