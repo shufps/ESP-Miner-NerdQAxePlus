@@ -136,18 +136,20 @@
                             </div>
                         </div>
                         <ng-container *ngIf="form.controls['stratumProtocol'].value === 1">
-                            <div class="form-row">
-                                <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 0"
-                                    (checkedChange)="form.controls['sv2ChannelType'].setValue(0)">
-                                    {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
-                                </nb-checkbox>
-                            </div>
-                            <div class="form-row">
-                                <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 1"
-                                    (checkedChange)="form.controls['sv2ChannelType'].setValue(1)">
-                                    {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
-                                </nb-checkbox>
-                            </div>
+                            <ng-container *ngIf="form.controls['poolMode'].value !== 1">
+                                <div class="form-row">
+                                    <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 0"
+                                        (checkedChange)="form.controls['sv2ChannelType'].setValue(0)">
+                                        {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
+                                    </nb-checkbox>
+                                </div>
+                                <div class="form-row">
+                                    <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 1"
+                                        (checkedChange)="form.controls['sv2ChannelType'].setValue(1)">
+                                        {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
+                                    </nb-checkbox>
+                                </div>
+                            </ng-container>
                             <div class="form-row">
                                 <label for="sv2AuthorityPubkey" class="form-label">{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY' | translate }}:</label>
                                 <div class="form-control-wrapper">
@@ -220,18 +222,20 @@
                             </div>
                         </div>
                         <ng-container *ngIf="form.controls['fallbackStratumProtocol'].value === 1">
-                            <div class="form-row">
-                                <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 0"
-                                    (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(0)">
-                                    {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
-                                </nb-checkbox>
-                            </div>
-                            <div class="form-row">
-                                <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 1"
-                                    (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(1)">
-                                    {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
-                                </nb-checkbox>
-                            </div>
+                            <ng-container *ngIf="form.controls['poolMode'].value !== 1">
+                                <div class="form-row">
+                                    <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 0"
+                                        (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(0)">
+                                        {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
+                                    </nb-checkbox>
+                                </div>
+                                <div class="form-row">
+                                    <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 1"
+                                        (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(1)">
+                                        {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
+                                    </nb-checkbox>
+                                </div>
+                            </ng-container>
                             <div class="form-row">
                                 <label for="fallbackSv2AuthorityPubkey" class="form-label">{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY' | translate }}:</label>
                                 <div class="form-control-wrapper">
