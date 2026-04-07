@@ -199,13 +199,6 @@ void Asic::setVrFrequency(uint32_t freq_hz) {
     setVrFreqReg(vrFreqToReg(freq_hz));
 }
 
-static int next_power_of_two(int num) {
-    if (num <= 1) return 1;
-    int power = 1;
-    while (power < num) power <<= 1;
-    return power;
-}
-
 void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
     int cores_up = next_power_of_two(cores);
     int asic_count_up = next_power_of_two(asic_count);

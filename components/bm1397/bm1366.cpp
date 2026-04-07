@@ -69,7 +69,7 @@ uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     sendChainInactive();
 
     // set chip address - distribute evenly across 0-255 range
-    m_addressInterval = (chip_counter > 0) ? (256 / chip_counter) : 2;
+    m_addressInterval = (chip_counter > 0) ? (256 / next_power_of_two(chip_counter)) : 2;
     for (uint8_t i = 0; i < chip_counter; i++) {
         setChipAddress(i * m_addressInterval);
     }

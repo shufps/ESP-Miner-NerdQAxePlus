@@ -36,6 +36,13 @@
 #define FREQ_MULT 25.0
 #define NONCE_SPACE 4294967296.0 // 2^32
 
+static inline int next_power_of_two(int num) {
+    if (num <= 1) return 1;
+    int power = 1;
+    while (power < num) power <<= 1;
+    return power;
+}
+
 #define CLOCK_ORDER_CONTROL_0 0x80
 #define CLOCK_ORDER_CONTROL_1 0x84
 #define ORDERED_CLOCK_ENABLE 0x20
