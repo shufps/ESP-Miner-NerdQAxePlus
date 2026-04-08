@@ -201,14 +201,14 @@ void Asic::setVrFrequency(uint32_t freq_hz) {
 
 void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
     int cores_up = next_power_of_two(cores);
-    int asic_count_up = next_power_of_two(asic_count);
+    int chips_from_interval = (m_addressInterval > 0) ? (256 / m_addressInterval) : next_power_of_two(asic_count);
 
-    float hcn_space = (float)NONCE_SPACE / cores_up / asic_count_up;
+    float hcn_space = (float)NONCE_SPACE / cores_up / chips_from_interval;
     double hcn_max = hcn_space * (double)FREQ_MULT / frequency * 0.5;
     uint32_t hcn = (uint32_t)hcn_max;
 
-    ESP_LOGI(TAG, "Setting nonce space: cores=%d(%d) asics=%d(%d) freq=%.0f HCN=%lu",
-             cores, cores_up, asic_count, asic_count_up, frequency, (unsigned long)hcn);
+    ESP_LOGI(TAG, "Setting nonce space: cores=%d(%d) chips=%d(interval=%d) freq=%.0f HCN=%lu",
+             cores, cores_up, chips_from_interval, m_addressInterval, frequency, (unsigned long)hcn);
 
     setVrFreqReg(hcn);
 }
