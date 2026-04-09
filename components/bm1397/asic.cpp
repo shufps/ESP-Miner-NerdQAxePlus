@@ -205,10 +205,12 @@ void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
 
     float hcn_space = (float)NONCE_SPACE / cores_up / chips_from_interval;
     double hcn_max = hcn_space * (double)FREQ_MULT / frequency * 0.5;
+    // HW errata: 134 per half clock cycle = 268 overlap between cores
     uint32_t hcn = (uint32_t)hcn_max;
+    if (hcn > 268) hcn -= 268;
 
-    ESP_LOGI(TAG, "Setting nonce space: cores=%d(%d) chips=%d(interval=%d) freq=%.0f HCN=%lu",
-             cores, cores_up, chips_from_interval, m_addressInterval, frequency, (unsigned long)hcn);
+    ESP_LOGI(TAG, "Setting nonce space: cores=%d(%d) chips=%d(interval=%d) freq=%.0f HCN=%lu (max=%lu)",
+             cores, cores_up, chips_from_interval, m_addressInterval, frequency, (unsigned long)hcn, (unsigned long)(uint32_t)hcn_max);
 
     setVrFreqReg(hcn);
 }
