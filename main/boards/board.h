@@ -40,8 +40,6 @@ public:
     int m_numTempSensors = 0;
     float *m_chipTemps;
     const char *m_swarmColorName = "blue";
-    uint32_t m_vrFrequency;
-    uint32_t m_defaultVrFrequency;
     bool m_hasHashCounter;
     const char *m_defaultTheme = "cosmic";
 
@@ -124,8 +122,6 @@ public:
     virtual bool setAsicFrequency(float f);
     bool validateFrequency(float frequency);
     bool validateVoltage(float core_voltage);
-
-    void setVrFrequency(uint32_t freq);
 
     // abstract common methos
     virtual bool setVoltage(float core_voltage) = 0;
@@ -241,14 +237,6 @@ public:
     int getEcoAsicFrequency()
     {
         return m_ecoAsicFrequency;
-    }
-
-    uint32_t getDefaultVrFrequency() {
-        return m_defaultVrFrequency;
-    }
-
-    uint32_t getVrFrequency() {
-        return m_vrFrequency;
     }
 
     float getMinPin()

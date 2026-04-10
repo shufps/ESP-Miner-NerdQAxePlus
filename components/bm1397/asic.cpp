@@ -167,13 +167,7 @@ int Asic::setMaxBaud(void)
     return 1000000;
 }
 
-// set version rolling frequency
-constexpr uint32_t ASIC_IO_CLK_HZ_U32 = 15'000'000u; // 15 MHz
-constexpr uint32_t VR_TICK_DIV_U32    = 5000u;       // VR counter increments every 5000 IO clock cycles
-constexpr uint32_t VR_TICK_HZ_U32     = ASIC_IO_CLK_HZ_U32 / VR_TICK_DIV_U32; // 3000 Hz
-constexpr uint64_t VR_REG_PER_HZ_U64  = 65536ull * VR_TICK_HZ_U32;            // 196,608,000
-
-// Version rolling frequency register @0x10 (MSB -> LSB)
+// Register 0x10 write (MSB -> LSB)
 void Asic::setVrFreqReg(uint32_t value) {
     ESP_LOGI(TAG, "setting 0x10 to %08lx", value);
     send6(CMD_WRITE_ALL, 0x00, 0x10,
@@ -181,22 +175,6 @@ void Asic::setVrFreqReg(uint32_t value) {
           static_cast<uint8_t>((value >> 16) & 0xFF),
           static_cast<uint8_t>((value >>  8) & 0xFF),
           static_cast<uint8_t>((value >>  0) & 0xFF));
-}
-
-// Convert desired VR frequency (Hz, integer) to register value for 0x10
-uint32_t Asic::vrFreqToReg(uint32_t freq_hz) {
-    // reg = round(VR_REG_PER_HZ / freq_hz) using integer division with rounding
-    return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (freq_hz / 2)) / freq_hz);
-}
-
-// Convert 0x10 register value back to VR frequency (Hz, integer)
-uint32_t Asic::vrRegToFreq(uint32_t reg) {
-    // freq = round(VR_REG_PER_HZ / reg) using integer division with rounding
-    return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (reg / 2)) / reg);
-}
-
-void Asic::setVrFrequency(uint32_t freq_hz) {
-    setVrFreqReg(vrFreqToReg(freq_hz));
 }
 
 void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
@@ -213,30 +191,6 @@ void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
              cores, cores_up, chips_from_interval, m_addressInterval, frequency, (unsigned long)hcn, (unsigned long)(uint32_t)hcn_max);
 
     setVrFreqReg(hcn);
-}
-
-double Asic::calculateSearchSpaceMs(float frequency, uint16_t asic_count, uint16_t cores,
-                                     uint16_t small_cores, uint32_t version_count, float percent) {
-    if (asic_count <= 0 || frequency <= 0.0f) return 500.0;
-
-    int cores_up = next_power_of_two(cores);
-    int small_cores_up = next_power_of_two(small_cores);
-    int asic_count_up = next_power_of_two(asic_count);
-
-    if (small_cores_up < cores_up) return 500.0;
-
-    // midstates = parallel version searches per core
-    double midstates = (double)small_cores_up / (double)cores_up;
-    double serial_versions = (double)version_count / midstates;
-    double serial_nonces = NONCE_SPACE / (double)cores_up / (double)asic_count_up;
-    double fullspace_ms = serial_versions * serial_nonces / ((double)frequency * 1000.0);
-
-    if (fullspace_ms <= 0.0) return 500.0;
-
-    ESP_LOGI(TAG, "Search space: %.1f seconds (%.0f%% = %.1f seconds)",
-             fullspace_ms / 1000.0, percent * 100.0, fullspace_ms * percent / 1000.0);
-
-    return percent * fullspace_ms;
 }
 
 // default calculation using address_interval

@@ -15,8 +15,6 @@
 
 static const char *TAG = "http_system";
 
-#define VR_FREQUENCY_ENABLED
-
 uint64_t getDuplicateHWNonces();
 
 /* Simple handler for getting system handler */
@@ -220,10 +218,6 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
     doc["autofanspeed"]       = Config::getTempControlMode();
     doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
-#ifdef VR_FREQUENCY_ENABLED
-    doc["vrFrequency"]        = board->getVrFrequency();
-    doc["defaultVrFrequency"] = board->getDefaultVrFrequency();
-#endif
     doc["otp"]                = Config::isOTPEnabled(); // flag if otp is enabled
 
     // system screen
@@ -352,12 +346,6 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
     if (doc["pidD"].is<float>()) {
         Config::setPidD((uint16_t) (doc["pidD"].as<float>() * 100.0f));
     }
-#ifdef VR_FREQUENCY_ENABLED
-    if (doc["vrFrequency"].is<uint32_t>()) {
-        Config::setVrFrequency(doc["vrFrequency"].as<uint32_t>());
-    }
-#endif
-
     // Per-channel fan settings: fans[0] maps to ch0 NVS keys, fans[1] to ch1 NVS keys
     if (doc["fans"].is<JsonArray>()) {
         JsonArray fans = doc["fans"].as<JsonArray>();

@@ -36,11 +36,7 @@ const uint8_t* BM1370::getChipId() {
     return (uint8_t*) chip_id;
 }
 
-uint32_t BM1370::getDefaultVrFrequency() {
-    return vrRegToFreq(0x1eb5);
-};
-
-uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency)
+uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty)
 {
     // reset is done externally to not have board dependencies
 

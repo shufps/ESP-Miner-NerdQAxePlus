@@ -109,10 +109,6 @@ protected:
     virtual uint8_t chipIndexFromAddr(uint8_t addr);
     virtual uint8_t addrFromChipIndex(uint8_t idx);
 
-    // helper functions
-    uint32_t vrFreqToReg(uint32_t freq_hz);
-    uint32_t vrRegToFreq(uint32_t reg);
-
     virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
 
 public:
@@ -127,14 +123,10 @@ public:
     virtual void readCounter(uint8_t reg);
     virtual uint16_t getSmallCoreCount() = 0;
 
-    void setVrFrequency(uint32_t freq);
     void setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores);
-    double calculateSearchSpaceMs(float frequency, uint16_t asic_count, uint16_t cores,
-                                   uint16_t small_cores, uint32_t version_count, float percent);
-    virtual uint32_t getDefaultVrFrequency() = 0;
     virtual uint16_t getCoreCount() = 0;
 
-    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency) = 0;
+    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty) = 0;
     virtual int setMaxBaud(void);
 };
 

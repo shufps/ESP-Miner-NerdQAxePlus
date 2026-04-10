@@ -98,21 +98,6 @@ void PowerManagementTask::checkAsicFrequencyChanged()
     }
 }
 
-void PowerManagementTask::checkVrFrequencyChanged()
-{
-    static uint32_t lastVrFrequency = 0;
-
-    // TODO: temporarily disabled for SV2 Standard Channel nonce space testing.
-    // setVrFrequency overwrites register 0x10 with VR frequency value,
-    // which conflicts with the HCN (hash counting number) set during init.
-    // uint32_t vrFrequency = m_board->getVrFrequency();
-    // if (vrFrequency != lastVrFrequency) {
-    //     m_board->setVrFrequency(vrFrequency);
-    //     ESP_LOGI(TAG, "setting version rolling frequency to %luHz", vrFrequency);
-    //     lastVrFrequency = vrFrequency;
-    // }
-}
-
 void PowerManagementTask::logChipTemps()
 {
     size_t offset = 0;
@@ -228,8 +213,6 @@ void PowerManagementTask::applyAsicSettings()
     // check if asic frequency changed
     checkAsicFrequencyChanged();
 
-    // check if version rolling frequency changed
-    checkVrFrequencyChanged();
 }
 
 void PowerManagementTask::requestChipTemps()
