@@ -34,6 +34,14 @@
 
 #define SLEEP_TIME 20
 #define FREQ_MULT 25.0
+#define NONCE_SPACE 4294967296.0 // 2^32
+
+static inline int next_power_of_two(int num) {
+    if (num <= 1) return 1;
+    int power = 1;
+    while (power < num) power <<= 1;
+    return power;
+}
 
 #define CLOCK_ORDER_CONTROL_0 0x80
 #define CLOCK_ORDER_CONTROL_1 0x84
@@ -79,6 +87,7 @@ protected:
     float m_current_frequency;
     float m_actual_current_frequency;
     uint32_t m_asicDifficulty;
+    uint8_t m_addressInterval = 2; ///< Chip address spacing (set during init)
 
     void send(uint8_t header, uint8_t *data, uint8_t data_len);
     void send2(uint8_t header, uint8_t b0, uint8_t b1);
@@ -100,10 +109,6 @@ protected:
     virtual uint8_t chipIndexFromAddr(uint8_t addr);
     virtual uint8_t addrFromChipIndex(uint8_t idx);
 
-    // helper functions
-    uint32_t vrFreqToReg(uint32_t freq_hz);
-    uint32_t vrRegToFreq(uint32_t reg);
-
     virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
 
 public:
@@ -118,10 +123,10 @@ public:
     virtual void readCounter(uint8_t reg);
     virtual uint16_t getSmallCoreCount() = 0;
 
-    void setVrFrequency(uint32_t freq);
-    virtual uint32_t getDefaultVrFrequency() = 0;
+    void setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores);
+    virtual uint16_t getCoreCount() = 0;
 
-    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency) = 0;
+    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty) = 0;
     virtual int setMaxBaud(void);
 };
 

@@ -36,11 +36,7 @@ const uint8_t* BM1370::getChipId() {
     return (uint8_t*) chip_id;
 }
 
-uint32_t BM1370::getDefaultVrFrequency() {
-    return vrRegToFreq(0x1eb5);
-};
-
-uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency)
+uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty)
 {
     // reset is done externally to not have board dependencies
 
@@ -72,9 +68,10 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     // chain inactive
     sendChainInactive();
 
-    // set chip address
+    // set chip address - distribute evenly across 0-255 range
+    m_addressInterval = (chip_counter > 0) ? (256 / next_power_of_two(chip_counter)) : 4;
     for (uint8_t i = 0; i < chip_counter; i++) {
-        setChipAddress(i * 4);
+        setChipAddress(i * m_addressInterval);
     }
 
     // Core Register Control
@@ -96,16 +93,17 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
     //send6(CMD_WRITE_ALL, 0x00, 0x28, 0x01, 0x30, 0x00, 0x00);
 
     for (uint8_t i = 0; i < chip_counter; i++) {
+        uint8_t addr = i * m_addressInterval;
         // Reg_A8
-        send6(CMD_WRITE_SINGLE, i * 4, 0xA8, 0x00, 0x07, 0x01, 0xF0);
+        send6(CMD_WRITE_SINGLE, addr, 0xA8, 0x00, 0x07, 0x01, 0xF0);
         // Misc Control
-        send6(CMD_WRITE_SINGLE, i * 4, 0x18, 0xF0, 0x00, 0xC1, 0x00);
+        send6(CMD_WRITE_SINGLE, addr, 0x18, 0xF0, 0x00, 0xC1, 0x00);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 4, 0x3C, 0x80, 0x00, 0x8B, 0x00);
+        send6(CMD_WRITE_SINGLE, addr, 0x3C, 0x80, 0x00, 0x8B, 0x00);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 4, 0x3C, 0x80, 0x00, 0x80, 0x0C);
+        send6(CMD_WRITE_SINGLE, addr, 0x3C, 0x80, 0x00, 0x80, 0x0C);
         // Core Register Control
-        send6(CMD_WRITE_SINGLE, i * 4, 0x3C, 0x80, 0x00, 0x82, 0xAA);
+        send6(CMD_WRITE_SINGLE, addr, 0x3C, 0x80, 0x00, 0x82, 0xAA);
     }
 
     // ?
@@ -122,8 +120,8 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     doFrequencyTransition(frequency);
 
-    // set 0x10
-    setVrFrequency(vrFrequency);
+    // set nonce search space (register 0x10) based on frequency and core count
+    setNonceSpace((float)frequency, asic_count, getCoreCount());
 
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 
@@ -143,13 +141,8 @@ uint8_t BM1370::nonceToAsicNr(uint32_t nonce) {
     return (uint8_t) ((nonce & 0x0000fc00) >> 11);
 }
 
-uint8_t BM1370::chipIndexFromAddr(uint8_t addr) {
-    return addr >> 2;
-}
-
-uint8_t BM1370::addrFromChipIndex(uint8_t idx) {
-    return idx << 2;
-}
+// chipIndexFromAddr and addrFromChipIndex now use base class
+// implementation with m_addressInterval (set during init)
 
 uint16_t BM1370::getSmallCoreCount() {
     return BM1370_SMALL_CORE_COUNT;
