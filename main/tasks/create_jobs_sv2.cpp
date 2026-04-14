@@ -5,6 +5,7 @@
 #include "macros.h"
 #include "coinbase_decoder.h"
 #include "mining_utils.h"
+#include "nvs_config.h"
 
 #include "esp_log.h"
 
@@ -34,13 +35,18 @@ static void processSV2ExtendedCoinbase(int pool, const sv2_ext_job_t *job,
     bin2hex(job->coinbase_suffix, job->coinbase_suffix_len, suffix_hex, job->coinbase_suffix_len * 2 + 1);
     bin2hex(extranonce_prefix, extranonce_prefix_len, enonce_hex, extranonce_prefix_len * 2 + 1);
 
+    // Get user address for payout matching (fee calculation)
+    char *user = Config::getStratumUser();
+
     coinbase_result_t result{};
     esp_err_t err = coinbase_process(
         prefix_hex, suffix_hex,
         job->version, job->nbits,
         enonce_hex, extranonce_size,
-        nullptr, true, &result
+        user, true, &result
     );
+
+    safe_free(user);
 
     if (err == ESP_OK) {
         STRATUM_MANAGER->setCoinbaseResult(result);
