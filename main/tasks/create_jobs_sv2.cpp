@@ -7,6 +7,47 @@
 
 static const char *TAG = "create_jobs_sv2";
 
+/**
+ * Process SV2 Extended Channel coinbase for block header display.
+ * Converts binary coinbase_prefix/suffix to hex and runs coinbase_process().
+ */
+static void processSV2ExtendedCoinbase(int pool, const sv2_ext_job_t *job,
+                                        const uint8_t *extranonce_prefix, uint8_t extranonce_prefix_len,
+                                        uint8_t extranonce_size)
+{
+    if (!job->coinbase_prefix || !job->coinbase_suffix || job->coinbase_prefix_len == 0) return;
+    if (!STRATUM_MANAGER) return;
+
+    // Convert binary prefix/suffix to hex strings for coinbase_process()
+    char *prefix_hex = (char *)malloc(job->coinbase_prefix_len * 2 + 1);
+    char *suffix_hex = (char *)malloc(job->coinbase_suffix_len * 2 + 1);
+    char *enonce_hex = (char *)malloc(extranonce_prefix_len * 2 + 1);
+    if (!prefix_hex || !suffix_hex || !enonce_hex) {
+        free(prefix_hex); free(suffix_hex); free(enonce_hex);
+        return;
+    }
+
+    bin2hex(job->coinbase_prefix, job->coinbase_prefix_len, prefix_hex, job->coinbase_prefix_len * 2 + 1);
+    bin2hex(job->coinbase_suffix, job->coinbase_suffix_len, suffix_hex, job->coinbase_suffix_len * 2 + 1);
+    bin2hex(extranonce_prefix, extranonce_prefix_len, enonce_hex, extranonce_prefix_len * 2 + 1);
+
+    coinbase_result_t result{};
+    esp_err_t err = coinbase_process(
+        prefix_hex, suffix_hex,
+        job->version, job->nbits,
+        enonce_hex, extranonce_size,
+        nullptr, true, &result
+    );
+
+    if (err == ESP_OK) {
+        STRATUM_MANAGER->setCoinbaseResult(result);
+    }
+
+    free(prefix_hex);
+    free(suffix_hex);
+    free(enonce_hex);
+}
+
 // Thread-safe holders for V2 mining info (one per pool)
 // These are allocated on first use and reused across jobs.
 static MiningInfoV2Standard *s_v2_standard[2] = {nullptr, nullptr};
@@ -57,6 +98,9 @@ void create_job_sv2_extended(int pool, const sv2_ext_job_t *job,
 
     s_v2_extended[pool]->updateJob(job, extranonce_prefix, extranonce_prefix_len,
                                     extranonce_size, version_mask, difficulty);
+
+    // Decode coinbase for block header display
+    processSV2ExtendedCoinbase(pool, job, extranonce_prefix, extranonce_prefix_len, extranonce_size);
 
     // Clear old jobs on clean flag
     if (clean) {
