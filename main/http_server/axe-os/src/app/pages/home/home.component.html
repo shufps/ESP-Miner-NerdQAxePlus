@@ -508,6 +508,7 @@
               </div>
             </div>
           </div>
+
         </div>
 
         <div class="col-12 col-xl-6 mt-3 mt-xl-0">
@@ -663,6 +664,60 @@
                 ></div>
                 <span class="nerdos-logo-tooltip">01001110 01100101 01110010 01100100 00101010 01001111 01010011</span>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Block Header (own row, half width, only when block data available) -->
+      <div class="row mt-3" *ngIf="info.blockHeight && info.blockHeight > 0">
+        <div class="col-12 col-xl-6">
+          <div class="plain-section">
+            <div class="block-header-box">
+              <div class="block-header-title">{{ 'HOME.BLOCK_HEADER' | translate }}</div>
+
+              <div class="block-header-row">
+                <span class="block-header-label">{{ 'HOME.BLOCK_HEIGHT' | translate }}</span>
+                <span class="block-header-value">{{ info.blockHeight | number: '1.0-0' }}</span>
+              </div>
+
+              <div class="block-header-row">
+                <span class="block-header-label">{{ 'HOME.BLOCK_DIFFICULTY' | translate }}</span>
+                <span class="block-header-value" [title]="(info.networkDifficulty | number: '1.0-0')">{{ formatDifficulty(info.networkDifficulty) }}</span>
+              </div>
+
+              <div class="block-header-row" *ngIf="info.scriptsig">
+                <span class="block-header-label">{{ 'HOME.BLOCK_SCRIPTSIG' | translate }}</span>
+                <span class="block-header-value block-header-mono">{{ info.scriptsig }}</span>
+              </div>
+
+              <ng-container *ngIf="info.coinbaseOutputs && info.coinbaseOutputs.length > 0">
+                <div class="block-header-row">
+                  <span class="block-header-label">{{ 'HOME.BLOCK_VALUE' | translate }}</span>
+                  <span class="block-header-value">{{ formatSats(info.coinbaseValueTotalSatoshis) }}</span>
+                </div>
+
+                <div class="block-header-row" *ngIf="getPayoutPercentage(info) as pct">
+                  <ng-container *ngIf="pct >= 95">
+                    <span class="block-header-label">{{ 'HOME.BLOCK_FEE' | translate }}</span>
+                    <span class="block-header-value" [style.color]="pct >= 100 ? '#4caf50' : 'inherit'">{{ 100 - pct | number: '1.0-1' }}%</span>
+                  </ng-container>
+                  <ng-container *ngIf="pct > 0 && pct < 95">
+                    <span class="block-header-label">{{ 'HOME.BLOCK_SHARE' | translate }}</span>
+                    <span class="block-header-value" style="color: #f44336">{{ pct | number: '1.0-1' }}%</span>
+                  </ng-container>
+                </div>
+
+                <div class="block-header-row block-header-row--outputs">
+                  <span class="block-header-label">{{ 'HOME.BLOCK_OUTPUTS' | translate }}</span>
+                  <div class="block-header-outputs">
+                    <div *ngFor="let out of info.coinbaseOutputs" class="block-header-output">
+                      <span class="block-header-mono block-header-addr" [title]="out.address">{{ truncateAddress(out.address) }}</span>
+                      <span class="block-header-sats" *ngIf="out.value > 0">{{ formatSats(out.value) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
             </div>
           </div>
         </div>

@@ -73,7 +73,15 @@
     "RESET_STATS": "Restablecer estadísticas de sesión",
     "RESET_STATS_CONFIRM": "¿Restablecer todas las estadísticas de sesión (shares, mejor diff, errores)?",
     "RESET_STATS_SUCCESS": "Estadísticas de sesión restablecidas.",
-    "RESET_STATS_FAILED": "Error al restablecer las estadísticas."
+    "RESET_STATS_FAILED": "Error al restablecer las estadísticas.",
+    "BLOCK_HEADER": "Cabecera de Bloque",
+    "BLOCK_HEIGHT": "Altura",
+    "BLOCK_DIFFICULTY": "Dificultad",
+    "BLOCK_SCRIPTSIG": "Scriptsig",
+    "BLOCK_VALUE": "Valor",
+    "BLOCK_OUTPUTS": "Salidas",
+    "BLOCK_FEE": "Comisión",
+    "BLOCK_SHARE": "Participación"
   },
   "PERFORMANCE": {
     "TITLE": "Rendimiento",

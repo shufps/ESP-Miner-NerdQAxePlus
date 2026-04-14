@@ -75,7 +75,15 @@
     "RESET_STATS": "Reset Session Stats",
     "RESET_STATS_CONFIRM": "Reset all session stats (shares, best diff, errors)?",
     "RESET_STATS_SUCCESS": "Session stats reset.",
-    "RESET_STATS_FAILED": "Failed to reset session stats."
+    "RESET_STATS_FAILED": "Failed to reset session stats.",
+    "BLOCK_HEADER": "Block Header",
+    "BLOCK_HEIGHT": "Height",
+    "BLOCK_DIFFICULTY": "Difficulty",
+    "BLOCK_SCRIPTSIG": "Scriptsig",
+    "BLOCK_VALUE": "Value",
+    "BLOCK_OUTPUTS": "Outputs",
+    "BLOCK_FEE": "Fee",
+    "BLOCK_SHARE": "Share"
   },
   "PERFORMANCE": {
     "TITLE": "Performance",

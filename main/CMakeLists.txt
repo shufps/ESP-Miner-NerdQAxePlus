@@ -124,6 +124,7 @@ REQUIRES
     "esp-tls"
     "stratum_v2"
     "libsecp256k1"
+    "coinbase_decoder"
 
 )
 

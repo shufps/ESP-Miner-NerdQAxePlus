@@ -1900,4 +1900,36 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 private importHistoricalDataChunked(history: any): void {
     this.historyDrainer.ingest(history);
   }
+
+  /* ── Block Header helpers ── */
+
+  getPayoutPercentage(info: ISystemInfo): number {
+    if (info.coinbaseValueTotalSatoshis) {
+      return (info.coinbaseValueUserSatoshis ?? 0) / info.coinbaseValueTotalSatoshis * 100;
+    }
+    return -1;
+  }
+
+  formatDifficulty(diff: number | undefined): string {
+    if (!diff) return '-';
+    const suffixes = ['', 'K', 'M', 'G', 'T', 'P', 'E'];
+    let idx = 0;
+    let v = diff;
+    while (v >= 1000 && idx < suffixes.length - 1) {
+      v /= 1000;
+      idx++;
+    }
+    return v.toFixed(idx === 0 ? 0 : 2) + suffixes[idx];
+  }
+
+  formatSats(sats: number | undefined): string {
+    if (!sats) return '-';
+    return (sats / 100_000_000).toFixed(8) + ' BTC';
+  }
+
+  truncateAddress(addr: string): string {
+    if (!addr) return '';
+    if (addr.length <= 20) return addr;
+    return addr.substring(0, 10) + '...' + addr.substring(addr.length - 8);
+  }
 }

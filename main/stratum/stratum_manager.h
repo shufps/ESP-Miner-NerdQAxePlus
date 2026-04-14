@@ -7,6 +7,7 @@
 
 #include "ArduinoJson.h"
 
+#include "coinbase_decoder.h"
 #include "stratum_task.h"
 #include "../tasks/ping_task.h"
 
@@ -57,6 +58,14 @@ class StratumManager {
     char m_bestSessionDiffString[DIFF_STRING_SIZE]{}; // String representation of the best session difficulty
 
     bool m_initialized = false;
+
+    // Coinbase decoder: extranonce state per pool + decoded result
+    char *m_extranonce1[2]{};
+    int m_extranonce2_len[2]{};
+    coinbase_result_t m_coinbaseResult{};
+
+    void processCoinbase(int pool, const mining_notify *notify);
+    void storeExtranonce(int pool, const char *extranonce, int extranonce2_len);
 
     PoolMode getPoolMode() const
     {
@@ -173,6 +182,16 @@ class StratumManager {
 
     virtual uint32_t getPoolDifficulty() = 0;
     virtual double getNetworkDifficulty() { return 0; }
+
+    const coinbase_result_t &getCoinbaseResult() {
+        PThreadGuard lock(m_mutex);
+        return m_coinbaseResult;
+    }
+
+    void setCoinbaseResult(const coinbase_result_t &result) {
+        PThreadGuard lock(m_mutex);
+        m_coinbaseResult = result;
+    }
 
     virtual int getCompatPingPoolIndex() = 0;
 

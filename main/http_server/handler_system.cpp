@@ -148,6 +148,24 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
     STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
 
+    // Block header / coinbase data
+    {
+        const coinbase_result_t &cb = STRATUM_MANAGER->getCoinbaseResult();
+        if (cb.block_height > 0) {
+            doc["blockHeight"]  = cb.block_height;
+            doc["scriptsig"]    = cb.scriptsig;
+
+            JsonArray outputs = doc["coinbaseOutputs"].to<JsonArray>();
+            for (int i = 0; i < cb.output_count; i++) {
+                JsonObject out = outputs.add<JsonObject>();
+                out["value"]   = cb.outputs[i].value_satoshis;
+                out["address"] = cb.outputs[i].address;
+            }
+            doc["coinbaseValueTotalSatoshis"] = cb.total_value_satoshis;
+            doc["coinbaseValueUserSatoshis"]  = cb.user_value_satoshis;
+        }
+    }
+
     // asic temps
     {
         JsonArray arr = doc["asicTemps"].to<JsonArray>();

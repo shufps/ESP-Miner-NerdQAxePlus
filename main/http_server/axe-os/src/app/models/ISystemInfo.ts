@@ -109,6 +109,15 @@ export interface ISystemInfo {
     history: IHistory
 
     otp: boolean,
+
+    networkDifficulty?: number,
+
+    // Block header / coinbase data (only present when blockHeight > 0)
+    blockHeight?: number,
+    scriptsig?: string,
+    coinbaseOutputs?: { value: number, address: string }[],
+    coinbaseValueTotalSatoshis?: number,
+    coinbaseValueUserSatoshis?: number,
 }
 
 // fields swam is using

@@ -73,7 +73,15 @@
     "RESET_STATS": "Sitzungsstatistiken zurücksetzen",
     "RESET_STATS_CONFIRM": "Alle Sitzungsstatistiken zurücksetzen (Shares, beste Diff, Fehler)?",
     "RESET_STATS_SUCCESS": "Sitzungsstatistiken zurückgesetzt.",
-    "RESET_STATS_FAILED": "Zurücksetzen fehlgeschlagen."
+    "RESET_STATS_FAILED": "Zurücksetzen fehlgeschlagen.",
+    "BLOCK_HEADER": "Block Header",
+    "BLOCK_HEIGHT": "Höhe",
+    "BLOCK_DIFFICULTY": "Schwierigkeit",
+    "BLOCK_SCRIPTSIG": "Scriptsig",
+    "BLOCK_VALUE": "Wert",
+    "BLOCK_OUTPUTS": "Ausgaben",
+    "BLOCK_FEE": "Gebühr",
+    "BLOCK_SHARE": "Anteil"
   },
   "PERFORMANCE": {
     "TITLE": "Leistung",
