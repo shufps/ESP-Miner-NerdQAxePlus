@@ -173,6 +173,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     switch (m_stratum_api_v1_message.method) {
     case MINING_NOTIFY: {
         setNetworkDifficulty(pool, m_stratum_api_v1_message.mining_notification->target);
+        processCoinbase(pool, m_stratum_api_v1_message.mining_notification);
         create_job_mining_notify(pool, m_stratum_api_v1_message.mining_notification,
                                  m_stratum_api_v1_message.should_abandon_work || selected->m_firstJob);
 
@@ -203,6 +204,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
         // the new extranonce gets active with the next mining.notify
         ESP_LOGI(tag, "Set next enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
                  m_stratum_api_v1_message.extranonce_2_len);
+        storeExtranonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         set_next_enonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         break;
     }
@@ -210,6 +212,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     case STRATUM_RESULT_SUBSCRIBE: {
         ESP_LOGI(tag, "Set enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
                  m_stratum_api_v1_message.extranonce_2_len);
+        storeExtranonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         create_job_set_enonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         break;
     }
@@ -385,6 +388,39 @@ void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
     // send alert that a new best difficulty was found
     double networkDiff = calculateNetworkDifficulty(nbits);
     discordAlerter.sendBestDifficultyAlert(diff, networkDiff);
+}
+
+void StratumManager::storeExtranonce(int pool, const char *extranonce, int extranonce2_len)
+{
+    if (pool < 0 || pool > 1) return;
+    free(m_extranonce1[pool]);
+    m_extranonce1[pool] = extranonce ? strdup(extranonce) : nullptr;
+    m_extranonce2_len[pool] = extranonce2_len;
+}
+
+void StratumManager::processCoinbase(int pool, const mining_notify *notify)
+{
+    if (!notify || !notify->coinbase_1 || !notify->coinbase_2) return;
+    if (pool < 0 || pool > 1 || !m_extranonce1[pool]) return;
+
+    const char *user = m_stratumConfig[pool] ? m_stratumConfig[pool]->getUser() : nullptr;
+
+    coinbase_result_t result{};
+    esp_err_t err = coinbase_process(
+        notify->coinbase_1,
+        notify->coinbase_2,
+        notify->version,
+        notify->target,
+        m_extranonce1[pool],
+        m_extranonce2_len[pool],
+        user,
+        true, /* decode_coinbase_tx */
+        &result
+    );
+
+    if (err == ESP_OK) {
+        m_coinbaseResult = result;
+    }
 }
 
 void StratumManager::getManagerInfoJson(JsonObject &obj)
