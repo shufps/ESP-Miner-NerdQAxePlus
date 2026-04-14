@@ -140,6 +140,7 @@ REQUIRES
     "stratum_v2"
     "libsecp256k1"
     "esp_eth"
+    "coinbase_decoder"
 
 )
 

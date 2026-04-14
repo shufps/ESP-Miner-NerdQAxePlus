@@ -83,6 +83,7 @@
     "BLOCK_DIFFICULTY": "Difficulté",
     "BLOCK_SCRIPTSIG": "Scriptsig",
     "BLOCK_VALUE": "Valeur",
+    "BLOCK_OUTPUTS": "Sorties",
     "BLOCK_FEE": "Frais",
     "BLOCK_SHARE": "Part"
   },

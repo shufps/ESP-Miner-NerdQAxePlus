@@ -87,6 +87,7 @@
     "BLOCK_DIFFICULTY": "Difficulty",
     "BLOCK_SCRIPTSIG": "Scriptsig",
     "BLOCK_VALUE": "Value",
+    "BLOCK_OUTPUTS": "Outputs",
     "BLOCK_FEE": "Fee",
     "BLOCK_SHARE": "Share"
   },
