@@ -2335,6 +2335,16 @@ nb-card-header{
   letter-spacing: 0.04em;
   color: var(--bar-label-color, inherit);
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.block-header-pool-tag{
+  font-size: 0.7rem;
+  font-weight: 500;
+  opacity: 0.6;
+  text-transform: none;
 }
 
 .block-header-row{
