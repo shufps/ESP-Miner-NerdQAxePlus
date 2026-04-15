@@ -550,14 +550,21 @@ void StratumTaskV2::handleSetTarget(const uint8_t *payload, uint32_t len)
 void StratumTaskV2::handleSubmitSharesSuccess(const uint8_t *payload, uint32_t len)
 {
     uint32_t channel_id;
-    if (sv2_parse_submit_shares_success(payload, len, &channel_id) == 0) {
+    uint32_t accepted_count = 0;
+    if (sv2_parse_submit_shares_success(payload, len, &channel_id, &accepted_count) == 0) {
         if (m_lastSubmitTimeUs > 0) {
             float response_time_ms = (float)(esp_timer_get_time() - m_lastSubmitTimeUs) / 1000.0f;
-            ESP_LOGI(m_tag, "Share accepted (%.1f ms)", response_time_ms);
+            ESP_LOGI(m_tag, "Shares accepted: %lu (%.1f ms)", (unsigned long)accepted_count, response_time_ms);
         } else {
-            ESP_LOGI(m_tag, "Share accepted");
+            ESP_LOGI(m_tag, "Shares accepted: %lu", (unsigned long)accepted_count);
         }
-        m_manager->acceptedShare(m_index);
+        if (accepted_count > 1000) {
+            ESP_LOGW(m_tag, "Suspicious accepted_count %lu, capping to 1000", (unsigned long)accepted_count);
+            accepted_count = 1000;
+        }
+        for (uint32_t i = 0; i < accepted_count; i++) {
+            m_manager->acceptedShare(m_index);
+        }
         m_manager->m_lastSubmitResponseTimestamp = esp_timer_get_time();
     }
 }
