@@ -62,7 +62,7 @@ class StratumManager {
     // Coinbase decoder: extranonce state per pool + decoded result
     char *m_extranonce1[2]{};
     int m_extranonce2_len[2]{};
-    coinbase_result_t m_coinbaseResult{};
+    coinbase_result_t m_coinbaseResult[2]{};
 
     void processCoinbase(int pool, const mining_notify *notify);
     void storeExtranonce(int pool, const char *extranonce, int extranonce2_len);
@@ -183,14 +183,14 @@ class StratumManager {
     virtual uint32_t getPoolDifficulty() = 0;
     virtual double getNetworkDifficulty() { return 0; }
 
-    const coinbase_result_t &getCoinbaseResult() {
+    const coinbase_result_t &getCoinbaseResult(int pool) {
         PThreadGuard lock(m_mutex);
-        return m_coinbaseResult;
+        return m_coinbaseResult[pool & 1];
     }
 
-    void setCoinbaseResult(const coinbase_result_t &result) {
+    void setCoinbaseResult(int pool, const coinbase_result_t &result) {
         PThreadGuard lock(m_mutex);
-        m_coinbaseResult = result;
+        m_coinbaseResult[pool & 1] = result;
     }
 
     virtual int getCompatPingPoolIndex() = 0;

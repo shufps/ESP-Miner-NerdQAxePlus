@@ -148,21 +148,27 @@ esp_err_t GET_system_info(httpd_req_t *req)
 
     STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
 
-    // Block header / coinbase data
+    // Block header / coinbase data (one entry per pool)
     {
-        const coinbase_result_t &cb = STRATUM_MANAGER->getCoinbaseResult();
-        if (cb.block_height > 0) {
-            doc["blockHeight"]  = cb.block_height;
-            doc["scriptsig"]    = cb.scriptsig;
+        JsonArray blockHeaders = doc["blockHeaders"].to<JsonArray>();
+        for (int p = 0; p < 2; p++) {
+            const coinbase_result_t &cb = STRATUM_MANAGER->getCoinbaseResult(p);
+            if (cb.block_height > 0) {
+                JsonObject bh = blockHeaders.add<JsonObject>();
+                bh["pool"]       = p;
+                bh["blockHeight"] = cb.block_height;
+                bh["networkDifficulty"] = cb.network_difficulty;
+                bh["scriptsig"]  = cb.scriptsig;
 
-            JsonArray outputs = doc["coinbaseOutputs"].to<JsonArray>();
-            for (int i = 0; i < cb.output_count; i++) {
-                JsonObject out = outputs.add<JsonObject>();
-                out["value"]   = cb.outputs[i].value_satoshis;
-                out["address"] = cb.outputs[i].address;
+                JsonArray outputs = bh["coinbaseOutputs"].to<JsonArray>();
+                for (int i = 0; i < cb.output_count; i++) {
+                    JsonObject out = outputs.add<JsonObject>();
+                    out["value"]   = cb.outputs[i].value_satoshis;
+                    out["address"] = cb.outputs[i].address;
+                }
+                bh["coinbaseValueTotalSatoshis"] = cb.total_value_satoshis;
+                bh["coinbaseValueUserSatoshis"]  = cb.user_value_satoshis;
             }
-            doc["coinbaseValueTotalSatoshis"] = cb.total_value_satoshis;
-            doc["coinbaseValueUserSatoshis"]  = cb.user_value_satoshis;
         }
     }
 

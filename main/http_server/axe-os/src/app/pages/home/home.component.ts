@@ -16,7 +16,7 @@ import { map,
   firstValueFrom } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
-import { ISystemInfo } from '../../models/ISystemInfo';
+import { ISystemInfo, IBlockHeader } from '../../models/ISystemInfo';
 import { Chart } from 'chart.js';  // Import Chart.js
 import { registerHomeChartPlugins } from './plugins';
 import { HOME_CFG,
@@ -1903,9 +1903,13 @@ private importHistoricalDataChunked(history: any): void {
 
   /* ── Block Header helpers ── */
 
-  getPayoutPercentage(info: ISystemInfo): number {
-    if (info.coinbaseValueTotalSatoshis) {
-      return (info.coinbaseValueUserSatoshis ?? 0) / info.coinbaseValueTotalSatoshis * 100;
+  trackByPool(_index: number, bh: IBlockHeader): number {
+    return bh.pool;
+  }
+
+  getBlockHeaderFee(bh: IBlockHeader): number {
+    if (bh.coinbaseValueTotalSatoshis) {
+      return (bh.coinbaseValueUserSatoshis ?? 0) / bh.coinbaseValueTotalSatoshis * 100;
     }
     return -1;
   }

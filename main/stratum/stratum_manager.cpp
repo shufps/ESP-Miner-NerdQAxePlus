@@ -419,7 +419,7 @@ void StratumManager::processCoinbase(int pool, const mining_notify *notify)
     );
 
     if (err == ESP_OK) {
-        m_coinbaseResult = result;
+        m_coinbaseResult[pool & 1] = result;
     }
 }
 
