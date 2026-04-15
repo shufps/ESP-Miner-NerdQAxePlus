@@ -32,7 +32,7 @@ static void processSV2ExtendedCoinbase(int pool, const sv2_ext_job_t *job,
     bin2hex(extranonce_prefix, extranonce_prefix_len, enonce_hex, extranonce_prefix_len * 2 + 1);
 
     // Get user address for payout matching (fee calculation)
-    char *user = Config::getStratumUser();
+    char *user = (pool == 0) ? Config::getStratumUser() : Config::getStratumFallbackUser();
 
     coinbase_result_t result{};
     esp_err_t err = coinbase_process(
@@ -45,7 +45,7 @@ static void processSV2ExtendedCoinbase(int pool, const sv2_ext_job_t *job,
     safe_free(user);
 
     if (err == ESP_OK) {
-        STRATUM_MANAGER->setCoinbaseResult(result);
+        STRATUM_MANAGER->setCoinbaseResult(pool, result);
     }
 
     free(prefix_hex);
