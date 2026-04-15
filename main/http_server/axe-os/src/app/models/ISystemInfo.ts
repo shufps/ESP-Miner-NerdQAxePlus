@@ -114,8 +114,14 @@ export interface ISystemInfo {
 
     networkDifficulty?: number,
 
-    // Block header / coinbase data (only present when blockHeight > 0)
-    blockHeight?: number,
+    // Block header / coinbase data (array, one per pool with data)
+    blockHeaders?: IBlockHeader[],
+}
+
+export interface IBlockHeader {
+    pool: number,
+    blockHeight: number,
+    networkDifficulty: number,
     scriptsig?: string,
     coinbaseOutputs?: { value: number, address: string }[],
     coinbaseValueTotalSatoshis?: number,
