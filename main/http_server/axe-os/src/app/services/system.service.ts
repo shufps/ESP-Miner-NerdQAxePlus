@@ -197,6 +197,10 @@ export class SystemService {
     return this.httpClient.get<AsicInfo>(`${uri}/api/system/asic`);
   }
 
+  public scanWifi(uri: string = ''): Observable<{ networks: { ssid: string, rssi: number, authmode: number }[] }> {
+    return this.httpClient.get<{ networks: { ssid: string, rssi: number, authmode: number }[] }>(`${uri}/api/system/wifi/scan`);
+  }
+
   public getInfluxInfo(uri: string = ''): Observable<IInfluxDB> {
     return this.httpClient.get(`${uri}/api/influx/info`) as Observable<IInfluxDB>;
   }

@@ -21,6 +21,7 @@
 #include "handler_file.h"
 #include "handler_alert.h"
 #include "handler_otp.h"
+#include "handler_wifi_scan.h"
 #include "macros.h"
 
 #pragma GCC diagnostic error "-Wall"
@@ -170,6 +171,11 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_uri_t system_info_get_uri = {
         .uri = "/api/system/info", .method = HTTP_GET, .handler = GET_system_info, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &system_info_get_uri);
+
+    /* URI handler for scanning WiFi networks */
+    httpd_uri_t wifi_scan_get_uri = {
+        .uri = "/api/system/wifi/scan", .method = HTTP_GET, .handler = GET_wifi_scan, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &wifi_scan_get_uri);
 
         /* URI handler for fetching system info */
     httpd_uri_t system_asic_get_uri = {

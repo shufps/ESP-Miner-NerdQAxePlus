@@ -18,8 +18,13 @@
                 </div>
                 <div class="form-row">
                     <label for="ssid" class="form-label">{{ 'SETTINGS.WIFI_SSID' | translate }}:</label>
-                    <div class="form-control-wrapper">
+                    <div class="input-with-icon">
                         <input nbInput id="ssid" type="text" formControlName="ssid" />
+                        <button nbButton ghost size="small" (click)="scanWifi(wifiScanDialog)" type="button"
+                                class="icon-button" [disabled]="wifiScanning"
+                                [nbTooltip]="'SETTINGS.WIFI_SCAN' | translate">
+                            <nb-icon [icon]="wifiScanning ? 'loader-outline' : 'search-outline'" pack="eva"></nb-icon>
+                        </button>
                     </div>
                 </div>
                 <div class="form-row">
@@ -580,8 +585,29 @@
         </nb-card>
     </ng-template>
 
-
-
+    <ng-template #wifiScanDialog>
+        <nb-card style="width: 420px; max-height: 70vh;">
+            <nb-card-header>{{ 'SETTINGS.WIFI_SCAN_SELECT' | translate }}</nb-card-header>
+            <nb-card-body style="overflow-y: auto;">
+                <div *ngIf="wifiScanResults.length === 0" class="text-hint">
+                    {{ 'SETTINGS.WIFI_SCAN_NONE' | translate }}
+                </div>
+                <button *ngFor="let n of wifiScanResults" nbButton ghost fullWidth
+                        class="wifi-scan-entry"
+                        (click)="selectWifiNetwork(n.ssid)"
+                        [nbTooltip]="n.ssid + ' (' + n.rssi + ' dBm)'">
+                    <span class="wifi-scan-entry__ssid">{{ n.ssid }}</span>
+                    <span class="wifi-scan-entry__rssi wifi-scan-entry__rssi--{{ wifiSignalStrength(n.rssi) }}">
+                        <nb-icon icon="wifi-outline" pack="eva"></nb-icon>
+                        {{ n.rssi }} dBm
+                    </span>
+                </button>
+            </nb-card-body>
+            <nb-card-footer class="d-flex justify-content-end">
+                <button nbButton status="basic" (click)="dialogRef?.close()">{{ 'COMMON.CANCEL' | translate }}</button>
+            </nb-card-footer>
+        </nb-card>
+    </ng-template>
 
 
 </ng-container>

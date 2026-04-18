@@ -433,6 +433,57 @@ export class EditComponent implements OnInit {
     this.showWifiPassword = !this.showWifiPassword;
   }
 
+  // WiFi scan state
+  public wifiScanning: boolean = false;
+  public wifiScanResults: { ssid: string, rssi: number, authmode: number }[] = [];
+
+  public scanWifi(dialog: TemplateRef<any>): void {
+    if (this.wifiScanning) return;
+    this.wifiScanning = true;
+    this.systemService.scanWifi().subscribe({
+      next: (response) => {
+        // Sort by signal strength (strongest first), dedupe by SSID, filter empty
+        const byStrength: { [ssid: string]: { ssid: string, rssi: number, authmode: number } } = {};
+        for (const n of response.networks || []) {
+          if (!n.ssid) continue;
+          if (!byStrength[n.ssid] || byStrength[n.ssid].rssi < n.rssi) {
+            byStrength[n.ssid] = n;
+          }
+        }
+        this.wifiScanResults = Object.values(byStrength).sort((a, b) => b.rssi - a.rssi);
+        this.wifiScanning = false;
+        this.dialogRef = this.dialogService.open(dialog, { closeOnBackdropClick: true });
+      },
+      error: (err: HttpErrorResponse) => {
+        this.wifiScanning = false;
+        this.toastrService.danger(
+          this.translate.instant('SETTINGS.WIFI_SCAN_FAILED'),
+          this.translate.instant('COMMON.ERROR')
+        );
+      }
+    });
+  }
+
+  public selectWifiNetwork(ssid: string): void {
+    this.form.patchValue({ ssid });
+    this.form.markAsDirty();
+    if (this.dialogRef) {
+      this.dialogRef.close();
+    }
+  }
+
+  public wifiSignalIcon(rssi: number): string {
+    // Eva icon pack doesn't have signal-level icons, use wifi-outline variants with opacity/color
+    return 'wifi-outline';
+  }
+
+  public wifiSignalStrength(rssi: number): string {
+    if (rssi >= -50) return 'excellent';
+    if (rssi >= -60) return 'good';
+    if (rssi >= -70) return 'fair';
+    return 'weak';
+  }
+
   public setDevToolsOpen(supportLevel: number) {
     this.supportLevel = supportLevel;
     console.log('Advanced Mode:', supportLevel);

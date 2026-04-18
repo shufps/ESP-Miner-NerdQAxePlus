@@ -8,8 +8,21 @@ extern "C" {
 #include "lwip/sys.h"
 #include <arpa/inet.h>
 #include <lwip/netdb.h>
+#include <stdint.h>
 
 #include "freertos/event_groups.h"
+#include "esp_err.h"
+#include "esp_wifi_types.h"
+
+/* Maximum number of access points returned by wifi_scan() */
+#define WIFI_SCAN_MAX_APS 20
+
+/* Compact record returned by wifi_scan() */
+typedef struct {
+    char ssid[33];              // 32 chars + null terminator
+    int8_t rssi;                // Signal strength in dBm
+    wifi_auth_mode_t authmode;  // WiFi security type
+} wifi_ap_record_simple_t;
 
 /* The event group allows multiple bits for each event, but we only care about two events:
  * - we are connected to the AP with an IP
@@ -36,6 +49,11 @@ void generate_ssid(char *ssid);
 bool connect_get_ip_addr(char *buf, size_t buf_len);
 const char* connect_get_mac_addr();
 EventBits_t wifi_wait_connected_ms(TickType_t ticks);
+
+/* Scan for available WiFi networks. Blocks until scan completes (up to ~10s).
+ * Fills ap_records (capacity WIFI_SCAN_MAX_APS) and sets *ap_count.
+ * Returns ESP_OK on success. */
+esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count);
 
 #ifdef __cplusplus
 }

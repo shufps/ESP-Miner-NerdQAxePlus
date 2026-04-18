@@ -45,6 +45,7 @@ SRCS
     "./http_server/handler_shutdown.cpp"
     "./http_server/handler_file.cpp"
     "./http_server/handler_ota_factory.cpp"
+    "./http_server/handler_wifi_scan.cpp"
     "./self_test/self_test.cpp"
     "./stratum/stratum_api.cpp"
     "./stratum/stratum_transport.cpp"
