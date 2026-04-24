@@ -9,6 +9,7 @@ import { AsicInfo } from '../models/IAsicInfo';
 import { environment } from '../../environments/environment';
 import { IInfluxDB } from '../models/IInfluxDB';
 import { IUpdateStatus } from '../models/IUpdateStatus';
+import { ISystemScoreboardEntry } from '../models/ISystemScoreboard';
 import { HttpHeaders } from '@angular/common/http';
 
 const defaultInfo: ISystemInfo = {
@@ -365,5 +366,9 @@ export class SystemService {
   // only returns enabled flag
   public getOTPStatus(): Observable<{ enabled: boolean }> {
     return this.httpClient.get('/api/otp/status') as Observable<{ enabled: boolean }>;
+  }
+
+  public getScoreboard(uri: string = ''): Observable<ISystemScoreboardEntry[]> {
+    return this.httpClient.get<ISystemScoreboardEntry[]>(`${uri}/api/system/scoreboard`);
   }
 }

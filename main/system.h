@@ -16,6 +16,7 @@
 #include "freertos/queue.h"
 #include "history.h"
 #include "sntp.h"
+#include "tasks/scoreboard.h"
 
 
 // Configuration and constants
@@ -65,6 +66,7 @@ class System {
 
     // board
     Board *m_board;
+    Scoreboard m_scoreboard;
 
     pthread_mutex_t m_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t m_loop_cond = PTHREAD_COND_INITIALIZER;
@@ -210,6 +212,10 @@ class System {
 
     void pushShare(int nr) {
         m_history->pushShare(nr);
+    }
+
+    Scoreboard *getScoreboard() {
+        return &m_scoreboard;
     }
 
     void pushHistory();

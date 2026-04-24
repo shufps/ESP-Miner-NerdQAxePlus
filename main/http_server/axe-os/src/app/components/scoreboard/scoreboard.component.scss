@@ -1,0 +1,56 @@
+:host {
+    display: block;
+    padding: 1rem;
+}
+
+.card {
+    background: var(--card-background-color);
+    color: var(--text-basic-color);
+    border-radius: var(--card-border-radius);
+    padding: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: transparent !important;
+}
+
+th {
+    color: var(--text-hint-color);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    border-bottom: 2px solid var(--divider-color);
+}
+
+th,
+td {
+    padding: 0.75rem 0.5rem;
+    white-space: nowrap;
+    text-align: left;
+    background-color: transparent !important;
+    color: var(--text-basic-color) !important;
+    border-bottom: 1px solid var(--divider-color);
+
+    &:first-child {
+        padding-left: 0;
+    }
+    &:last-child {
+        padding-right: 0;
+    }
+}
+
+tbody tr {
+    &:last-child td {
+        border-bottom: none;
+    }
+
+    &:hover td {
+        background-color: var(--hover-bg-color, rgba(128, 128, 128, 0.05)) !important;
+    }
+}
+
+.font-monospace {
+    font-family: monospace;
+}

@@ -47,6 +47,28 @@ nb-card-body{
     margin: 5px;
     }
 
+.scoreboard-card {
+  .table {
+    background-color: transparent !important;
+    color: var(--text-basic-color) !important;
+    margin-bottom: 0;
+
+    th, td {
+      background-color: transparent !important;
+      color: var(--text-basic-color) !important;
+      border-color: var(--divider-color) !important;
+      vertical-align: middle;
+    }
+
+    thead th {
+      border-top: none;
+      color: var(--text-hint-color) !important;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+    }
+  }
+}
+
 /* Pool tiles must align pixel-perfect with the summary squares (Best Difficulty / ASIC °C).
    The global nb-card-body rules above add extra inset; override it for pool tiles only. */
 nb-card-body.pool-tile-card__body{

@@ -8,6 +8,11 @@ export const MENU_ITEMS: NbMenuItem[] = [
     home: true,
   },
   {
+    title: 'Scoreboard',
+    icon: 'award-outline',
+    link: '/pages/scoreboard',
+  },
+  {
     title: 'Swarm',
     icon: 'share-outline',
     link: '/pages/swarm',

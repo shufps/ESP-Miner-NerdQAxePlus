@@ -22,6 +22,7 @@
 #define NVS_CONFIG_STRATUM_FALLBACK_TLS "fbstratumtls"
 #define NVS_CONFIG_STRATUM_DIFFICULTY "stratumdiff"
 #define NVS_CONFIG_STRATUM_KEEPALIVE "stratum_keep"
+#define NVS_CONFIG_SCOREBOARD "scoreboard"
 
 #define NVS_CONFIG_ASIC_FREQ "asicfrequency"
 #define NVS_CONFIG_ASIC_VOLTAGE "asicvoltage"
@@ -115,6 +116,8 @@ namespace Config {
     void nvs_config_set_u16(const char* key, uint16_t value);
     uint64_t nvs_config_get_u64(const char* key, uint64_t default_value);
     void nvs_config_set_u64(const char* key, uint64_t value);
+    char* nvs_config_get_string_indexed(const char* key, int index);
+    void nvs_config_set_string_indexed(const char* key, int index, const char* value);
 
     // ---- String Getters ----
     inline char* getWifiSSID() { return nvs_config_get_string(NVS_CONFIG_WIFI_SSID, CONFIG_ESP_WIFI_SSID); }

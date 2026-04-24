@@ -60,6 +60,20 @@ void nvs_config_set_string(const char *key, const char *value)
     nvs_close(handle);
 }
 
+char *nvs_config_get_string_indexed(const char *key, int index)
+{
+    char indexed_key[32];
+    snprintf(indexed_key, sizeof(indexed_key), "%s_%d", key, index);
+    return nvs_config_get_string(indexed_key, "");
+}
+
+void nvs_config_set_string_indexed(const char *key, int index, const char *value)
+{
+    char indexed_key[32];
+    snprintf(indexed_key, sizeof(indexed_key), "%s_%d", key, index);
+    nvs_config_set_string(indexed_key, value);
+}
+
 uint16_t nvs_config_get_u16(const char *key, const uint16_t default_value)
 {
     nvs_handle handle;

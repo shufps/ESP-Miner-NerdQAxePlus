@@ -13,10 +13,14 @@ import {
 import { map,
   Observable,
   Subscription,
-  firstValueFrom } from 'rxjs';
+  firstValueFrom,
+  timer,
+  switchMap,
+  shareReplay } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
 import { ISystemInfo } from '../../models/ISystemInfo';
+import { ISystemScoreboardEntry } from '../../models/ISystemScoreboard';
 import { Chart } from 'chart.js';  // Import Chart.js
 import { registerHomeChartPlugins } from './plugins';
 import { HOME_CFG,
@@ -365,6 +369,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public quickLink$: Observable<string | undefined>;
   public fallbackQuickLink$!: Observable<string | undefined>;
   public expectedHashRate$: Observable<number | undefined>;
+  public scoreboard$: Observable<ISystemScoreboardEntry[]>;
 
   public chartOptions: any;
   private chartState: HomeChartState = new HomeChartState();
@@ -689,6 +694,16 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.fallbackQuickLink$ = this.info$.pipe(
       map(info => this.getQuickLink(info.fallbackStratumURL, info.fallbackStratumUser))
+    );
+
+    this.scoreboard$ = timer(0, 10000).pipe(
+      switchMap(() => this.systemService.getScoreboard().pipe(
+        map(data => data.slice(0, 5).map((entry, index) => ({
+          ...entry,
+          rank: index + 1
+        })))
+      )),
+      shareReplay({ refCount: true, bufferSize: 1 })
     );
   }
 

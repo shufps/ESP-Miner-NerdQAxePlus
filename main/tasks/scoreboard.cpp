@@ -1,0 +1,103 @@
+#include "scoreboard.h"
+#include "nvs_config.h"
+#include "esp_log.h"
+#include <stdio.h>
+#include <inttypes.h>
+
+using namespace Config;
+
+static const char * TAG = "scoreboard";
+
+extern "C" esp_err_t scoreboard_init(Scoreboard *scoreboard)
+{
+    scoreboard->count = 0;
+    scoreboard->mutex = xSemaphoreCreateMutex();
+    if (scoreboard->mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create mutex");
+        return ESP_FAIL;
+    }
+
+    for (int i = 0; i < MAX_SCOREBOARD; i++) {
+        char *entry_str = nvs_config_get_string_indexed(NVS_CONFIG_SCOREBOARD, i);
+        if (entry_str == NULL || entry_str[0] == '\0') {
+            if (entry_str) free(entry_str);
+            break;
+        }
+
+        ScoreboardEntry entry;
+        if (sscanf(entry_str, "%lf;%31[^;];%31[^;];%" SCNu32 ";%" SCNu32 ";%" SCNu32, 
+                   &entry.difficulty, 
+                   entry.job_id, 
+                   entry.extranonce2, 
+                   &entry.ntime, 
+                   &entry.nonce, 
+                   &entry.version_bits) == 6) {
+            strncpy(entry.nvs_entry, entry_str, sizeof(entry.nvs_entry) - 1);
+            entry.nvs_entry[sizeof(entry.nvs_entry) - 1] = '\0';
+            scoreboard->entries[scoreboard->count++] = entry;
+        } else {
+            ESP_LOGW(TAG, "Failed to parse scoreboard entry from NVS: %s", entry_str);
+        }
+        free(entry_str);
+    }
+    return ESP_OK;
+}
+
+static void scoreboard_save(int i, ScoreboardEntry *entry)
+{
+    nvs_config_set_string_indexed(NVS_CONFIG_SCOREBOARD, i, entry->nvs_entry);
+}
+
+extern "C" esp_err_t scoreboard_add(Scoreboard *scoreboard, double difficulty, const char *job_id, const char *extranonce2, uint32_t ntime, uint32_t nonce, uint32_t version_bits)
+{
+    if (scoreboard->mutex == NULL) return ESP_OK;
+
+    int i = (scoreboard->count < MAX_SCOREBOARD) ? scoreboard->count : MAX_SCOREBOARD - 1;
+
+    if (scoreboard->count == MAX_SCOREBOARD && i >= 0 && difficulty <= scoreboard->entries[i].difficulty) {
+        return ESP_OK;
+    }
+
+    ScoreboardEntry new_entry;
+    memset(&new_entry, 0, sizeof(new_entry));
+    new_entry.difficulty = difficulty;
+    new_entry.ntime = ntime;
+    new_entry.nonce = nonce;
+    new_entry.version_bits = version_bits;
+    
+    strncpy(new_entry.job_id, job_id, sizeof(new_entry.job_id) - 1);
+    new_entry.job_id[sizeof(new_entry.job_id) - 1] = '\0';
+    strncpy(new_entry.extranonce2, extranonce2, sizeof(new_entry.extranonce2) - 1);
+    new_entry.extranonce2[sizeof(new_entry.extranonce2) - 1] = '\0';
+    snprintf(new_entry.nvs_entry, sizeof(new_entry.nvs_entry),
+        "%.1f;%s;%s;%" PRIu32 ";%" PRIu32 ";%" PRIu32, 
+        new_entry.difficulty, 
+        new_entry.job_id, 
+        new_entry.extranonce2,
+        new_entry.ntime,
+        new_entry.nonce,
+        new_entry.version_bits);
+
+    if (xSemaphoreTake(scoreboard->mutex, portMAX_DELAY) == pdTRUE) {
+        while (i > 0 && difficulty > scoreboard->entries[i - 1].difficulty) {
+            scoreboard->entries[i] = scoreboard->entries[i - 1];
+            scoreboard_save(i, &scoreboard->entries[i]);
+            i--;
+        }
+    
+        scoreboard->entries[i] = new_entry;
+        scoreboard_save(i, &new_entry);
+        if (scoreboard->count < MAX_SCOREBOARD) {
+            scoreboard->count++;
+        }
+        xSemaphoreGive(scoreboard->mutex);
+    } else {
+        ESP_LOGE(TAG, "Failed to take mutex");
+        return ESP_FAIL;
+    }
+    
+    ESP_LOGI(TAG, "New #%d: Difficulty: %.1f, Job ID: %s, extranonce2: %s, ntime: %" PRIu32 ", nonce: %08" PRIX32 ", version_bits: %08" PRIX32,
+        i+1, new_entry.difficulty, new_entry.job_id, new_entry.extranonce2, new_entry.ntime, new_entry.nonce, new_entry.version_bits);
+
+    return ESP_OK;
+}

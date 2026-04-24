@@ -427,6 +427,50 @@
         </div>
       </div>
 
+      <!-- Scoreboard Widget -->
+      <div class="row mt-3" *ngIf="scoreboard$ | async as scoreboard">
+        <div class="col-12">
+          <nb-card class="scoreboard-card">
+            <nb-card-header class="d-flex justify-content-between align-items-center">
+              <span>Scoreboard (Top 5)</span>
+              <button nbButton ghost size="tiny" [routerLink]="['/pages/scoreboard']">
+                <nb-icon icon="external-link-outline"></nb-icon>
+                View All
+              </button>
+            </nb-card-header>
+            <nb-card-body>
+              <div class="table-responsive">
+                <table class="table table-borderless">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Difficulty</th>
+                      <th>ExtraNonce2</th>
+                      <th>Job ID</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let entry of scoreboard">
+                      <td>
+                        <span class="mr-1">{{ entry.rank }}</span>
+                        <i class="pi pi-trophy" *ngIf="entry.rank <= 3" [ngStyle]="{
+                          'color': entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : 'peru'
+                        }"></i>
+                      </td>
+                      <td>{{ entry.difficulty | humanReadable }}</td>
+                      <td><code>{{ entry.extranonce2 }}</code></td>
+                      <td><code>{{ entry.job_id }}</code></td>
+                      <td>{{ entry.ntime * 1000 | date:'HH:mm:ss' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </nb-card-body>
+          </nb-card>
+        </div>
+      </div>
+
       <!-- Power Usage + Heat (new row under pools) -->
       <div class="row mt-3 d-flex align-items-stretch">
         <div class="col-12 col-xl-6">

@@ -477,3 +477,44 @@ esp_err_t POST_reset_stats(httpd_req_t *req)
     httpd_resp_set_status(req, "204 No Content");
     return httpd_resp_send(req, NULL, 0);
 }
+
+esp_err_t GET_system_scoreboard(httpd_req_t *req)
+{
+    ConGuard g(http_server, req);
+
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
+    httpd_resp_set_type(req, "application/json");
+
+    // CORS
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    Scoreboard *scoreboard = SYSTEM_MODULE.getScoreboard();
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+    JsonArray arr = doc.to<JsonArray>();
+
+    if (xSemaphoreTake(scoreboard->mutex, portMAX_DELAY) == pdTRUE) {
+        for (int i = 0; i < scoreboard->count; i++) {
+            const ScoreboardEntry *e = &scoreboard->entries[i];
+            JsonObject obj = arr.add<JsonObject>();
+            obj["rank"] = i + 1;
+            obj["difficulty"] = e->difficulty;
+            obj["job_id"] = e->job_id;
+            obj["extranonce2"] = e->extranonce2;
+            obj["ntime"] = e->ntime;
+            obj["nonce"] = e->nonce;
+            obj["version_bits"] = e->version_bits;
+        }
+        xSemaphoreGive(scoreboard->mutex);
+    }
+
+    esp_err_t ret = sendJsonResponse(req, doc);
+    doc.clear();
+    return ret;
+}

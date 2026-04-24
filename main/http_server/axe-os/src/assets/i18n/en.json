@@ -31,7 +31,8 @@
     "SWARM": "Swarm",
     "INFLUXDB": "InfluxDB",
     "ALERTS": "Alerts",
-    "SECURITY": "Security"
+    "SECURITY": "Security",
+    "SCOREBOARD": "Scoreboard"
   },
   "HOME": {
     "HASH_RATE": "Hash Rate",

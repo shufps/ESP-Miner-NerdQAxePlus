@@ -67,6 +67,8 @@ void System::initSystem() {
     if (!m_history->init(m_board->getAsicCount())) {
         ESP_LOGE(TAG, "history couldn't be initialized!");
     }
+
+    scoreboard_init(&m_scoreboard);
 }
 
 void System::loadSettings() {

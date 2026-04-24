@@ -37,6 +37,11 @@ import { NbMenuItem } from '@nebular/theme';
                 home: true,
             },
             {
+                title: this.translateService.instant('NAVIGATION.SCOREBOARD'),
+                icon: 'award-outline',
+                link: '/pages/scoreboard',
+            },
+            {
                 title: this.translateService.instant('NAVIGATION.SWARM'),
                 icon: 'share-outline',
                 link: '/pages/swarm',

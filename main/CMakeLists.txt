@@ -65,6 +65,7 @@ SRCS
     "./tasks/hashrate_monitor_task.cpp"
     "./tasks/apis_task.cpp"
     "./tasks/wifi_health.cpp"
+    "./tasks/scoreboard.cpp"
     "./displays/displayDriver.cpp"
     "./displays/ui.cpp"
     "./displays/ui_ipc.cpp"

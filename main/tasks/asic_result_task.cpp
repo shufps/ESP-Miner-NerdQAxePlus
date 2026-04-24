@@ -7,6 +7,7 @@
 #include "global_state.h"
 #include "nvs_config.h"
 #include "system.h"
+#include "scoreboard.h"
 #include "boards/board.h"
 
 #include "simple_ring64.hpp"
@@ -90,6 +91,8 @@ void ASIC_result_task(void *pvParameters)
 
         // check the nonce difficulty
         double nonce_diff = test_nonce_value(job, asic_result.nonce, asic_result.rolled_version);
+
+        scoreboard_add(SYSTEM_MODULE.getScoreboard(), nonce_diff, job->jobid, job->extranonce2, job->ntime, asic_result.nonce, asic_result.rolled_version);
 
         // get best known session diff
         char bestDiffString[16];
