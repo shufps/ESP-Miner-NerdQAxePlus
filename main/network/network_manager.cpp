@@ -50,7 +50,8 @@ esp_err_t NetworkManager::init()
     return ESP_OK;
 }
 
-esp_err_t NetworkManager::start(const char *wifi_ssid, const char *wifi_pass, const char *hostname)
+esp_err_t NetworkManager::start(const char *wifi_ssid, const char *wifi_pass, const char *hostname,
+                                bool hasEth)
 {
     esp_err_t err = init();
     if (err != ESP_OK) {
@@ -60,11 +61,12 @@ esp_err_t NetworkManager::start(const char *wifi_ssid, const char *wifi_pass, co
     /* Start WiFi (APSTA + STA) */
     m_wifiStaNetif = wifi_init(wifi_ssid, wifi_pass, hostname);
 
-    /* Start Ethernet */
-    err = m_eth.init();
-    if (err != ESP_OK) {
-        ESP_LOGW(TAG_NET, "ETH init failed: %s", esp_err_to_name(err));
-        /* Still allow WiFi-only operation */
+    /* Start Ethernet only on boards that have it */
+    if (hasEth) {
+        err = m_eth.init();
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG_NET, "ETH init failed: %s", esp_err_to_name(err));
+        }
     }
 
     return ESP_OK;

@@ -30,4 +30,5 @@ class Q1370B : public NerdQaxePlus {
     Q1370B();
     float getTemperature(int index);
     virtual void requestChipTemps();
+    bool hasEthernet() override { return true; }
 };

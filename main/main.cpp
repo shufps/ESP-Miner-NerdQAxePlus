@@ -115,7 +115,7 @@ static void setup_network()
 
     NETWORK.setHookPreferredChanged(on_preferred_changed);
 
-    ESP_ERROR_CHECK(NETWORK.start(wifi_ssid, wifi_pass, hostname));
+    ESP_ERROR_CHECK(NETWORK.start(wifi_ssid, wifi_pass, hostname, board->hasEthernet()));
 
     // REST server for AP fallback/config (and also reachable via LAN/WiFi)
     start_rest_server(NULL);
@@ -230,7 +230,9 @@ extern "C" void app_main(void)
         ESP_ERROR_CHECK(err);
     }
 
-    NETWORK.earlyEthSpiInit();
+    if (board->hasEthernet()) {
+        NETWORK.earlyEthSpiInit();
+    }
 
 #ifdef NERDQAXEPLUS
     Board *board = new NerdQaxePlus();
@@ -295,13 +297,16 @@ extern "C" void app_main(void)
     SYSTEM_MODULE.init();
     SYSTEM_MODULE.initDisplay();
 
-    setup_network();
-
+    // Start display-driving tasks BEFORE setup_network() so the display can show
+    // the Portal screen when there is no network. setup_network() blocks forever
+    // when neither WiFi nor LAN is available, so the SYSTEM_task must be running
+    // beforehand — otherwise portalScreen() is never called and the display stays
+    // on a blank (white) screen.
     xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
     xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
-
-    // set the startup_done flag
     SYSTEM_MODULE.setStartupDone();
+
+    setup_network();
 
 
     // when a username is configured we will continue with startup and start mining

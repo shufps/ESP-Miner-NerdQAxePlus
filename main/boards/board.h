@@ -330,6 +330,10 @@ public:
         return m_hasHashCounter;
     }
 
+    virtual bool hasEthernet() {
+        return false;
+    }
+
     const char* getDefaultTheme() {
         return m_defaultTheme;
     }

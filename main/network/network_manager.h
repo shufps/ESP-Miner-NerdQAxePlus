@@ -18,8 +18,9 @@ class NetworkManager {
     /* Safe to call multiple times */
     esp_err_t init();
 
-    /* Starts WiFi + ETH in parallel */
-    esp_err_t start(const char *wifi_ssid, const char *wifi_pass, const char *hostname);
+    /* Starts WiFi and optionally ETH (pass board->hasEthernet()) */
+    esp_err_t start(const char *wifi_ssid, const char *wifi_pass, const char *hostname,
+                    bool hasEth = false);
 
     /* Wait until either WiFi or ETH has an IP */
     EventBits_t waitAnyIpMs(TickType_t ticks);

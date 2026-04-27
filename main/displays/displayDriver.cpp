@@ -317,17 +317,20 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
 
     case UiState::Wait:
         ESP_LOGI(TAG, "enter state wait");
-        if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
+        // Keep Splash2 visible — system task decides next screen (Portal or Mining).
+        // Cleaning Splash2 here would leave an empty (white) screen with no replacement.
         break;
 
     case UiState::Portal:
         ESP_LOGI(TAG, "enter state portal");
+        if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
         enableLvglAnimations(true);
         safe_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         break;
 
     case UiState::Mining:
         ESP_LOGI(TAG, "enter state mining");
+        if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
         enableLvglAnimations(true);
         if (previousState == UiState::GlobalStats) {
             safe_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);

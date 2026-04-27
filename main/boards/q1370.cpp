@@ -30,10 +30,15 @@ Q1370B::Q1370B() : NerdQaxePlus()
     m_absMaxAsicVoltageMillis = 1400;
     m_initVoltageMillis = 1200;
 
-    m_pidSettings.targetTemp = 55;
-    m_pidSettings.p = 600;  //  6.00
-    m_pidSettings.i = 10;   //  0.10
-    m_pidSettings.d = 1000; // 10.00
+    m_pidSettings[0].targetTemp = 55;
+    m_pidSettings[0].p = 600; //   6.00
+    m_pidSettings[0].i = 10;  //   0.10
+    m_pidSettings[0].d = 1000; // 10.00
+
+    m_pidSettings[1].targetTemp = 65;  // target temp for vreg
+    m_pidSettings[1].p = 600;  //   6.00
+    m_pidSettings[1].i = 10;   //   0.10
+    m_pidSettings[1].d = 1000; // 10.00
 
     m_maxPin = 150.0;
     m_minPin = 52.0;
@@ -51,7 +56,6 @@ Q1370B::Q1370B() : NerdQaxePlus()
 #endif
     m_asics = new BM1370();
     m_hasHashCounter = true;
-    m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
 }
 
 float Q1370B::getTemperature(int index)
