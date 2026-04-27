@@ -101,7 +101,7 @@ static void on_preferred_changed()
     request_stratum_reconnect();
 }
 
-static void setup_network()
+static void setup_network(bool hasEth)
 {
     char *wifi_ssid = Config::getWifiSSID();
     char *wifi_pass = Config::getWifiPass();
@@ -115,7 +115,7 @@ static void setup_network()
 
     NETWORK.setHookPreferredChanged(on_preferred_changed);
 
-    ESP_ERROR_CHECK(NETWORK.start(wifi_ssid, wifi_pass, hostname, board->hasEthernet()));
+    ESP_ERROR_CHECK(NETWORK.start(wifi_ssid, wifi_pass, hostname, hasEth));
 
     // REST server for AP fallback/config (and also reachable via LAN/WiFi)
     start_rest_server(NULL);
@@ -230,10 +230,6 @@ extern "C" void app_main(void)
         ESP_ERROR_CHECK(err);
     }
 
-    if (board->hasEthernet()) {
-        NETWORK.earlyEthSpiInit();
-    }
-
 #ifdef NERDQAXEPLUS
     Board *board = new NerdQaxePlus();
 #endif
@@ -267,6 +263,10 @@ extern "C" void app_main(void)
 
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
+    if (board->hasEthernet()) {
+        NETWORK.earlyEthSpiInit();
+    }
+
     board->loadSettings();
     board->initBoard();
 
@@ -306,7 +306,7 @@ extern "C" void app_main(void)
     xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
     SYSTEM_MODULE.setStartupDone();
 
-    setup_network();
+    setup_network(board->hasEthernet());
 
 
     // when a username is configured we will continue with startup and start mining
