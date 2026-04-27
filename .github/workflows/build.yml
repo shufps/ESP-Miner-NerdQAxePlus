@@ -6,6 +6,8 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    env:
+      RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
     strategy:
       matrix:
         include:
@@ -177,22 +179,22 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # - name: Install rclone
-    #   run: |
-    #     curl -fsSL https://rclone.org/install.sh | sudo bash
+    - name: Install rclone
+      if: env.RCLONE_CONF != ''
+      run: |
+        curl -fsSL https://rclone.org/install.sh | sudo bash
 
-    # - name: Upload to Cloudflare R2 using rclone
-    #   env:
-    #     RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
-    #   run: |
-    #     mkdir -p ~/.config/rclone
-    #     echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+    - name: Upload to Cloudflare R2 using rclone
+      if: env.RCLONE_CONF != ''
+      run: |
+        mkdir -p ~/.config/rclone
+        echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
 
-    #     TARGET_DIR="webflasher/${{ env.VERSION_TAG }}"
+        TARGET_DIR="webflasher/${{ env.VERSION_TAG }}"
 
-    #     while read file; do
-    #       rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
-    #     done < file_list.txt
+        while read file; do
+          rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
+        done < file_list.txt
 
     outputs:
       release_exists: ${{ env.RELEASE_EXISTS }}
