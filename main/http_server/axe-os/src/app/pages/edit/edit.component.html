@@ -332,14 +332,9 @@
         <nb-card>
             <nb-card-header>{{ 'FAN.TITLE' | translate }}</nb-card-header>
             <nb-card-body>
-                <div class="fan-layout">
+                <div>
                     <div class="fan-column">
-                        <div class="form-row fan-column-title-row">
-                            <label class="form-label"></label>
-                            <div class="form-control-wrapper">
-                                <h6 class="fan-column__title">{{ 'FAN.PRIMARY_CONTROLLER' | translate }}</h6>
-                            </div>
-                        </div>
+                        <h6 class="fan-column__title">{{ 'FAN.PRIMARY_CONTROLLER' | translate }}</h6>
 
                         <div class="form-row fan-hint-row"
                              *ngIf="fanCount > 1 && form.controls['fan1Mode'].value !== 3 && fanLabels[0]">
@@ -426,30 +421,10 @@
                         </div>
                     </div>
 
-                    <div class="fan-column" *ngIf="fanCount > 1">
-                        <div class="form-row fan-column-title-row">
-                            <label class="form-label"></label>
-                            <div class="form-control-wrapper">
-                                <h6 class="fan-column__title">{{ 'FAN.SECONDARY_CONTROLLER' | translate }}</h6>
-                            </div>
-                        </div>
+                    <hr *ngIf="fanCount > 1" style="border-color: var(--card-divider-color); margin: 20px 0; opacity:1.0;" />
 
-                        <div class="form-row fan-sync-row fan-sync-row--top" *ngIf="form.controls['fan1Mode'].value === 3">
-                            <label class="form-label"></label>
-                            <div class="form-control-wrapper">
-                                <div class="fan-sync-inner">
-                                    <nb-checkbox
-                                        [checked]="true"
-                                        (checkedChange)="form.controls['fan1Mode'].setValue($event ? 3 : 0)">
-                                        {{ 'FAN.USE_FAN1_SETTINGS' | translate }}
-                                    </nb-checkbox>
-                                    <small class="fan-sync-hint">{{ 'FAN.FAN_SETTINGS_HINT' | translate }}</small>
-                                    <small class="fan-sync-hint fan-sync-hint--important"
-                                           [innerHTML]="'FAN.FAN_SETTINGS_PORTS_HINT' | translate">
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="fan-column" *ngIf="fanCount > 1">
+                        <h6 class="fan-column__title">{{ 'FAN.SECONDARY_CONTROLLER' | translate }}</h6>
 
                         <div class="form-row fan-hint-row" *ngIf="fanLabels[1] && form.controls['fan1Mode'].value !== 3">
                             <label class="form-label"></label>
@@ -460,13 +435,32 @@
                             </div>
                         </div>
 
-                        <div class="form-row" *ngIf="form.controls['fan1Mode'].value !== 3">
+                        <div class="form-row">
                             <label class="form-label">{{ 'FAN.CONTROLLER' | translate }}:</label>
                             <div class="form-control-wrapper">
                                 <nb-select fullWidth formControlName="fan1Mode">
+                                    <nb-option [value]="3">{{ 'FAN.USE_FAN1_SETTINGS' | translate }}</nb-option>
                                     <nb-option [value]="0">{{ 'FAN.MANUAL' | translate }}</nb-option>
                                     <nb-option [value]="2">{{ 'SETTINGS.AUTO_FAN' | translate }} (PID)</nb-option>
                                 </nb-select>
+                            </div>
+                        </div>
+
+                        <div class="form-row" *ngIf="form.controls['fan1Mode'].value === 3">
+                            <label class="form-label"></label>
+                            <div class="form-control-wrapper">
+                                <small class="fan-sync-hint"
+                                       [innerHTML]="'FAN.FAN_LINKED_HINT' | translate">
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="form-row" *ngIf="form.controls['fan1Mode'].value === 3">
+                            <label class="form-label"></label>
+                            <div class="form-control-wrapper">
+                                <small class="fan-sync-hint fan-sync-hint--important"
+                                       [innerHTML]="'FAN.FAN_SETTINGS_PORTS_HINT' | translate">
+                                </small>
                             </div>
                         </div>
 
@@ -523,19 +517,6 @@
                             </div>
                         </div>
 
-                        <div class="form-row fan-sync-row" *ngIf="form.controls['fan1Mode'].value !== 3">
-                            <label class="form-label"></label>
-                            <div class="form-control-wrapper">
-                                <div class="fan-sync-inner">
-                                    <nb-checkbox
-                                        [checked]="form.controls['fan1Mode'].value === 3"
-                                        (checkedChange)="form.controls['fan1Mode'].setValue($event ? 3 : 0)">
-                                        {{ 'FAN.USE_FAN1_SETTINGS_ENABLE' | translate }}
-                                    </nb-checkbox>
-                                    <small class="fan-sync-hint">{{ 'FAN.FAN_SETTINGS_HINT' | translate }}</small>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </nb-card-body>

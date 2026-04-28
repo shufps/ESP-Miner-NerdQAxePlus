@@ -1943,6 +1943,14 @@ nb-card-header{
   grid-row: 2;
 }
 
+.heat-chips--row{
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--chip-gap);
+  margin-top: var(--chip-gap);
+}
+
 
 .chip-square{
   position: relative;

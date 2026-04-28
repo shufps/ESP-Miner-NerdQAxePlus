@@ -37,10 +37,13 @@
     }
 
     .form-label {
-        flex: 0 0 145px;
+        flex: 0 0 110px;
         text-align: right;
         margin-right: 16px;
-        white-space: nowrap;
+
+        @media (min-width: 992px) {
+            flex: 0 0 175px;
+        }
     }
 
     .form-control-wrapper {
@@ -173,25 +176,12 @@
 
     .btn-support { user-select: none; }
 
-    nb-tabset .form-label {
-        flex: 0 0 110px;
-        text-align: right;
-        margin-right: 16px;
-    }
-
-    .fan-layout {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        align-items: start;
-    }
-
     .fan-column {
         min-width: 0;
     }
 
     .fan-column__title {
-        margin: 0 0 8px;
+        margin: 0 0 16px;
         font-size: 1rem;
         font-weight: 700;
     }
@@ -208,42 +198,15 @@
         font-size: 0.85em;
     }
 
-    .fan-sync-row {
-        margin-top: 18px;
-    }
-
-    .fan-sync-row--top {
-        margin-top: 0;
-        margin-bottom: 10px;
-    }
-
-    .fan-sync-inner {
-        padding-top: 12px;
-    }
-
     .fan-sync-hint {
         display: block;
-        margin-top: 4px;
-        margin-left: 1.85rem;
-        padding-left: 0 !important;
         font-size: 0.8rem;
         font-weight: 400;
         opacity: 0.75;
     }
 
-    .fan-sync-hint--important {
-        margin-top: 8px;
-    }
-
     .fan-column .form-row {
         align-items: center;
-    }
-
-    .fan-column .form-label {
-        flex: 0 0 175px;
-        text-align: left;
-        margin-right: 10px;
-        white-space: nowrap;
     }
 
     .fan-column .form-control-wrapper {

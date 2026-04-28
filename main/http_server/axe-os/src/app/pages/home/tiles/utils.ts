@@ -605,40 +605,6 @@ export function normalizeHomeTileInfo(
     };
   }
 
-  // --- Fan channel aliases (support old flat fields + new fans[] API shape)
-  try {
-    const fans = Array.isArray((info as any).fans) ? (info as any).fans : [];
-    const f0 = fans[0] ?? null;
-    const f1 = fans[1] ?? null;
-
-    const num = (v: any): number | null => {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : null;
-    };
-
-    const rpm0 = num((info as any).fanrpm);
-    const spd0 = num((info as any).fanspeed);
-    const rpm1 = num((info as any).fanrpm2);
-    const spd1 = num((info as any).fanspeed2);
-
-    const f0rpm = num(f0?.rpm);
-    const f0spd = num(f0?.speedPerc);
-    const f1rpm = num(f1?.rpm);
-    const f1spd = num(f1?.speedPerc);
-
-    if (rpm0 == null && f0rpm != null) (info as any).fanrpm = f0rpm;
-    if (spd0 == null && f0spd != null) (info as any).fanspeed = f0spd;
-    if (rpm1 == null && f1rpm != null) (info as any).fanrpm2 = f1rpm;
-    if (spd1 == null && f1spd != null) (info as any).fanspeed2 = f1spd;
-
-    const declaredFanCount = num((info as any).fanCount);
-    if ((declaredFanCount == null || declaredFanCount < 1) && fans.length > 0) {
-      (info as any).fanCount = fans.length;
-    }
-  } catch {
-    // keep raw values if shape is unexpected
-  }
-
   // --- Power usage / current / voltage normalization (UI wants neat rounding)
   try {
     info.minVoltage = parseFloat(Number(info.minVoltage).toFixed(1));

@@ -751,6 +751,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         }
       },
       mapInfo: (info) => {
+        // MOCK
+        //(info as any).asicTemps = [50, 51, 52, 53, 54, 55, 53, 51];
+
         // Normalize/derive everything the tiles need (bars + squares).
         const derived = normalizeHomeTileInfo(info as any, {
           powerUsageAliases: HOME_CFG.tiles.powerUsageAliases,
