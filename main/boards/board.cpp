@@ -12,6 +12,7 @@ const static char* TAG = "board";
 Board::Board() {
     m_absMaxAsicFrequency = 0;
     m_absMaxAsicVoltageMillis = 0;
+    m_vrFrequency = m_defaultVrFrequency = 0;
     m_hasHashCounter = false;
     m_ecoAsicFrequency = 0;
     m_ecoAsicVoltageMillis = 0;
@@ -40,6 +41,7 @@ void Board::loadSettings()
     m_asicJobIntervalMs = Config::getAsicJobInterval(m_asicJobIntervalMs);
     m_fanInvertPolarity = Config::isFanPolarity(m_fanInvertPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
+    m_vrFrequency = Config::getVrFrequency(m_defaultVrFrequency);
 
     for (int ch = 0; ch < 2; ch++) {
         m_pidSettings[ch].targetTemp = Config::getFanPidTargetTemp(ch, m_pidSettings[ch].targetTemp);
@@ -142,6 +144,15 @@ bool Board::setAsicFrequency(float frequency) {
     }
 
     return m_asics->setAsicFrequency(frequency);
+}
+
+// set and get version rolling frequency
+// requires loadSettings to update the variables
+void Board::setVrFrequency(uint32_t freq) {
+    if (!m_asics) {
+        return;
+    }
+    m_asics->setVrFrequency(freq);
 }
 
 bool Board::validateVoltage(float core_voltage) {

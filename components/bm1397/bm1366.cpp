@@ -33,7 +33,11 @@ const uint8_t* BM1366::getChipId() {
     return (uint8_t*) chip_id;
 }
 
-uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty)
+uint32_t BM1366::getDefaultVrFrequency() {
+    return vrRegToFreq(0x151c);
+};
+
+uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency)
 {
     // reset is done externally to not have board dependencies
 
@@ -100,8 +104,8 @@ uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     doFrequencyTransition(frequency);
 
-    // set nonce search space (register 0x10) based on frequency and core count
-    setNonceSpace((float)frequency, asic_count, getCoreCount());
+    // set 0x10
+    setVrFrequency(vrFrequency);
 
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
 

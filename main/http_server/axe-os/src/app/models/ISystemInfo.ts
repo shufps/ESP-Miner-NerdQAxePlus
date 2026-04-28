@@ -89,6 +89,8 @@ export interface ISystemInfo {
     lastpingrtt: number,
     recentpingloss: number,
     stratum_keep: number,
+    defaultVrFrequency?: number,
+    vrFrequency: number,
     shutdown: boolean,
 
     stratum: IStratum,

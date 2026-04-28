@@ -34,7 +34,6 @@
 
 #define SLEEP_TIME 20
 #define FREQ_MULT 25.0
-#define NONCE_SPACE 4294967296.0 // 2^32
 
 static inline int next_power_of_two(int num) {
     if (num <= 1) return 1;
@@ -109,6 +108,10 @@ protected:
     virtual uint8_t chipIndexFromAddr(uint8_t addr);
     virtual uint8_t addrFromChipIndex(uint8_t idx);
 
+    // helper functions
+    uint32_t vrFreqToReg(uint32_t freq_hz);
+    uint32_t vrRegToFreq(uint32_t reg);
+
     virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
 
 public:
@@ -123,10 +126,10 @@ public:
     virtual void readCounter(uint8_t reg);
     virtual uint16_t getSmallCoreCount() = 0;
 
-    void setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores);
-    virtual uint16_t getCoreCount() = 0;
+    void setVrFrequency(uint32_t freq);
+    virtual uint32_t getDefaultVrFrequency() = 0;
 
-    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty) = 0;
+    virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency) = 0;
     virtual int setMaxBaud(void);
 };
 

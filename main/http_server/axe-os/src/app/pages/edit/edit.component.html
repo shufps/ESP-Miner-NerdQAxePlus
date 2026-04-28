@@ -308,11 +308,20 @@
                         <label for="jobInterval" class="form-label">Job Interval:</label>
                         <div class="form-control-wrapper">
                             <input nbInput id="jobInterval" formControlName="jobInterval" type="number" /><br />
+                            <small>Mining job switching time in milliseconds.</small>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-control-wrapper-no-label">
-                            <small>Mining job switching time in milliseconds.</small>
+                    <div class="form-row" *ngIf="defaultVrFrequency !== undefined">
+                        <label for="vrFrequency" class="form-label">VR-Frequency:</label>
+                        <div class="form-control-wrapper">
+                            <input nbInput id="vrFrequency" formControlName="vrFrequency" type="number" /><br />
+                            <small>
+                                Version Rolling Frequency.
+                            </small>
+                            <br />
+                            <small>
+                                Calculated wrap-around time: <b>{{ wrapAroundTime | number:'1.2-2' }} s</b>
+                            </small>
                         </div>
                     </div>
                 </ng-container>

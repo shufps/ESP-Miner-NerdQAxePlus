@@ -167,7 +167,13 @@ int Asic::setMaxBaud(void)
     return 1000000;
 }
 
-// Register 0x10 write (MSB -> LSB)
+// set version rolling frequency
+constexpr uint32_t ASIC_IO_CLK_HZ_U32 = 15'000'000u; // 15 MHz
+constexpr uint32_t VR_TICK_DIV_U32    = 5000u;       // VR counter increments every 5000 IO clock cycles
+constexpr uint32_t VR_TICK_HZ_U32     = ASIC_IO_CLK_HZ_U32 / VR_TICK_DIV_U32; // 3000 Hz
+constexpr uint64_t VR_REG_PER_HZ_U64  = 65536ull * VR_TICK_HZ_U32;            // 196,608,000
+
+// Version rolling frequency register @0x10 (MSB -> LSB)
 void Asic::setVrFreqReg(uint32_t value) {
     ESP_LOGI(TAG, "setting 0x10 to %08lx", value);
     send6(CMD_WRITE_ALL, 0x00, 0x10,
@@ -177,20 +183,20 @@ void Asic::setVrFreqReg(uint32_t value) {
           static_cast<uint8_t>((value >>  0) & 0xFF));
 }
 
-void Asic::setNonceSpace(float frequency, uint16_t asic_count, uint16_t cores) {
-    int cores_up = next_power_of_two(cores);
-    int chips_from_interval = (m_addressInterval > 0) ? (256 / m_addressInterval) : next_power_of_two(asic_count);
+// Convert desired VR frequency (Hz, integer) to register value for 0x10
+uint32_t Asic::vrFreqToReg(uint32_t freq_hz) {
+    // reg = round(VR_REG_PER_HZ / freq_hz) using integer division with rounding
+    return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (freq_hz / 2)) / freq_hz);
+}
 
-    float hcn_space = (float)NONCE_SPACE / cores_up / chips_from_interval;
-    double hcn_max = hcn_space * (double)FREQ_MULT / frequency * 0.5;
-    // HW errata: 134 per half clock cycle = 268 overlap between cores
-    uint32_t hcn = (uint32_t)hcn_max;
-    if (hcn > 268) hcn -= 268;
+// Convert 0x10 register value back to VR frequency (Hz, integer)
+uint32_t Asic::vrRegToFreq(uint32_t reg) {
+    // freq = round(VR_REG_PER_HZ / reg) using integer division with rounding
+    return static_cast<uint32_t>((VR_REG_PER_HZ_U64 + (reg / 2)) / reg);
+}
 
-    ESP_LOGI(TAG, "Setting nonce space: cores=%d(%d) chips=%d(interval=%d) freq=%.0f HCN=%lu (max=%lu)",
-             cores, cores_up, chips_from_interval, m_addressInterval, frequency, (unsigned long)hcn, (unsigned long)(uint32_t)hcn_max);
-
-    setVrFreqReg(hcn);
+void Asic::setVrFrequency(uint32_t freq_hz) {
+    setVrFreqReg(vrFreqToReg(freq_hz));
 }
 
 // default calculation using address_interval

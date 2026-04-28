@@ -63,6 +63,7 @@ NerdaxeGamma::NerdaxeGamma() : NerdAxe() {
 
     m_asics = new BM1370();
     m_hasHashCounter = true;
+    m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
 }
 
 
@@ -134,7 +135,7 @@ bool NerdaxeGamma::initAsics() {
     vTaskDelay(pdMS_TO_TICKS(250));
 
     SERIAL_clear_buffer();
-    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty);
+    m_chipsDetected = m_asics->init(m_asicFrequency, m_asicCount, m_asicMaxDifficulty, m_vrFrequency);
     if (!m_chipsDetected) {
         ESP_LOGE(TAG, "error initializing asics!");
         return false;

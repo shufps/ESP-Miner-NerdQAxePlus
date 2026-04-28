@@ -38,6 +38,7 @@ export class EditComponent implements OnInit {
 
   public defaultFrequency: number = 0;
   public defaultCoreVoltage: number = 0;
+  public defaultVrFrequency: number = 0;
   public fanCount: number = 1;
   public fanLabels: string[] = ['Fan 1', 'Fan 2'];
 
@@ -110,6 +111,8 @@ export class EditComponent implements OnInit {
         // Store raw options (can be empty if the endpoint returns nothing)
         this.asicFrequencyValues = asic?.frequencyOptions ?? [];
         this.asicVoltageValues = asic?.voltageOptions ?? [];
+
+        this.defaultVrFrequency = info.defaultVrFrequency ?? undefined;
 
         this.fanCount = info.fans?.length ?? info.fanCount ?? 1;
         this.fanLabels = info.fans?.map((f, i) => f.label || `Fan ${i + 1}`) ?? ['Fan 1', 'Fan 2'];
@@ -227,6 +230,12 @@ export class EditComponent implements OnInit {
             Validators.min(40),
             Validators.max(90),
             Validators.required
+          ]],
+          vrFrequency: [info.vrFrequency, [
+            Validators.min(1000),
+            Validators.max(100000),
+            Validators.pattern(/^\d+$/),   // only ints
+            Validators.required,
           ]],
           otpEnabled: [info.otp],
 
@@ -545,6 +554,14 @@ export class EditComponent implements OnInit {
     this.runSaveWithOptionalOtp();
   }
 
+  get wrapAroundTime(): number {
+    const freq = this.form.get('vrFrequency')?.value;
+    if (!freq || freq <= 0) {
+      return 0;
+    }
+    const wrap = 65536 / freq; // seconds
+    return wrap;
+  }
 
   private runSaveWithOptionalOtp(): void {
     this.otpAuth.ensureOtp$(

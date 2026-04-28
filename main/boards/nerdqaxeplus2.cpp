@@ -42,6 +42,7 @@ NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
 #endif
     m_asics = new BM1370();
     m_hasHashCounter = true;
+    m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
 }
 
 float NerdQaxePlus2::getTemperature(int index) {
