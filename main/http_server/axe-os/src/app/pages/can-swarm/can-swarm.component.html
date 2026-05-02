@@ -1,0 +1,92 @@
+<nb-card class="totals-card" *ngIf="!loading">
+  <nb-card-body>
+    <div class="totals-row">
+      <div class="total-item">
+        <span class="total-label">Devices</span>
+        <span class="total-value">{{ activeCount }}</span>
+      </div>
+      <div class="total-item">
+        <span class="total-label">Total Hashrate</span>
+        <span class="total-value">{{ totalHashRate | number:'1.2-2' }} <span class="unit">GH/s</span></span>
+      </div>
+      <div class="total-item">
+        <span class="total-label">Total Power</span>
+        <span class="total-value">{{ totalPower | number:'1.1-1' }} <span class="unit">W</span></span>
+      </div>
+      <div class="total-item">
+        <span class="total-label">Efficiency</span>
+        <span class="total-value">{{ efficiency | number:'1.2-2' }} <span class="unit">W/TH</span></span>
+      </div>
+    </div>
+  </nb-card-body>
+</nb-card>
+
+<nb-card>
+  <nb-card-header>CAN Swarm</nb-card-header>
+  <nb-card-body>
+
+    <div *ngIf="loading">
+      <h4>Loading...</h4>
+    </div>
+
+    <table *ngIf="!loading" class="can-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>MAC</th>
+          <th>Status</th>
+          <th>Hash Rate</th>
+          <th>Temp</th>
+          <th>VR Temp</th>
+          <th>ASIC Temps</th>
+          <th>Fan 1</th>
+          <th>Fan 2</th>
+          <th>Power</th>
+          <th>Voltage</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of rows"
+            [class.master-row]="s.isMaster"
+            [class.inactive]="!s.active"
+            [class.foreign]="s.foreign"
+            [class.shutdown]="s.shutdown">
+          <td>
+            <span *ngIf="s.isMaster" class="badge badge-master">Master</span>
+            <span *ngIf="!s.isMaster">{{ s.id }}</span>
+          </td>
+          <td class="mac">{{ s.mac }}</td>
+          <td>
+            <span *ngIf="s.shutdown" class="badge badge-danger">SHUTDOWN</span>
+            <span *ngIf="!s.shutdown && s.active" class="badge badge-success">Active</span>
+            <span *ngIf="!s.active" class="badge badge-warning">Offline</span>
+            <span *ngIf="s.foreign" class="badge badge-info" title="From a different fleet">Foreign</span>
+          </td>
+          <td>{{ s.active ? (s.hashRate | number:'1.2-2') + ' GH/s' : '—' }}</td>
+          <td>{{ s.active ? (s.temp | number:'1.1-1') + ' °C' : '—' }}</td>
+          <td>{{ s.active ? (s.vrTemp | number:'1.1-1') + ' °C' : '—' }}</td>
+          <td class="asic-temps">
+            <span *ngIf="s.active && s.asicTemps?.length">
+              {{ s.asicTemps[0] | number:'1.1-1' }} /
+              {{ s.asicTemps[1] | number:'1.1-1' }} /
+              {{ s.asicTemps[2] | number:'1.1-1' }} /
+              {{ s.asicTemps[3] | number:'1.1-1' }} °C
+            </span>
+            <span *ngIf="!s.active || !s.asicTemps?.length">—</span>
+          </td>
+          <td>{{ s.active ? (s.fanRpm + ' RPM (' + s.fanSpeed + '%)') : '—' }}</td>
+          <td>{{ s.active ? (s.fanRpm2 + ' RPM (' + s.fanSpeed2 + '%)') : '—' }}</td>
+          <td>{{ s.active ? (s.power | number:'1.1-1') + ' W' : '—' }}</td>
+          <td>{{ s.active ? s.coreVoltageActual + ' mV' : '—' }}</td>
+          <td>
+            <button *ngIf="!s.isMaster" nbButton status="danger" size="tiny" (click)="deleteSlave(s.id)">
+              <nb-icon icon="trash-2-outline"></nb-icon>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+  </nb-card-body>
+</nb-card>
