@@ -42,6 +42,38 @@ static void send_multiframe(uint32_t can_id, const uint8_t *data, size_t len)
 // Public API
 // ---------------------------------------------------------------------------
 
+void can_send_hello(const uint8_t mac[6])
+{
+    twai_message_t msg = {};
+    msg.identifier       = CAN_ID_HELLO;
+    msg.data_length_code = 6;
+    memcpy(msg.data, mac, 6);
+    twai_transmit(&msg, pdMS_TO_TICKS(50));
+    ESP_LOGD(TAG, "TX HELLO MAC=%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+void can_send_assign(const uint8_t mac[6], uint8_t can_id)
+{
+    twai_message_t msg = {};
+    msg.identifier       = CAN_ID_ASSIGN;
+    msg.data_length_code = 7;
+    memcpy(msg.data, mac, 6);
+    msg.data[6] = can_id;
+    twai_transmit(&msg, pdMS_TO_TICKS(50));
+    ESP_LOGI(TAG, "TX ASSIGN MAC=%02X:%02X:%02X:%02X:%02X:%02X → id=%d",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], can_id);
+}
+
+void can_send_master_boot(void)
+{
+    twai_message_t msg = {};
+    msg.identifier       = CAN_ID_MASTER_BOOT;
+    msg.data_length_code = 0;
+    twai_transmit(&msg, pdMS_TO_TICKS(50));
+    ESP_LOGI(TAG, "TX MASTER_BOOT");
+}
+
 void can_send_telemetry(uint8_t slave_id, const can_slave_telemetry_t *t)
 {
     uint32_t can_id = CAN_ID_TELEMETRY_BASE | (slave_id & 0x7F);
@@ -61,7 +93,12 @@ void can_send_raw_job(uint8_t slave_id, uint8_t job_id, const bm_job *job)
     memcpy(raw.prev_block_hash, job->prev_block_hash_be, 32);
     memcpy(raw.version,        &job->version,         4);
 
+    // Append pool_diff so slave can filter nonces below pool threshold
+    uint8_t payload[sizeof(BM1368_job) + sizeof(uint32_t)];
+    memcpy(payload, &raw, sizeof(BM1368_job));
+    memcpy(payload + sizeof(BM1368_job), &job->pool_diff, sizeof(uint32_t));
+
     uint32_t can_id = CAN_ID_JOB_BASE | (slave_id & 0x7F);
-    ESP_LOGD(TAG, "TX JOB slave=%d ntime=%08lX", slave_id, job->ntime);
-    send_multiframe(can_id, (const uint8_t *)&raw, sizeof(raw));
+    ESP_LOGD(TAG, "TX JOB slave=%d ntime=%08lX pool_diff=%lu", slave_id, job->ntime, job->pool_diff);
+    send_multiframe(can_id, payload, sizeof(payload));
 }

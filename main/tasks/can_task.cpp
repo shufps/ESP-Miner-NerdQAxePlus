@@ -11,6 +11,7 @@ static const char *TAG = "can";
 void can_init()
 {
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_GPIO, CAN_RX_GPIO, TWAI_MODE_NORMAL);
+    g_config.rx_queue_len = 32;  // default=5 is too small for 7-frame telemetry bursts
     g_config.intr_flags = ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_SHARED;
 
     twai_timing_config_t  t_config = TWAI_TIMING_CONFIG_500KBITS();

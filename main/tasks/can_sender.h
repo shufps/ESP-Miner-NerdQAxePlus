@@ -3,11 +3,18 @@
 #include <stdint.h>
 #include "mining.h"
 
-// CAN IDs
+// CAN IDs — negotiation range (0x100)
+#define CAN_ID_HELLO          0x100   // slave broadcast: MAC[6]
+#define CAN_ID_ASSIGN         0x101   // master broadcast: MAC[6] + can_id[1]
+#define CAN_ID_MASTER_BOOT    0x102   // master broadcast: no payload
+
+// CAN IDs — operational range
 #define CAN_ID_JOB_BASE       0x200   // + slave_id, master→slave: raw ASIC job
 #define CAN_ID_NONCE_BASE     0x300   // + slave_id, slave→master: found nonce
 #define CAN_ID_TELEMETRY_BASE 0x400   // + slave_id, slave→master: telemetry
 #define CAN_ID_SETTINGS_BASE  0x500   // + slave_id, master→slave: settings cmd
+
+#define CAN_SLAVE_ID_UNASSIGNED 0xFF
 
 #define CAN_TELEMETRY_VERSION 1
 
@@ -34,7 +41,7 @@ typedef struct __attribute__((__packed__)) {
 
 // Upper 7 bits of extranonce_2 encode the slave_id (0..127).
 // Lower 25 bits are the per-slave rolling counter.
-#define CAN_SLAVE_COUNT     2
+#define CAN_SLAVE_MAX       32   // maximum number of slaves on the bus
 #define CAN_ENONCE2_SLAVE_SHIFT 25
 
 /**
@@ -42,6 +49,15 @@ typedef struct __attribute__((__packed__)) {
  * Call from the slave-side periodic task.
  * slave_id is derived from the DIP switch / isCanSlave config.
  */
+/** Slave broadcasts its MAC address during negotiation. */
+void can_send_hello(const uint8_t mac[6]);
+
+/** Master assigns a CAN ID to a slave identified by MAC. */
+void can_send_assign(const uint8_t mac[6], uint8_t can_id);
+
+/** Master announces a reboot so slaves re-negotiate immediately. */
+void can_send_master_boot(void);
+
 void can_send_telemetry(uint8_t slave_id, const can_slave_telemetry_t *t);
 
 /**

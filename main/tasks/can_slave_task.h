@@ -1,8 +1,13 @@
 #pragma once
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/** Dynamically assigned CAN slave ID. CAN_SLAVE_ID_UNASSIGNED until negotiation completes. */
+extern volatile uint8_t g_can_slave_id;
 
 /**
  * CAN Slave RX task.

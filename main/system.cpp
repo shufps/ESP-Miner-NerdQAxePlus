@@ -113,7 +113,7 @@ int System::get_wifi_rssi()
 
 float System::getCurrentHashrate() {
     if (m_board->hasHashrateCounter()) {
-        return HASHRATE_MONITOR.getSmoothedTotalChipHashrate();
+        return HASHRATE_MONITOR.getSmoothedTotalChipHashrate() + HASHRATE_MONITOR.getExternalHashrate();
     }
     return getCurrentHashrate10m();
 }

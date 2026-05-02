@@ -59,7 +59,7 @@ FactoryOTAUpdate FACTORY_OTA_UPDATER;
 DiscordAlerter discordAlerter;
 
 AsicJobs asicJobs;
-AsicJobs slaveAsicJobs[CAN_SLAVE_COUNT];
+AsicJobs slaveAsicJobs[CAN_SLAVE_MAX];
 
 OTP otp;
 SNTP sntp;
@@ -317,9 +317,7 @@ extern "C" void app_main(void)
         xTaskCreate(can_slave_task, "can slave", 4096, NULL, 10, NULL);
         xTaskCreate(can_slave_result_task, "can result", 4096, NULL, 10, NULL);
 
-        uint8_t slave_id = board->getCanSlaveId();
-        xTaskCreate(can_slave_telemetry_task, "can telem", 4096,
-                    (void *)(uint32_t) slave_id, 5, NULL);
+        xTaskCreate(can_slave_telemetry_task, "can telem", 4096, NULL, 5, NULL);
 
         if (board->hasHashrateCounter()) {
             HASHRATE_MONITOR.start(board, board->getAsics());

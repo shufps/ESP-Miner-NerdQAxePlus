@@ -3,6 +3,7 @@
 #include <string.h>
 #include "driver/twai.h"
 #include "esp_log.h"
+#include "esp_mac.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -11,8 +12,47 @@
 #include "global_state.h"
 #include "boards/board.h"
 #include "hashrate_monitor_task.h"
+#include "mining.h"
+#include "mining_utils.h"
 
 static const char *TAG = "can_slave";
+
+// Dynamically assigned CAN ID — CAN_SLAVE_ID_UNASSIGNED until negotiation completes
+volatile uint8_t g_can_slave_id = CAN_SLAVE_ID_UNASSIGNED;
+
+// Job payload = BM1368_job (82 bytes) + pool_diff (4 bytes)
+#define JOB_PAYLOAD_LEN (sizeof(BM1368_job) + sizeof(uint32_t))
+
+// Per-job-id store: BM1368_job + pool_diff for nonce filtering
+static BM1368_job  s_jobs[256];
+static uint32_t    s_pool_diffs[256];
+static bool        s_job_valid[256];
+
+// Recover bm_job LE fields from BM1368_job BE fields and call test_nonce_value().
+static double calc_nonce_diff(const BM1368_job *j, uint32_t nonce, uint32_t rolled_version)
+{
+    bm_job tmp = {};
+    uint8_t t[32];
+
+    // BM1368_job.prev_block_hash = prev_block_hash_be = reverse_bytes(_prev_block_hash_binary)
+    // bm_job.prev_block_hash = swap_endian_words_bin(_prev_block_hash_binary)
+    //   → swap_endian_words_bin(reverse_bytes(BM1368_job.prev_block_hash))
+    memcpy(t, j->prev_block_hash, 32);
+    reverse_bytes(t, 32);
+    swap_endian_words_bin(t, tmp.prev_block_hash, 32);
+
+    // BM1368_job.merkle_root = merkle_root_be = reverse_bytes(swap_endian_words(hex_merkle))
+    // bm_job.merkle_root = hex2bin(hex_merkle)
+    //   → swap_endian_words_bin(reverse_bytes(BM1368_job.merkle_root))
+    memcpy(t, j->merkle_root, 32);
+    reverse_bytes(t, 32);
+    swap_endian_words_bin(t, tmp.merkle_root, 32);
+
+    memcpy(&tmp.ntime,  j->ntime, 4);
+    memcpy(&tmp.target, j->nbits, 4);
+
+    return test_nonce_value(&tmp, nonce, rolled_version);
+}
 
 // Nonce response layout sent back to master (9 bytes, 2 CAN frames):
 //   [0..3]  nonce
@@ -54,53 +94,93 @@ void can_slave_task(void *pvParameters)
     Board *board = SYSTEM_MODULE.getBoard();
     Asic  *asics = board->getAsics();
 
-    const uint8_t my_id = board->getCanSlaveId();
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    ESP_LOGI(TAG, "CAN slave MAC=%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-    // Reassembly buffer — big enough for one BM1368_job (82 bytes)
+    typedef enum { SLAVE_UNASSIGNED, SLAVE_ACTIVE } slave_state_t;
+    slave_state_t state = SLAVE_UNASSIGNED;
+
+    TickType_t last_hello = xTaskGetTickCount() - pdMS_TO_TICKS(1000); // send immediately
+    TickType_t last_job   = 0;
+
     uint8_t  buf[128];
-    size_t   buf_len   = 0;
-    bool     in_frame  = false;
-
-    ESP_LOGI(TAG, "CAN slave task started (slave_id=%d)", my_id);
+    size_t   buf_len  = 0;
+    bool     in_frame = false;
 
     for (;;) {
+        TickType_t now = xTaskGetTickCount();
+
+        // Send HELLO periodically while unassigned
+        if (state == SLAVE_UNASSIGNED && (now - last_hello) >= pdMS_TO_TICKS(1000)) {
+            can_send_hello(mac);
+            last_hello = now;
+        }
+
         twai_message_t msg;
         esp_err_t err = twai_receive(&msg, pdMS_TO_TICKS(100));
 
-        if (err == ESP_ERR_TIMEOUT) {
-            continue;
-        }
+        if (err == ESP_ERR_TIMEOUT) continue;
         if (err != ESP_OK) {
             ESP_LOGW(TAG, "twai_receive error: %s", esp_err_to_name(err));
             continue;
         }
 
-        // Only handle JOB frames addressed to us
-        if (msg.identifier != (uint32_t)(CAN_ID_JOB_BASE | my_id)) {
+        // ── Negotiation frames ────────────────────────────────────────────────
+
+        if (msg.identifier == CAN_ID_MASTER_BOOT) {
+            ESP_LOGI(TAG, "Master boot detected → re-negotiating");
+            state          = SLAVE_UNASSIGNED;
+            g_can_slave_id = CAN_SLAVE_ID_UNASSIGNED;
+            last_hello     = now - pdMS_TO_TICKS(1000);
+            in_frame = false;
+            buf_len  = 0;
             continue;
         }
 
-        if (msg.data_length_code < 1) {
+        if (msg.identifier == CAN_ID_ASSIGN && msg.data_length_code == 7) {
+            if (memcmp(msg.data, mac, 6) == 0) {
+                uint8_t id = msg.data[6];
+                ESP_LOGI(TAG, "Assigned CAN ID=%d", id);
+                g_can_slave_id = id;
+                state    = SLAVE_ACTIVE;
+                last_job = now;
+            }
             continue;
         }
 
-        uint8_t seq   = msg.data[0];
+        if (state == SLAVE_UNASSIGNED) continue;
+
+        // ── Job timeout → re-negotiate ────────────────────────────────────────
+
+        if (last_job && (now - last_job) >= pdMS_TO_TICKS(10000)) {
+            ESP_LOGW(TAG, "No job for 10s → re-negotiating");
+            state          = SLAVE_UNASSIGNED;
+            g_can_slave_id = CAN_SLAVE_ID_UNASSIGNED;
+            last_hello     = now - pdMS_TO_TICKS(1000);
+            in_frame = false;
+            buf_len  = 0;
+            continue;
+        }
+
+        // ── JOB frame reassembly ──────────────────────────────────────────────
+
+        if (msg.identifier != (uint32_t)(CAN_ID_JOB_BASE | g_can_slave_id)) continue;
+        if (msg.data_length_code < 1) continue;
+
+        uint8_t  seq  = msg.data[0];
         uint8_t *data = &msg.data[1];
         size_t   dlen = msg.data_length_code - 1;
 
         if (seq == 0x00) {
-            // Start (or restart) of a new job — always reset
-            if (in_frame) {
-                ESP_LOGW(TAG, "new job seq=0 while in_frame, discarding %d bytes", buf_len);
-            }
+            if (in_frame) ESP_LOGW(TAG, "new job seq=0 while in_frame, discarding %d bytes", buf_len);
             buf_len  = 0;
             in_frame = true;
         } else if (!in_frame) {
-            // Continuation/last frame without a start — ignore
             continue;
         }
 
-        // Append payload
         if (buf_len + dlen > sizeof(buf)) {
             ESP_LOGW(TAG, "reassembly overflow, discarding");
             in_frame = false;
@@ -110,17 +190,23 @@ void can_slave_task(void *pvParameters)
         buf_len += dlen;
 
         if (seq == CAN_SEQ_LAST) {
-            // Full job received
             in_frame = false;
+            last_job = now; // reset timeout on successful job
 
-            if (buf_len != sizeof(BM1368_job)) {
-                ESP_LOGW(TAG, "unexpected job size %d (expected %d)", buf_len, sizeof(BM1368_job));
+            if (buf_len != JOB_PAYLOAD_LEN) {
+                ESP_LOGW(TAG, "unexpected job size %d (expected %d)", buf_len, JOB_PAYLOAD_LEN);
                 continue;
             }
 
             BM1368_job *job = (BM1368_job *) buf;
-            ESP_LOGI(TAG, "RX JOB job_id=%02X → sendRawJob", job->job_id);
+            uint32_t pool_diff;
+            memcpy(&pool_diff, buf + sizeof(BM1368_job), sizeof(uint32_t));
 
+            s_jobs[job->job_id]       = *job;
+            s_pool_diffs[job->job_id] = pool_diff;
+            s_job_valid[job->job_id]  = true;
+
+            ESP_LOGI(TAG, "RX JOB job_id=%02X pool_diff=%lu → sendRawJob", job->job_id, pool_diff);
             asics->sendRawJob(job);
         }
     }
@@ -128,20 +214,23 @@ void can_slave_task(void *pvParameters)
 
 void can_slave_result_task(void *pvParameters)
 {
-    Board  *board   = SYSTEM_MODULE.getBoard();
-    Asic   *asics   = board->getAsics();
-    uint8_t my_id   = board->getCanSlaveId();
+    Board  *board = SYSTEM_MODULE.getBoard();
+    Asic   *asics = board->getAsics();
 
-    ESP_LOGI(TAG, "CAN slave result task started (slave_id=%d)", my_id);
+    ESP_LOGI(TAG, "CAN slave result task started");
 
     for (;;) {
+        if (g_can_slave_id == CAN_SLAVE_ID_UNASSIGNED) {
+            vTaskDelay(pdMS_TO_TICKS(100));
+            continue;
+        }
+
         task_result result;
         if (!asics->processWork(&result)) {
             continue;
         }
 
         if (result.is_reg_resp) {
-            // Handle register responses (temp, hashrate counter)
             switch (result.reg) {
                 case 0xb4:
                     if (result.data & 0x80000000) {
@@ -158,25 +247,38 @@ void can_slave_result_task(void *pvParameters)
             continue;
         }
 
-        // Actual nonce found
-        ESP_LOGI(TAG, "NONCE nonce=%08lX job_id=%02X → TX to master", result.nonce, result.job_id);
-        send_nonce(my_id, &result);
+        if (s_job_valid[result.job_id]) {
+            uint32_t version;
+            memcpy(&version, s_jobs[result.job_id].version, 4);
+            double diff = calc_nonce_diff(&s_jobs[result.job_id], result.nonce, result.rolled_version ^ version);
+            uint32_t pool_diff = s_pool_diffs[result.job_id];
+
+            if (diff < pool_diff) {
+                ESP_LOGI(TAG, "NONCE job=%02X nonce=%08lX diff=%.1f/%lu → drop",
+                         result.job_id, result.nonce, diff, pool_diff);
+                continue;
+            }
+            ESP_LOGI(TAG, "NONCE job=%02X nonce=%08lX diff=%.1f/%lu → TX to master",
+                     result.job_id, result.nonce, diff, pool_diff);
+        } else {
+            ESP_LOGI(TAG, "NONCE nonce=%08lX job_id=%02X (no job stored) → TX to master",
+                     result.nonce, result.job_id);
+        }
+        send_nonce(g_can_slave_id, &result);
     }
 }
 
 void can_slave_telemetry_task(void *pvParameters)
 {
-    uint8_t slave_id = (uint8_t)(uint32_t) pvParameters;
-    Board  *board    = SYSTEM_MODULE.getBoard();
+    Board *board = SYSTEM_MODULE.getBoard();
 
-    ESP_LOGI(TAG, "telemetry task started (slave_id=%d)", slave_id);
+    ESP_LOGI(TAG, "CAN slave telemetry task started");
 
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(1000));
 
-        if (POWER_MANAGEMENT_MODULE.isShutdown()) {
-            // still send telemetry so master knows we shut down
-        }
+        uint8_t slave_id = g_can_slave_id;
+        if (slave_id == CAN_SLAVE_ID_UNASSIGNED) continue;
 
         can_slave_telemetry_t t = {};
         t.version           = CAN_TELEMETRY_VERSION;

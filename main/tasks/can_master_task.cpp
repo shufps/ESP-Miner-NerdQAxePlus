@@ -17,6 +17,46 @@
 
 static const char *TAG = "can_master";
 
+// ── Slave registry (in-RAM, rebuilt every master boot) ───────────────────────
+
+typedef struct {
+    uint8_t mac[6];
+    bool    used;
+} slave_reg_entry_t;
+
+static slave_reg_entry_t s_slave_reg[CAN_SLAVE_MAX] = {};
+
+bool can_master_is_slave_active(uint8_t slave_id)
+{
+    if (slave_id >= CAN_SLAVE_MAX) return false;
+    return s_slave_reg[slave_id].used;
+}
+
+static void handle_hello(const uint8_t mac[6])
+{
+    // Known slave → re-assign same ID (IDs start at 1, 0 is reserved for master)
+    for (int i = 1; i < CAN_SLAVE_MAX; i++) {
+        if (s_slave_reg[i].used && memcmp(s_slave_reg[i].mac, mac, 6) == 0) {
+            ESP_LOGI(TAG, "HELLO re-assign MAC=%02X:%02X:%02X:%02X:%02X:%02X → id=%d",
+                     mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], i);
+            can_send_assign(mac, (uint8_t) i);
+            return;
+        }
+    }
+    // New slave → assign next free slot (ID 0 reserved for master)
+    for (int i = 1; i < CAN_SLAVE_MAX; i++) {
+        if (!s_slave_reg[i].used) {
+            memcpy(s_slave_reg[i].mac, mac, 6);
+            s_slave_reg[i].used = true;
+            ESP_LOGI(TAG, "HELLO new slave MAC=%02X:%02X:%02X:%02X:%02X:%02X → assigned id=%d",
+                     mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], i);
+            can_send_assign(mac, (uint8_t) i);
+            return;
+        }
+    }
+    ESP_LOGW(TAG, "HELLO from unknown slave but registry full (max %d)", CAN_SLAVE_MAX);
+}
+
 // Nonce payload layout (matches can_slave_task.cpp):
 //   [0..3]  nonce
 //   [4..7]  rolled_version
@@ -33,7 +73,7 @@ typedef struct {
 } slave_rx_t;
 
 // Telemetry table — updated whenever a full telemetry frame arrives from a slave
-static can_slave_telemetry_t s_slave_telemetry[CAN_SLAVE_COUNT] = {};
+static can_slave_telemetry_t s_slave_telemetry[CAN_SLAVE_MAX] = {};
 
 static void handle_nonce(Board *board, uint8_t slave_id, const uint8_t *buf, size_t len)
 {
@@ -91,17 +131,23 @@ static void handle_telemetry(uint8_t slave_id, const uint8_t *buf, size_t len)
 
     memcpy(&s_slave_telemetry[slave_id], buf, sizeof(can_slave_telemetry_t));
 
-    ESP_LOGD(TAG, "slave %d telemetry: hr=%.1f GH/s temp=%.1f°C pwr=%.1f W shutdown=%d",
+    const can_slave_telemetry_t *t = &s_slave_telemetry[slave_id];
+    ESP_LOGI(TAG, "slave %d | hr=%.1fGH/s | temp=%.1f°C vr=%.1f°C"
+             " | fan0=%uRPM(%u%%) fan1=%uRPM(%u%%)"
+             " | pwr=%.1fW cur=%umA vout=%umV"
+             " | %s",
              slave_id,
-             s_slave_telemetry[slave_id].hashRate,
-             s_slave_telemetry[slave_id].temp,
-             s_slave_telemetry[slave_id].power,
-             s_slave_telemetry[slave_id].shutdown);
+             t->hashRate,
+             t->temp, t->vrTemp,
+             t->fanRpm, t->fanSpeed,
+             t->fanRpm2, t->fanSpeed2,
+             t->power, t->current, t->coreVoltageActual,
+             t->shutdown ? "SHUTDOWN" : "ok");
 
     // Recompute total external hashrate from all slaves
     float total = 0.0f;
-    for (int i = 0; i < CAN_SLAVE_COUNT; i++) {
-        total += s_slave_telemetry[i].hashRate;
+    for (int i = 0; i < CAN_SLAVE_MAX; i++) {
+        if (s_slave_reg[i].used) total += s_slave_telemetry[i].hashRate;
     }
     HASHRATE_MONITOR.setExternalHashrate(total);
 }
@@ -111,10 +157,13 @@ void can_master_task(void *pvParameters)
     Board *board = SYSTEM_MODULE.getBoard();
 
     // Separate reassembly slots: nonce[slave] and telemetry[slave]
-    static slave_rx_t nonce_rx[CAN_SLAVE_COUNT]    = {};
-    static slave_rx_t telem_rx[CAN_SLAVE_COUNT]    = {};
+    static slave_rx_t nonce_rx[CAN_SLAVE_MAX]    = {};
+    static slave_rx_t telem_rx[CAN_SLAVE_MAX]    = {};
 
     ESP_LOGI(TAG, "CAN master receiver started");
+
+    // Announce boot so any already-running slaves re-negotiate immediately
+    can_send_master_boot();
 
     for (;;) {
         twai_message_t msg;
@@ -128,6 +177,12 @@ void can_master_task(void *pvParameters)
             continue;
         }
 
+        // ── Negotiation frames ────────────────────────────────────────────────
+        if (msg.identifier == CAN_ID_HELLO && msg.data_length_code == 6) {
+            handle_hello(msg.data);
+            continue;
+        }
+
         if (msg.data_length_code < 1) {
             continue;
         }
@@ -135,7 +190,7 @@ void can_master_task(void *pvParameters)
         uint32_t base     = msg.identifier & 0xF80;
         uint8_t  slave_id = (uint8_t)(msg.identifier & 0x7F);
 
-        if (slave_id >= CAN_SLAVE_COUNT) {
+        if (slave_id >= CAN_SLAVE_MAX) {
             continue;
         }
 

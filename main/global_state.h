@@ -31,7 +31,7 @@ extern APIsFetcher APIs_FETCHER;
 extern FactoryOTAUpdate FACTORY_OTA_UPDATER;
 
 extern AsicJobs asicJobs;
-extern AsicJobs slaveAsicJobs[CAN_SLAVE_COUNT];
+extern AsicJobs slaveAsicJobs[CAN_SLAVE_MAX];
 extern DiscordAlerter discordAlerter;
 
 extern OTP otp;

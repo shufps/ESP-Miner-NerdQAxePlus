@@ -11,6 +11,7 @@
 #include "global_state.h"
 #include "create_jobs_task.h"
 #include "can_sender.h"
+#include "can_master_task.h"
 
 #include "boards/board.h"
 #include "macros.h"
@@ -308,7 +309,7 @@ void create_jobs_task(void *pvParameters)
     uint32_t extranonce_2 = 0;
 
     // CAN: per-slave rolling counters (upper 7 bits = slave_id, lower 25 = counter)
-    uint32_t slave_counters[CAN_SLAVE_COUNT] = {0};
+    uint32_t slave_counters[CAN_SLAVE_MAX] = {0};
 
     int lastJobInterval = board->getAsicJobIntervalMs();
 
@@ -377,7 +378,8 @@ void create_jobs_task(void *pvParameters)
         extranonce_2++;
 
         // --- CAN: send raw job to each slave ---
-        for (uint8_t slave = 0; slave < CAN_SLAVE_COUNT; slave++) {
+        for (uint8_t slave = 0; slave < CAN_SLAVE_MAX; slave++) {
+            if (!can_master_is_slave_active(slave)) continue;
             uint32_t e2 = can_make_extranonce2(slave, slave_counters[slave]++);
 
             bm_job *slave_job = nullptr;
