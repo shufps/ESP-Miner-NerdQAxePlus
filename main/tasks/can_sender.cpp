@@ -65,13 +65,16 @@ void can_send_assign(const uint8_t mac[6], uint8_t can_id)
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], can_id);
 }
 
-void can_send_master_boot(void)
+void can_send_master_boot(const uint8_t master_mac[6])
 {
     twai_message_t msg = {};
     msg.identifier       = CAN_ID_MASTER_BOOT;
-    msg.data_length_code = 0;
+    msg.data_length_code = 6;
+    memcpy(msg.data, master_mac, 6);
     twai_transmit(&msg, pdMS_TO_TICKS(50));
-    ESP_LOGI(TAG, "TX MASTER_BOOT");
+    ESP_LOGI(TAG, "TX MASTER_BOOT MAC=%02X:%02X:%02X:%02X:%02X:%02X",
+             master_mac[0], master_mac[1], master_mac[2],
+             master_mac[3], master_mac[4], master_mac[5]);
 }
 
 void can_send_telemetry(uint8_t slave_id, const can_slave_telemetry_t *t)

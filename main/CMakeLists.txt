@@ -42,6 +42,7 @@ SRCS
     "./http_server/handler_influx.cpp"
     "./http_server/handler_alert.cpp"
     "./http_server/handler_swarm.cpp"
+    "./http_server/handler_can_swarm.cpp"
     "./http_server/handler_system.cpp"
     "./http_server/handler_ota.cpp"
     "./http_server/handler_otp.cpp"

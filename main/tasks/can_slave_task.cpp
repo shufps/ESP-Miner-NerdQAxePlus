@@ -20,6 +20,7 @@ static const char *TAG = "can_slave";
 // Dynamically assigned CAN ID — CAN_SLAVE_ID_UNASSIGNED until negotiation completes
 volatile uint8_t g_can_slave_id = CAN_SLAVE_ID_UNASSIGNED;
 
+
 // Job payload = BM1368_job (82 bytes) + pool_diff (4 bytes)
 #define JOB_PAYLOAD_LEN (sizeof(BM1368_job) + sizeof(uint32_t))
 
@@ -146,6 +147,9 @@ void can_slave_task(void *pvParameters)
                 g_can_slave_id = id;
                 state    = SLAVE_ACTIVE;
                 last_job = now;
+                // Persist master MAC so we can detect fleet changes on next boot.
+                // ASSIGN comes from master, master MAC is not in this frame —
+                // we learn it from MASTER_BOOT instead (stored on first boot).
             }
             continue;
         }

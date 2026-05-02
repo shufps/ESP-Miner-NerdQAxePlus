@@ -14,6 +14,7 @@
 #include "http_websocket.h"
 #include "handler_influx.h"
 #include "handler_swarm.h"
+#include "handler_can_swarm.h"
 #include "handler_system.h"
 #include "handler_ota.h"
 #include "handler_restart.h"
@@ -144,7 +145,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.max_uri_handlers = 35;
+    config.max_uri_handlers = 40;
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
     config.stack_size = 12288;
@@ -195,6 +196,22 @@ esp_err_t start_rest_server(void * pvParameters)
         .user_ctx = NULL,
     };
     httpd_register_uri_handler(http_server, &swarm_options_uri);
+
+    httpd_uri_t can_slaves_get_uri = {
+        .uri = "/api/can/slaves", .method = HTTP_GET, .handler = GET_can_slaves, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &can_slaves_get_uri);
+
+    httpd_uri_t can_slaves_options_uri = {
+        .uri = "/api/can/slaves", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &can_slaves_options_uri);
+
+    httpd_uri_t can_slave_delete_uri = {
+        .uri = "/api/can/slaves/*", .method = HTTP_DELETE, .handler = DELETE_can_slave, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &can_slave_delete_uri);
+
+    httpd_uri_t can_slave_delete_options_uri = {
+        .uri = "/api/can/slaves/*", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &can_slave_delete_options_uri);
 
     httpd_uri_t system_restart_uri = {
         .uri = "/api/system/restart", .method = HTTP_POST, .handler = POST_restart, .user_ctx = rest_context};

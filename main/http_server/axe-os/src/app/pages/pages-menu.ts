@@ -13,6 +13,11 @@ export const MENU_ITEMS: NbMenuItem[] = [
     link: '/pages/swarm',
   },
   {
+    title: 'CAN Swarm',
+    icon: 'radio-outline',
+    link: '/pages/can-swarm',
+  },
+  {
     title: 'Settings',
     icon: 'settings-2-outline',
     link: '/pages/settings',

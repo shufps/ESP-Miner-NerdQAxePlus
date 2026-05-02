@@ -49,14 +49,14 @@ typedef struct __attribute__((__packed__)) {
  * Call from the slave-side periodic task.
  * slave_id is derived from the DIP switch / isCanSlave config.
  */
-/** Slave broadcasts its MAC address during negotiation. */
+/** Slave broadcasts its MAC address during negotiation (6 bytes, single frame). */
 void can_send_hello(const uint8_t mac[6]);
 
 /** Master assigns a CAN ID to a slave identified by MAC. */
 void can_send_assign(const uint8_t mac[6], uint8_t can_id);
 
-/** Master announces a reboot so slaves re-negotiate immediately. */
-void can_send_master_boot(void);
+/** Master announces a reboot with its own MAC so slaves can detect fleet changes. */
+void can_send_master_boot(const uint8_t master_mac[6]);
 
 void can_send_telemetry(uint8_t slave_id, const can_slave_telemetry_t *t);
 

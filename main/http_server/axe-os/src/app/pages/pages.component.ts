@@ -62,6 +62,11 @@ import { NbMenuItem } from '@nebular/theme';
                 link: '/pages/security',
             },
             {
+                title: 'CAN Swarm',
+                icon: 'radio-outline',
+                link: '/pages/can-swarm',
+            },
+            {
                 title: this.translateService.instant('NAVIGATION.SYSTEM'),
                 icon: 'menu-outline',
                 link: '/pages/system',

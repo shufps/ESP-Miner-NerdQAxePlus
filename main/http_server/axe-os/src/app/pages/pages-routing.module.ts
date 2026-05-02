@@ -10,6 +10,7 @@ import { SystemComponent } from './system/system.component';
 import { SwarmComponent } from './swarm/swarm.component';
 import { AlertComponent } from './alert/alert.component';
 import { SecurityComponent } from './security/security.component';
+import { CanSwarmComponent } from './can-swarm/can-swarm.component';
 
 const routes: Routes = [{
   path: '',
@@ -47,6 +48,10 @@ const routes: Routes = [{
     {
       path: 'security',
       component: SecurityComponent
+    },
+    {
+      path: 'can-swarm',
+      component: CanSwarmComponent
     },
     {
       path: '**',
