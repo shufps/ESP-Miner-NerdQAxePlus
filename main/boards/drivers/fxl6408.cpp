@@ -7,13 +7,17 @@
 #define REG_DIRECTION     0x03
 #define REG_OUTPUT_STATE  0x05
 #define REG_OUTPUT_HZ     0x07
+#define REG_PULL_ENABLE   0x0b  // 1 = pull resistor enabled (per pin)
+#define REG_PULL_SELECT   0x0d  // 1 = pull-up, 0 = pull-down (per pin)
 #define REG_INPUT_STATUS  0x0f
 
 static const char* TAG = "fxl6408";
 
 Fxl6408::Fxl6408()
-    : m_direction(0x00),      // default all inputs
-      m_output_state(0x00)
+    : m_direction(0x00),
+      m_output_state(0x00),
+      m_pull_enable(0x00),
+      m_pull_select(0x00)
 {
     m_address = 0x43;
 }
@@ -94,4 +98,32 @@ esp_err_t Fxl6408::write(uint8_t pin, bool level)
 esp_err_t Fxl6408::inputStatus(uint8_t* value) {
     *value = 0xaa;
     return read_reg(REG_INPUT_STATUS, value);
+}
+
+esp_err_t Fxl6408::enable_pull_up(uint8_t pin)
+{
+    if (pin > 7)
+        return ESP_ERR_INVALID_ARG;
+
+    uint8_t mask = (1 << pin);
+
+    m_pull_select |= mask;
+    esp_err_t err = write_reg(REG_PULL_SELECT, m_pull_select);
+    if (err != ESP_OK) return err;
+
+    m_pull_enable |= mask;
+    return write_reg(REG_PULL_ENABLE, m_pull_enable);
+}
+
+esp_err_t Fxl6408::read_pin(uint8_t pin, bool *level)
+{
+    if (pin > 7)
+        return ESP_ERR_INVALID_ARG;
+
+    uint8_t status = 0;
+    esp_err_t err = read_reg(REG_INPUT_STATUS, &status);
+    if (err != ESP_OK) return err;
+
+    *level = (status >> pin) & 0x01;
+    return ESP_OK;
 }

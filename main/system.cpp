@@ -203,7 +203,7 @@ void System::pushHistory() {
     constexpr float alpha = 0.50f; // slight smoothing
 
     uint64_t timestamp = esp_timer_get_time() / 1000llu;
-    float hashrate = HASHRATE_MONITOR.getHashrate();
+    float hashrate = HASHRATE_MONITOR.getHashrate() + HASHRATE_MONITOR.getExternalHashrate();
     float vregTemp = POWER_MANAGEMENT_MODULE.getVRTemp();
     float asicTemp = POWER_MANAGEMENT_MODULE.getChipTempMax();
 

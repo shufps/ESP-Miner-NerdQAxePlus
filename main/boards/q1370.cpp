@@ -10,6 +10,7 @@ static const char *TAG = "q1370";
 #define ASIC_RESET_EXP_PIN 0
 #define VREG_EXP_PIN 1
 #define LDO_EXP_PIN 2
+#define CAN_SLAVE_EXP_PIN 5  // DIP switch: pulled to GND = slave mode, pull-up required
 
 Q1370B::Q1370B() : NerdQaxePlus()
 {
@@ -91,7 +92,7 @@ bool Q1370B::initBoard()
 
     m_tmp451 = new Tmp451MuxExp(&m_io, 3, 4, 0x4c, true);
     m_hasTMux = m_tmp451->init() == ESP_OK;
-
+#if 0
     if (!m_hasTMux) {
         ESP_LOGE(TAG, "TMUX probe failed. Assuming non-QX board; applying safety limits.");
 
@@ -102,7 +103,7 @@ bool Q1370B::initBoard()
         // reload settings to apply new absMax values
         loadSettings();
     }
-
+#endif
     if (!m_io.init()) {
         ESP_LOGE(TAG, "FXL6408 failed init");
         return false;
@@ -117,6 +118,11 @@ bool Q1370B::initBoard()
 
     m_io.set_direction(ASIC_RESET_EXP_PIN, true);
     m_io.write(ASIC_RESET_EXP_PIN, false);
+
+    // CAN slave detect: pin 5 is input with pull-up.
+    // DIP switch pulls to GND on slave boards; open = master.
+    m_io.set_direction(CAN_SLAVE_EXP_PIN, false);
+    m_io.enable_pull_up(CAN_SLAVE_EXP_PIN);
 
     return true;
 }
@@ -143,6 +149,19 @@ void Q1370B::VREG_disable()
 void Q1370B::setAsicReset(bool state)
 {
     m_io.write(ASIC_RESET_EXP_PIN, state);
+}
+
+bool Q1370B::isCanSlave()
+{
+    // Pin 5 is input with pull-up (configured in initBoard()).
+    // DIP switch pulls to GND on slave → low = slave, high/open = master.
+    bool level = true;
+    if (m_io.read_pin(CAN_SLAVE_EXP_PIN, &level) != ESP_OK) {
+        ESP_LOGE(TAG, "failed to read CAN slave detect pin");
+        return false;
+    }
+    ESP_LOGI(TAG, "CAN slave detect pin: %d (%s)", level, level ? "master" : "slave");
+    return !level;
 }
 
 void Q1370B::requestChipTemps() {

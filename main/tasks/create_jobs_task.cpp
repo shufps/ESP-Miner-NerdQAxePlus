@@ -10,6 +10,7 @@
 
 #include "global_state.h"
 #include "create_jobs_task.h"
+#include "can_sender.h"
 
 #include "boards/board.h"
 #include "macros.h"
@@ -306,6 +307,9 @@ void create_jobs_task(void *pvParameters)
     uint64_t last_submit_time = 0;
     uint32_t extranonce_2 = 0;
 
+    // CAN: per-slave rolling counters (upper 7 bits = slave_id, lower 25 = counter)
+    uint32_t slave_counters[CAN_SLAVE_COUNT] = {0};
+
     int lastJobInterval = board->getAsicJobIntervalMs();
 
     while (1) {
@@ -371,6 +375,28 @@ void create_jobs_task(void *pvParameters)
         asicJobs.storeJob(next_job, asic_job_id);
 
         extranonce_2++;
+
+        // --- CAN: send raw job to each slave ---
+        for (uint8_t slave = 0; slave < CAN_SLAVE_COUNT; slave++) {
+            uint32_t e2 = can_make_extranonce2(slave, slave_counters[slave]++);
+
+            bm_job *slave_job = nullptr;
+            {
+                PThreadGuard g(current_stratum_job_mutex);
+                MiningInfoBase *mi = miningInfo[active_pool];
+                if (mi->isValid()) {
+                    uint32_t asic_diff = STRATUM_MANAGER->selectAsicDiff(active_pool, mi->getActiveDifficulty());
+                    slave_job = mi->buildBmJob(e2, active_pool, asic_diff);
+                }
+            }
+
+            if (slave_job) {
+                can_send_raw_job(slave, (uint8_t) asic_job_id, slave_job);
+                slaveAsicJobs[slave].storeJob(slave_job, asic_job_id);
+                // slaveAsicJobs owns slave_job now — do not free here
+            }
+        }
+
     }
 
 }

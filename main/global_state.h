@@ -7,6 +7,7 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "tasks/asic_jobs.h"
+#include "tasks/can_sender.h"
 #include "tasks/power_management_task.h"
 #include "stratum/stratum_manager.h"
 #include "stratum/stratum_manager_dual_pool.h"
@@ -30,6 +31,7 @@ extern APIsFetcher APIs_FETCHER;
 extern FactoryOTAUpdate FACTORY_OTA_UPDATER;
 
 extern AsicJobs asicJobs;
+extern AsicJobs slaveAsicJobs[CAN_SLAVE_COUNT];
 extern DiscordAlerter discordAlerter;
 
 extern OTP otp;

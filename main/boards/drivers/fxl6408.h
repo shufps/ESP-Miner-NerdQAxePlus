@@ -14,6 +14,8 @@ public:
     esp_err_t set_direction(uint8_t pin, bool output);
     esp_err_t write(uint8_t pin, bool level);
     esp_err_t inputStatus(uint8_t* value);
+    esp_err_t enable_pull_up(uint8_t pin);
+    esp_err_t read_pin(uint8_t pin, bool *level);
 
 private:
     esp_err_t write_reg(uint8_t reg, uint8_t value);
@@ -24,4 +26,6 @@ private:
 
     uint8_t m_direction;     // 1 = input, 0 = output
     uint8_t m_output_state;  // output levels
+    uint8_t m_pull_enable;   // 1 = pull resistor active
+    uint8_t m_pull_select;   // 1 = pull-up, 0 = pull-down
 };

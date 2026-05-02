@@ -334,6 +334,16 @@ public:
         return false;
     }
 
+    virtual bool isCanSlave() {
+        return false;
+    }
+
+    // Returns the slave ID (1-based) to use for CAN telemetry/nonce frames.
+    // Override in boards that implement multi-slave DIP switch detection.
+    virtual uint8_t getCanSlaveId() {
+        return 1;
+    }
+
     const char* getDefaultTheme() {
         return m_defaultTheme;
     }
