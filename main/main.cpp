@@ -384,8 +384,10 @@ extern "C" void app_main(void)
             xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
             xTaskCreatePSRAM(APIs_FETCHER.taskWrapper, "apis ticker", 8192, (void *) &APIs_FETCHER, 5, NULL);
             xTaskCreatePSRAM(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
-            can_init();
-            xTaskCreate(can_master_task, "can master", 4096, NULL, 5, NULL);
+            if (Config::isCanEnabled()) {
+                can_init();
+                xTaskCreate(can_master_task, "can master", 4096, NULL, 5, NULL);
+            }
             xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 8192, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
             xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, NULL);
 

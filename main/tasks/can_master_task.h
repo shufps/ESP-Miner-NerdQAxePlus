@@ -36,6 +36,9 @@ bool can_master_get_slave_telemetry(uint8_t slave_id, can_slave_telemetry_t *out
 /** Remove slave from registry and persist to NVS. */
 void can_master_delete_slave(uint8_t slave_id);
 
+/** Sum of power (W) reported by all active slaves. */
+float can_master_get_slave_fleet_power(void);
+
 #ifdef __cplusplus
 }
 #endif

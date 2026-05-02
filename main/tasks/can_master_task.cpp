@@ -76,6 +76,15 @@ bool can_master_get_slave_telemetry(uint8_t slave_id, can_slave_telemetry_t *out
     return true;
 }
 
+float can_master_get_slave_fleet_power(void)
+{
+    float total = 0.0f;
+    for (int i = 1; i < CAN_SLAVE_MAX; i++) {
+        if (s_slave_reg[i].used) total += s_slave_telemetry[i].power;
+    }
+    return total;
+}
+
 void can_master_delete_slave(uint8_t slave_id)
 {
     if (slave_id >= CAN_SLAVE_MAX) return;

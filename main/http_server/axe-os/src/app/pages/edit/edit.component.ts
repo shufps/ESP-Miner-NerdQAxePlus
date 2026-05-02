@@ -78,6 +78,7 @@ export class EditComponent implements OnInit {
     'invertfanpolarity',
     'stratumDifficulty',
     'stratum_keep',
+    'canMaster',
     'poolMode',
     'stratumProtocol',
     'fallbackStratumProtocol',
@@ -159,6 +160,7 @@ export class EditComponent implements OnInit {
         // Build the form (Min/Max for volt/freq will be set dynamically right after)
         this.form = this.fb.group({
           stratum_keep: [info.stratum_keep == 1],
+          canMaster: [info.canMaster == 1],
           flipscreen: [info.flipscreen == 1],
           invertscreen: [info.invertscreen == 1],
           autoscreenoff: [info.autoscreenoff == 1],
@@ -373,6 +375,7 @@ export class EditComponent implements OnInit {
     if (form.fallbackStratumPassword === '*****') delete form.fallbackStratumPassword;
 
     form.stratum_keep = form.stratum_keep ? 1 : 0;
+    form.canMaster = form.canMaster ? 1 : 0;
 
 
     // fans[]-Array for the new per channel api

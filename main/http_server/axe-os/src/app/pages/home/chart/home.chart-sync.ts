@@ -12,6 +12,7 @@ export interface SyncHomeChartDataOptions {
   smoothingCfg: Hashrate1mSmoothingCfg;
   windowMs: number;
   zoomCfg: ChartZoomCfg;
+  hideTempDatasets?: boolean;
 }
 
 export function syncHomeChartDataAndSmoothing(opts: SyncHomeChartDataOptions): void {
@@ -30,6 +31,9 @@ export function syncHomeChartDataAndSmoothing(opts: SyncHomeChartDataOptions): v
     datasets[3].data = series.hr1d;
     datasets[4].data = series.vregTemp;
     datasets[5].data = series.asicTemp;
+    const hideTemp = !!opts.hideTempDatasets;
+    datasets[4].hidden = hideTemp;
+    datasets[5].hidden = hideTemp;
   }
 
   // Update hashrate pill display value from live pool sum.
