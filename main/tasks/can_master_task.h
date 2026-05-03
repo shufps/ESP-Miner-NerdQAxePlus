@@ -33,6 +33,9 @@ bool can_master_get_slave_mac(uint8_t slave_id, uint8_t out[6]);
 /** Copy latest telemetry for slave_id. Returns false if not known. */
 bool can_master_get_slave_telemetry(uint8_t slave_id, can_slave_telemetry_t *out);
 
+/** Copy latest config for slave_id. Returns false if not yet received. */
+bool can_master_get_slave_config(uint8_t slave_id, can_slave_config_t *out);
+
 /** Remove slave from registry and persist to NVS. */
 void can_master_delete_slave(uint8_t slave_id);
 

@@ -34,15 +34,17 @@
         <tr>
           <th>ID</th>
           <th>MAC</th>
+          <th>Device</th>
           <th>Status</th>
           <th>Hash Rate</th>
+          <th>Power</th>
+          <th>Efficiency</th>
           <th>Temp</th>
           <th>VR Temp</th>
           <th>ASIC Temps</th>
           <th>Fan 1</th>
           <th>Fan 2</th>
-          <th>Power</th>
-          <th>Voltage</th>
+          <th>FW</th>
           <th></th>
         </tr>
       </thead>
@@ -54,10 +56,11 @@
               [class.shutdown]="s.shutdown"
               [class.editing]="editingId === s.id">
             <td>
-              <span *ngIf="s.isMaster" class="badge badge-master">Master</span>
+              <span *ngIf="s.isMaster" class="badge badge-master">Controller</span>
               <span *ngIf="!s.isMaster">{{ s.id }}</span>
             </td>
             <td class="mac">{{ s.mac }}</td>
+            <td>{{ s.deviceModel || '—' }}</td>
             <td>
               <span *ngIf="s.boardError" class="badge badge-danger" [title]="boardErrorStr(s.boardError)">{{ boardErrorStr(s.boardError) }}</span>
               <span *ngIf="!s.boardError && s.shutdown" class="badge badge-danger">SHUTDOWN</span>
@@ -66,6 +69,8 @@
               <span *ngIf="s.foreign" class="badge badge-info" title="From a different fleet">Foreign</span>
             </td>
             <td>{{ s.active ? (s.hashRate | number:'1.2-2') + ' GH/s' : '—' }}</td>
+            <td>{{ s.active ? (s.power | number:'1.1-1') + ' W' : '—' }}</td>
+            <td>{{ s.active && s.hashRate > 0 ? ((s.power / (s.hashRate / 1000)) | number:'1.2-2') + ' W/TH' : '—' }}</td>
             <td>{{ s.active ? (s.temp | number:'1.1-1') + ' °C' : '—' }}</td>
             <td>{{ s.active ? (s.vrTemp | number:'1.1-1') + ' °C' : '—' }}</td>
             <td class="asic-temps">
@@ -79,8 +84,7 @@
             </td>
             <td>{{ s.active ? (s.fanRpm + ' RPM (' + s.fanSpeed + '%)') : '—' }}</td>
             <td>{{ s.active ? (s.fanRpm2 + ' RPM (' + s.fanSpeed2 + '%)') : '—' }}</td>
-            <td>{{ s.active ? (s.power | number:'1.1-1') + ' W' : '—' }}</td>
-            <td>{{ s.active ? s.coreVoltageActual + ' mV' : '—' }}</td>
+            <td>{{ s.fwVersion || '—' }}</td>
             <td class="actions-cell">
               <button *ngIf="!s.isMaster" nbButton status="primary" size="tiny"
                       (click)="editingId === s.id ? cancelEdit() : editSlave(s)"
@@ -108,7 +112,7 @@
 
           <!-- Inline settings panel -->
           <tr *ngIf="editingId === s.id" class="edit-row">
-            <td colspan="12">
+            <td colspan="14">
               <form [formGroup]="editForm" class="settings-panel">
 
                 <div class="settings-section">

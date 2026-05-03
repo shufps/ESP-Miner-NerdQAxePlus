@@ -3,10 +3,27 @@
 #include <string.h>
 #include "driver/twai.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "mining.h"
 #include "asic.h"
 
 static const char *TAG = "can_sender";
+
+// Mutex ensuring multiframe packets are sent atomically —
+// prevents interleaving when multiple tasks call can_send_* concurrently.
+static SemaphoreHandle_t s_tx_mutex = NULL;
+
+static void tx_lock(void)
+{
+    if (!s_tx_mutex) s_tx_mutex = xSemaphoreCreateMutex();
+    xSemaphoreTake(s_tx_mutex, portMAX_DELAY);
+}
+
+static void tx_unlock(void)
+{
+    xSemaphoreGive(s_tx_mutex);
+}
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -80,14 +97,27 @@ void can_send_master_boot(const uint8_t master_mac[6])
 void can_send_telemetry(uint8_t slave_id, const can_slave_telemetry_t *t)
 {
     uint32_t can_id = CAN_ID_TELEMETRY_BASE | (slave_id & 0x7F);
+    tx_lock();
     send_multiframe(can_id, (const uint8_t *) t, sizeof(can_slave_telemetry_t));
+    tx_unlock();
+}
+
+void can_send_config(uint8_t slave_id, const can_slave_config_t *c)
+{
+    uint32_t can_id = CAN_ID_CONFIG_BASE | (slave_id & 0x7F);
+    ESP_LOGD(TAG, "TX CONFIG slave=%d model=%s fw=%s", slave_id, c->deviceModel, c->fwVersion);
+    tx_lock();
+    send_multiframe(can_id, (const uint8_t *) c, sizeof(can_slave_config_t));
+    tx_unlock();
 }
 
 void can_send_settings_cmd(uint8_t slave_id, const uint8_t *payload, size_t len)
 {
     uint32_t can_id = CAN_ID_SETTINGS_BASE | (slave_id & 0x7F);
-    send_multiframe(can_id, payload, len);
     ESP_LOGD(TAG, "TX SETTINGS slave=%d cmd=0x%02X", slave_id, len ? payload[0] : 0xFF);
+    tx_lock();
+    send_multiframe(can_id, payload, len);
+    tx_unlock();
 }
 
 void can_send_raw_job(uint8_t slave_id, uint8_t job_id, const bm_job *job)
@@ -110,5 +140,7 @@ void can_send_raw_job(uint8_t slave_id, uint8_t job_id, const bm_job *job)
 
     uint32_t can_id = CAN_ID_JOB_BASE | (slave_id & 0x7F);
     ESP_LOGD(TAG, "TX JOB slave=%d ntime=%08lX pool_diff=%lu", slave_id, job->ntime, job->pool_diff);
+    tx_lock();
     send_multiframe(can_id, payload, sizeof(payload));
+    tx_unlock();
 }

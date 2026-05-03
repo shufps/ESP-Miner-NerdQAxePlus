@@ -43,6 +43,7 @@ static uint8_t           s_master_mac[6]             = {};
 
 // Forward declarations
 static can_slave_telemetry_t s_slave_telemetry[CAN_SLAVE_MAX];
+static can_slave_config_t    s_slave_config[CAN_SLAVE_MAX];
 static void nvs_save_registry(void);
 
 bool can_master_is_slave_active(uint8_t slave_id)
@@ -74,6 +75,13 @@ bool can_master_get_slave_telemetry(uint8_t slave_id, can_slave_telemetry_t *out
 {
     if (slave_id >= CAN_SLAVE_MAX || !s_slave_reg[slave_id].used) return false;
     memcpy(out, &s_slave_telemetry[slave_id], sizeof(can_slave_telemetry_t));
+    return true;
+}
+
+bool can_master_get_slave_config(uint8_t slave_id, can_slave_config_t *out)
+{
+    if (slave_id >= CAN_SLAVE_MAX || !s_slave_reg[slave_id].used) return false;
+    memcpy(out, &s_slave_config[slave_id], sizeof(can_slave_config_t));
     return true;
 }
 
@@ -160,6 +168,7 @@ void can_master_delete_slave(uint8_t slave_id)
     if (slave_id >= CAN_SLAVE_MAX) return;
     memset(&s_slave_reg[slave_id], 0, sizeof(slave_reg_entry_t));
     memset(&s_slave_telemetry[slave_id], 0, sizeof(can_slave_telemetry_t));
+    memset(&s_slave_config[slave_id], 0, sizeof(can_slave_config_t));
     nvs_save_registry();
     ESP_LOGI(TAG, "Deleted slave id=%d from registry", slave_id);
 }
@@ -211,6 +220,12 @@ static void handle_hello(const uint8_t mac[6])
             ESP_LOGI(TAG, "HELLO known slave MAC=%02X:%02X:%02X:%02X:%02X:%02X → id=%d",
                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], i);
             can_send_assign(mac, (uint8_t) i);
+            // Slave sends config automatically after ASSIGN, but request explicitly
+            // in case this is a re-negotiation and slave already skipped the send.
+            {
+                uint8_t p[1] = { CAN_CMD_GET_CONFIG };
+                can_send_settings_cmd((uint8_t) i, p, sizeof(p));
+            }
             return;
         }
     }
@@ -291,18 +306,29 @@ static void handle_nonce(Board *board, uint8_t slave_id, const uint8_t *buf, siz
     free_bm_job(job);
 }
 
-static void handle_telemetry(uint8_t slave_id, const uint8_t *buf, size_t len)
+static void handle_config(uint8_t slave_id, const uint8_t *buf, size_t len)
 {
-    // Accept any payload >= v1 size; newer fields default to 0 if slave runs older firmware.
-    const size_t v1_size = offsetof(can_slave_telemetry_t, freqMhz);
-    if (len < v1_size) {
-        ESP_LOGW(TAG, "slave %d telemetry too short %d (min %d)",
-                 slave_id, len, v1_size);
+    if (len < sizeof(can_slave_config_t)) {
+        ESP_LOGW(TAG, "slave %d config too short %d (expected %d)",
+                 slave_id, len, sizeof(can_slave_config_t));
         return;
     }
-    if (len != sizeof(can_slave_telemetry_t)) {
-        ESP_LOGW(TAG, "slave %d telemetry len %d (expected %d) — version mismatch?",
+    memcpy(&s_slave_config[slave_id], buf, sizeof(can_slave_config_t));
+    const can_slave_config_t *c = &s_slave_config[slave_id];
+    // Ensure null-termination regardless of sender
+    char model[sizeof(c->deviceModel) + 1] = {};
+    char fw[sizeof(c->fwVersion)     + 1] = {};
+    memcpy(model, c->deviceModel, sizeof(c->deviceModel));
+    memcpy(fw,    c->fwVersion,   sizeof(c->fwVersion));
+    ESP_LOGI(TAG, "slave %d config: model=%s fw=%s freq=%uMHz volt=%umV", slave_id, model, fw, c->freqMhz, c->voltageMv);
+}
+
+static void handle_telemetry(uint8_t slave_id, const uint8_t *buf, size_t len)
+{
+    if (len < sizeof(can_slave_telemetry_t)) {
+        ESP_LOGW(TAG, "slave %d telemetry too short %d (expected %d)",
                  slave_id, len, sizeof(can_slave_telemetry_t));
+        return;
     }
 
     memset(&s_slave_telemetry[slave_id], 0, sizeof(can_slave_telemetry_t));
@@ -340,9 +366,10 @@ void can_master_task(void *pvParameters)
 
     nvs_load_registry();
 
-    // Separate reassembly slots: nonce[slave] and telemetry[slave]
-    static slave_rx_t nonce_rx[CAN_SLAVE_MAX] = {};
-    static slave_rx_t telem_rx[CAN_SLAVE_MAX] = {};
+    // Separate reassembly slots per slave and frame type
+    static slave_rx_t nonce_rx[CAN_SLAVE_MAX]  = {};
+    static slave_rx_t telem_rx[CAN_SLAVE_MAX]  = {};
+    static slave_rx_t config_rx[CAN_SLAVE_MAX] = {};
 
     ESP_LOGI(TAG, "CAN master receiver started");
 
@@ -378,12 +405,19 @@ void can_master_task(void *pvParameters)
             continue;
         }
 
-        if (base != CAN_ID_NONCE_BASE && base != CAN_ID_TELEMETRY_BASE) {
+        if (base != CAN_ID_NONCE_BASE && base != CAN_ID_TELEMETRY_BASE && base != CAN_ID_CONFIG_BASE) {
             continue;
         }
 
-        slave_rx_t *s    = (base == CAN_ID_NONCE_BASE) ? &nonce_rx[slave_id] : &telem_rx[slave_id];
-        size_t      maxlen = (base == CAN_ID_NONCE_BASE) ? NONCE_PAYLOAD_LEN : sizeof(can_slave_telemetry_t);
+        slave_rx_t *s;
+        size_t      maxlen;
+        if (base == CAN_ID_NONCE_BASE) {
+            s = &nonce_rx[slave_id];  maxlen = NONCE_PAYLOAD_LEN;
+        } else if (base == CAN_ID_CONFIG_BASE) {
+            s = &config_rx[slave_id]; maxlen = sizeof(can_slave_config_t);
+        } else {
+            s = &telem_rx[slave_id];  maxlen = sizeof(can_slave_telemetry_t);
+        }
 
         uint8_t seq  = msg.data[0];
         uint8_t *data = &msg.data[1];
@@ -416,6 +450,8 @@ void can_master_task(void *pvParameters)
 
         if (base == CAN_ID_NONCE_BASE) {
             handle_nonce(board, slave_id, s->buf, s->len);
+        } else if (base == CAN_ID_CONFIG_BASE) {
+            handle_config(slave_id, s->buf, s->len);
         } else {
             handle_telemetry(slave_id, s->buf, s->len);
         }

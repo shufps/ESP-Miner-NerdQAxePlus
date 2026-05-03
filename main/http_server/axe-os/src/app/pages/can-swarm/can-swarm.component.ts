@@ -24,6 +24,8 @@ export interface CanSlave {
   coreVoltageActual: number;
   shutdown: boolean;
   boardError?: number;
+  deviceModel?: string;
+  fwVersion?: string;
   isMaster?: boolean;
   // Settings (from telemetry v2)
   freqMhz?: number;
@@ -157,6 +159,8 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
       active: true,
       foreign: false,
       isMaster: true,
+      deviceModel: info?.deviceModel ?? undefined,
+      fwVersion: info?.version ?? undefined,
       hashRate: masterHr,
       temp: info?.temp ?? 0,
       vrTemp: info?.vrTemp ?? 0,

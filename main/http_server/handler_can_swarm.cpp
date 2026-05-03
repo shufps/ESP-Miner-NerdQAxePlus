@@ -37,17 +37,29 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         can_master_get_slave_mac((uint8_t) i, mac);
 
         can_slave_telemetry_t t = {};
-        bool has_telem = can_master_get_slave_telemetry((uint8_t) i, &t);
-        bool active    = can_master_is_slave_active((uint8_t) i);
-        bool foreign   = can_master_is_slave_foreign((uint8_t) i);
+        can_slave_config_t    cfg = {};
+        bool has_telem  = can_master_get_slave_telemetry((uint8_t) i, &t);
+        bool has_config = can_master_get_slave_config((uint8_t) i, &cfg);
+        bool active     = can_master_is_slave_active((uint8_t) i);
+        bool foreign    = can_master_is_slave_foreign((uint8_t) i);
 
-        char buf[768];
+        // Null-terminate strings from config struct
+        char device_model[sizeof(cfg.deviceModel) + 1] = {};
+        char fw_version[sizeof(cfg.fwVersion)     + 1] = {};
+        if (has_config) {
+            memcpy(device_model, cfg.deviceModel, sizeof(cfg.deviceModel));
+            memcpy(fw_version,   cfg.fwVersion,   sizeof(cfg.fwVersion));
+        }
+
+        char buf[896];
         snprintf(buf, sizeof(buf),
             "%s{"
             "\"id\":%d,"
             "\"mac\":\"%02X:%02X:%02X:%02X:%02X:%02X\","
             "\"active\":%s,"
             "\"foreign\":%s,"
+            "\"deviceModel\":\"%s\","
+            "\"fwVersion\":\"%s\","
             "\"hashRate\":%.2f,"
             "\"temp\":%.1f,"
             "\"vrTemp\":%.1f,"
@@ -73,6 +85,8 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
             active  ? "true" : "false",
             foreign ? "true" : "false",
+            device_model,
+            fw_version,
             has_telem ? t.hashRate : 0.0f,
             has_telem ? t.temp     : 0.0f,
             has_telem ? t.vrTemp   : 0.0f,
@@ -89,18 +103,18 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
             has_telem ? t.coreVoltageActual : 0,
             (has_telem && t.shutdown)    ? "true" : "false",
             has_telem ? t.boardError     : 0,
-            has_telem ? t.freqMhz        : 0,
-            has_telem ? t.voltageMv      : 0,
-            has_telem ? t.fan0Mode       : 0,
-            has_telem ? t.fan0Speed      : 0,
-            has_telem ? t.fan0TargetTemp : 0,
-            has_telem ? t.fan0Overheat   : 0,
-            has_telem ? t.fan1Mode       : 0,
-            has_telem ? t.fan1Speed      : 0,
-            has_telem ? t.fan1TargetTemp : 0,
-            has_telem ? t.fan1Overheat   : 0,
-            (has_telem && t.flipScreen)    ? "true" : "false",
-            (has_telem && t.autoScreenOff) ? "true" : "false"
+            has_config ? cfg.freqMhz        : 0,
+            has_config ? cfg.voltageMv      : 0,
+            has_config ? cfg.fan0Mode       : 0,
+            has_config ? cfg.fan0Speed      : 0,
+            has_config ? cfg.fan0TargetTemp : 0,
+            has_config ? cfg.fan0Overheat   : 0,
+            has_config ? cfg.fan1Mode       : 0,
+            has_config ? cfg.fan1Speed      : 0,
+            has_config ? cfg.fan1TargetTemp : 0,
+            has_config ? cfg.fan1Overheat   : 0,
+            (has_config && cfg.flipScreen)    ? "true" : "false",
+            (has_config && cfg.autoScreenOff) ? "true" : "false"
         );
 
         httpd_resp_sendstr_chunk(req, buf);
