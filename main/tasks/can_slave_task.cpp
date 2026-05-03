@@ -14,6 +14,8 @@
 #include "hashrate_monitor_task.h"
 #include "mining.h"
 #include "mining_utils.h"
+#include "nvs_config.h"
+#include "esp_system.h"
 
 static const char *TAG = "can_slave";
 
@@ -88,6 +90,66 @@ static void send_nonce(uint8_t slave_id, const task_result *result)
 
     ESP_LOGD(TAG, "TX NONCE slave=%d nonce=%08lX job_id=%02X",
              slave_id, result->nonce, result->job_id);
+}
+
+static void handle_settings_cmd(const uint8_t *p, size_t len)
+{
+    if (len < 1) return;
+    uint8_t cmd = p[0];
+
+    switch (cmd) {
+        case CAN_CMD_SET_FREQ:
+            if (len >= 3) {
+                uint16_t freq; memcpy(&freq, p + 1, 2);
+                Config::setAsicFrequency(freq);
+                SYSTEM_MODULE.getBoard()->loadSettings();
+                ESP_LOGI(TAG, "CMD SET_FREQ %dMHz → applied", freq);
+            }
+            break;
+        case CAN_CMD_SET_VOLTAGE:
+            if (len >= 3) {
+                uint16_t mv; memcpy(&mv, p + 1, 2);
+                Config::setAsicVoltage(mv);
+                SYSTEM_MODULE.getBoard()->loadSettings();
+                ESP_LOGI(TAG, "CMD SET_VOLTAGE %dmV → applied", mv);
+            }
+            break;
+        case CAN_CMD_SET_FAN:
+            if (len >= 6) {
+                uint8_t ch = p[1], mode = p[2], speed = p[3], target = p[4], overheat = p[5];
+                Config::setFanMode(ch, mode);
+                Config::setFanManualSpeed(ch, speed);
+                Config::setFanPidTargetTemp(ch, target);
+                Config::setFanOverheatTemp(ch, overheat);
+                POWER_MANAGEMENT_MODULE.getFanController().loadSettings();
+                ESP_LOGI(TAG, "CMD SET_FAN ch%d mode=%d overheat=%d → applied", ch, mode, overheat);
+            }
+            break;
+        case CAN_CMD_SET_DISPLAY:
+            if (len >= 3) {
+                Config::setFlipScreen(p[1] != 0);
+                Config::setAutoScreenOff(p[2] != 0);
+                SYSTEM_MODULE.getBoard()->loadSettings();
+                ESP_LOGI(TAG, "CMD SET_DISPLAY flip=%d autoOff=%d → applied", p[1], p[2]);
+            }
+            break;
+        case CAN_CMD_SHUTDOWN:
+            ESP_LOGW(TAG, "CMD SHUTDOWN → shutting down");
+            POWER_MANAGEMENT_MODULE.shutdown();
+            break;
+        case CAN_CMD_IDENTIFY:
+            ESP_LOGI(TAG, "CMD IDENTIFY");
+            // TODO: blink display
+            break;
+        case CAN_CMD_RESTART:
+            ESP_LOGI(TAG, "CMD RESTART → restarting");
+            vTaskDelay(pdMS_TO_TICKS(100));
+            esp_restart();
+            break;
+        default:
+            ESP_LOGW(TAG, "Unknown settings cmd 0x%02X", cmd);
+            break;
+    }
 }
 
 void can_slave_task(void *pvParameters)
@@ -165,6 +227,15 @@ void can_slave_task(void *pvParameters)
             last_hello     = now - pdMS_TO_TICKS(1000);
             in_frame = false;
             buf_len  = 0;
+            continue;
+        }
+
+        // ── Settings commands from master ─────────────────────────────────────
+
+        if (msg.identifier == (uint32_t)(CAN_ID_SETTINGS_BASE | g_can_slave_id)) {
+            if (msg.data_length_code >= 2 && msg.data[0] == CAN_SEQ_LAST) {
+                handle_settings_cmd(&msg.data[1], msg.data_length_code - 1);
+            }
             continue;
         }
 
@@ -300,6 +371,20 @@ void can_slave_telemetry_task(void *pvParameters)
         t.coreVoltageActual = (uint16_t) (board->getVout() * 1000.0f);
         t.hashRate          = HASHRATE_MONITOR.getHashrate();
         t.shutdown          = POWER_MANAGEMENT_MODULE.isShutdown() ? 1 : 0;
+        t.boardError        = (uint8_t) SYSTEM_MODULE.getBoardError();
+        // Mirror current settings so master can display/edit them
+        t.freqMhz           = (uint16_t) Config::getAsicFrequency(board->getDefaultAsicFrequency());
+        t.voltageMv         = (uint16_t) Config::getAsicVoltage(board->getDefaultAsicVoltageMillis());
+        t.fan0Mode          = (uint8_t)  Config::getFanMode(0);
+        t.fan0Speed         = (uint8_t)  Config::getFanManualSpeed(0);
+        t.fan0TargetTemp    = (uint8_t)  Config::getFanPidTargetTemp(0, board->getPidSettings(0)->targetTemp);
+        t.fan0Overheat      = (uint8_t)  Config::getFanOverheatTemp(0);
+        t.fan1Mode          = (uint8_t)  Config::getFanMode(1);
+        t.fan1Speed         = (uint8_t)  Config::getFanManualSpeed(1);
+        t.fan1TargetTemp    = (uint8_t)  Config::getFanPidTargetTemp(1, board->getPidSettings(1)->targetTemp);
+        t.fan1Overheat      = (uint8_t)  Config::getFanOverheatTemp(1);
+        t.flipScreen        = Config::isFlipScreenEnabled(false) ? 1 : 0;
+        t.autoScreenOff     = Config::isAutoScreenOffEnabled() ? 1 : 0;
 
         can_send_telemetry(slave_id, &t);
     }

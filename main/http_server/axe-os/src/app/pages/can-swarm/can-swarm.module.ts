@@ -1,6 +1,14 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NbCardModule, NbButtonModule, NbIconModule } from '@nebular/theme';
+import { ReactiveFormsModule } from '@angular/forms';
+import {
+  NbCardModule,
+  NbButtonModule,
+  NbIconModule,
+  NbInputModule,
+  NbSelectModule,
+  NbCheckboxModule,
+} from '@nebular/theme';
 import { CanSwarmComponent } from './can-swarm.component';
 
 @NgModule({
@@ -9,9 +17,13 @@ import { CanSwarmComponent } from './can-swarm.component';
   ],
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     NbCardModule,
     NbButtonModule,
     NbIconModule,
+    NbInputModule,
+    NbSelectModule,
+    NbCheckboxModule,
   ],
   exports: [
     CanSwarmComponent,

@@ -16,7 +16,7 @@
 
 #define CAN_SLAVE_ID_UNASSIGNED 0xFF
 
-#define CAN_TELEMETRY_VERSION 1
+#define CAN_TELEMETRY_VERSION 3
 
 // Telemetry payload pushed by each slave ~1/s.
 // Fixed at 4 ASICs for MVP — extend asicTemps[] later if needed.
@@ -33,8 +33,32 @@ typedef struct __attribute__((__packed__)) {
     uint16_t current;           // mA
     uint16_t coreVoltageActual; // mV
     float    hashRate;          // GH/s (from HASHRATE_MONITOR)
-    uint8_t  shutdown;          // 1 = thermal shutdown active
-} can_slave_telemetry_t;        // 44 bytes → 7 CAN frames
+    uint8_t  shutdown;          // 1 = explicit manual shutdown active
+    uint8_t  boardError;        // Board::Error enum value (0 = NONE)
+    // Settings mirrored so master always has current slave config
+    uint16_t freqMhz;           // ASIC frequency (MHz)
+    uint16_t voltageMv;         // ASIC voltage (mV)
+    uint8_t  fan0Mode;          // fan ch0 mode (0=manual,2=pid)
+    uint8_t  fan0Speed;         // fan ch0 manual duty %
+    uint8_t  fan0TargetTemp;    // fan ch0 PID target °C
+    uint8_t  fan0Overheat;      // fan ch0 shutdown temp °C
+    uint8_t  fan1Mode;          // fan ch1 mode
+    uint8_t  fan1Speed;         // fan ch1 manual duty %
+    uint8_t  fan1TargetTemp;    // fan ch1 target °C
+    uint8_t  fan1Overheat;      // fan ch1 shutdown temp °C
+    uint8_t  flipScreen;        // 1 = display flipped
+    uint8_t  autoScreenOff;     // 1 = auto screen off enabled
+} can_slave_telemetry_t;        // 59 bytes → 9 CAN frames
+
+// Settings commands sent master→slave on CAN_ID_SETTINGS_BASE + slave_id.
+// All are single-frame: SEQ=0xFF, byte[1]=cmd, bytes[2..] = value.
+#define CAN_CMD_SET_FREQ     0x01  // uint16_le freq_mhz
+#define CAN_CMD_SET_VOLTAGE  0x02  // uint16_le voltage_mv
+#define CAN_CMD_SET_FAN      0x03  // ch(1)+mode(1)+speed(1)+target_temp(1)+overheat(1)
+#define CAN_CMD_SET_DISPLAY  0x04  // flip(1)+auto_off(1)
+#define CAN_CMD_SHUTDOWN     0xFD  // no payload — slave triggers thermal shutdown
+#define CAN_CMD_IDENTIFY     0xFE  // no payload — slave blinks display
+#define CAN_CMD_RESTART      0xFF  // no payload — slave saves NVS + restarts
 
 // Multiframe SEQ byte: 0x00..0x7E = continuation, 0xFF = last frame
 #define CAN_SEQ_LAST        0xFF
@@ -59,6 +83,12 @@ void can_send_assign(const uint8_t mac[6], uint8_t can_id);
 void can_send_master_boot(const uint8_t master_mac[6]);
 
 void can_send_telemetry(uint8_t slave_id, const can_slave_telemetry_t *t);
+
+/**
+ * Send a settings command from master to one slave.
+ * payload: cmd byte + value bytes (≤6 bytes total, fits in single CAN frame).
+ */
+void can_send_settings_cmd(uint8_t slave_id, const uint8_t *payload, size_t len);
 
 /**
  * Send a raw job to one slave over CAN.

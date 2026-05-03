@@ -50,7 +50,7 @@ const routes: Routes = [{
       component: SecurityComponent
     },
     {
-      path: 'can-swarm',
+      path: 'can-fleet',
       component: CanSwarmComponent
     },
     {

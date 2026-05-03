@@ -78,6 +78,78 @@
   }
 }
 
+.actions-cell {
+  white-space: nowrap;
+  button + button { margin-left: 4px; }
+}
+
+tr.editing > td {
+  background: var(--background-basic-color-2, rgba(0,0,0,0.03));
+}
+
+.edit-row > td {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--color-primary-default, #3366ff);
+}
+
+.settings-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding: 1rem 1.25rem;
+  align-items: flex-start;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 160px;
+}
+
+.settings-label {
+  font-size: 0.72em;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.55;
+  letter-spacing: 0.05em;
+}
+
+.settings-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: flex-end;
+}
+
+.settings-fields--checkboxes {
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  label {
+    font-size: 0.75em;
+    opacity: 0.65;
+  }
+
+  input[nbinput] {
+    width: 90px;
+  }
+}
+
+.settings-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding-top: 1.4rem;
+}
+
 .badge {
   display: inline-block;
   padding: 2px 6px;

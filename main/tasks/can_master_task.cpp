@@ -1,5 +1,6 @@
 #include "can_master_task.h"
 
+#include <stddef.h>
 #include <string.h>
 #include "driver/twai.h"
 #include "esp_log.h"
@@ -76,6 +77,32 @@ bool can_master_get_slave_telemetry(uint8_t slave_id, can_slave_telemetry_t *out
     return true;
 }
 
+bool can_master_get_fleet_shutdown(uint8_t *out_id)
+{
+    for (int i = 1; i < CAN_SLAVE_MAX; i++) {
+        if (s_slave_reg[i].used && s_slave_telemetry[i].shutdown) {
+            if (out_id) *out_id = (uint8_t) i;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool can_master_get_fleet_error(uint8_t *out_id, uint8_t *out_board_error)
+{
+    for (int i = 1; i < CAN_SLAVE_MAX; i++) {
+        if (!s_slave_reg[i].used) continue;
+        uint8_t berr = s_slave_telemetry[i].boardError;
+        bool shut    = s_slave_telemetry[i].shutdown;
+        if (berr != 0 || shut) {
+            if (out_id)          *out_id          = (uint8_t) i;
+            if (out_board_error) *out_board_error = berr;
+            return true;
+        }
+    }
+    return false;
+}
+
 float can_master_get_slave_fleet_power(void)
 {
     float total = 0.0f;
@@ -83,6 +110,49 @@ float can_master_get_slave_fleet_power(void)
         if (s_slave_reg[i].used) total += s_slave_telemetry[i].power;
     }
     return total;
+}
+
+void can_master_set_slave_freq(uint8_t slave_id, uint16_t freq_mhz)
+{
+    uint8_t p[3] = { CAN_CMD_SET_FREQ, (uint8_t)(freq_mhz & 0xFF), (uint8_t)(freq_mhz >> 8) };
+    can_send_settings_cmd(slave_id, p, sizeof(p));
+}
+
+void can_master_set_slave_voltage(uint8_t slave_id, uint16_t mv)
+{
+    uint8_t p[3] = { CAN_CMD_SET_VOLTAGE, (uint8_t)(mv & 0xFF), (uint8_t)(mv >> 8) };
+    can_send_settings_cmd(slave_id, p, sizeof(p));
+}
+
+void can_master_set_slave_fan(uint8_t slave_id, uint8_t ch, uint8_t mode,
+                              uint8_t speed, uint8_t target_temp, uint8_t overheat)
+{
+    uint8_t p[6] = { CAN_CMD_SET_FAN, ch, mode, speed, target_temp, overheat };
+    can_send_settings_cmd(slave_id, p, sizeof(p));
+}
+
+void can_master_set_slave_display(uint8_t slave_id, uint8_t flip, uint8_t auto_off)
+{
+    uint8_t p[3] = { CAN_CMD_SET_DISPLAY, flip, auto_off };
+    can_send_settings_cmd(slave_id, p, sizeof(p));
+}
+
+void can_master_shutdown_slave(uint8_t slave_id)
+{
+    uint8_t p[1] = { CAN_CMD_SHUTDOWN };
+    can_send_settings_cmd(slave_id, p, sizeof(p));
+}
+
+void can_master_identify_slave(uint8_t slave_id)
+{
+    uint8_t p[1] = { CAN_CMD_IDENTIFY };
+    can_send_settings_cmd(slave_id, p, sizeof(p));
+}
+
+void can_master_restart_slave(uint8_t slave_id)
+{
+    uint8_t p[1] = { CAN_CMD_RESTART };
+    can_send_settings_cmd(slave_id, p, sizeof(p));
 }
 
 void can_master_delete_slave(uint8_t slave_id)
@@ -223,13 +293,20 @@ static void handle_nonce(Board *board, uint8_t slave_id, const uint8_t *buf, siz
 
 static void handle_telemetry(uint8_t slave_id, const uint8_t *buf, size_t len)
 {
-    if (len != sizeof(can_slave_telemetry_t)) {
-        ESP_LOGW(TAG, "slave %d unexpected telemetry len %d (expected %d)",
-                 slave_id, len, sizeof(can_slave_telemetry_t));
+    // Accept any payload >= v1 size; newer fields default to 0 if slave runs older firmware.
+    const size_t v1_size = offsetof(can_slave_telemetry_t, freqMhz);
+    if (len < v1_size) {
+        ESP_LOGW(TAG, "slave %d telemetry too short %d (min %d)",
+                 slave_id, len, v1_size);
         return;
     }
+    if (len != sizeof(can_slave_telemetry_t)) {
+        ESP_LOGW(TAG, "slave %d telemetry len %d (expected %d) — version mismatch?",
+                 slave_id, len, sizeof(can_slave_telemetry_t));
+    }
 
-    memcpy(&s_slave_telemetry[slave_id], buf, sizeof(can_slave_telemetry_t));
+    memset(&s_slave_telemetry[slave_id], 0, sizeof(can_slave_telemetry_t));
+    memcpy(&s_slave_telemetry[slave_id], buf, len < sizeof(can_slave_telemetry_t) ? len : sizeof(can_slave_telemetry_t));
 
     const can_slave_telemetry_t *t = &s_slave_telemetry[slave_id];
     ESP_LOGI(TAG, "slave %d | hr=%.1fGH/s | temp=%.1f°C vr=%.1f°C"

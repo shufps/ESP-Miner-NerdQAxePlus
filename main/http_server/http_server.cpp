@@ -205,13 +205,17 @@ esp_err_t start_rest_server(void * pvParameters)
         .uri = "/api/can/slaves", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
     httpd_register_uri_handler(http_server, &can_slaves_options_uri);
 
+    httpd_uri_t can_slave_patch_uri = {
+        .uri = "/api/can/slaves/*", .method = HTTP_PATCH, .handler = PATCH_can_slave, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &can_slave_patch_uri);
+
     httpd_uri_t can_slave_delete_uri = {
         .uri = "/api/can/slaves/*", .method = HTTP_DELETE, .handler = DELETE_can_slave, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slave_delete_uri);
 
-    httpd_uri_t can_slave_delete_options_uri = {
+    httpd_uri_t can_slave_wildcard_options_uri = {
         .uri = "/api/can/slaves/*", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
-    httpd_register_uri_handler(http_server, &can_slave_delete_options_uri);
+    httpd_register_uri_handler(http_server, &can_slave_wildcard_options_uri);
 
     httpd_uri_t system_restart_uri = {
         .uri = "/api/system/restart", .method = HTTP_POST, .handler = POST_restart, .user_ctx = rest_context};

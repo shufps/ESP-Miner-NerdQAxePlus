@@ -5,6 +5,7 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 
+#include "ArduinoJson.h"
 #include "http_cors.h"
 #include "http_utils.h"
 #include "tasks/can_master_task.h"
@@ -40,7 +41,7 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         bool active    = can_master_is_slave_active((uint8_t) i);
         bool foreign   = can_master_is_slave_foreign((uint8_t) i);
 
-        char buf[512];
+        char buf[768];
         snprintf(buf, sizeof(buf),
             "%s{"
             "\"id\":%d,"
@@ -58,7 +59,14 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
             "\"power\":%.1f,"
             "\"current\":%u,"
             "\"coreVoltageActual\":%u,"
-            "\"shutdown\":%s"
+            "\"shutdown\":%s,"
+            "\"boardError\":%u,"
+            "\"freqMhz\":%u,"
+            "\"voltageMv\":%u,"
+            "\"fan0Mode\":%u,\"fan0Speed\":%u,\"fan0TargetTemp\":%u,\"fan0Overheat\":%u,"
+            "\"fan1Mode\":%u,\"fan1Speed\":%u,\"fan1TargetTemp\":%u,\"fan1Overheat\":%u,"
+            "\"flipScreen\":%s,"
+            "\"autoScreenOff\":%s"
             "}",
             first ? "" : ",",
             i,
@@ -72,14 +80,27 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
             has_telem ? t.asicTemps[1] : 0.0f,
             has_telem ? t.asicTemps[2] : 0.0f,
             has_telem ? t.asicTemps[3] : 0.0f,
-            has_telem ? t.fanRpm   : 0,
-            has_telem ? t.fanRpm2  : 0,
-            has_telem ? t.fanSpeed : 0,
-            has_telem ? t.fanSpeed2: 0,
-            has_telem ? t.power    : 0.0f,
-            has_telem ? t.current  : 0,
+            has_telem ? t.fanRpm    : 0,
+            has_telem ? t.fanRpm2   : 0,
+            has_telem ? t.fanSpeed  : 0,
+            has_telem ? t.fanSpeed2 : 0,
+            has_telem ? t.power     : 0.0f,
+            has_telem ? t.current   : 0,
             has_telem ? t.coreVoltageActual : 0,
-            (has_telem && t.shutdown) ? "true" : "false"
+            (has_telem && t.shutdown)    ? "true" : "false",
+            has_telem ? t.boardError     : 0,
+            has_telem ? t.freqMhz        : 0,
+            has_telem ? t.voltageMv      : 0,
+            has_telem ? t.fan0Mode       : 0,
+            has_telem ? t.fan0Speed      : 0,
+            has_telem ? t.fan0TargetTemp : 0,
+            has_telem ? t.fan0Overheat   : 0,
+            has_telem ? t.fan1Mode       : 0,
+            has_telem ? t.fan1Speed      : 0,
+            has_telem ? t.fan1TargetTemp : 0,
+            has_telem ? t.fan1Overheat   : 0,
+            (has_telem && t.flipScreen)    ? "true" : "false",
+            (has_telem && t.autoScreenOff) ? "true" : "false"
         );
 
         httpd_resp_sendstr_chunk(req, buf);
@@ -88,6 +109,77 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
 
     httpd_resp_sendstr_chunk(req, "]");
     httpd_resp_sendstr_chunk(req, NULL);
+    return ESP_OK;
+}
+
+esp_err_t PATCH_can_slave(httpd_req_t *req)
+{
+    ConGuard g(http_server, req);
+
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    // Extract id from URI: /api/can/slaves/{id}
+    const char *uri = req->uri;
+    const char *last_slash = strrchr(uri, '/');
+    if (!last_slash || *(last_slash + 1) == '\0') {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "missing id");
+    }
+    int id = atoi(last_slash + 1);
+    if (id < 1 || id >= CAN_SLAVE_MAX) {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid id");
+    }
+    uint8_t slave_id = (uint8_t) id;
+
+    // Read body
+    char body[256];
+    int received = httpd_req_recv(req, body, sizeof(body) - 1);
+    if (received <= 0) {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "no body");
+    }
+    body[received] = '\0';
+
+    JsonDocument doc;
+    if (deserializeJson(doc, body) != DeserializationError::Ok) {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid json");
+    }
+
+    if (doc["freqMhz"].is<uint16_t>())
+        can_master_set_slave_freq(slave_id, doc["freqMhz"].as<uint16_t>());
+
+    if (doc["voltageMv"].is<uint16_t>())
+        can_master_set_slave_voltage(slave_id, doc["voltageMv"].as<uint16_t>());
+
+    for (uint8_t ch = 0; ch < 2; ch++) {
+        const char *key = (ch == 0) ? "fan0" : "fan1";
+        if (doc[key].is<JsonObject>()) {
+            JsonObject fan = doc[key].as<JsonObject>();
+            can_master_set_slave_fan(slave_id, ch,
+                fan["mode"].as<uint8_t>(),
+                fan["speed"].as<uint8_t>(),
+                fan["targetTemp"].as<uint8_t>(),
+                fan["overheat"].as<uint8_t>());
+        }
+    }
+
+    if (doc["flipScreen"].is<bool>() || doc["autoScreenOff"].is<bool>()) {
+        uint8_t flip    = doc["flipScreen"].as<bool>()    ? 1 : 0;
+        uint8_t autoOff = doc["autoScreenOff"].as<bool>() ? 1 : 0;
+        can_master_set_slave_display(slave_id, flip, autoOff);
+    }
+
+    if (doc["restart"].is<bool>() && doc["restart"].as<bool>())
+        can_master_restart_slave(slave_id);
+
+    if (doc["shutdown"].is<bool>() && doc["shutdown"].as<bool>())
+        can_master_shutdown_slave(slave_id);
+
+    if (doc["identify"].is<bool>() && doc["identify"].as<bool>())
+        can_master_identify_slave(slave_id);
+
+    httpd_resp_sendstr(req, "{\"ok\":true}");
     return ESP_OK;
 }
 

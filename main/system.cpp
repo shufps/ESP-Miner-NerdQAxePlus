@@ -28,6 +28,7 @@
 #include "utils.h"
 #include "tasks/can_slave_task.h"
 #include "tasks/can_sender.h"
+#include "tasks/can_master_task.h"
 
 static const char* TAG = "SystemModule";
 

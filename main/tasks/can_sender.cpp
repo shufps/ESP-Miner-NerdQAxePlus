@@ -83,6 +83,13 @@ void can_send_telemetry(uint8_t slave_id, const can_slave_telemetry_t *t)
     send_multiframe(can_id, (const uint8_t *) t, sizeof(can_slave_telemetry_t));
 }
 
+void can_send_settings_cmd(uint8_t slave_id, const uint8_t *payload, size_t len)
+{
+    uint32_t can_id = CAN_ID_SETTINGS_BASE | (slave_id & 0x7F);
+    send_multiframe(can_id, payload, len);
+    ESP_LOGD(TAG, "TX SETTINGS slave=%d cmd=0x%02X", slave_id, len ? payload[0] : 0xFF);
+}
+
 void can_send_raw_job(uint8_t slave_id, uint8_t job_id, const bm_job *job)
 {
     BM1368_job raw = {};
