@@ -94,6 +94,7 @@ SRCS
     "./displays/images/ui_img_found_block_png.c"
     "./displays/images/ui_img_safe_png.c"
     "./displays/images/ui_img_eth_png.c"
+    "./displays/images/ui_img_can_png.c"
     "./displays/images/ui_img_wifi_png.c"
     "./displays/images/themes/themes.c"
     "./otp/otp.cpp"

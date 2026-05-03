@@ -816,14 +816,14 @@ void DisplayDriver::updateHashrate(System *module, StratumManager* manager, floa
     lv_label_set_text(m_ui->ui_lbHashrate, strData);    // Update hashrate
 
     // let it toggle on the pool view page
-    if (manager->isDualPool()) {
+    if (manager && manager->isDualPool()) {
         auto *m = static_cast<StratumManagerDualPool*>(manager);
         float activeHashrate = m->getActivePoolHashrate(pool);
         formatHashrate(strDataActive, sizeof(strDataActive), activeHashrate);
         lv_label_set_text(m_ui->ui_lbHashrateSet, strDataActive); // Update hashrate
     }
 
-    if (manager->isFallback()) {
+    if (manager && manager->isFallback()) {
         lv_label_set_text(m_ui->ui_lbHashrateSet, strData); // Update hashrate
     }
 
@@ -838,6 +838,8 @@ void DisplayDriver::updateHashrate(System *module, StratumManager* manager, floa
 
 void DisplayDriver::updateShares(StratumManager *manager, int pool)
 {
+    if (!manager) return;
+
     char strData[20];
 
     if (manager->isDualPool()) {
@@ -1030,6 +1032,14 @@ void DisplayDriver::setNetworkIcon(bool eth_connected)
     {
         lv_img_set_src(m_ui->ui_imgNet, &ui_img_wifi_png);
     }
+}
+
+void DisplayDriver::setCanIcon()
+{
+    if (m_ui->ui_imgNet == nullptr)
+        return;
+
+    lv_img_set_src(m_ui->ui_imgNet, &ui_img_can_png);
 }
 
 void DisplayDriver::logMessage(const char *message)

@@ -8,6 +8,7 @@
 LV_IMG_DECLARE(ui_img_overheat_png);      // overheating screen
 LV_IMG_DECLARE(ui_img_safe_png);
 LV_IMG_DECLARE(ui_img_eth_png);
+LV_IMG_DECLARE(ui_img_can_png);
 LV_IMG_DECLARE(ui_img_wifi_png);
 
 #define LV_FONT_CUSTOM_DECLARE

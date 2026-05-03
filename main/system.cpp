@@ -26,6 +26,8 @@
 #include "history.h"
 #include "boards/board.h"
 #include "utils.h"
+#include "tasks/can_slave_task.h"
+#include "tasks/can_sender.h"
 
 static const char* TAG = "SystemModule";
 
@@ -229,15 +231,21 @@ void System::task() {
     wifi_mode_t wifiMode;
     esp_err_t result;
 
-    while (!NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress), nullptr)) {
-        // STA not connected yet -> show captive/config info
-        showApInformation(nullptr);
-        vTaskDelay(pdMS_TO_TICKS(5000)); // avoid flicker/spam
+    if (!m_board->isCanSlave()) {
+        while (!NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress), nullptr)) {
+            // STA not connected yet -> show captive/config info
+            showApInformation(nullptr);
+            vTaskDelay(pdMS_TO_TICKS(5000)); // avoid flicker/spam
+        }
+        m_display->updateIpAddress(m_ipAddress);
+        updateConnection();
     }
 
-    m_display->updateIpAddress(m_ipAddress);
-    updateConnection();
     m_display->miningScreen();
+
+    if (m_board->isCanSlave()) {
+        m_display->setCanIcon();
+    }
 
     char lastIpAddress[20] = {0};
 
@@ -255,32 +263,43 @@ void System::task() {
             vTaskSuspend(NULL);
         }
 
-        // update IP on the screen if it is available
-        bool isEth = false;
-        if (NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress), &isEth)) {
-            if (strcmp(m_ipAddress, lastIpAddress) != 0) {
-                ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
-                m_display->updateIpAddress(m_ipAddress);
-
-                m_display->setNetworkIcon(isEth);
+        if (m_board->isCanSlave()) {
+            // Show CAN ID in the IP label; refresh every tick in case negotiation just completed
+            uint8_t can_id = g_can_slave_id;
+            char canLabel[16];
+            if (can_id == CAN_SLAVE_ID_UNASSIGNED) {
+                snprintf(canLabel, sizeof(canLabel), "CAN: ...");
+            } else {
+                snprintf(canLabel, sizeof(canLabel), "CAN ID: %d", can_id);
             }
-            strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
-        }
+            if (strcmp(canLabel, lastIpAddress) != 0) {
+                m_display->updateIpAddress(canLabel);
+                strncpy(lastIpAddress, canLabel, sizeof(lastIpAddress));
+            }
+        } else {
+            // update IP on the screen if it is available
+            bool isEth = false;
+            if (NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress), &isEth)) {
+                if (strcmp(m_ipAddress, lastIpAddress) != 0) {
+                    ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
+                    m_display->updateIpAddress(m_ipAddress);
+                    m_display->setNetworkIcon(isEth);
+                }
+                strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
+            }
 
+            uint32_t foundBlocks = STRATUM_MANAGER->getFoundBlocks();
+            if (foundBlocks != lastFoundBlocks && foundBlocks) {
+                m_display->showFoundBlockOverlay();
+            }
+            lastFoundBlocks = foundBlocks;
+        }
 
         if (m_boardError != Board::Error::NONE) {
             showError(Board::errorToStr(m_boardError), m_errorCode);
         } else {
             m_display->hideError();
         }
-
-        uint32_t foundBlocks = STRATUM_MANAGER->getFoundBlocks();
-
-        // trigger the overlay only once when block is found
-        if (foundBlocks != lastFoundBlocks && foundBlocks) {
-            m_display->showFoundBlockOverlay();
-        }
-        lastFoundBlocks = foundBlocks;
 
         // toggle
         toggle = 1-toggle;

@@ -34,6 +34,13 @@ export function syncHomeChartDataAndSmoothing(opts: SyncHomeChartDataOptions): v
     const hideTemp = !!opts.hideTempDatasets;
     datasets[4].hidden = hideTemp;
     datasets[5].hidden = hideTemp;
+    datasets[4].excludeFromLegend = hideTemp;
+    datasets[5].excludeFromLegend = hideTemp;
+  }
+
+  // Hide/show the right temperature axis
+  if (chartOptions?.scales?.y_temp) {
+    chartOptions.scales.y_temp.display = !opts.hideTempDatasets;
   }
 
   // Update hashrate pill display value from live pool sum.

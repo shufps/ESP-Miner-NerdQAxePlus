@@ -63,7 +63,7 @@ import { NbMenuItem } from '@nebular/theme';
             },
             {
                 title: 'CAN Swarm',
-                icon: 'radio-outline',
+                icon: 'share-outline',
                 link: '/pages/can-swarm',
             },
             {

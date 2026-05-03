@@ -198,6 +198,7 @@ class DisplayDriver {
     void loadSettings();                                            // (re)load settings
 
     void setNetworkIcon(bool eth_connected);
+    void setCanIcon();
 
     void setScreenAnimationRunning(bool state) {
       m_screenAnimationRunning = state;

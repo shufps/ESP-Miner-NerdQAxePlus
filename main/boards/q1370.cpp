@@ -17,7 +17,7 @@ Q1370B::Q1370B() : NerdQaxePlus()
     m_deviceModel = "Q1370";
     m_miningAgent = m_deviceModel;
     m_asicModel = "BM1370";
-    m_asicCount = 4;
+    m_asicCount = 8;
     m_numPhases = 4;
     m_imax = 123;//m_numPhases * 31;
     m_ifault = (float) 160.0f;

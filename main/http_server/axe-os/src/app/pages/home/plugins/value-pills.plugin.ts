@@ -119,8 +119,9 @@ function valuePillsComputePills(chart: any, opts: ValuePillsPluginOptions, measu
 
   chart.data.datasets.forEach((ds: any, datasetIndex: number) => {
     const axisId = ds.yAxisID || 'y';
-    // Only show pills for Hashrate (1min) and temperatures
+    // Only show pills for Hashrate (1min) and temperatures; skip hidden datasets
     if (!(axisId === 'y_temp' || datasetIndex === 0)) return;
+    if (ds.hidden) return;
     const side: ValuePillsSide = axisId === 'y_temp' ? 'right' : 'left';
 
     const overrides: ValuePillsDatasetOverrides = ds.pill || {};
