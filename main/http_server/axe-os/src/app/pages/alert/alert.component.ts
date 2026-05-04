@@ -38,6 +38,7 @@ export class AlertComponent implements OnInit {
           alertDiscordWatchdogEnable: [data?.alertDiscordWatchdogEnable === 1],
           alertDiscordBlockFoundEnable: [data?.alertDiscordBlockFoundEnable === 1],
           alertDiscordBestDiffEnable: [data?.alertDiscordBestDiffEnable === 1],
+          alertDiscordCoinbaseVerifyEnable: [data?.alertDiscordCoinbaseVerifyEnable === 1],
           showBlockFoundScreenEnable: [data?.showBlockFoundScreenEnable === 1],
 
           // Keep sentinel so users must enter a valid webhook at least once.
@@ -57,6 +58,7 @@ export class AlertComponent implements OnInit {
       alertDiscordWatchdogEnable: !!form.alertDiscordWatchdogEnable,
       alertDiscordBlockFoundEnable: !!form.alertDiscordBlockFoundEnable,
       alertDiscordBestDiffEnable: !!form.alertDiscordBestDiffEnable,
+      alertDiscordCoinbaseVerifyEnable: !!form.alertDiscordCoinbaseVerifyEnable,
       showBlockFoundScreenEnable: !!form.showBlockFoundScreenEnable,
     };
 

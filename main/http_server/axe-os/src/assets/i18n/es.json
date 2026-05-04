@@ -82,7 +82,6 @@
     "BLOCK_DIFFICULTY": "Dificultad",
     "BLOCK_SCRIPTSIG": "Scriptsig",
     "BLOCK_VALUE": "Valor",
-    "BLOCK_OUTPUTS": "Salidas",
     "BLOCK_FEE": "Comisión",
     "BLOCK_SHARE": "Participación"
   },
@@ -556,6 +555,13 @@
     "FORGET_THIS_DEVICE_HELP": "Finaliza la confianza de 24 horas para este navegador. Se elimina el token de sesión local — la próxima acción protegida volverá a requerir un código de 6 dígitos.",
     "THIS_DEVICE_FORGOTTEN": "Este navegador ha sido olvidado.",
     "NO_TRUSTED_DEVICE_HELP": "No hay una sesión de confianza en este navegador. Las acciones protegidas solicitarán un código de 6 dígitos hasta que elijas « Recordar este navegador ».",
-    "NOT_TRUSTED": "No de confianza"
+    "NOT_TRUSTED": "No de confianza",
+    "COINBASE_VERIFY_TITLE": "Verificación de Coinbase",
+    "COINBASE_VERIFY_HINT": "Verifica que tu dirección de minero aparezca en la transacción coinbase del pool. Cuando está activada, la dirección en el panel se vuelve verde si la verificación es correcta.",
+    "COINBASE_VERIFY_MODE": "Modo de verificación",
+    "COINBASE_VERIFY_BASIC": "Básico (dirección en coinbase)",
+    "COINBASE_VERIFY_EXTENDED": "Extendido (dirección + límite de comisión)",
+    "COINBASE_MAX_FEE": "Comisión máxima del pool",
+    "COINBASE_MAX_FEE_HINT": "La verificación falla si la parte del pool en la recompensa coinbase supera este porcentaje (p. ej. 3 para la comisión del 3% de ckpool)."
   }
 }

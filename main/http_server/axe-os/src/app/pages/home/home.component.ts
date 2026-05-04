@@ -1830,21 +1830,17 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
   public getActiveBalance(i: 0 | 1) {
     const stratum = this._info?.stratum;
     if (!stratum) return 0;
-    const connected = stratum.pools.map(p => p.connected);
+    const active = stratum.pools.map((p: IPool) => p.connected && !p.verifyBlocked);
     const balance = stratum.poolBalance;
 
-    // If neither pool is connected
-    if (!connected[0] && !connected[1]) {
-      return 0;
-    }
+    // If neither pool is active
+    if (!active[0] && !active[1]) return 0;
 
-    // If both pools are connected
-    if (connected[0] && connected[1]) {
-      return i === 0 ? balance : 100 - balance;
-    }
+    // If both pools are active
+    if (active[0] && active[1]) return i === 0 ? balance : 100 - balance;
 
-    // Only one pool is connected → return 100 for that pool, 0 for the other
-    return connected[i] ? 100 : 0;
+    // Only one pool is active → return 100 for that pool, 0 for the other
+    return active[i] ? 100 : 0;
   }
 
 
@@ -1999,9 +1995,61 @@ private importHistoricalDataChunked(history: any): void {
     return bh.pool;
   }
 
+  getPoolVerificationOk(poolIdx: number): boolean {
+    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    return bh?.verificationOk ?? false;
+  }
+
+  getPoolVerifyMode(poolIdx: number): number {
+    return poolIdx === 0
+      ? (this._info?.coinbaseVerifyMode ?? 0)
+      : (this._info?.fallbackCoinbaseVerifyMode ?? 0);
+  }
+
+  getPoolHonestyPct(bh: IBlockHeader): number | null {
+    const checks = bh.verificationCheckCount ?? 0;
+    if (checks === 0) return null;
+    const fails = bh.verificationFailCount ?? 0;
+    return ((checks - fails) / checks) * 100;
+  }
+
+  getPoolVerificationColor(poolIdx: number): string | null {
+    const mode = this.getPoolVerifyMode(poolIdx);
+    if (mode === 0) return null;
+    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    if (!bh) return null;
+    const honesty = this.getPoolHonestyPct(bh);
+    if (honesty === null) return '#4caf50'; // not yet checked — neutral green
+    return honesty >= 100 ? '#4caf50' : '#f44336';
+  }
+
+  getPoolVerificationTooltip(poolIdx: number): string {
+    const mode = this.getPoolVerifyMode(poolIdx);
+    if (mode === 0) return '';
+    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    if (!bh) return '';
+
+    const checks = bh.verificationCheckCount ?? 0;
+    const fails = bh.verificationFailCount ?? 0;
+    const honesty = this.getPoolHonestyPct(bh);
+    const honestyStr = honesty !== null ? honesty.toFixed(1) + '%' : 'n/a';
+    const fee = this.getBlockHeaderFee(bh);
+    const feeStr = fee >= 0 ? fee.toFixed(2) + '%' : 'unknown';
+
+    const lines: string[] = [];
+    lines.push(`Honesty: ${honestyStr} (${checks - fails}/${checks} checks passed)`);
+    if (mode >= 2) lines.push(`Current pool fee: ${feeStr}`);
+    if (!bh.verificationOk) {
+      lines.push(bh.coinbaseValueUserSatoshis === 0
+        ? 'Your address was not found in the last coinbase.'
+        : 'Pool fee exceeded configured limit.');
+    }
+    return lines.join('\n');
+  }
+
   getBlockHeaderFee(bh: IBlockHeader): number {
     if (bh.coinbaseValueTotalSatoshis) {
-      return (bh.coinbaseValueUserSatoshis ?? 0) / bh.coinbaseValueTotalSatoshis * 100;
+      return (1 - (bh.coinbaseValueUserSatoshis ?? 0) / bh.coinbaseValueTotalSatoshis) * 100;
     }
     return -1;
   }
@@ -2023,9 +2071,4 @@ private importHistoricalDataChunked(history: any): void {
     return (sats / 100_000_000).toFixed(8) + ' BTC';
   }
 
-  truncateAddress(addr: string): string {
-    if (!addr) return '';
-    if (addr.length <= 20) return addr;
-    return addr.substring(0, 10) + '...' + addr.substring(addr.length - 8);
-  }
 }

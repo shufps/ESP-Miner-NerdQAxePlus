@@ -47,8 +47,8 @@ int StratumManagerDualPool::getNextActivePool()
     PThreadGuard lock(m_mutex);
     int secondary_pct = 100 - m_balance;
 
-    bool valid0 = m_stratumTasks[0] && m_stratumTasks[0]->m_validNotify;
-    bool valid1 = m_stratumTasks[1] && m_stratumTasks[1]->m_validNotify;
+    bool valid0 = m_stratumTasks[0] && m_stratumTasks[0]->m_validNotify && !isVerifyBlocked(0);
+    bool valid1 = m_stratumTasks[1] && m_stratumTasks[1]->m_validNotify && !isVerifyBlocked(1);
 
     // fast paths: only one pool has valid work
     if (valid0 && !valid1) {
@@ -211,6 +211,7 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
         JsonObject pool = arr.add<JsonObject>();
 
         pool["connected"] = m_stratumTasks[i] ? m_stratumTasks[i]->m_isConnected : false;
+        pool["verifyBlocked"] = getVerifyBlockedReason(i) ? getVerifyBlockedReason(i) : "";
         pool["poolDifficulty"] = m_poolDifficulty[i];
         pool["networkDifficulty"] = m_networkDifficulty[i];
         pool["poolDiffErr"] = m_poolDiffErr[i];

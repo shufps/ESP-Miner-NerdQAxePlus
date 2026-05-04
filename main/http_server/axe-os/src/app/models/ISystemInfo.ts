@@ -116,6 +116,14 @@ export interface ISystemInfo {
 
     // Block header / coinbase data (array, one per pool with data)
     blockHeaders?: IBlockHeader[],
+
+    // Coinbase verification settings (per pool)
+    coinbaseVerifyMode?: number,
+    coinbaseMaxFee?: number,
+    coinbaseVerifyForce?: boolean,
+    fallbackCoinbaseVerifyMode?: number,
+    fallbackCoinbaseMaxFee?: number,
+    fallbackCoinbaseVerifyForce?: boolean,
 }
 
 export interface IBlockHeader {
@@ -123,9 +131,11 @@ export interface IBlockHeader {
     blockHeight: number,
     networkDifficulty: number,
     scriptsig?: string,
-    coinbaseOutputs?: { value: number, address: string }[],
     coinbaseValueTotalSatoshis?: number,
     coinbaseValueUserSatoshis?: number,
+    verificationOk?: boolean,
+    verificationFailCount?: number,
+    verificationCheckCount?: number,
 }
 
 // fields swam is using

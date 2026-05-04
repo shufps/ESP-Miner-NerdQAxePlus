@@ -75,6 +75,9 @@
     "HIDE_CHART": "Hide",
     "SHOW_CHART": "Show",
     "STRATUM_NOT_CONNECTED": "Stratum not connected for this pool.",
+    "VERIFY_BLOCKED": "Pool blocked by verification.",
+    "VERIFY_BLOCKED_ADDRESS": "Your address was not found in the coinbase transaction.",
+    "VERIFY_BLOCKED_FEE": "Pool fee exceeds configured limit.",
     "RESET_STATS": "Reset Session Stats",
     "RESET_STATS_CONFIRM": "Reset all session stats (shares, best diff, errors)?",
     "RESET_STATS_SUCCESS": "Session stats reset.",
@@ -84,7 +87,6 @@
     "BLOCK_DIFFICULTY": "Difficulty",
     "BLOCK_SCRIPTSIG": "Scriptsig",
     "BLOCK_VALUE": "Value",
-    "BLOCK_OUTPUTS": "Outputs",
     "BLOCK_FEE": "Fee",
     "BLOCK_SHARE": "Share"
   },
@@ -471,7 +473,9 @@
     "BLOCK_FOUND_DESC": "triggers when your miner finds a block",
     "TEST": "Test",
     "BEST_DIFF_FOUND": "Best difficulty found",
-    "BEST_DIFF_FOUND_DESC": "triggers when the device finds a new best difficulty"
+    "BEST_DIFF_FOUND_DESC": "triggers when the device finds a new best difficulty",
+    "COINBASE_VERIFY_FAILED": "Coinbase verification failed",
+    "COINBASE_VERIFY_FAILED_DESC": "triggers when the pool's coinbase does not contain your address or exceeds the configured fee limit"
   },
   "LANGUAGE": {
     "TITLE": "Language / Langue",
@@ -566,6 +570,19 @@
     "FORGET_THIS_DEVICE_HELP": "Ends the 24-hour trust for this browser. The local session token is removed — the next protected action will require a 6-digit code again.",
     "THIS_DEVICE_FORGOTTEN": "This browser has been forgotten.",
     "NO_TRUSTED_DEVICE_HELP": "No trusted session in this browser. Protected actions will ask for a 6-digit code until you choose “Remember this browser”.",
-    "NOT_TRUSTED": "Not trusted"
+    "NOT_TRUSTED": "Not trusted",
+    "COINBASE_VERIFY_TITLE": "Coinbase Verification",
+    "COINBASE_VERIFY_HINT": "Verifies that your miner address appears in the pool's coinbase transaction. When enabled, the address on the dashboard turns green if verification passes.",
+    "COINBASE_VERIFY_BASIC_HINT": "Checks that your address appears in the coinbase payout. The address on the dashboard turns green if found.",
+    "COINBASE_VERIFY_EXTENDED_HINT": "Also checks that the pool fee does not exceed the configured limit. The address turns red on the dashboard if the fee limit is exceeded.",
+    "COINBASE_VERIFY_FORCE": "Enforce",
+    "COINBASE_VERIFY_FORCE_TOOLTIP": "Disconnects and blocks the pool if verification fails.",
+    "COINBASE_VERIFY_MODE": "Verification mode",
+    "COINBASE_VERIFY_DISABLED": "Disabled",
+    "COINBASE_VERIFY_BASIC": "Basic",
+    "COINBASE_VERIFY_EXTENDED": "Extended",
+    "COINBASE_MAX_FEE": "Max pool fee",
+    "COINBASE_MAX_FEE_HINT": "Verification fails if the pool's share of the coinbase reward exceeds this percentage (e.g. 3 for ckpool's 3% fee).",
+    "COINBASE_RECONNECT_HINT": "Saving will briefly disconnect and reconnect to the pool to apply the new settings."
   }
 }

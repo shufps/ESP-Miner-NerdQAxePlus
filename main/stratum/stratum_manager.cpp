@@ -25,6 +25,7 @@
 #include "stratum_manager.h"
 #include "stratum_task_v2.h"
 #include "utils.h"
+#include "discord.h"
 
 // ------------  stratum manager
 StratumManager::StratumManager(PoolMode poolmode) : m_poolmode(poolmode)
@@ -305,6 +306,14 @@ void StratumManager::loadSettings(bool reconnect)
             m_stratumTasks[i]->triggerReconnect();
         }
 
+        // reset verification stats and unblock pool on reconnect
+        // NOTE: do NOT call resetVerificationStats() here — loadSettings() is always
+        // called while m_mutex is already held (by the Fallback/DualPool overrides),
+        // so re-entering PThreadGuard on the same non-recursive mutex would deadlock.
+        m_verificationCheckCount[i] = 0;
+        m_verificationFailCount[i] = 0;
+        clearVerifyBlocked(i);
+
         // reset ping stats
         if (m_pingTasks[i]) {
             m_pingTasks[i]->reset();
@@ -403,7 +412,14 @@ void StratumManager::processCoinbase(int pool, const mining_notify *notify)
     if (!notify || !notify->coinbase_1 || !notify->coinbase_2) return;
     if (pool < 0 || pool > 1 || !m_extranonce1[pool]) return;
 
+    // Strip worker suffix (e.g. "bc1qxxx.worker1" → "bc1qxxx") for coinbase address matching
+    char user_address[128] = {};
     const char *user = m_stratumConfig[pool] ? m_stratumConfig[pool]->getUser() : nullptr;
+    if (user) {
+        strncpy(user_address, user, sizeof(user_address) - 1);
+        char *dot = strchr(user_address, '.');
+        if (dot) *dot = '\0';
+    }
 
     coinbase_result_t result{};
     esp_err_t err = coinbase_process(
@@ -413,13 +429,72 @@ void StratumManager::processCoinbase(int pool, const mining_notify *notify)
         notify->target,
         m_extranonce1[pool],
         m_extranonce2_len[pool],
-        user,
-        true, /* decode_coinbase_tx */
+        user ? user_address : nullptr,
         &result
     );
 
     if (err == ESP_OK) {
         m_coinbaseResult[pool & 1] = result;
+        runVerification(pool & 1);
+    }
+}
+
+void StratumManager::runVerification(int pool)
+{
+    const coinbase_result_t &cb = m_coinbaseResult[pool];
+
+    uint16_t mode = Config::getCoinbaseVerifyMode(pool);
+
+    // mode 0 = disabled, mode 1 = basic, mode 2 = extended
+    if (mode == 0) {
+        m_verificationOk[pool] = false;
+        return;
+    }
+
+    // Basic (mode >= 1): user address must appear in coinbase
+    bool ok = cb.user_value_satoshis > 0;
+
+    // Extended (mode >= 2): additionally check pool fee does not exceed configured max
+    if (ok && mode >= 2 && cb.total_value_satoshis > 0) {
+        uint64_t pool_take = cb.total_value_satoshis - cb.user_value_satoshis;
+        uint32_t fee_pct_x100 = (uint32_t)((pool_take * 10000ULL) / cb.total_value_satoshis);
+        uint32_t max_fee_x100 = (uint32_t)Config::getCoinbaseMaxFee(pool) * 10;
+        ok = fee_pct_x100 <= max_fee_x100;
+    }
+
+    // Send discord alert on transition to failed state
+    if (!ok && m_verificationOk[pool]) {
+        discordAlerter.sendCoinbaseVerifyFailed(pool, &cb, mode);
+    }
+
+    m_verificationCheckCount[pool]++;
+    if (!ok) m_verificationFailCount[pool]++;
+
+    m_verificationOk[pool] = ok;
+
+    // Force mode: block this pool and check if any pool is still usable
+    // Only act if we have actual coinbase data — skip if cache is empty (e.g. after settings save for new pool)
+    if (Config::getCoinbaseVerifyForce(pool) && cb.block_height > 0) {
+        if (!ok && !isVerifyBlocked(pool)) {
+            const char *reason = (cb.user_value_satoshis == 0) ? "address_not_found" : "fee_exceeded";
+            ESP_LOGW("stratum_manager", "Coinbase verification failed for pool %d (%s) - blocking", pool, reason);
+            m_verifyBlockedReason[pool] = reason;
+            if (m_stratumTasks[pool]) m_stratumTasks[pool]->triggerReconnect();
+        } else if (ok && isVerifyBlocked(pool)) {
+            m_verifyBlockedReason[pool] = nullptr;
+        }
+
+        // If all pools are blocked, halt the ASIC
+        bool anyUsable = false;
+        for (int i = 0; i < 2; i++) {
+            if (!isVerifyBlocked(i)) { anyUsable = true; break; }
+        }
+        if (!anyUsable) {
+            ESP_LOGW("stratum_manager", "All pools blocked by verification - halting ASIC");
+            SYSTEM_MODULE.setBoardError(Board::Error::COINBASE_VERIFY_FAULT, 0);
+        } else if (SYSTEM_MODULE.getBoardError() == Board::Error::COINBASE_VERIFY_FAULT) {
+            SYSTEM_MODULE.clearBoardError();
+        }
     }
 }
 

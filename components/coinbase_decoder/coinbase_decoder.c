@@ -13,6 +13,8 @@
 #include <ctype.h>
 #include "mbedtls/sha256.h"
 
+#define MAX_ADDRESS_STRING_LEN 128
+
 /* Network difficulty calculation from nBits (same as calculateNetworkDifficulty) */
 static double calc_network_difficulty(uint32_t nbits)
 {
@@ -43,24 +45,30 @@ static void ensure_base58_init(void)
     }
 }
 
-/* Decode a Bitcoin varint from binary data */
-static uint64_t decode_varint(const uint8_t *data, int *offset)
+/* Decode a Bitcoin varint from binary data. Returns 0 and does not advance
+ * offset if there are not enough bytes remaining. */
+static uint64_t decode_varint(const uint8_t *data, int *offset, int data_len)
 {
+    if (*offset >= data_len) return 0;
+
     uint8_t first_byte = data[*offset];
     (*offset)++;
 
     if (first_byte < 0xFD) {
         return first_byte;
     } else if (first_byte == 0xFD) {
+        if (*offset + 2 > data_len) return 0;
         uint64_t value = data[*offset] | (data[*offset + 1] << 8);
         *offset += 2;
         return value;
     } else if (first_byte == 0xFE) {
+        if (*offset + 4 > data_len) return 0;
         uint64_t value = data[*offset] | (data[*offset + 1] << 8) |
                         (data[*offset + 2] << 16) | (data[*offset + 3] << 24);
         *offset += 4;
         return value;
     } else {
+        if (*offset + 8 > data_len) return 0;
         uint64_t value = 0;
         for (int i = 0; i < 8; i++) {
             value |= ((uint64_t)data[*offset + i]) << (i * 8);
@@ -165,7 +173,6 @@ esp_err_t coinbase_process(const char *coinbase_1,
                            const char *extranonce1,
                            int extranonce2_len,
                            const char *user_address,
-                           bool decode_coinbase_tx,
                            coinbase_result_t *result)
 {
     if (!coinbase_1 || !coinbase_2 || !extranonce1 || !result) {
@@ -174,7 +181,6 @@ esp_err_t coinbase_process(const char *coinbase_1,
 
     /* Initialize result */
     memset(result, 0, sizeof(coinbase_result_t));
-    result->decode_coinbase_tx = decode_coinbase_tx;
 
     /* 1. Calculate difficulty */
     result->network_difficulty = calc_network_difficulty(nbits);
@@ -208,7 +214,7 @@ esp_err_t coinbase_process(const char *coinbase_1,
     coinbase_1_offset += block_height_len;
 
     /* Detect BIP-110 signaling: version bit 4 set */
-    result->bip110_signaling = decode_coinbase_tx &&
+    result->bip110_signaling =
         result->block_height < BIP110_SIGNAL_EXPIRY_BLOCK &&
         (block_version & (1U << BIP110_SIGNAL_BIT)) != 0;
 
@@ -284,10 +290,9 @@ esp_err_t coinbase_process(const char *coinbase_1,
         return ESP_OK;
     }
 
-    uint64_t num_outputs = decode_varint(coinbase_2_bin, &offset);
-    result->output_count = 0;
+    uint64_t num_outputs = decode_varint(coinbase_2_bin, &offset, coinbase_2_len);
 
-    /* Parse each output */
+    /* Parse each output: accumulate total value and match user address */
     for (uint64_t i = 0; i < num_outputs && offset < coinbase_2_len; i++) {
         /* Read value (8 bytes, little-endian) */
         if (offset + 8 > coinbase_2_len) break;
@@ -302,28 +307,16 @@ esp_err_t coinbase_process(const char *coinbase_1,
 
         /* Read scriptPubKey length */
         if (offset >= coinbase_2_len) break;
-        uint64_t script_len = decode_varint(coinbase_2_bin, &offset);
+        uint64_t script_len = decode_varint(coinbase_2_bin, &offset, coinbase_2_len);
 
         if (offset + script_len > (size_t)coinbase_2_len) break;
 
-        if (decode_coinbase_tx && i < MAX_COINBASE_TX_OUTPUTS) {
-            if (value_satoshis > 0) {
-                char output_address[MAX_ADDRESS_STRING_LEN];
-                decode_address(coinbase_2_bin + offset, script_len, output_address, MAX_ADDRESS_STRING_LEN);
-
-                bool is_user = user_address && strncmp(user_address, output_address, strlen(output_address)) == 0;
-                if (is_user) result->user_value_satoshis += value_satoshis;
-
-                strncpy(result->outputs[result->output_count].address, output_address, MAX_ADDRESS_STRING_LEN);
-                result->outputs[result->output_count].value_satoshis = value_satoshis;
-                result->outputs[result->output_count].is_user_output = is_user;
-                result->output_count++;
-            } else {
-                decode_address(coinbase_2_bin + offset, script_len,
-                               result->outputs[result->output_count].address, MAX_ADDRESS_STRING_LEN);
-                result->outputs[result->output_count].value_satoshis = 0;
-                result->outputs[result->output_count].is_user_output = false;
-                result->output_count++;
+        /* Match user address for payout share calculation */
+        if (user_address && value_satoshis > 0) {
+            char output_address[MAX_ADDRESS_STRING_LEN];
+            decode_address(coinbase_2_bin + offset, script_len, output_address, MAX_ADDRESS_STRING_LEN);
+            if (strcmp(user_address, output_address) == 0) {
+                result->user_value_satoshis += value_satoshis;
             }
         }
 
@@ -338,7 +331,7 @@ esp_err_t coinbase_process(const char *coinbase_1,
         }
     }
 
-    result->bip54_signaling = decode_coinbase_tx &&
+    result->bip54_signaling =
         (nLockTime == result->block_height - 1) && (nSequence != 0xffffffff);
 
     free(coinbase_2_bin);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "coinbase_decoder.h"
+
 #define ALERTER_MESSAGE_LEN 256
 
 typedef struct {
@@ -19,6 +21,7 @@ class Alerter {
     bool m_wdtAlertEnabled = false;
     bool m_blockFoundAlertEnabled = false;
     bool m_bestDiffAlertEnabled = false;
+    bool m_coinbaseVerifyAlertEnabled = false;
 
     virtual bool init();
 
@@ -32,7 +35,7 @@ class Alerter {
     virtual bool sendWatchdogAlert() = 0;
     virtual bool sendBlockFoundAlert(double diff, double networkDiff) = 0;
     virtual bool sendBestDifficultyAlert(double diff, double networkDiff) = 0;
-
+    virtual bool sendCoinbaseVerifyFailed(int pool, const coinbase_result_t *cb, int mode) = 0;
 };
 
 class DiscordAlerter : public Alerter {
@@ -53,4 +56,5 @@ class DiscordAlerter : public Alerter {
     virtual bool sendWatchdogAlert();
     virtual bool sendBlockFoundAlert(double diff, double networkDiff);
     virtual bool sendBestDifficultyAlert(double diff, double networkDiff);
+    virtual bool sendCoinbaseVerifyFailed(int pool, const coinbase_result_t *cb, int mode);
 };

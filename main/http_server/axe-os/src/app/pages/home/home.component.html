@@ -222,7 +222,7 @@
                 <!-- SINGLE POOL -->
                 <ng-container *ngIf="!isDualPool">
                   <div class="pool-tile-section pool-tile-section--single" role="group">
-                    <ng-container *ngIf="poolLeft?.connected; else poolDisconnectedLeft">
+                    <ng-container *ngIf="poolLeft?.connected && !poolLeft?.verifyBlocked; else poolDisconnectedLeft">
                       <ng-container
                         [ngTemplateOutlet]="poolHalf"
                         [ngTemplateOutletContext]="{ pool: poolLeft, idx: undefined, usingFallback: usingFallback }">
@@ -234,7 +234,7 @@
                 <!-- DUAL POOL: stack pool 2 under pool 1 inside the same white container -->
                 <ng-container *ngIf="isDualPool">
                   <div class="pool-tile-section pool-tile-section--top" role="group">
-                    <ng-container *ngIf="poolLeft?.connected; else poolDisconnectedLeft">
+                    <ng-container *ngIf="poolLeft?.connected && !poolLeft?.verifyBlocked; else poolDisconnectedLeft">
                       <ng-container
                         [ngTemplateOutlet]="poolHalf"
                         [ngTemplateOutletContext]="{ pool: poolLeft, idx: 0, usingFallback: usingFallback }">
@@ -243,7 +243,7 @@
                   </div>
 
                   <div class="pool-tile-section pool-tile-section--bottom" role="group">
-                    <ng-container *ngIf="poolRight?.connected; else poolDisconnectedRight">
+                    <ng-container *ngIf="poolRight?.connected && !poolRight?.verifyBlocked; else poolDisconnectedRight">
                       <ng-container
                         [ngTemplateOutlet]="poolHalf"
                         [ngTemplateOutletContext]="{ pool: poolRight, idx: 1, usingFallback: false }">
@@ -296,7 +296,8 @@
                         <div class="pool-tile-metricbar__user" *ngIf="pool.user">
                           <span class="pool-tile-metricbar__user-label">{{ 'POOL_INFO.USER' | translate }}:</span>
                           <span class="pool-tile-metricbar__user-value"
-                                [title]="pool.user">{{ abbrevMiddle(pool.user) }}</span>
+                                [title]="getPoolVerificationTooltip(idx ?? 0) || pool.user"
+                                [style.color]="getPoolVerificationColor(idx ?? 0)">{{ abbrevMiddle(pool.user) }}</span>
                         </div>
                       </div>
 
@@ -395,28 +396,44 @@
               </ng-template>
 
               <ng-template #poolDisconnectedLeft>
-                <!-- Use the existing pool metric bar UI for the disconnected warning (no extra alert chrome). -->
                 <div class="pool-tile-half pool-tile-half--disconnected" dir="ltr"
                      [class.pool-tile-half--dual]="isDualPool">
                   <div
                     class="pool-tile-metricbar pool-tile-metricbar--warn pool-tile-metricbar--disconnected fill-colors"
                     role="status" aria-live="polite">
                     <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
-                      <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
+                      <ng-container *ngIf="poolLeft?.verifyBlocked; else leftNotConnected">
+                        <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.VERIFY_BLOCKED' | translate }}</div>
+                        <div class="pool-tile-metricbar__dc-msg" style="font-size: 0.8em; opacity: 0.8;">
+                          <ng-container *ngIf="poolLeft?.verifyBlocked === 'address_not_found'">{{ 'HOME.VERIFY_BLOCKED_ADDRESS' | translate }}</ng-container>
+                          <ng-container *ngIf="poolLeft?.verifyBlocked === 'fee_exceeded'">{{ 'HOME.VERIFY_BLOCKED_FEE' | translate }}</ng-container>
+                        </div>
+                      </ng-container>
+                      <ng-template #leftNotConnected>
+                        <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
+                      </ng-template>
                     </div>
                   </div>
                 </div>
               </ng-template>
 
               <ng-template #poolDisconnectedRight>
-                <!-- Use the existing pool metric bar UI for the disconnected warning (no extra alert chrome). -->
                 <div class="pool-tile-half pool-tile-half--disconnected" dir="ltr"
                      [class.pool-tile-half--dual]="isDualPool">
                   <div
                     class="pool-tile-metricbar pool-tile-metricbar--warn pool-tile-metricbar--disconnected fill-colors"
                     role="status" aria-live="polite">
                     <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
-                      <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
+                      <ng-container *ngIf="poolRight?.verifyBlocked; else rightNotConnected">
+                        <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.VERIFY_BLOCKED' | translate }}</div>
+                        <div class="pool-tile-metricbar__dc-msg" style="font-size: 0.8em; opacity: 0.8;">
+                          <ng-container *ngIf="poolRight?.verifyBlocked === 'address_not_found'">{{ 'HOME.VERIFY_BLOCKED_ADDRESS' | translate }}</ng-container>
+                          <ng-container *ngIf="poolRight?.verifyBlocked === 'fee_exceeded'">{{ 'HOME.VERIFY_BLOCKED_FEE' | translate }}</ng-container>
+                        </div>
+                      </ng-container>
+                      <ng-template #rightNotConnected>
+                        <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
+                      </ng-template>
                     </div>
                   </div>
                 </div>
@@ -703,63 +720,6 @@
         </div>
       </div>
 
-      <!-- Block Header cards (one per pool with data, half width each) -->
-      <div class="row mt-3" *ngIf="info.blockHeaders && info.blockHeaders.length > 0">
-        <div *ngFor="let bh of info.blockHeaders; trackBy: trackByPool" class="col-12 col-xl-6"
-             [class.mt-3]="info.blockHeaders.length > 1" [class.mt-xl-0]="info.blockHeaders.length > 1">
-          <div class="plain-section">
-            <div class="block-header-box">
-              <div class="block-header-title">
-                {{ 'HOME.BLOCK_HEADER' | translate }}
-                <span *ngIf="isDualPool" class="block-header-pool-tag">Pool {{ bh.pool + 1 }}</span>
-              </div>
-
-              <div class="block-header-row">
-                <span class="block-header-label">{{ 'HOME.BLOCK_HEIGHT' | translate }}</span>
-                <span class="block-header-value">{{ bh.blockHeight | number: '1.0-0' }}</span>
-              </div>
-
-              <div class="block-header-row">
-                <span class="block-header-label">{{ 'HOME.BLOCK_DIFFICULTY' | translate }}</span>
-                <span class="block-header-value" [title]="(bh.networkDifficulty | number: '1.0-0')">{{ formatDifficulty(bh.networkDifficulty) }}</span>
-              </div>
-
-              <div class="block-header-row" *ngIf="bh.scriptsig">
-                <span class="block-header-label">{{ 'HOME.BLOCK_SCRIPTSIG' | translate }}</span>
-                <span class="block-header-value block-header-mono">{{ bh.scriptsig }}</span>
-              </div>
-
-              <ng-container *ngIf="bh.coinbaseOutputs && bh.coinbaseOutputs.length > 0">
-                <div class="block-header-row">
-                  <span class="block-header-label">{{ 'HOME.BLOCK_VALUE' | translate }}</span>
-                  <span class="block-header-value">{{ formatSats(bh.coinbaseValueTotalSatoshis) }}</span>
-                </div>
-
-                <div class="block-header-row" *ngIf="getBlockHeaderFee(bh) as pct">
-                  <ng-container *ngIf="pct >= 95">
-                    <span class="block-header-label">{{ 'HOME.BLOCK_FEE' | translate }}</span>
-                    <span class="block-header-value" [style.color]="pct >= 100 ? '#4caf50' : 'inherit'">{{ 100 - pct | number: '1.0-1' }}%</span>
-                  </ng-container>
-                  <ng-container *ngIf="pct > 0 && pct < 95">
-                    <span class="block-header-label">{{ 'HOME.BLOCK_SHARE' | translate }}</span>
-                    <span class="block-header-value" style="color: #f44336">{{ pct | number: '1.0-1' }}%</span>
-                  </ng-container>
-                </div>
-
-                <div class="block-header-row block-header-row--outputs">
-                  <span class="block-header-label">{{ 'HOME.BLOCK_OUTPUTS' | translate }}</span>
-                  <div class="block-header-outputs">
-                    <div *ngFor="let out of bh.coinbaseOutputs" class="block-header-output">
-                      <span class="block-header-mono block-header-addr" [title]="out.address">{{ truncateAddress(out.address) }}</span>
-                      <span class="block-header-sats" *ngIf="out.value > 0">{{ formatSats(out.value) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </ng-container>
-            </div>
-          </div>
-        </div>
-      </div>
 
     </div>
   </div>

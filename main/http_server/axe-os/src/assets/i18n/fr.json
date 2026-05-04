@@ -83,7 +83,6 @@
     "BLOCK_DIFFICULTY": "Difficulté",
     "BLOCK_SCRIPTSIG": "Scriptsig",
     "BLOCK_VALUE": "Valeur",
-    "BLOCK_OUTPUTS": "Sorties",
     "BLOCK_FEE": "Frais",
     "BLOCK_SHARE": "Part"
   },
@@ -556,6 +555,13 @@
     "FORGET_THIS_DEVICE_HELP": "Met fin à la confiance de 24 heures pour ce navigateur. Le jeton de session local est supprimé — la prochaine action protégée nécessitera à nouveau un code à 6 chiffres.",
     "THIS_DEVICE_FORGOTTEN": "Ce navigateur a été oublié.",
     "NO_TRUSTED_DEVICE_HELP": "Aucune session approuvée dans ce navigateur. Les actions protégées demanderont un code à 6 chiffres jusqu’à ce que vous choisissiez « Se souvenir de ce navigateur ».",
-    "NOT_TRUSTED": "Non approuvé"
+    "NOT_TRUSTED": "Non approuvé",
+    "COINBASE_VERIFY_TITLE": "Vérification Coinbase",
+    "COINBASE_VERIFY_HINT": "Vérifie que l'adresse de votre mineur apparaît dans la transaction coinbase du pool. Lorsqu'elle est activée, l'adresse dans le tableau de bord devient verte si la vérification réussit.",
+    "COINBASE_VERIFY_MODE": "Mode de vérification",
+    "COINBASE_VERIFY_BASIC": "Basique (adresse dans coinbase)",
+    "COINBASE_VERIFY_EXTENDED": "Étendu (adresse + limite de frais)",
+    "COINBASE_MAX_FEE": "Frais pool max",
+    "COINBASE_MAX_FEE_HINT": "La vérification échoue si la part du pool dans la récompense coinbase dépasse ce pourcentage (ex. 3 pour les frais de 3% de ckpool)."
   }
 }

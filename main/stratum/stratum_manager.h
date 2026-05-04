@@ -59,13 +59,19 @@ class StratumManager {
 
     bool m_initialized = false;
 
-    // Coinbase decoder: extranonce state per pool + decoded result
+    // Coinbase decoder: extranonce state per pool + decoded result + verification
     char *m_extranonce1[2]{};
     int m_extranonce2_len[2]{};
     coinbase_result_t m_coinbaseResult[2]{};
+    bool m_verificationOk[2]{};
+    uint32_t m_verificationFailCount[2]{};
+    uint32_t m_verificationCheckCount[2]{};
+    // "" = not blocked, "address_not_found", "fee_exceeded"
+    const char *m_verifyBlockedReason[2]{nullptr, nullptr};
 
     void processCoinbase(int pool, const mining_notify *notify);
     void storeExtranonce(int pool, const char *extranonce, int extranonce2_len);
+    void runVerification(int pool);
 
     PoolMode getPoolMode() const
     {
@@ -183,7 +189,7 @@ class StratumManager {
     virtual uint32_t getPoolDifficulty() = 0;
     virtual double getNetworkDifficulty() { return 0; }
 
-    const coinbase_result_t &getCoinbaseResult(int pool) {
+    coinbase_result_t getCoinbaseResult(int pool) {
         PThreadGuard lock(m_mutex);
         return m_coinbaseResult[pool & 1];
     }
@@ -191,6 +197,40 @@ class StratumManager {
     void setCoinbaseResult(int pool, const coinbase_result_t &result) {
         PThreadGuard lock(m_mutex);
         m_coinbaseResult[pool & 1] = result;
+        runVerification(pool & 1);
+    }
+
+    bool getVerificationOk(int pool) {
+        PThreadGuard lock(m_mutex);
+        return m_verificationOk[pool & 1];
+    }
+
+    uint32_t getVerificationFailCount(int pool) {
+        PThreadGuard lock(m_mutex);
+        return m_verificationFailCount[pool & 1];
+    }
+
+    uint32_t getVerificationCheckCount(int pool) {
+        PThreadGuard lock(m_mutex);
+        return m_verificationCheckCount[pool & 1];
+    }
+
+    void rerunVerification(int pool) {
+        PThreadGuard lock(m_mutex);
+        runVerification(pool & 1);
+    }
+
+    void resetVerificationStats(int pool) {
+        PThreadGuard lock(m_mutex);
+        m_verificationCheckCount[pool & 1] = 0;
+        m_verificationFailCount[pool & 1] = 0;
+    }
+
+    bool isVerifyBlocked(int pool) const { return m_verifyBlockedReason[pool & 1] != nullptr; }
+    const char *getVerifyBlockedReason(int pool) const { return m_verifyBlockedReason[pool & 1]; }
+
+    void clearVerifyBlocked(int pool) {
+        m_verifyBlockedReason[pool & 1] = nullptr;
     }
 
     virtual int getCompatPingPoolIndex() = 0;

@@ -1,5 +1,6 @@
 export interface IPool {
     connected: boolean,
+    verifyBlocked?: string, // "" | "address_not_found" | "fee_exceeded"
     poolDiffErr: boolean,
     poolDifficulty: number,
     accepted: number,

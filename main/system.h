@@ -134,6 +134,14 @@ class System {
         m_boardError = error;
     }
 
+    Board::Error getBoardError() const { return m_boardError; }
+
+    void clearBoardError()
+    {
+        m_errorCode = 0;
+        m_boardError = Board::Error::NONE;
+    }
+
     // WiFi-related getters and setters
     const char *getWifiStatus() const
     {

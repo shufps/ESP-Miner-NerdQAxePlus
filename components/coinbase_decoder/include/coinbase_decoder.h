@@ -16,8 +16,6 @@
 extern "C" {
 #endif
 
-#define MAX_ADDRESS_STRING_LEN 128
-#define MAX_COINBASE_TX_OUTPUTS 6
 #define MAX_SCRIPTSIG_LEN 256
 
 /* Bitcoin Script Opcodes */
@@ -37,26 +35,14 @@ extern "C" {
 #define BIP110_SIGNAL_EXPIRY_BLOCK 965664
 
 /**
- * A single decoded coinbase transaction output.
- */
-typedef struct {
-    uint64_t value_satoshis;
-    char address[MAX_ADDRESS_STRING_LEN];
-    bool is_user_output;
-} coinbase_output_t;
-
-/**
  * Result of processing a mining notification's coinbase data.
  */
 typedef struct {
     double network_difficulty;
     uint32_t block_height;
     char scriptsig[MAX_SCRIPTSIG_LEN];
-    coinbase_output_t outputs[MAX_COINBASE_TX_OUTPUTS];
-    int output_count;
     uint64_t total_value_satoshis;
     uint64_t user_value_satoshis;
-    bool decode_coinbase_tx;
     bool bip54_signaling;
     bool bip110_signaling;
 } coinbase_result_t;
@@ -85,7 +71,6 @@ esp_err_t coinbase_process(const char *coinbase_1,
                            const char *extranonce1,
                            int extranonce2_len,
                            const char *user_address,
-                           bool decode_coinbase_tx,
                            coinbase_result_t *result);
 
 #ifdef __cplusplus

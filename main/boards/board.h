@@ -15,7 +15,8 @@ public:
         VREG_TEMP_FAULT,
         PSU_FAULT,
         IOUT_OC_FAULT,
-        VOUT_FAULT
+        VOUT_FAULT,
+        COINBASE_VERIFY_FAULT
     };
 
     static const char* errorToStr(Error err) {
@@ -26,6 +27,7 @@ public:
             case Error::PSU_FAULT: return "PSU FAULT";
             case Error::IOUT_OC_FAULT: return "CURRENT PROTECTION";
             case Error::VOUT_FAULT: return "VOLTAGE PROTECTION";
+            case Error::COINBASE_VERIFY_FAULT: return "VERIFY FAILED";
             default: return "INVALID ERROR";
         }
     }
