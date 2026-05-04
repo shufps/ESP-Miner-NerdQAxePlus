@@ -39,7 +39,7 @@ static void processSV2ExtendedCoinbase(int pool, const sv2_ext_job_t *job,
         prefix_hex, suffix_hex,
         job->version, job->nbits,
         enonce_hex, extranonce_size,
-        user, true, &result
+        user, &result
     );
 
     safe_free(user);
