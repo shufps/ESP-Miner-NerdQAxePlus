@@ -17,6 +17,7 @@
 #include "nvs_config.h"
 #include "esp_system.h"
 #include "esp_app_desc.h"
+#include "esp_attr.h"
 #include "esp_heap_caps.h"
 
 static const char *TAG = "can_slave";
@@ -29,9 +30,9 @@ volatile uint8_t g_can_slave_id = CAN_SLAVE_ID_UNASSIGNED;
 #define JOB_PAYLOAD_LEN (sizeof(BM1368_job) + sizeof(uint32_t))
 
 // Per-job-id store: BM1368_job + pool_diff for nonce filtering
-static BM1368_job  s_jobs[256];
-static uint32_t    s_pool_diffs[256];
-static bool        s_job_valid[256];
+static EXT_RAM_BSS_ATTR BM1368_job  s_jobs[256];
+static EXT_RAM_BSS_ATTR uint32_t    s_pool_diffs[256];
+static EXT_RAM_BSS_ATTR bool        s_job_valid[256];
 
 // Recover bm_job LE fields from BM1368_job BE fields and call test_nonce_value().
 static double calc_nonce_diff(const BM1368_job *j, uint32_t nonce, uint32_t rolled_version)

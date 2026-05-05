@@ -18,6 +18,7 @@
 #include "utils.h"
 #include "nvs_flash.h"
 #include "nvs.h"
+#include "esp_attr.h"
 
 static const char *TAG = "can_master";
 
@@ -38,12 +39,12 @@ typedef struct {
     bool    foreign;  // not persisted — detected at runtime from HELLO
 } slave_reg_entry_t;
 
-static slave_reg_entry_t s_slave_reg[CAN_SLAVE_MAX] = {};
-static uint8_t           s_master_mac[6]             = {};
+static EXT_RAM_BSS_ATTR slave_reg_entry_t s_slave_reg[CAN_SLAVE_MAX];
+static uint8_t                            s_master_mac[6] = {};
 
 // Forward declarations
-static can_slave_telemetry_t s_slave_telemetry[CAN_SLAVE_MAX];
-static can_slave_config_t    s_slave_config[CAN_SLAVE_MAX];
+static EXT_RAM_BSS_ATTR can_slave_telemetry_t s_slave_telemetry[CAN_SLAVE_MAX];
+static EXT_RAM_BSS_ATTR can_slave_config_t    s_slave_config[CAN_SLAVE_MAX];
 static void nvs_save_registry(void);
 
 bool can_master_is_slave_active(uint8_t slave_id)
@@ -367,9 +368,9 @@ void can_master_task(void *pvParameters)
     nvs_load_registry();
 
     // Separate reassembly slots per slave and frame type
-    static slave_rx_t nonce_rx[CAN_SLAVE_MAX]  = {};
-    static slave_rx_t telem_rx[CAN_SLAVE_MAX]  = {};
-    static slave_rx_t config_rx[CAN_SLAVE_MAX] = {};
+    static EXT_RAM_BSS_ATTR slave_rx_t nonce_rx[CAN_SLAVE_MAX];
+    static EXT_RAM_BSS_ATTR slave_rx_t telem_rx[CAN_SLAVE_MAX];
+    static EXT_RAM_BSS_ATTR slave_rx_t config_rx[CAN_SLAVE_MAX];
 
     ESP_LOGI(TAG, "CAN master receiver started");
 

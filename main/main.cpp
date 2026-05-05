@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "esp_attr.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_netif.h"
@@ -59,7 +60,7 @@ FactoryOTAUpdate FACTORY_OTA_UPDATER;
 DiscordAlerter discordAlerter;
 
 AsicJobs asicJobs;
-AsicJobs slaveAsicJobs[CAN_SLAVE_MAX];
+EXT_RAM_BSS_ATTR AsicJobs slaveAsicJobs[CAN_SLAVE_MAX];
 
 OTP otp;
 SNTP sntp;
@@ -316,8 +317,7 @@ extern "C" void app_main(void)
 
         xTaskCreate(can_slave_task, "can slave", 4096, NULL, 10, NULL);
         xTaskCreate(can_slave_result_task, "can result", 4096, NULL, 10, NULL);
-
-        xTaskCreate(can_slave_telemetry_task, "can telem", 4096, NULL, 5, NULL);
+        xTaskCreatePSRAM(can_slave_telemetry_task, "can telem", 4096, NULL, 5, NULL);
 
         if (board->hasHashrateCounter()) {
             HASHRATE_MONITOR.start(board, board->getAsics());
