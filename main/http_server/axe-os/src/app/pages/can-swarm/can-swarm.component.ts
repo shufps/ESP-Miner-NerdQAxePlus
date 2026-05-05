@@ -26,6 +26,7 @@ export interface CanSlave {
   boardError?: number;
   deviceModel?: string;
   fwVersion?: string;
+  freeHeap?: number;
   isMaster?: boolean;
   // Settings (from telemetry v2)
   freqMhz?: number;

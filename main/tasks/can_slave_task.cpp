@@ -17,6 +17,7 @@
 #include "nvs_config.h"
 #include "esp_system.h"
 #include "esp_app_desc.h"
+#include "esp_heap_caps.h"
 
 static const char *TAG = "can_slave";
 
@@ -410,6 +411,7 @@ void can_slave_telemetry_task(void *pvParameters)
         t.hashRate          = HASHRATE_MONITOR.getHashrate();
         t.shutdown          = POWER_MANAGEMENT_MODULE.isShutdown() ? 1 : 0;
         t.boardError        = (uint8_t) SYSTEM_MODULE.getBoardError();
+        t.freeHeap          = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 
         can_send_telemetry(slave_id, &t);
     }

@@ -73,6 +73,7 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
             "\"coreVoltageActual\":%u,"
             "\"shutdown\":%s,"
             "\"boardError\":%u,"
+            "\"freeHeap\":%lu,"
             "\"freqMhz\":%u,"
             "\"voltageMv\":%u,"
             "\"fan0Mode\":%u,\"fan0Speed\":%u,\"fan0TargetTemp\":%u,\"fan0Overheat\":%u,"
@@ -103,6 +104,7 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
             has_telem ? t.coreVoltageActual : 0,
             (has_telem && t.shutdown)    ? "true" : "false",
             has_telem ? t.boardError     : 0,
+            has_telem ? t.freeHeap       : 0,
             has_config ? cfg.freqMhz        : 0,
             has_config ? cfg.voltageMv      : 0,
             has_config ? cfg.fan0Mode       : 0,

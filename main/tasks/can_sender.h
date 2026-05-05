@@ -35,7 +35,8 @@ typedef struct __attribute__((__packed__)) {
     float    hashRate;          // GH/s (from HASHRATE_MONITOR)
     uint8_t  shutdown;          // 1 = explicit manual shutdown active
     uint8_t  boardError;        // Board::Error enum value (0 = NONE)
-} can_slave_telemetry_t;        // 45 bytes → 7 CAN frames
+    uint32_t freeHeap;          // free internal RAM (bytes)
+} can_slave_telemetry_t;        // 49 bytes → 7 CAN frames
 
 // Device info + settings, sent once after ASSIGN and after any CMD_SET_*.
 // Also re-sent on CMD_GET_CONFIG request.
