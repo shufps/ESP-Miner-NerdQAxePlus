@@ -66,6 +66,7 @@ class NetworkManager {
 
   private:
     void updateDefaultRoute();
+    void shutdownApOnce();
 
     void onWifiGotIp();
     void onWifiDisconnected();
@@ -100,5 +101,6 @@ class NetworkManager {
     NetworkHookFn m_hookPreferredChanged = nullptr;
     NetworkHookFn m_hookAnyIp = nullptr;
 
-    bool m_apDisabledBecauseEth = false;
+    bool m_apShutdownDone = false;
+    bool m_wifiDisabledBecauseEth = false;
 };

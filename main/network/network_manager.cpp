@@ -115,12 +115,22 @@ void NetworkManager::updateDefaultRoute()
     }
 }
 
+void NetworkManager::shutdownApOnce()
+{
+    if (!m_apShutdownDone) {
+        ESP_LOGI(TAG_NET, "First IP acquired -> AP permanently off");
+        wifi_softap_off();
+        m_apShutdownDone = true;
+    }
+}
+
 void NetworkManager::onWifiGotIp()
 {
     m_wifiHasIp = true;
     if (m_eg) {
         xEventGroupSetBits(m_eg, NET_WIFI_IP);
     }
+    shutdownApOnce();
     updateDefaultRoute();
 }
 
@@ -140,11 +150,15 @@ void NetworkManager::onEthGotIp()
         xEventGroupSetBits(m_eg, NET_ETH_IP);
     }
 
-    // ETH has an IP -> disable WiFi AP for UX/security
-    if (!m_apDisabledBecauseEth) {
-        ESP_LOGW(TAG_NET, "ETH has IP -> disabling WiFi AP");
-        wifi_softap_off();
-        m_apDisabledBecauseEth = true;
+    shutdownApOnce();
+
+    // ETH has an IP -> shut down WiFi STA (no longer needed)
+    if (!m_wifiDisabledBecauseEth) {
+        ESP_LOGI(TAG_NET, "ETH has IP -> stopping WiFi");
+        esp_wifi_disconnect();
+        esp_wifi_stop();
+        m_wifiHasIp = false;
+        m_wifiDisabledBecauseEth = true;
     }
 
     updateDefaultRoute();
@@ -158,8 +172,12 @@ void NetworkManager::onEthLinkDown()
         xEventGroupClearBits(m_eg, NET_ETH_IP);
     }
 
-    // Allow AP-disable to run again when ETH comes back
-    m_apDisabledBecauseEth = false;
+    // ETH gone -> restart WiFi so we have fallback connectivity
+    if (m_wifiDisabledBecauseEth) {
+        ESP_LOGI(TAG_NET, "ETH link down -> restarting WiFi");
+        esp_wifi_start();
+        m_wifiDisabledBecauseEth = false;
+    }
 
     updateDefaultRoute();
 }
