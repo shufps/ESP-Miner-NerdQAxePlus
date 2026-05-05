@@ -5,12 +5,10 @@
 
 static const char *TAG = "can";
 
-#define CAN_TX_GPIO GPIO_NUM_1
-#define CAN_RX_GPIO GPIO_NUM_10
-
-void can_init()
+void can_init(int tx_gpio, int rx_gpio)
 {
-    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_GPIO, CAN_RX_GPIO, TWAI_MODE_NORMAL);
+    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(
+        (gpio_num_t) tx_gpio, (gpio_num_t) rx_gpio, TWAI_MODE_NORMAL);
     g_config.rx_queue_len = 32;  // default=5 is too small for 7-frame telemetry bursts
     g_config.intr_flags = ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_SHARED;
 
@@ -30,5 +28,5 @@ void can_init()
         return;
     }
 
-    ESP_LOGI(TAG, "TWAI ready at 500 kbit/s (TX=GPIO%d RX=GPIO%d)", CAN_TX_GPIO, CAN_RX_GPIO);
+    ESP_LOGI(TAG, "TWAI ready at 500 kbit/s (TX=GPIO%d RX=GPIO%d)", tx_gpio, rx_gpio);
 }

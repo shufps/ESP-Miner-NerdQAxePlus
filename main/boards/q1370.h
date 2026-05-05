@@ -32,4 +32,6 @@ class Q1370B : public NerdQaxePlus {
     virtual void requestChipTemps();
     bool hasEthernet() override { return true; }
     bool isCanSlave() override;
+    int getCanTxPin() override { return 1; }
+    int getCanRxPin() override { return 10; }
 };

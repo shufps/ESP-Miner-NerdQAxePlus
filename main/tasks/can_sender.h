@@ -17,7 +17,7 @@
 
 #define CAN_SLAVE_ID_UNASSIGNED 0xFF
 
-#define CAN_TELEMETRY_VERSION 4
+#define CAN_TELEMETRY_VERSION 5
 
 // Live telemetry pushed by each slave ~1/s. Settings removed — see can_slave_config_t.
 typedef struct __attribute__((__packed__)) {

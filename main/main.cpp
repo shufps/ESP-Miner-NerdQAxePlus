@@ -307,7 +307,7 @@ extern "C" void app_main(void)
         xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
         SYSTEM_MODULE.setStartupDone();
 
-        can_init();
+        can_init(board->getCanTxPin(), board->getCanRxPin());
 
         POWER_MANAGEMENT_MODULE.lock();
         if (!board->initAsics()) {
@@ -385,7 +385,7 @@ extern "C" void app_main(void)
             xTaskCreatePSRAM(APIs_FETCHER.taskWrapper, "apis ticker", 8192, (void *) &APIs_FETCHER, 5, NULL);
             xTaskCreatePSRAM(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
             if (Config::isCanEnabled()) {
-                can_init();
+                can_init(board->getCanTxPin(), board->getCanRxPin());
                 xTaskCreate(can_master_task, "can master", 4096, NULL, 5, NULL);
             }
             xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 8192, (void *) &FACTORY_OTA_UPDATER, 1, NULL);

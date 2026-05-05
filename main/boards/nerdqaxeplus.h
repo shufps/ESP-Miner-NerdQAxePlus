@@ -4,6 +4,7 @@
 #include "bm1368.h"
 #include "board.h"
 #include "./drivers/TPS53647.h"
+#include "./drivers/fxl6408.h"
 
 class NerdQaxePlus : public Board {
   protected:
@@ -23,6 +24,10 @@ class NerdQaxePlus : public Board {
     int detectNumTempSensors();
 
     TPS53647 *m_tps;
+
+    // Optional CAN extension board (FXL6408 + transceiver on GPIO21/16)
+    Fxl6408 m_canIo;
+    bool    m_hasCanExtension = false;
 
   public:
     NerdQaxePlus();
@@ -54,4 +59,8 @@ class NerdQaxePlus : public Board {
     virtual Board::Error getFault(uint32_t *status);
     virtual bool selfTest();
     virtual float getVRTempInt();
+
+    bool isCanSlave() override;
+    int  getCanTxPin() override { return 21; }
+    int  getCanRxPin() override { return 16; }
 };

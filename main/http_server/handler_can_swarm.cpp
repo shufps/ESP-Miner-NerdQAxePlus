@@ -76,6 +76,7 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         slave["fanspeed2"]          = has_telem ? t.fanSpeed2         : 0;   // info: "fanspeed2"
         slave["shutdown"]           = has_telem && t.shutdown;
         slave["boardError"]         = has_telem ? t.boardError        : 0;
+        slave["freeHeapInt"]        = has_telem ? t.freeHeapInt       : 0;
         slave["frequency"]          = has_config ? cfg.freqMhz        : 0;   // info: "frequency"
         slave["coreVoltage"]        = has_config ? cfg.voltageMv      : 0;   // info: "coreVoltage"
         slave["flipscreen"]         = has_config && cfg.flipScreen;           // info: "flipscreen"

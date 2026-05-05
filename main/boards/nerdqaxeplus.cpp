@@ -99,6 +99,17 @@ bool NerdQaxePlus::initBoard()
 
     ESP_LOGI(TAG, "found %d ASIC temp measuring sensors", m_numTempSensors);
 
+    // Probe for optional CAN extension board (FXL6408 at 0x43 + transceiver TX=GPIO21 RX=GPIO16).
+    // Slave enable is read from FXL6408 pin 5 (pulled to GND by DIP switch = slave, open = master).
+    if (m_canIo.init()) {
+        m_hasCanExtension = true;
+        m_canIo.set_direction(5, false);   // input
+        m_canIo.enable_pull_up(5);
+        ESP_LOGI(TAG, "CAN extension board detected");
+    } else {
+        ESP_LOGI(TAG, "No CAN extension board");
+    }
+
     EMC2302_init(m_fanInvertPolarity);
     setFanSpeed(m_fanPerc);
     setFanSpeed(m_fanPerc);
@@ -397,6 +408,18 @@ Board::Error NerdQaxePlus::getFault(uint32_t *status) {
     //}
 
     return Board::Error::NONE;
+}
+
+bool NerdQaxePlus::isCanSlave()
+{
+    if (!m_hasCanExtension) return false;
+    bool level = true;
+    if (m_canIo.read_pin(5, &level) != ESP_OK) {
+        ESP_LOGE(TAG, "CAN extension: failed to read slave detect pin");
+        return false;
+    }
+    ESP_LOGI(TAG, "CAN extension slave detect pin: %d (%s)", level, level ? "master" : "slave");
+    return !level;  // DIP switch pulls to GND = slave, open/pull-up = master
 }
 
 bool NerdQaxePlus::selfTest(){
