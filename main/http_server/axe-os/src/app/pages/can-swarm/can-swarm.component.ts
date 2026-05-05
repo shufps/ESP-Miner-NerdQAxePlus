@@ -6,6 +6,15 @@ import { switchMap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ISystemInfo } from '../../models/ISystemInfo';
 
+export interface CanSlaveFan {
+  mode: number;
+  manualSpeed: number;
+  overheatTemp: number;
+  targetTemp: number;
+  rpm: number;
+  speedPerc: number;
+}
+
 export interface CanSlave {
   id: number;
   mac: string;
@@ -15,32 +24,24 @@ export interface CanSlave {
   temp: number;
   vrTemp: number;
   asicTemps: number[];
-  fanRpm: number;
-  fanRpm2: number;
-  fanSpeed: number;
-  fanSpeed2: number;
+  fanrpm: number;
+  fanrpm2: number;
+  fanspeed: number;
+  fanspeed2: number;
+  fans?: CanSlaveFan[];
   power: number;
   current: number;
   coreVoltageActual: number;
   shutdown: boolean;
   boardError?: number;
   deviceModel?: string;
-  fwVersion?: string;
-  freeHeap?: number;
+  version?: string;
   isMaster?: boolean;
-  // Settings (from telemetry v2)
-  freqMhz?: number;
-  voltageMv?: number;
-  fan0Mode?: number;
-  fan0Speed?: number;
-  fan0TargetTemp?: number;
-  fan0Overheat?: number;
-  fan1Mode?: number;
-  fan1Speed?: number;
-  fan1TargetTemp?: number;
-  fan1Overheat?: number;
-  flipScreen?: boolean;
-  autoScreenOff?: boolean;
+  // Settings
+  frequency?: number;
+  coreVoltage?: number;
+  flipscreen?: boolean;
+  autoscreenoff?: boolean;
 }
 
 // Mirrors Board::Error enum order from board.h
@@ -137,8 +138,6 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
   }
 
   private mergeRows(incoming: CanSlave[]): void {
-    // Update existing row objects in-place so Angular doesn't recreate DOM nodes
-    // (preserves input focus during polling).
     incoming.forEach(newRow => {
       const existing = this.rows.find(r => r.id === newRow.id);
       if (existing) {
@@ -147,7 +146,6 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
         this.rows.push(newRow);
       }
     });
-    // Remove rows that disappeared
     this.rows = this.rows.filter(r => incoming.some(nr => nr.id === r.id));
   }
 
@@ -161,15 +159,15 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
       foreign: false,
       isMaster: true,
       deviceModel: info?.deviceModel ?? undefined,
-      fwVersion: info?.version ?? undefined,
+      version: info?.version ?? undefined,
       hashRate: masterHr,
       temp: info?.temp ?? 0,
       vrTemp: info?.vrTemp ?? 0,
       asicTemps: info?.asicTemps ?? [0, 0, 0, 0],
-      fanRpm: info?.fanrpm ?? 0,
-      fanRpm2: info?.fanrpm2 ?? 0,
-      fanSpeed: info?.fanspeed ?? 0,
-      fanSpeed2: info?.fanspeed2 ?? 0,
+      fanrpm: info?.fanrpm ?? 0,
+      fanrpm2: info?.fanrpm2 ?? 0,
+      fanspeed: info?.fanspeed ?? 0,
+      fanspeed2: info?.fanspeed2 ?? 0,
       power: info?.power ?? 0,
       current: info?.current ?? 0,
       coreVoltageActual: info?.coreVoltageActual ?? 0,
@@ -180,19 +178,21 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
 
   editSlave(s: CanSlave): void {
     this.editingId = s.id;
+    const fan0 = s.fans?.[0];
+    const fan1 = s.fans?.[1];
     this.editForm = this.fb.group({
-      freqMhz:      [s.freqMhz ?? 500, [Validators.required, Validators.min(100), Validators.max(1200)]],
-      voltageMv:    [s.voltageMv ?? 1150, [Validators.required, Validators.min(1000), Validators.max(1400)]],
-      fan0Mode:     [s.fan0Mode ?? 1],
-      fan0Speed:    [s.fan0Speed ?? 75, [Validators.min(0), Validators.max(100)]],
-      fan0TargetTemp: [s.fan0TargetTemp ?? 55, [Validators.min(30), Validators.max(90)]],
-      fan0Overheat: [s.fan0Overheat ?? 75, [Validators.min(40), Validators.max(100)]],
-      fan1Mode:     [s.fan1Mode ?? 3],
-      fan1Speed:    [s.fan1Speed ?? 100, [Validators.min(0), Validators.max(100)]],
-      fan1TargetTemp: [s.fan1TargetTemp ?? 65, [Validators.min(30), Validators.max(90)]],
-      fan1Overheat: [s.fan1Overheat ?? 80, [Validators.min(40), Validators.max(100)]],
-      flipScreen:   [s.flipScreen ?? false],
-      autoScreenOff:[s.autoScreenOff ?? false],
+      frequency:      [s.frequency ?? 500,  [Validators.required, Validators.min(100), Validators.max(1200)]],
+      coreVoltage:    [s.coreVoltage ?? 1150, [Validators.required, Validators.min(1000), Validators.max(1400)]],
+      fan0Mode:       [fan0?.mode ?? 1],
+      fan0Speed:      [fan0?.manualSpeed ?? 75,    [Validators.min(0), Validators.max(100)]],
+      fan0TargetTemp: [fan0?.targetTemp ?? 55,     [Validators.min(30), Validators.max(90)]],
+      fan0Overheat:   [fan0?.overheatTemp ?? 75,   [Validators.min(40), Validators.max(100)]],
+      fan1Mode:       [fan1?.mode ?? 3],
+      fan1Speed:      [fan1?.manualSpeed ?? 100,   [Validators.min(0), Validators.max(100)]],
+      fan1TargetTemp: [fan1?.targetTemp ?? 65,     [Validators.min(30), Validators.max(90)]],
+      fan1Overheat:   [fan1?.overheatTemp ?? 80,   [Validators.min(40), Validators.max(100)]],
+      flipscreen:     [s.flipscreen ?? false],
+      autoscreenoff:  [s.autoscreenoff ?? false],
     });
   }
 
@@ -205,12 +205,14 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     this.saving = true;
     const v = this.editForm.value;
     const body = {
-      freqMhz:   v.freqMhz,
-      voltageMv: v.voltageMv,
-      fan0: { mode: v.fan0Mode, speed: v.fan0Speed, targetTemp: v.fan0TargetTemp, overheat: v.fan0Overheat },
-      fan1: { mode: v.fan1Mode, speed: v.fan1Speed, targetTemp: v.fan1TargetTemp, overheat: v.fan1Overheat },
-      flipScreen:   v.flipScreen,
-      autoScreenOff: v.autoScreenOff,
+      frequency:    v.frequency,
+      coreVoltage:  v.coreVoltage,
+      fans: [
+        { mode: v.fan0Mode, manualSpeed: v.fan0Speed, targetTemp: v.fan0TargetTemp, overheatTemp: v.fan0Overheat },
+        { mode: v.fan1Mode, manualSpeed: v.fan1Speed, targetTemp: v.fan1TargetTemp, overheatTemp: v.fan1Overheat },
+      ],
+      flipscreen:   v.flipscreen,
+      autoscreenoff: v.autoscreenoff,
     };
     this.http.patch(`/api/can/slaves/${id}`, body).pipe(
       catchError(() => of(null))

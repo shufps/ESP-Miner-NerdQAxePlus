@@ -8,6 +8,7 @@
 #include "ArduinoJson.h"
 #include "http_cors.h"
 #include "http_utils.h"
+#include "psram_allocator.h"
 #include "tasks/can_master_task.h"
 #include "tasks/can_sender.h"
 
@@ -27,8 +28,9 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    httpd_resp_sendstr_chunk(req, "[");
-    bool first = true;
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
+    JsonArray arr = doc.to<JsonArray>();
 
     for (int i = 1; i < CAN_SLAVE_MAX; i++) {
         if (!can_master_is_slave_known((uint8_t) i)) continue;
@@ -36,12 +38,10 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         uint8_t mac[6];
         can_master_get_slave_mac((uint8_t) i, mac);
 
-        can_slave_telemetry_t t = {};
+        can_slave_telemetry_t t   = {};
         can_slave_config_t    cfg = {};
         bool has_telem  = can_master_get_slave_telemetry((uint8_t) i, &t);
         bool has_config = can_master_get_slave_config((uint8_t) i, &cfg);
-        bool active     = can_master_is_slave_active((uint8_t) i);
-        bool foreign    = can_master_is_slave_foreign((uint8_t) i);
 
         // Null-terminate strings from config struct
         char device_model[sizeof(cfg.deviceModel) + 1] = {};
@@ -51,81 +51,59 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
             memcpy(fw_version,   cfg.fwVersion,   sizeof(cfg.fwVersion));
         }
 
-        char buf[896];
-        snprintf(buf, sizeof(buf),
-            "%s{"
-            "\"id\":%d,"
-            "\"mac\":\"%02X:%02X:%02X:%02X:%02X:%02X\","
-            "\"active\":%s,"
-            "\"foreign\":%s,"
-            "\"deviceModel\":\"%s\","
-            "\"fwVersion\":\"%s\","
-            "\"hashRate\":%.2f,"
-            "\"temp\":%.1f,"
-            "\"vrTemp\":%.1f,"
-            "\"asicTemps\":[%.1f,%.1f,%.1f,%.1f],"
-            "\"fanRpm\":%u,"
-            "\"fanRpm2\":%u,"
-            "\"fanSpeed\":%u,"
-            "\"fanSpeed2\":%u,"
-            "\"power\":%.1f,"
-            "\"current\":%u,"
-            "\"coreVoltageActual\":%u,"
-            "\"shutdown\":%s,"
-            "\"boardError\":%u,"
-            "\"freeHeap\":%lu,"
-            "\"freqMhz\":%u,"
-            "\"voltageMv\":%u,"
-            "\"fan0Mode\":%u,\"fan0Speed\":%u,\"fan0TargetTemp\":%u,\"fan0Overheat\":%u,"
-            "\"fan1Mode\":%u,\"fan1Speed\":%u,\"fan1TargetTemp\":%u,\"fan1Overheat\":%u,"
-            "\"flipScreen\":%s,"
-            "\"autoScreenOff\":%s"
-            "}",
-            first ? "" : ",",
-            i,
-            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
-            active  ? "true" : "false",
-            foreign ? "true" : "false",
-            device_model,
-            fw_version,
-            has_telem ? t.hashRate : 0.0f,
-            has_telem ? t.temp     : 0.0f,
-            has_telem ? t.vrTemp   : 0.0f,
-            has_telem ? t.asicTemps[0] : 0.0f,
-            has_telem ? t.asicTemps[1] : 0.0f,
-            has_telem ? t.asicTemps[2] : 0.0f,
-            has_telem ? t.asicTemps[3] : 0.0f,
-            has_telem ? t.fanRpm    : 0,
-            has_telem ? t.fanRpm2   : 0,
-            has_telem ? t.fanSpeed  : 0,
-            has_telem ? t.fanSpeed2 : 0,
-            has_telem ? t.power     : 0.0f,
-            has_telem ? t.current   : 0,
-            has_telem ? t.coreVoltageActual : 0,
-            (has_telem && t.shutdown)    ? "true" : "false",
-            has_telem ? t.boardError     : 0,
-            has_telem ? t.freeHeap       : 0,
-            has_config ? cfg.freqMhz        : 0,
-            has_config ? cfg.voltageMv      : 0,
-            has_config ? cfg.fan0Mode       : 0,
-            has_config ? cfg.fan0Speed      : 0,
-            has_config ? cfg.fan0TargetTemp : 0,
-            has_config ? cfg.fan0Overheat   : 0,
-            has_config ? cfg.fan1Mode       : 0,
-            has_config ? cfg.fan1Speed      : 0,
-            has_config ? cfg.fan1TargetTemp : 0,
-            has_config ? cfg.fan1Overheat   : 0,
-            (has_config && cfg.flipScreen)    ? "true" : "false",
-            (has_config && cfg.autoScreenOff) ? "true" : "false"
-        );
+        char mac_str[18];
+        snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-        httpd_resp_sendstr_chunk(req, buf);
-        first = false;
+        JsonObject slave = arr.add<JsonObject>();
+        slave["id"]      = i;
+        slave["mac"]     = mac_str;
+        slave["active"]  = can_master_is_slave_active((uint8_t) i);
+        slave["foreign"] = can_master_is_slave_foreign((uint8_t) i);
+
+        // --- fields matching info endpoint ---
+        slave["deviceModel"]        = device_model;
+        slave["version"]            = fw_version;           // info: "version"
+        slave["hashRate"]           = has_telem ? t.hashRate          : 0.0f;
+        slave["temp"]               = has_telem ? t.temp              : 0.0f;
+        slave["vrTemp"]             = has_telem ? t.vrTemp            : 0.0f;
+        slave["power"]              = has_telem ? t.power             : 0.0f;
+        slave["current"]            = has_telem ? t.current           : 0;
+        slave["coreVoltageActual"]  = has_telem ? t.coreVoltageActual : 0;
+        slave["fanrpm"]             = has_telem ? t.fanRpm            : 0;   // info: "fanrpm"
+        slave["fanrpm2"]            = has_telem ? t.fanRpm2           : 0;   // info: "fanrpm2"
+        slave["fanspeed"]           = has_telem ? t.fanSpeed          : 0;   // info: "fanspeed"
+        slave["fanspeed2"]          = has_telem ? t.fanSpeed2         : 0;   // info: "fanspeed2"
+        slave["shutdown"]           = has_telem && t.shutdown;
+        slave["boardError"]         = has_telem ? t.boardError        : 0;
+        slave["frequency"]          = has_config ? cfg.freqMhz        : 0;   // info: "frequency"
+        slave["coreVoltage"]        = has_config ? cfg.voltageMv      : 0;   // info: "coreVoltage"
+        slave["flipscreen"]         = has_config && cfg.flipScreen;           // info: "flipscreen"
+        slave["autoscreenoff"]      = has_config && cfg.autoScreenOff;        // info: "autoscreenoff"
+
+        {
+            JsonArray asic_temps = slave["asicTemps"].to<JsonArray>();
+            for (int j = 0; j < 4; j++) {
+                asic_temps.add(has_telem ? t.asicTemps[j] : 0.0f);
+            }
+        }
+
+        // fans array — matches info endpoint structure (minus pid, not available from slave)
+        {
+            JsonArray fans = slave["fans"].to<JsonArray>();
+            for (int ch = 0; ch < 2; ch++) {
+                JsonObject fan      = fans.add<JsonObject>();
+                fan["mode"]         = has_config ? (ch == 0 ? cfg.fan0Mode       : cfg.fan1Mode)       : 0;
+                fan["manualSpeed"]  = has_config ? (ch == 0 ? cfg.fan0Speed      : cfg.fan1Speed)      : 0;
+                fan["overheatTemp"] = has_config ? (ch == 0 ? cfg.fan0Overheat   : cfg.fan1Overheat)   : 0;
+                fan["targetTemp"]   = has_config ? (ch == 0 ? cfg.fan0TargetTemp : cfg.fan1TargetTemp) : 0;
+                fan["rpm"]          = has_telem  ? (ch == 0 ? t.fanRpm           : t.fanRpm2)          : 0;
+                fan["speedPerc"]    = has_telem  ? (ch == 0 ? t.fanSpeed         : t.fanSpeed2)        : 0;
+            }
+        }
     }
 
-    httpd_resp_sendstr_chunk(req, "]");
-    httpd_resp_sendstr_chunk(req, NULL);
-    return ESP_OK;
+    return sendJsonResponse(req, doc);
 }
 
 esp_err_t PATCH_can_slave(httpd_req_t *req)
@@ -149,7 +127,6 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
     }
     uint8_t slave_id = (uint8_t) id;
 
-    // Read body
     char body[256];
     int received = httpd_req_recv(req, body, sizeof(body) - 1);
     if (received <= 0) {
@@ -162,27 +139,31 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid json");
     }
 
-    if (doc["freqMhz"].is<uint16_t>())
-        can_master_set_slave_freq(slave_id, doc["freqMhz"].as<uint16_t>());
+    // field names matching info endpoint PATCH
+    if (doc["frequency"].is<uint16_t>())
+        can_master_set_slave_freq(slave_id, doc["frequency"].as<uint16_t>());
 
-    if (doc["voltageMv"].is<uint16_t>())
-        can_master_set_slave_voltage(slave_id, doc["voltageMv"].as<uint16_t>());
+    if (doc["coreVoltage"].is<uint16_t>())
+        can_master_set_slave_voltage(slave_id, doc["coreVoltage"].as<uint16_t>());
 
-    for (uint8_t ch = 0; ch < 2; ch++) {
-        const char *key = (ch == 0) ? "fan0" : "fan1";
-        if (doc[key].is<JsonObject>()) {
-            JsonObject fan = doc[key].as<JsonObject>();
-            can_master_set_slave_fan(slave_id, ch,
-                fan["mode"].as<uint8_t>(),
-                fan["speed"].as<uint8_t>(),
-                fan["targetTemp"].as<uint8_t>(),
-                fan["overheat"].as<uint8_t>());
+    // fans array — matches info endpoint PATCH structure
+    if (doc["fans"].is<JsonArray>()) {
+        JsonArray fans = doc["fans"].as<JsonArray>();
+        int ch = 0;
+        for (JsonObject fan : fans) {
+            if (ch > 1) break;
+            uint8_t mode       = fan["mode"].as<uint8_t>();
+            uint8_t speed      = fan["manualSpeed"].as<uint8_t>();
+            uint8_t targetTemp = fan["targetTemp"].as<uint8_t>();
+            uint8_t overheat   = fan["overheatTemp"].as<uint8_t>();
+            can_master_set_slave_fan(slave_id, (uint8_t) ch, mode, speed, targetTemp, overheat);
+            ch++;
         }
     }
 
-    if (doc["flipScreen"].is<bool>() || doc["autoScreenOff"].is<bool>()) {
-        uint8_t flip    = doc["flipScreen"].as<bool>()    ? 1 : 0;
-        uint8_t autoOff = doc["autoScreenOff"].as<bool>() ? 1 : 0;
+    if (doc["flipscreen"].is<bool>() || doc["autoscreenoff"].is<bool>()) {
+        uint8_t flip    = doc["flipscreen"].as<bool>()    ? 1 : 0;
+        uint8_t autoOff = doc["autoscreenoff"].as<bool>() ? 1 : 0;
         can_master_set_slave_display(slave_id, flip, autoOff);
     }
 

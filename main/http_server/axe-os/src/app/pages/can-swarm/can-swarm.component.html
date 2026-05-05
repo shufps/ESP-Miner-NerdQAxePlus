@@ -45,7 +45,6 @@
           <th>Fan 1</th>
           <th>Fan 2</th>
           <th>FW</th>
-          <th>Free RAM</th>
           <th></th>
         </tr>
       </thead>
@@ -83,10 +82,9 @@
               </span>
               <span *ngIf="!s.active || !s.asicTemps?.length">—</span>
             </td>
-            <td>{{ s.active ? (s.fanRpm + ' RPM (' + s.fanSpeed + '%)') : '—' }}</td>
-            <td>{{ s.active ? (s.fanRpm2 + ' RPM (' + s.fanSpeed2 + '%)') : '—' }}</td>
-            <td>{{ s.fwVersion || '—' }}</td>
-            <td>{{ s.freeHeap != null ? (s.freeHeap / 1024 | number:'1.0-0') + ' KB' : '—' }}</td>
+            <td>{{ s.active ? (s.fanrpm + ' RPM (' + s.fanspeed + '%)') : '—' }}</td>
+            <td>{{ s.active ? (s.fanrpm2 + ' RPM (' + s.fanspeed2 + '%)') : '—' }}</td>
+            <td>{{ s.version || '—' }}</td>
             <td class="actions-cell">
               <button *ngIf="!s.isMaster" nbButton status="primary" size="tiny"
                       (click)="editingId === s.id ? cancelEdit() : editSlave(s)"
@@ -114,7 +112,7 @@
 
           <!-- Inline settings panel -->
           <tr *ngIf="editingId === s.id" class="edit-row">
-            <td colspan="15">
+            <td colspan="14">
               <form [formGroup]="editForm" class="settings-panel">
 
                 <div class="settings-section">
@@ -122,11 +120,11 @@
                   <div class="settings-fields">
                     <div class="field-group">
                       <label>Frequency (MHz)</label>
-                      <input nbInput formControlName="freqMhz" type="number" fieldSize="small">
+                      <input nbInput formControlName="frequency" type="number" fieldSize="small">
                     </div>
                     <div class="field-group">
                       <label>Voltage (mV)</label>
-                      <input nbInput formControlName="voltageMv" type="number" fieldSize="small">
+                      <input nbInput formControlName="coreVoltage" type="number" fieldSize="small">
                     </div>
                   </div>
                 </div>
@@ -182,8 +180,8 @@
                 <div class="settings-section">
                   <span class="settings-label">Display</span>
                   <div class="settings-fields settings-fields--checkboxes">
-                    <nb-checkbox formControlName="flipScreen">Flip Screen</nb-checkbox>
-                    <nb-checkbox formControlName="autoScreenOff">Auto Screen Off</nb-checkbox>
+                    <nb-checkbox formControlName="flipscreen">Flip Screen</nb-checkbox>
+                    <nb-checkbox formControlName="autoscreenoff">Auto Screen Off</nb-checkbox>
                   </div>
                 </div>
 
