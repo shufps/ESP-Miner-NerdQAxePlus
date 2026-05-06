@@ -176,8 +176,7 @@
                         <div class="form-row">
                             <label class="form-label">{{ 'SETTINGS.STRATUM_PROTOCOL' | translate }}:</label>
                             <div class="form-control-wrapper">
-                                <nb-select formControlName="fallbackStratumProtocol"
-                                    [disabled]="form.controls['poolMode'].value === 1">
+                                <nb-select formControlName="fallbackStratumProtocol">
                                     <nb-option [value]="0">{{ 'SETTINGS.STRATUM_V1' | translate }}</nb-option>
                                     <nb-option [value]="1">{{ 'SETTINGS.STRATUM_V2' | translate }}</nb-option>
                                 </nb-select>
