@@ -1,6 +1,7 @@
 #include "mining.h"
 #include "mbedtls/sha256.h"
 #include "mining_utils.h"
+#include "macros.h"
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -15,13 +16,14 @@ void free_bm_job(bm_job *job)
 void calculate_merkle_root_hash(const char *coinbase_tx, const uint8_t merkle_branches[][32], const int num_merkle_branches, char merkle_root_hash[65])
 {
     size_t coinbase_tx_bin_len = strlen(coinbase_tx) / 2;
-    uint8_t coinbase_tx_bin[coinbase_tx_bin_len];
+    uint8_t *coinbase_tx_bin = (uint8_t *) MALLOC(coinbase_tx_bin_len);
 
     hex2bin(coinbase_tx, coinbase_tx_bin, coinbase_tx_bin_len);
 
     uint8_t both_merkles[64];
     uint8_t new_root[32];
     double_sha256_bin(coinbase_tx_bin, coinbase_tx_bin_len, new_root);
+    free(coinbase_tx_bin);
 
     memcpy(both_merkles, new_root, 32);
     for (int i = 0; i < num_merkle_branches; i++) {
