@@ -64,9 +64,10 @@ class NetworkManager {
         m_eth.earlySpiInit();
     }
 
+    void shutdownApOnce();
+
   private:
     void updateDefaultRoute();
-    void shutdownApOnce();
 
     void onWifiGotIp();
     void onWifiDisconnected();

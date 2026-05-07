@@ -185,7 +185,10 @@ static esp_netif_t *wifi_init_softap(void)
 void wifi_softap_off(void)
 {
     ESP_LOGI(TAG, "WiFi AP off (STA only)");
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    esp_err_t err = esp_wifi_set_mode(WIFI_MODE_STA);
+    if (err != ESP_OK && err != ESP_ERR_WIFI_STOP_STATE) {
+        ESP_ERROR_CHECK(err);
+    }
     MINER_set_ap_status(false);
 }
 

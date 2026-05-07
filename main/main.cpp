@@ -353,8 +353,8 @@ extern "C" void app_main(void)
         // when a username is configured we will continue with startup and start mining
         const char *username = Config::nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL); // TODO
         if (username) {
-            // wifi is connected, switch the AP off
-            wifi_softap_off();
+            // wifi is connected, switch the AP off (no-op if already done by NetworkManager)
+            NETWORK.shutdownApOnce();
 
             // start the discord alerter early
             discordAlerter.start();

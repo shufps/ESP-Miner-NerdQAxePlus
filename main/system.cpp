@@ -106,10 +106,10 @@ int System::get_wifi_rssi()
 
     // Query the connected Access Point's information
     if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
-        ESP_LOGI("WIFI_RSSI", "Current RSSI: %d dBm", ap_info.rssi);
+        ESP_LOGD("WIFI_RSSI", "Current RSSI: %d dBm", ap_info.rssi);
         return ap_info.rssi;  // Return the actual RSSI value
     } else {
-        ESP_LOGE("WIFI_RSSI", "Failed to fetch RSSI");
+        ESP_LOGD("WIFI_RSSI", "Failed to fetch RSSI");
         return -90;  // Return -90 to indicate an error
     }
 }
