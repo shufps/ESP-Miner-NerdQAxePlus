@@ -74,16 +74,18 @@
             <td>{{ s.active ? (s.temp | number:'1.1-1') + ' °C' : '—' }}</td>
             <td>{{ s.active ? (s.vrTemp | number:'1.1-1') + ' °C' : '—' }}</td>
             <td class="asic-temps">
-              <span *ngIf="s.active && s.asicTemps?.length">
-                {{ s.asicTemps[0] | number:'1.1-1' }} /
-                {{ s.asicTemps[1] | number:'1.1-1' }} /
-                {{ s.asicTemps[2] | number:'1.1-1' }} /
-                {{ s.asicTemps[3] | number:'1.1-1' }} °C
-              </span>
-              <span *ngIf="!s.active || !s.asicTemps?.length">—</span>
+              <ng-container *ngIf="s.active && s.asicTemps?.length; else naTemps">
+                <ng-container *ngIf="s.asicTemps[0] || s.asicTemps[1] || s.asicTemps[2] || s.asicTemps[3]; else naTemps">
+                  {{ s.asicTemps[0] | number:'1.1-1' }} /
+                  {{ s.asicTemps[1] | number:'1.1-1' }} /
+                  {{ s.asicTemps[2] | number:'1.1-1' }} /
+                  {{ s.asicTemps[3] | number:'1.1-1' }} °C
+                </ng-container>
+              </ng-container>
+              <ng-template #naTemps>N/A</ng-template>
             </td>
-            <td>{{ s.active ? (s.fanrpm + ' RPM (' + s.fanspeed + '%)') : '—' }}</td>
-            <td>{{ s.active ? (s.fanrpm2 + ' RPM (' + s.fanspeed2 + '%)') : '—' }}</td>
+            <td>{{ s.active && s.fanrpm ? (s.fanrpm + ' RPM (' + s.fanspeed + '%)') : (s.active ? 'N/A' : '—') }}</td>
+            <td>{{ s.active && s.fanrpm2 ? (s.fanrpm2 + ' RPM (' + s.fanspeed2 + '%)') : (s.active ? 'N/A' : '—') }}</td>
             <td>{{ s.version || '—' }}</td>
             <td class="actions-cell">
               <button *ngIf="!s.isMaster" nbButton status="primary" size="tiny"
