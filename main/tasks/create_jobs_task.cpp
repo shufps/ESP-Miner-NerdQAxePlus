@@ -78,14 +78,15 @@ class MiningInfoV1 : public MiningInfoBase {
         // generate coinbase tx
         int coinbase_tx_len = strlen(current_job->coinbase_1) + strlen(extranonce_str) + strlen(extranonce_2_str) +
                               strlen(current_job->coinbase_2);
-        char coinbase_tx[coinbase_tx_len + 1]; // +1 zero termination
-        snprintf(coinbase_tx, sizeof(coinbase_tx), "%s%s%s%s", current_job->coinbase_1, extranonce_str,
+        char *coinbase_tx = (char *) MALLOC(coinbase_tx_len + 1);
+        snprintf(coinbase_tx, coinbase_tx_len + 1, "%s%s%s%s", current_job->coinbase_1, extranonce_str,
                  extranonce_2_str, current_job->coinbase_2);
 
         // calculate merkle root
         char merkle_root[65];
         calculate_merkle_root_hash(coinbase_tx, current_job->_merkle_branches, current_job->n_merkle_branches,
                                    merkle_root);
+        free(coinbase_tx);
 
         // we need malloc because we will save it in the job array
         bm_job *next_job = (bm_job *) malloc(sizeof(bm_job));
