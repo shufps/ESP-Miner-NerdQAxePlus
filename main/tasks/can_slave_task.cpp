@@ -19,6 +19,7 @@
 #include "esp_app_desc.h"
 #include "esp_attr.h"
 #include "esp_heap_caps.h"
+#include "displays/ui_ipc.h"
 
 static const char *TAG = "can_slave";
 
@@ -173,8 +174,8 @@ static void handle_settings_cmd(const uint8_t *p, size_t len)
             POWER_MANAGEMENT_MODULE.shutdown();
             break;
         case CAN_CMD_IDENTIFY:
-            ESP_LOGI(TAG, "CMD IDENTIFY");
-            // TODO: blink display
+            ESP_LOGI(TAG, "CMD IDENTIFY → blink display 60s");
+            ui_send_identify(0);  // 0 = default 60s
             break;
         case CAN_CMD_RESTART:
             ESP_LOGI(TAG, "CMD RESTART → restarting");

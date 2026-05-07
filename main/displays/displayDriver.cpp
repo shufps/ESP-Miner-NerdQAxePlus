@@ -361,6 +361,9 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
         enableLvglAnimations(true);
         safe_screen_change(m_ui->ui_qrScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         break;
+    case UiState::Identify:
+        ESP_LOGI(TAG, "enter state identify (blink %lums)", m_identifyDuration_ms);
+        break;
     case UiState::PowerOff:
         if (!m_ui->ui_PowerOffScreen) {
             m_ui->powerOffScreenInit();
@@ -448,6 +451,20 @@ void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, boo
             // abort enrollment
             otp.disableEnrollment();
             enterState(UiState::Mining, now);
+        }
+        break;
+    case UiState::Identify:
+        if (btn1Press || btn2Press || (uint32_t) ms >= m_identifyDuration_ms) {
+            m_isActiveOverlay = false;
+            displayTurnOn();
+            enterState(UiState::Mining, now);
+        } else {
+            // blink: 500ms on, 500ms off
+            if ((ms / 500) % 2 == 0) {
+                displayTurnOn();
+            } else {
+                displayTurnOff();
+            }
         }
         break;
     case UiState::PowerOff:
@@ -597,6 +614,11 @@ void DisplayDriver::handleUiQueueMessages(ui_msg_t &msg, int64_t tnow)
         case UI_CMD_HIDE_QR:
             m_isActiveOverlay = false;
             enterState(UiState::Mining, tnow);
+            break;
+        case UI_CMD_IDENTIFY:
+            m_identifyDuration_ms = msg.param;
+            m_isActiveOverlay = true;
+            enterState(UiState::Identify, tnow);
             break;
     }
 
