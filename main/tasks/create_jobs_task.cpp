@@ -91,7 +91,7 @@ class MiningInfoV1 : public MiningInfoBase {
         free(coinbase_tx);
 
         // we need malloc because we will save it in the job array
-        bm_job *next_job = (bm_job *) malloc(sizeof(bm_job));
+        bm_job *next_job = (bm_job *) MALLOC(sizeof(bm_job));
         construct_bm_job(current_job, merkle_root, version_mask, next_job);
         next_job->jobid = strdup(current_job->job_id);
         next_job->extranonce2 = strdup(extranonce_2_str);
