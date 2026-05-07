@@ -261,6 +261,10 @@ typedef struct {
     bool    in_frame;
 } slave_rx_t;
 
+static EXT_RAM_BSS_ATTR slave_rx_t s_nonce_rx[CAN_SLAVE_MAX];
+static EXT_RAM_BSS_ATTR slave_rx_t s_telem_rx[CAN_SLAVE_MAX];
+static EXT_RAM_BSS_ATTR slave_rx_t s_config_rx[CAN_SLAVE_MAX];
+
 static void handle_nonce(Board *board, uint8_t slave_id, const uint8_t *buf, size_t len)
 {
     if (len != NONCE_PAYLOAD_LEN) {
@@ -367,11 +371,6 @@ void can_master_task(void *pvParameters)
 
     nvs_load_registry();
 
-    // Separate reassembly slots per slave and frame type
-    static EXT_RAM_BSS_ATTR slave_rx_t nonce_rx[CAN_SLAVE_MAX];
-    static EXT_RAM_BSS_ATTR slave_rx_t telem_rx[CAN_SLAVE_MAX];
-    static EXT_RAM_BSS_ATTR slave_rx_t config_rx[CAN_SLAVE_MAX];
-
     ESP_LOGI(TAG, "CAN master receiver started");
 
     // Announce boot so any already-running slaves re-negotiate immediately
@@ -413,11 +412,11 @@ void can_master_task(void *pvParameters)
         slave_rx_t *s;
         size_t      maxlen;
         if (base == CAN_ID_NONCE_BASE) {
-            s = &nonce_rx[slave_id];  maxlen = NONCE_PAYLOAD_LEN;
+            s = &s_nonce_rx[slave_id];  maxlen = NONCE_PAYLOAD_LEN;
         } else if (base == CAN_ID_CONFIG_BASE) {
-            s = &config_rx[slave_id]; maxlen = sizeof(can_slave_config_t);
+            s = &s_config_rx[slave_id]; maxlen = sizeof(can_slave_config_t);
         } else {
-            s = &telem_rx[slave_id];  maxlen = sizeof(can_slave_telemetry_t);
+            s = &s_telem_rx[slave_id];  maxlen = sizeof(can_slave_telemetry_t);
         }
 
         uint8_t seq  = msg.data[0];
