@@ -32,8 +32,7 @@
     } while (0)
 
 // fallback can nicely be tested with netcat
-// mkfifo /tmp/ncpipe
-// nc -l -p 4444 < /tmp/ncpipe | nc solo.ckpool.org 3333 > /tmp/ncpipe
+// socat TCP-LISTEN:5555,fork TCP:solo.ckpool.org:3333
 
 // ============================================================================
 // StratumTaskBase
