@@ -1854,10 +1854,10 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       return {} as IPool;
     }
 
-    // failover logic, "current" pool
+    // failover logic, "current" pool — backend always emits the active pool as pools[0]
     if (i === undefined) {
       const useFallback = stratum?.usingFallback ?? false;
-      const base = stratum?.pools[useFallback ? 1 : 0] ?? {};
+      const base = stratum?.pools[0] ?? {};
 
       return {
         ...base,
