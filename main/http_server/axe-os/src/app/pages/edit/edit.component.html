@@ -463,14 +463,6 @@
                             </div>
                         </div>
 
-                        <div class="form-row" *ngIf="form.controls['fan1Mode'].value === 3">
-                            <label class="form-label"></label>
-                            <div class="form-control-wrapper">
-                                <small class="fan-sync-hint fan-sync-hint--important"
-                                       [innerHTML]="'FAN.FAN_SETTINGS_PORTS_HINT' | translate">
-                                </small>
-                            </div>
-                        </div>
 
                         <div *ngIf="form.controls['fan1Mode'].value === 0">
                             <div class="form-row">
@@ -518,7 +510,7 @@
                             </div>
                         </div>
 
-                        <div class="form-row" *ngIf="form.controls['fan1Mode'].value !== 3">
+                        <div class="form-row">
                             <label for="fan1OverheatTemp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
                             <div class="form-control-wrapper">
                                 <input nbInput id="fan1OverheatTemp" formControlName="fan1OverheatTemp" type="number" />

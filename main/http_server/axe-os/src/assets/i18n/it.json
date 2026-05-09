@@ -429,7 +429,7 @@
     "FAN_SETTINGS_PORTS_HINT": "<strong>Nota:</strong> Quando si esce dalla modalità Collegato, verificare quali porte ventola sono collegate a ciascuna ventola prima di salvare.",
     "FAN1_CONNECTOR_HINT": "Collegare il <strong>ventilatore ASIC</strong> al connettore <strong>{{connector}}</strong>.",
     "FAN2_CONNECTOR_HINT": "Collegare il <strong>ventilatore regolatore tensione</strong> al connettore <strong>{{connector}}</strong>.",
-    "FAN_LINKED_HINT": "Il canale secondario corrisponde sempre all'uscita primaria. In modalità PID, il controllore utilizza la temperatura più alta tra ASIC e VReg."
+    "FAN_LINKED_HINT": "Il ventilatore VReg segue l'uscita del ventilatore ASIC. In modalità PID, il controllore utilizza la temperatura più alta tra ASIC e VReg."
   },
   "MISC": {
     "TITLE": "Impostazioni varie",
