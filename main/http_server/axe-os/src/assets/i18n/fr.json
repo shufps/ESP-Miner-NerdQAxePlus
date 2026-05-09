@@ -419,7 +419,7 @@
     "FAN_SETTINGS_PORTS_HINT": "<strong>Note :</strong> En quittant le mode lié, vérifie sur quels ports de ventilateur chaque ventilateur est connecté avant d'enregistrer.",
     "FAN1_CONNECTOR_HINT": "Branchez le <strong>ventilateur ASIC</strong> sur le connecteur <strong>{{connector}}</strong>.",
     "FAN2_CONNECTOR_HINT": "Branchez le <strong>ventilateur du régulateur de tension</strong> sur le connecteur <strong>{{connector}}</strong>.",
-    "FAN_LINKED_HINT": "Le canal secondaire suit toujours la sortie du canal primaire. En mode PID, le régulateur utilise la température la plus élevée entre les ASICs et le VReg."
+    "FAN_LINKED_HINT": "Le ventilateur VReg suit la sortie du ventilateur ASIC. En mode PID, le régulateur utilise la température la plus élevée entre l'ASIC et le VReg."
   },
   "MISC": {
     "TITLE": "Paramètres Divers",

@@ -302,7 +302,8 @@ export class EditComponent implements OnInit {
     const disable = (ctrl: string) => this.form.controls[ctrl]?.disable({ emitEvent: false });
 
     if (mode === 3) {
-      // LINKED — disable fan1-controls (overheatTemp stays enabled for shutdown protection)
+      // LINKED — disable fan1-controls; overheatTemp stays enabled (VReg shutdown threshold)
+      enable('fan1OverheatTemp');
       disable('fan1ManualSpeed');
       disable('fan1PidTargetTemp');
       disable('fan1PidP');
