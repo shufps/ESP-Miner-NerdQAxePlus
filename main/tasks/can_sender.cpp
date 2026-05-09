@@ -46,7 +46,27 @@ static void send_multiframe(uint32_t can_id, const uint8_t *data, size_t len)
         memcpy(&frame.data[1], data + offset, chunk);
 
         esp_err_t err = twai_transmit(&frame, pdMS_TO_TICKS(50));
-        if (err != ESP_OK) {
+        if (err == ESP_ERR_INVALID_STATE) {
+            // TWAI may be in BUS_OFF — attempt recovery
+            twai_status_info_t status;
+            if (twai_get_status_info(&status) == ESP_OK &&
+                status.state == TWAI_STATE_BUS_OFF) {
+                ESP_LOGW(TAG, "BUS_OFF detected, initiating recovery");
+                twai_initiate_recovery();
+                // wait up to 1s for recovery to complete
+                for (int i = 0; i < 20; i++) {
+                    vTaskDelay(pdMS_TO_TICKS(50));
+                    if (twai_get_status_info(&status) == ESP_OK &&
+                        status.state == TWAI_STATE_RUNNING) {
+                        ESP_LOGI(TAG, "CAN bus recovered");
+                        break;
+                    }
+                }
+            } else {
+                ESP_LOGW(TAG, "TX failed id=0x%03lX seq=%02X: %s",
+                         can_id, frame.data[0], esp_err_to_name(err));
+            }
+        } else if (err != ESP_OK) {
             ESP_LOGW(TAG, "TX failed id=0x%03lX seq=%02X: %s",
                      can_id, frame.data[0], esp_err_to_name(err));
         }
