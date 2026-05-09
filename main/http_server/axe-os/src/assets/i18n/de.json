@@ -284,7 +284,7 @@
   },
   "ALERTS": {
     "TITLE": "Benachrichtigungskonfiguration",
-    "DISCORD_WEBHOOK": "Discord-Webhook-URL",
+    "DISCORD_WEBHOOK": "Webhook-URL",
     "TEMPERATURE_ALERT": "Temperaturbenachrichtigung",
     "HASHRATE_ALERT": "Hash-Rate-Benachrichtigung",
     "OFFLINE_ALERT": "Offline-Benachrichtigung",
@@ -449,12 +449,12 @@
     "PROCEED_ANYWAY": "Trotzdem fortfahren"
   },
   "DISCORD": {
-    "TITLE": "Discord-Benachrichtigungen",
-    "ALERTS": "Discord-Benachrichtigungen",
-    "WEBHOOK": "Discord-Webhook",
+    "TITLE": "Webhook-Benachrichtigungen",
+    "ALERTS": "Webhook-Benachrichtigungen",
+    "WEBHOOK": "Webhook",
     "WEBHOOK_URL": "Webhook-URL",
-    "WEBHOOK_HELP": "Webhook aus der Discord-Kanal-Integration",
-    "CONFIGURE_DESCRIPTION": "Lege fest, welche Discord-Benachrichtigungen du erhalten möchtest. Der Webhook wird für alle ausgewählten Themen verwendet.",
+    "WEBHOOK_HELP": "Jeder HTTP(S)-Endpunkt, der einen JSON-Body mit einem Feld content akzeptiert.",
+    "CONFIGURE_DESCRIPTION": "Lege fest, welche Benachrichtigungen du erhalten möchtest. Der ausgewählte Webhook erhält für jede aktivierte Benachrichtigung einen JSON-Body mit einem Feld content.",
     "MINER_WATCHDOG": "Miner-Watchdog ausgelöst",
     "MINER_WATCHDOG_DESC": "wird ausgelöst, wenn das Gerät neu startet, nachdem 1 Stunde lang kein Share gesendet wurde",
     "BLOCK_FOUND": "Block gefunden",

@@ -226,27 +226,27 @@ menu "InfluxDB Configuration"
 
 endmenu
 
-menu "Discord Alert Configuration"
+menu "Webhook Alert Configuration"
 
-    # Enable/disable specific Discord alerts
+    # Enable/disable specific webhook alerts
     config ALERT_DISCORD_WATCHDOG_ENABLE
         bool "Watchdog alert"
         default n
         help
-            Sends a Discord alert if the miner watchdog triggers
+            Sends a webhook alert if the miner watchdog triggers
             (e.g. device reboots after failing to submit a share for ~1 hour).
 
     config ALERT_DISCORD_BLOCK_FOUND_ENABLE
         bool "Block-found alert"
         default n
         help
-            Sends a Discord alert when your miner finds a block.
+            Sends a webhook alert when your miner finds a block.
 
     config ALERT_DISCORD_BEST_DIFF_ENABLE
         bool "Block-found alert"
         default n
         help
-            Sends a Discord alert when your miner finds a new best difficulty.
+            Sends a webhook alert when your miner finds a new best difficulty.
 
     # Internal 0/1 mirrors for C code that prefers ints
     config ALERT_DISCORD_WATCHDOG_ENABLE_VALUE
@@ -264,14 +264,14 @@ menu "Discord Alert Configuration"
         default 1 if ALERT_DISCORD_BEST_DIFF_ENABLE
         default 0
 
-    # Webhook URL for sending Discord alerts (only shown if any alert is enabled)
+    # Webhook URL for sending alerts (only shown if any alert is enabled)
     config ALERT_DISCORD_URL
-        string "Discord webhook URL"
+        string "Webhook URL"
         default ""
         help
-            Full Discord webhook URL used for all enabled alerts.
+            Full HTTP(S) webhook URL used for all enabled alerts.
+            The firmware POSTs a JSON body with a single "content" field.
             Example: https://discord.com/api/webhooks/<id>/<token>
-            Obtain it from your Discord server under: Integrations → Webhooks.
             Note: This is stored in plaintext in the firmware unless overridden at runtime.
 
 endmenu
@@ -290,4 +290,3 @@ menu "Stratum Keepalive Configuration"
         default 0
 
 endmenu
-

@@ -15,6 +15,23 @@
   flex: 1;
 }
 
+.webhook-control {
+  display: flex;
+  flex-direction: column;
+}
+
+.webhook-label {
+  flex: none;
+  width: auto;
+  text-align: left;
+  margin-right: 0;
+  margin-bottom: 8px;
+}
+
+.webhook-control small {
+  padding-top: 4px;
+}
+
 small {
   padding-left: 5px;
 }

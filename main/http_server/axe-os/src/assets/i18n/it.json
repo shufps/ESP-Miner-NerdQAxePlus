@@ -286,7 +286,7 @@
   },
   "ALERTS": {
     "TITLE": "Configurazione avvisi",
-    "DISCORD_WEBHOOK": "URL Discord Webhook",
+    "DISCORD_WEBHOOK": "URL del webhook",
     "TEMPERATURE_ALERT": "Avviso temperatura",
     "HASHRATE_ALERT": "Avviso velocità hash",
     "OFFLINE_ALERT": "Avviso offline",
@@ -451,12 +451,12 @@
     "PROCEED_ANYWAY": "Procedi comunque"
   },
   "DISCORD": {
-    "TITLE": "Avvisi Discord",
-    "ALERTS": "Avvisi Discord",
-    "WEBHOOK": "Webhook Discord",
+    "TITLE": "Avvisi webhook",
+    "ALERTS": "Avvisi webhook",
+    "WEBHOOK": "Webhook",
     "WEBHOOK_URL": "URL Webhook",
-    "WEBHOOK_HELP": "Webhook dall'integrazione del canale Discord",
-    "CONFIGURE_DESCRIPTION": "Configura quali avvisi Discord vuoi ricevere. Il webhook viene utilizzato per tutti gli avvisi selezionati.",
+    "WEBHOOK_HELP": "Qualsiasi endpoint HTTP(S) che accetti un body JSON con un campo content.",
+    "CONFIGURE_DESCRIPTION": "Configura quali avvisi desideri ricevere. Il webhook selezionato riceve un body JSON con un campo content per ogni avviso abilitato.",
     "MINER_WATCHDOG": "Watchdog miner attivato",
     "MINER_WATCHDOG_DESC": "si attiva quando il dispositivo si riavvia dopo aver mancato l'invio di un'azione per 1 ora",
     "BLOCK_FOUND": "Blocco trovato",

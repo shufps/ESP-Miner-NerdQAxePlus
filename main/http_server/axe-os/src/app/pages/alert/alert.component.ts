@@ -10,6 +10,8 @@ import { SystemService } from '../../services/system.service';
 import { TranslateService } from '@ngx-translate/core';
 import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 
+const WEBHOOK_URL_PATTERN = /^https?:\/\/.+$/i;
+
 @Component({
   selector: 'app-alert',
   templateUrl: './alert.component.html',
@@ -40,10 +42,10 @@ export class AlertComponent implements OnInit {
           alertDiscordBestDiffEnable: [data?.alertDiscordBestDiffEnable === 1],
           showBlockFoundScreenEnable: [data?.showBlockFoundScreenEnable === 1],
 
-          // Keep sentinel so users must enter a valid webhook at least once.
+          // Keep the sentinel so users do not need to re-enter an existing webhook.
           alertDiscordWebhook: ['WEBHOOK', [
             Validators.required,
-            Validators.pattern(/^https:\/\/discord\.com\/api\/webhooks\/.+$/)
+            Validators.pattern(WEBHOOK_URL_PATTERN)
           ]],
         });
       });

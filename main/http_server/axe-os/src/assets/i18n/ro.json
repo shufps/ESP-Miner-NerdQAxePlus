@@ -286,7 +286,7 @@
   },
   "ALERTS": {
     "TITLE": "Configurare alerte",
-    "DISCORD_WEBHOOK": "URL Discord Webhook",
+    "DISCORD_WEBHOOK": "URL webhook",
     "TEMPERATURE_ALERT": "Alertă temperatură",
     "HASHRATE_ALERT": "Alertă rată de hash",
     "OFFLINE_ALERT": "Alertă offline",
@@ -451,12 +451,12 @@
     "PROCEED_ANYWAY": "Continuă oricum"
   },
   "DISCORD": {
-    "TITLE": "Alerte Discord",
-    "ALERTS": "Alerte Discord",
-    "WEBHOOK": "Webhook Discord",
+    "TITLE": "Alerte webhook",
+    "ALERTS": "Alerte webhook",
+    "WEBHOOK": "Webhook",
     "WEBHOOK_URL": "URL Webhook",
-    "WEBHOOK_HELP": "Webhook din integrarea canalului Discord",
-    "CONFIGURE_DESCRIPTION": "Configurați care alerte Discord doriți să primiți. Webhook-ul este folosit pentru toate alertele selectate.",
+    "WEBHOOK_HELP": "Orice endpoint HTTP(S) care acceptă un corp JSON cu un câmp content.",
+    "CONFIGURE_DESCRIPTION": "Configurați ce alerte doriți să primiți. Webhook-ul selectat primește un corp JSON cu un câmp content pentru fiecare alertă activată.",
     "MINER_WATCHDOG": "Watchdog miner declanșat",
     "MINER_WATCHDOG_DESC": "se declanșează când dispozitivul se repornește după eșecul trimiterii unei acțiuni timp de 1 oră",
     "BLOCK_FOUND": "Bloc găsit",
