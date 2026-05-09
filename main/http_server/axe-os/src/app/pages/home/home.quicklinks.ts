@@ -283,7 +283,7 @@ const POOLS: PoolMeta[] = [
     match: (h) => h.includes('solo.stratum.braiins.com'),
     quickLink: (a) => `https://solo.braiins.com/stats/${a}`,
     faviconHost: 'solo.braiins.com',
-    faviconPath: '/favicon.ico'
+    faviconPath: '/icon.png'
   }
 ];
 
