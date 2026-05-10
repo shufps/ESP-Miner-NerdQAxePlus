@@ -306,8 +306,10 @@ void PowerManagementTask::task()
             uint32_t status = ((uint32_t) m_chipTempMax << 24) | ((uint32_t) m_fanController.getOverheatTemp(0) << 16) |
                               ((uint32_t) m_vrTemp << 8) | ((uint32_t) m_fanController.getOverheatTemp(1));
 
-            // over temperature
-            SYSTEM_MODULE.setBoardError(Board::Error::TEMP_FAULT, status);
+            // over temperature — ASIC takes priority over VReg-only
+            Board::Error overheatErr = Board::Error::VREG_TEMP_FAULT;
+            if (m_fanController.isOverheated(0)) overheatErr = Board::Error::TEMP_FAULT;
+            SYSTEM_MODULE.setBoardError(overheatErr, status);
 
             // disables the buck
             m_board->setVoltage(0.0);

@@ -115,6 +115,7 @@ namespace Config {
     void nvs_config_set_string(const char* key, const char* value);
     uint16_t nvs_config_get_u16(const char* key, uint16_t default_value);
     void nvs_config_set_u16(const char* key, uint16_t value);
+    bool nvs_config_has_u16(const char* key);
     uint64_t nvs_config_get_u64(const char* key, uint64_t default_value);
     void nvs_config_set_u64(const char* key, uint64_t value);
 

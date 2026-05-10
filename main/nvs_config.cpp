@@ -137,6 +137,17 @@ void nvs_config_set_u64(const char *key, const uint64_t value)
     nvs_close(handle);
 }
 
+bool nvs_config_has_u16(const char *key)
+{
+    nvs_handle handle;
+    if (nvs_open(NVS_CONFIG_NAMESPACE, NVS_READONLY, &handle) != ESP_OK)
+        return false;
+    uint16_t dummy;
+    bool exists = (nvs_get_u16(handle, key, &dummy) == ESP_OK);
+    nvs_close(handle);
+    return exists;
+}
+
 void migrate_config()
 {
     // overwrite previously allowed 0 value to disable
@@ -153,6 +164,13 @@ void migrate_config()
         ESP_LOGW(TAG, "Disabled AFC (deprecated), Enabled manual 100%%.");
         setTempControlMode(0);
         setFanSpeed(100);
+    }
+
+    // migrate VReg overheat temp: if not yet set, inherit ASIC overheat temp
+    if (!nvs_config_has_u16(NVS_CONFIG_FAN1_OVERHEAT)) {
+        uint16_t asic_temp = getOverheatTemp();
+        ESP_LOGI(TAG, "Migrating VReg overheat temp from ASIC value: %u°C", asic_temp);
+        setFanOverheatTemp(1, asic_temp);
     }
 }
 
