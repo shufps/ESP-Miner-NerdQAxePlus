@@ -70,6 +70,9 @@ class StratumManager {
     const char *m_verifyBlockedReason[2]{nullptr, nullptr};
 
     void processCoinbase(int pool, const mining_notify *notify);
+    void processCoinbase(int pool, const char *coinbase_1_hex, const char *coinbase_2_hex,
+                         uint32_t version, uint32_t nbits,
+                         const char *extranonce1_hex, int extranonce2_len);
     void storeExtranonce(int pool, const char *extranonce, int extranonce2_len);
     void runVerification(int pool);
 

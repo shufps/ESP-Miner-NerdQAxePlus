@@ -219,6 +219,9 @@ esp_err_t coinbase_process(const char *coinbase_1,
         (block_version & (1U << BIP110_SIGNAL_BIT)) != 0;
 
     /* Calculate remaining scriptsig length (excluding block height part) */
+    if (scriptsig_len < 1 + block_height_len) {
+        return ESP_ERR_INVALID_ARG;
+    }
     int scriptsig_length = scriptsig_len - 1 - block_height_len;
     size_t extranonce1_len = strlen(extranonce1) / 2;
 
@@ -332,6 +335,7 @@ esp_err_t coinbase_process(const char *coinbase_1,
     }
 
     result->bip54_signaling =
+        result->block_height > 0 &&
         (nLockTime == result->block_height - 1) && (nSequence != 0xffffffff);
 
     free(coinbase_2_bin);

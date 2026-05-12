@@ -60,7 +60,6 @@ typedef struct {
  * @param extranonce1       Hex string of extranonce1
  * @param extranonce2_len   Length of extranonce2 in bytes
  * @param user_address      User's payout address (for output matching), may be NULL
- * @param decode_coinbase_tx Enable full coinbase TX decoding (addresses, values)
  * @param result            Output: decoded result
  * @return ESP_OK on success
  */

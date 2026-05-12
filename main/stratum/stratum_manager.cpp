@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>
@@ -407,19 +408,25 @@ void StratumManager::storeExtranonce(int pool, const char *extranonce, int extra
     m_extranonce2_len[pool] = extranonce2_len;
 }
 
+static void extractUserAddress(const char *user, char *out, size_t out_len)
+{
+    if (!user) { out[0] = '\0'; return; }
+    strncpy(out, user, out_len - 1);
+    out[out_len - 1] = '\0';
+    char *dot = strchr(out, '.');
+    if (dot) *dot = '\0';
+    // Normalize to lowercase so BC1Q... matches bc1q... from segwit_addr_encode
+    for (char *p = out; *p; p++) *p = tolower((unsigned char)*p);
+}
+
 void StratumManager::processCoinbase(int pool, const mining_notify *notify)
 {
     if (!notify || !notify->coinbase_1 || !notify->coinbase_2) return;
     if (pool < 0 || pool > 1 || !m_extranonce1[pool]) return;
 
-    // Strip worker suffix (e.g. "bc1qxxx.worker1" → "bc1qxxx") for coinbase address matching
     char user_address[128] = {};
     const char *user = m_stratumConfig[pool] ? m_stratumConfig[pool]->getUser() : nullptr;
-    if (user) {
-        strncpy(user_address, user, sizeof(user_address) - 1);
-        char *dot = strchr(user_address, '.');
-        if (dot) *dot = '\0';
-    }
+    extractUserAddress(user, user_address, sizeof(user_address));
 
     coinbase_result_t result{};
     esp_err_t err = coinbase_process(
@@ -429,6 +436,35 @@ void StratumManager::processCoinbase(int pool, const mining_notify *notify)
         notify->target,
         m_extranonce1[pool],
         m_extranonce2_len[pool],
+        user ? user_address : nullptr,
+        &result
+    );
+
+    if (err == ESP_OK) {
+        m_coinbaseResult[pool & 1] = result;
+        runVerification(pool & 1);
+    }
+}
+
+void StratumManager::processCoinbase(int pool, const char *coinbase_1_hex, const char *coinbase_2_hex,
+                                     uint32_t version, uint32_t nbits,
+                                     const char *extranonce1_hex, int extranonce2_len)
+{
+    if (!coinbase_1_hex || !coinbase_2_hex || !extranonce1_hex) return;
+    if (pool < 0 || pool > 1) return;
+
+    char user_address[128] = {};
+    const char *user = m_stratumConfig[pool] ? m_stratumConfig[pool]->getUser() : nullptr;
+    extractUserAddress(user, user_address, sizeof(user_address));
+
+    coinbase_result_t result{};
+    esp_err_t err = coinbase_process(
+        coinbase_1_hex,
+        coinbase_2_hex,
+        version,
+        nbits,
+        extranonce1_hex,
+        extranonce2_len,
         user ? user_address : nullptr,
         &result
     );
