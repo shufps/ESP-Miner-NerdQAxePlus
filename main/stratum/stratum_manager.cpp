@@ -508,6 +508,35 @@ void StratumManager::processCoinbase(int pool, const char *coinbase_1_hex, const
     }
 }
 
+void StratumManager::processCoinbase(int pool, const char *coinbase_1_hex, const char *coinbase_2_hex,
+                                     uint32_t version, uint32_t nbits,
+                                     const char *extranonce1_hex, int extranonce2_len)
+{
+    if (!coinbase_1_hex || !coinbase_2_hex || !extranonce1_hex) return;
+    if (pool < 0 || pool > 1) return;
+
+    char user_address[128] = {};
+    const char *user = m_stratumConfig[pool] ? m_stratumConfig[pool]->getUser() : nullptr;
+    extractUserAddress(user, user_address, sizeof(user_address));
+
+    coinbase_result_t result{};
+    esp_err_t err = coinbase_process(
+        coinbase_1_hex,
+        coinbase_2_hex,
+        version,
+        nbits,
+        extranonce1_hex,
+        extranonce2_len,
+        user ? user_address : nullptr,
+        &result
+    );
+
+    if (err == ESP_OK) {
+        m_coinbaseResult[pool & 1] = result;
+        runVerification(pool & 1);
+    }
+}
+
 void StratumManager::runVerification(int pool)
 {
     const coinbase_result_t &cb = m_coinbaseResult[pool];
