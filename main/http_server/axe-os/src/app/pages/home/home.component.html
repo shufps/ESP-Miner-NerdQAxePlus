@@ -7,6 +7,15 @@
 </ng-template>
 
 <div class="fill-colors">
+  <!-- Global pool-verify tooltips (position:fixed, must be outside scrolling containers) -->
+  <span class="power-bar-tooltip pool-verify-tooltip"
+        [class.power-bar-tooltip--active]="activeHoverTooltipId === 'pool-verify-0'"
+        [style.left.px]="poolVerifyTooltipX" [style.top.px]="poolVerifyTooltipY"
+        aria-hidden="true">{{ getPoolVerificationTooltip(0) }}</span>
+  <span class="power-bar-tooltip pool-verify-tooltip"
+        [class.power-bar-tooltip--active]="activeHoverTooltipId === 'pool-verify-1'"
+        [style.left.px]="poolVerifyTooltipX" [style.top.px]="poolVerifyTooltipY"
+        aria-hidden="true">{{ getPoolVerificationTooltip(1) }}</span>
   <div *ngIf="info$ | async as info; else loading">
     <div *ngIf="!info.shutdown; else shutdown">
       <!-- Chart (full width, top) -->
@@ -296,9 +305,10 @@
                         <div class="pool-tile-metricbar__user" *ngIf="pool.user">
                           <span class="pool-tile-metricbar__user-label">{{ 'POOL_INFO.USER' | translate }}:</span>
                           <span class="pool-tile-metricbar__user-value"
-                                [style.color]="getPoolVerificationColor(idx ?? 0)">{{ abbrevMiddle(pool.user) }}
-                            <span class="pool-tile-tooltip" *ngIf="getPoolVerificationTooltip(idx ?? 0)">{{ getPoolVerificationTooltip(idx ?? 0) }}</span>
-                          </span>
+                                [style.color]="getPoolVerificationColor(idx ?? 0)"
+                                (mouseenter)="showPoolVerifyTooltip('pool-verify-' + (idx ?? 0), !!getPoolVerificationTooltip(idx ?? 0), $event)"
+                                (mousemove)="movePoolVerifyTooltip($event)"
+                                (mouseleave)="hideHoverTooltip('pool-verify-' + (idx ?? 0))">{{ abbrevMiddle(pool.user) }}</span>
                         </div>
                       </div>
 

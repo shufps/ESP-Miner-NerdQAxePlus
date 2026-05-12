@@ -257,6 +257,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public activeHoverTooltipId: string | null = null;
   public hoverTooltipX: number = 0;
   public hoverTooltipY: number = 0;
+  public poolVerifyTooltipX: number = 0;
+  public poolVerifyTooltipY: number = 0;
 
   public shouldShowLowRpmHint(percent: any, rpm: any): boolean {
     const pct = Number(percent);
@@ -300,6 +302,29 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public showConditionalHoverTooltip(id: string, enabled: boolean, event: MouseEvent): void {
     if (!enabled) return;
     this.showHoverTooltip(id, event);
+  }
+
+  public showPoolVerifyTooltip(id: string, enabled: boolean, event: MouseEvent): void {
+    if (!enabled) return;
+    this.activeHoverTooltipId = id;
+    this.updatePoolVerifyTooltipPosition(event);
+  }
+
+  public movePoolVerifyTooltip(event: MouseEvent): void {
+    if (!this.activeHoverTooltipId) return;
+    this.updatePoolVerifyTooltipPosition(event);
+  }
+
+  private updatePoolVerifyTooltipPosition(event: MouseEvent): void {
+    const pad = 12;
+    const tooltipW = 200;
+    const viewportWidth = window.innerWidth || 0;
+    let x = event.clientX + 14;
+    if (x + tooltipW > viewportWidth - pad) {
+      x = Math.max(pad, viewportWidth - tooltipW - pad);
+    }
+    this.poolVerifyTooltipX = x;
+    this.poolVerifyTooltipY = event.clientY + 18;
   }
 
   public moveHoverTooltip(event: MouseEvent): void {
