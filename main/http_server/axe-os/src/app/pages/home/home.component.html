@@ -296,8 +296,9 @@
                         <div class="pool-tile-metricbar__user" *ngIf="pool.user">
                           <span class="pool-tile-metricbar__user-label">{{ 'POOL_INFO.USER' | translate }}:</span>
                           <span class="pool-tile-metricbar__user-value"
-                                [title]="getPoolVerificationTooltip(idx ?? 0) || pool.user"
-                                [style.color]="getPoolVerificationColor(idx ?? 0)">{{ abbrevMiddle(pool.user) }}</span>
+                                [style.color]="getPoolVerificationColor(idx ?? 0)">{{ abbrevMiddle(pool.user) }}
+                            <span class="pool-tile-tooltip" *ngIf="getPoolVerificationTooltip(idx ?? 0)">{{ getPoolVerificationTooltip(idx ?? 0) }}</span>
+                          </span>
                         </div>
                       </div>
 

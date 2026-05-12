@@ -669,26 +669,34 @@ void StratumTaskV2::enqueueExtendedJob(sv2_ext_job_t *job)
     if (job->coinbase_prefix && job->coinbase_prefix_len > 0 &&
         job->coinbase_suffix && job->coinbase_suffix_len > 0) {
 
-        size_t pfx_hex_len = job->coinbase_prefix_len * 2 + 1;
+        // SV2 structure: coinbase_prefix | extranonce_prefix | extranonce2 | coinbase_suffix
+        // coinbase_process expects: coinbase_1 | extranonce1 | extranonce2 | coinbase_2
+        // Mapping: coinbase_1 = coinbase_prefix + extranonce_prefix (concatenated),
+        //          extranonce1 = "" (empty), extranonce2_len = extranonce_size (full)
+        // This makes coinbase_process calculate coinbase_2_offset=0, so nSequence
+        // is correctly found at the start of coinbase_suffix.
+        size_t cb1_bin_len = job->coinbase_prefix_len + m_sv2_conn.extranonce_prefix_len;
+        size_t pfx_hex_len = cb1_bin_len * 2 + 1;
         size_t sfx_hex_len = job->coinbase_suffix_len * 2 + 1;
-        size_t en1_hex_len = m_sv2_conn.extranonce_prefix_len * 2 + 1;
 
         char *pfx_hex = (char *)MALLOC(pfx_hex_len);
         char *sfx_hex = (char *)MALLOC(sfx_hex_len);
-        char *en1_hex = (char *)MALLOC(en1_hex_len);
 
-        if (pfx_hex && sfx_hex && en1_hex) {
+        if (pfx_hex && sfx_hex) {
+            // Build coinbase_1 = coinbase_prefix + extranonce_prefix
             bin2hex(job->coinbase_prefix, job->coinbase_prefix_len, pfx_hex, pfx_hex_len);
+            bin2hex(m_sv2_conn.extranonce_prefix, m_sv2_conn.extranonce_prefix_len,
+                    pfx_hex + job->coinbase_prefix_len * 2,
+                    pfx_hex_len - job->coinbase_prefix_len * 2);
             bin2hex(job->coinbase_suffix, job->coinbase_suffix_len, sfx_hex, sfx_hex_len);
-            bin2hex(m_sv2_conn.extranonce_prefix, m_sv2_conn.extranonce_prefix_len, en1_hex, en1_hex_len);
 
+            // extranonce1="" (already folded into cb1), extranonce2_len=full extranonce_size
             m_manager->processCoinbase(m_index, pfx_hex, sfx_hex, job->version, job->nbits,
-                                       en1_hex, m_sv2_conn.extranonce_size);
+                                       "", (int)m_sv2_conn.extranonce_size);
         }
 
         free(pfx_hex);
         free(sfx_hex);
-        free(en1_hex);
     }
 
     create_job_sv2_extended(m_index, job,

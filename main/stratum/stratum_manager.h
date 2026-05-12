@@ -4,7 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 #include "lwip/inet.h"
-
+#include "esp_log.h"
 #include "ArduinoJson.h"
 
 #include "coinbase_decoder.h"

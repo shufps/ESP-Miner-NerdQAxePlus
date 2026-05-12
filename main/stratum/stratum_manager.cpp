@@ -423,11 +423,12 @@ void StratumManager::processCoinbase(int pool, const mining_notify *notify)
 {
     if (!notify || !notify->coinbase_1 || !notify->coinbase_2) return;
     if (pool < 0 || pool > 1 || !m_extranonce1[pool]) return;
+    // SV2 pools use the hex-string overload via enqueueExtendedJob — skip V1 path
+    if (m_stratumConfig[pool] && m_stratumConfig[pool]->isSV2()) return;
 
     char user_address[128] = {};
     const char *user = m_stratumConfig[pool] ? m_stratumConfig[pool]->getUser() : nullptr;
     extractUserAddress(user, user_address, sizeof(user_address));
-
     coinbase_result_t result{};
     esp_err_t err = coinbase_process(
         notify->coinbase_1,
@@ -441,8 +442,17 @@ void StratumManager::processCoinbase(int pool, const mining_notify *notify)
     );
 
     if (err == ESP_OK) {
+/*
+        ESP_LOGW("stratum_manager", "SV2 coinbase ok: height=%lu total=%llu user=%llu addr=%s",
+                 (unsigned long)result.block_height,
+                 (unsigned long long)result.total_value_satoshis,
+                 (unsigned long long)result.user_value_satoshis,
+                 user_address);
+*/
         m_coinbaseResult[pool & 1] = result;
         runVerification(pool & 1);
+    } else {
+        ESP_LOGE("stratum_manager", "SV2 coinbase parse failed");
     }
 }
 
@@ -470,8 +480,17 @@ void StratumManager::processCoinbase(int pool, const char *coinbase_1_hex, const
     );
 
     if (err == ESP_OK) {
+/*
+        ESP_LOGW("stratum_manager", "SV2 coinbase ok: height=%lu total=%llu user=%llu addr=%s",
+                 (unsigned long)result.block_height,
+                 (unsigned long long)result.total_value_satoshis,
+                 (unsigned long long)result.user_value_satoshis,
+                 user_address);
+*/
         m_coinbaseResult[pool & 1] = result;
         runVerification(pool & 1);
+    } else {
+        ESP_LOGE("stratum_manager", "SV2 coinbase parse failed");
     }
 }
 
@@ -505,6 +524,7 @@ void StratumManager::runVerification(int pool)
 
     m_verificationCheckCount[pool]++;
     if (!ok) m_verificationFailCount[pool]++;
+    // ESP_LOGE("runverify", "check count: %d, failed: %d, pool: %d", (int) m_verificationCheckCount[pool], (int) m_verificationFailCount[pool], (int) pool);
 
     m_verificationOk[pool] = ok;
 

@@ -482,6 +482,29 @@ nb-card-header{
   font-size: 10px;
   color: var(--bar-value-color);
   font-weight: 800;
+  position: relative;
+
+  .pool-tile-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 0;
+    width: 260px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.80);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: pre-line;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  &:hover .pool-tile-tooltip {
+    display: block;
+  }
 }
 
 .pool-tile-metricbar__shares-label{

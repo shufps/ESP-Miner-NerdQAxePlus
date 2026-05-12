@@ -184,7 +184,10 @@
                                         <input nbInput formControlName="coinbaseMaxFee" type="number" min="0" max="100" step="0.1" style="width: 55px;" />
                                         <span>%</span>
                                     </div>
-                                    <nb-checkbox formControlName="coinbaseVerifyForce" style="margin-left: 16px;" [nbTooltip]="'SECURITY.COINBASE_VERIFY_FORCE_TOOLTIP' | translate">{{ 'SECURITY.COINBASE_VERIFY_FORCE' | translate }}</nb-checkbox>
+                                    <span class="hint-tooltip" style="margin-left: 16px;">
+                                        <nb-checkbox formControlName="coinbaseVerifyForce">{{ 'SECURITY.COINBASE_VERIFY_FORCE' | translate }}</nb-checkbox>
+                                        <span class="hint-tooltip__text">{{ 'SECURITY.COINBASE_VERIFY_FORCE_TOOLTIP' | translate }}</span>
+                                    </span>
                                 </div>
                                 <small *ngIf="form.controls['coinbaseVerifyMode'].value === 1">{{ 'SECURITY.COINBASE_VERIFY_BASIC_HINT' | translate }}</small>
                                 <small *ngIf="form.controls['coinbaseVerifyMode'].value === 2">{{ 'SECURITY.COINBASE_VERIFY_EXTENDED_HINT' | translate }}</small>
@@ -293,7 +296,10 @@
                                         <input nbInput formControlName="fallbackCoinbaseMaxFee" type="number" min="0" max="100" step="0.1" style="width: 55px;" />
                                         <span>%</span>
                                     </div>
-                                    <nb-checkbox formControlName="fallbackCoinbaseVerifyForce" style="margin-left: 16px;" [nbTooltip]="'SECURITY.COINBASE_VERIFY_FORCE_TOOLTIP' | translate">{{ 'SECURITY.COINBASE_VERIFY_FORCE' | translate }}</nb-checkbox>
+                                    <span class="hint-tooltip" style="margin-left: 16px;">
+                                        <nb-checkbox formControlName="fallbackCoinbaseVerifyForce">{{ 'SECURITY.COINBASE_VERIFY_FORCE' | translate }}</nb-checkbox>
+                                        <span class="hint-tooltip__text">{{ 'SECURITY.COINBASE_VERIFY_FORCE_TOOLTIP' | translate }}</span>
+                                    </span>
                                 </div>
                                 <small *ngIf="form.controls['fallbackCoinbaseVerifyMode'].value === 1">{{ 'SECURITY.COINBASE_VERIFY_BASIC_HINT' | translate }}</small>
                                 <small *ngIf="form.controls['fallbackCoinbaseVerifyMode'].value === 2">{{ 'SECURITY.COINBASE_VERIFY_EXTENDED_HINT' | translate }}</small>
