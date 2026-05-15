@@ -23,8 +23,6 @@ static const char *TAG = "coinbase_decoder";
 
 #define MAX_ADDRESS_STRING_LEN 128
 
-#define MAX_ADDRESS_STRING_LEN 128
-
 /* Network difficulty calculation from nBits (same as calculateNetworkDifficulty) */
 double calc_network_difficulty(uint32_t nBits)
 {
