@@ -2025,6 +2025,10 @@ private importHistoricalDataChunked(history: any): void {
     return bh?.verificationOk ?? false;
   }
 
+  getVerifyPoolIdx(idx: number | undefined, usingFallback: boolean | undefined): number {
+    return (usingFallback && !this.isDualPool) ? 1 : (idx ?? 0);
+  }
+
   getPoolVerifyMode(poolIdx: number): number {
     return poolIdx === 0
       ? (this._info?.coinbaseVerifyMode ?? 0)

@@ -231,11 +231,9 @@
                 <!-- SINGLE POOL -->
                 <ng-container *ngIf="!isDualPool">
                   <div class="pool-tile-section pool-tile-section--single" role="group">
-                    <ng-container *ngIf="poolLeft?.connected && !poolLeft?.verifyBlocked; else poolDisconnectedLeft">
-                      <ng-container
-                        [ngTemplateOutlet]="poolHalf"
-                        [ngTemplateOutletContext]="{ pool: poolLeft, idx: undefined, usingFallback: usingFallback }">
-                      </ng-container>
+                    <ng-container
+                      [ngTemplateOutlet]="poolHalf"
+                      [ngTemplateOutletContext]="{ pool: poolLeft, idx: undefined, usingFallback: usingFallback, disconnected: !poolLeft?.connected, blockedReason: poolLeft?.verifyBlocked }">
                     </ng-container>
                   </div>
                 </ng-container>
@@ -243,20 +241,16 @@
                 <!-- DUAL POOL: stack pool 2 under pool 1 inside the same white container -->
                 <ng-container *ngIf="isDualPool">
                   <div class="pool-tile-section pool-tile-section--top" role="group">
-                    <ng-container *ngIf="poolLeft?.connected && !poolLeft?.verifyBlocked; else poolDisconnectedLeft">
-                      <ng-container
-                        [ngTemplateOutlet]="poolHalf"
-                        [ngTemplateOutletContext]="{ pool: poolLeft, idx: 0, usingFallback: usingFallback }">
-                      </ng-container>
+                    <ng-container
+                      [ngTemplateOutlet]="poolHalf"
+                      [ngTemplateOutletContext]="{ pool: poolLeft, idx: 0, usingFallback: usingFallback, disconnected: !poolLeft?.connected, blockedReason: poolLeft?.verifyBlocked }">
                     </ng-container>
                   </div>
 
                   <div class="pool-tile-section pool-tile-section--bottom" role="group">
-                    <ng-container *ngIf="poolRight?.connected && !poolRight?.verifyBlocked; else poolDisconnectedRight">
-                      <ng-container
-                        [ngTemplateOutlet]="poolHalf"
-                        [ngTemplateOutletContext]="{ pool: poolRight, idx: 1, usingFallback: false }">
-                      </ng-container>
+                    <ng-container
+                      [ngTemplateOutlet]="poolHalf"
+                      [ngTemplateOutletContext]="{ pool: poolRight, idx: 1, usingFallback: false, disconnected: !poolRight?.connected, blockedReason: poolRight?.verifyBlocked }">
                     </ng-container>
                   </div>
                 </ng-container>
@@ -275,83 +269,103 @@
               </div>
 
               <!-- Templates -->
-              <ng-template #poolHalf let-pool="pool" let-idx="idx" let-usingFallback="usingFallback">
+              <ng-template #poolHalf let-pool="pool" let-idx="idx" let-usingFallback="usingFallback" let-disconnected="disconnected" let-blockedReason="blockedReason">
                 <div class="pool-tile-half" dir="ltr" [class.pool-tile-half--dual]="isDualPool">
 
-                  <!-- Grey metric bar (full width of the half) -->
-                  <div class="pool-tile-metricbar fill-colors" role="group"
-                       [attr.aria-label]="('POOL_INFO.TITLE' | translate) + ': ' + (pool.host ?? '')"
-                       [class.pool-tile-metricbar--alloc]="isDualPool">
-                    <div class="pool-tile-metricbar__fill" *ngIf="isDualPool"
-                         [style.width.%]="getActiveBalance((idx ?? 0) === 0 ? 0 : 1)"></div>
+                  <!-- Grey metric bar -->
+                  <div class="pool-tile-metricbar fill-colors"
+                       [attr.role]="disconnected || blockedReason ? 'status' : 'group'"
+                       [attr.aria-live]="disconnected || blockedReason ? 'polite' : null"
+                       [attr.aria-label]="('POOL_INFO.TITLE' | translate) + ': ' + (pool?.host ?? '')"
+                       [class.pool-tile-metricbar--alloc]="isDualPool && !disconnected && !blockedReason"
+                       [class.pool-tile-metricbar--error]="disconnected || !!blockedReason"
+                       [class.pool-tile-metricbar--disconnected]="disconnected || !!blockedReason"
+                       [style.background]="(disconnected || !!blockedReason) ? 'var(--fill-crit-color, var(--color-danger-500))' : null">
 
-                    <div class="pool-tile-metricbar__inner">
+                    <ng-container *ngIf="!disconnected && !blockedReason">
+                      <div class="pool-tile-metricbar__fill" *ngIf="isDualPool"
+                           [style.width.%]="getActiveBalance((idx ?? 0) === 0 ? 0 : 1)"></div>
 
-                      <!-- LEFT: Since connect (value + label) -->
-                      <div class="pool-tile-metricbar__left">
-                        <div class="pool-tile-metricbar__since">
-                          <div class="pool-tile-metricbar__value">
-                            <ng-container *ngIf="splitHumanReadable(pool.bestDiff | humanReadable) as bd">
-                              {{ bd.value }}<span class="unit" *ngIf="bd.unit">&nbsp;{{ bd.unit }}</span>
-                              <!-- Place label directly after the unit (only show in single pool or pool 1) -->
-                              <span class="pool-tile-metricbar__label-inline" *ngIf="(!isDualPool || (idx ?? 0) === 0)">
-                                    {{ 'HOME.BEST_DIFF_BOOT' | translate }}
-                                  </span>
-                            </ng-container>
+                      <div class="pool-tile-metricbar__inner">
+
+                        <!-- LEFT: Best diff + user -->
+                        <div class="pool-tile-metricbar__left">
+                          <div class="pool-tile-metricbar__since">
+                            <div class="pool-tile-metricbar__value">
+                              <ng-container *ngIf="splitHumanReadable(pool.bestDiff | humanReadable) as bd">
+                                {{ bd.value }}<span class="unit" *ngIf="bd.unit">&nbsp;{{ bd.unit }}</span>
+                                <span class="pool-tile-metricbar__label-inline" *ngIf="(!isDualPool || (idx ?? 0) === 0)">
+                                  {{ 'HOME.BEST_DIFF_BOOT' | translate }}
+                                </span>
+                              </ng-container>
+                            </div>
+                          </div>
+
+                          <!-- User in the grey bar (bottom-left) -->
+                          <div class="pool-tile-metricbar__user" *ngIf="pool.user">
+                            <span class="pool-tile-metricbar__user-label">{{ 'POOL_INFO.USER' | translate }}:</span>
+                            <span class="pool-tile-metricbar__user-value"
+                                  [style.color]="getPoolVerificationColor(getVerifyPoolIdx(idx, usingFallback))"
+                                  (mouseenter)="showPoolVerifyTooltip('pool-verify-' + getVerifyPoolIdx(idx, usingFallback), !!getPoolVerificationTooltip(getVerifyPoolIdx(idx, usingFallback)), $event)"
+                                  (mousemove)="movePoolVerifyTooltip($event)"
+                                  (mouseleave)="hideHoverTooltip('pool-verify-' + getVerifyPoolIdx(idx, usingFallback))">{{ abbrevMiddle(pool.user) }}</span>
                           </div>
                         </div>
 
-                        <!-- User in the grey bar (bottom-left) -->
-                        <div class="pool-tile-metricbar__user" *ngIf="pool.user">
-                          <span class="pool-tile-metricbar__user-label">{{ 'POOL_INFO.USER' | translate }}:</span>
-                          <span class="pool-tile-metricbar__user-value"
-                                [style.color]="getPoolVerificationColor(idx ?? 0)"
-                                (mouseenter)="showPoolVerifyTooltip('pool-verify-' + (idx ?? 0), !!getPoolVerificationTooltip(idx ?? 0), $event)"
-                                (mousemove)="movePoolVerifyTooltip($event)"
-                                (mouseleave)="hideHoverTooltip('pool-verify-' + (idx ?? 0))">{{ abbrevMiddle(pool.user) }}</span>
-                        </div>
-                      </div>
+                        <!-- RIGHT: Shares + Rejected -->
+                        <div class="pool-tile-metricbar__right">
+                          <div class="pool-tile-metricbar__shares">
+                            <div class="pool-tile-metricbar__shares-label">{{ 'HOME.SHARES' | translate }}</div>
+                            <div class="pool-tile-metricbar__shares-value">{{ (pool.accepted ?? 0) | number: '1.0-0' }}</div>
+                          </div>
 
-                      <!-- RIGHT: Shares + Rejected, aligned bottom-right -->
-                      <div class="pool-tile-metricbar__right">
-                        <div class="pool-tile-metricbar__shares">
-                          <div class="pool-tile-metricbar__shares-label">{{ 'HOME.SHARES' | translate }}</div>
-                          <div class="pool-tile-metricbar__shares-value">{{ (pool.accepted ?? 0) | number: '1.0-0' }}
+                          <div class="pool-tile-metricbar__rejected">
+                            {{ rejectRate(idx) | number: '1.2-2' }}
+                            %&nbsp;/&nbsp;{{ (pool.rejected ?? 0) | number: '1.0-0' }}
+                            &nbsp;{{ 'HOME.REJECTED' | translate }}
+                          </div>
+
+                          <div class="pool-tile-metricbar__rejected">
+                            <span class="pool-tile-info__value">{{ (poolDiff(pool)) | number: '1.0-0' }}</span>
+                            <span class="pool-tile-info__label">&nbsp;{{ 'POOL_INFO.DIFF' | translate }}</span>
                           </div>
                         </div>
 
-                        <div class="pool-tile-metricbar__rejected">
-                          {{ rejectRate(idx) | number: '1.2-2' }}
-                          %&nbsp;/&nbsp;{{ (pool.rejected ?? 0) | number: '1.0-0' }}
-                          &nbsp;{{ 'HOME.REJECTED' | translate }}
-                        </div>
-
-                        <div class="pool-tile-metricbar__rejected">
-                          <span class="pool-tile-info__value">{{ (poolDiff(pool)) | number: '1.0-0' }}</span>
-                          <span class="pool-tile-info__label">&nbsp;{{ 'POOL_INFO.DIFF' | translate }}</span>
-                        </div>
                       </div>
+                    </ng-container>
 
-                    </div>
+                    <ng-container *ngIf="disconnected || !!blockedReason">
+                      <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
+                        <ng-container *ngIf="!!blockedReason">
+                          <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.VERIFY_BLOCKED' | translate }}</div>
+                          <div class="pool-tile-metricbar__dc-msg" style="font-size: 0.8em; opacity: 0.8;">
+                            <ng-container *ngIf="blockedReason === 'address_not_found'">{{ 'HOME.VERIFY_BLOCKED_ADDRESS' | translate }}</ng-container>
+                            <ng-container *ngIf="blockedReason === 'fee_exceeded'">{{ 'HOME.VERIFY_BLOCKED_FEE' | translate }}</ng-container>
+                          </div>
+                        </ng-container>
+                        <ng-container *ngIf="disconnected && !blockedReason">
+                          <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
+                        </ng-container>
+                      </div>
+                    </ng-container>
 
-                    <!-- Dual pool: allocation % is shown in the pool title (not inside the grey bar) -->
-                  </div>
+                  </div><!-- end pool-tile-metricbar -->
 
-                  <!-- Details below the grey bar -->
+                  <!-- Details (always visible, even when disconnected/blocked) -->
                   <div class="pool-tile-details">
                     <div class="pool-tile-details__header">
                       <div class="pool-tile-details__header-left">
-                        <a [href]="getQuickLink(pool.host, pool.user)" target="_blank">
+                        <a [href]="getQuickLink(pool?.host, pool?.user)" target="_blank">
                           <img
-                            [src]="poolIconUrl(pool.host)"
+                            [src]="poolIconUrl(pool?.host)"
                             class="pool-header__icon"
                             alt="Pool icon"
-                            (error)="onPoolIconError($event, pool.host)"
+                            (error)="onPoolIconError($event, pool?.host)"
                           />
                         </a>
 
                         <span *ngIf="!isDualPool" class="text-hint">
-                              {{ 'POOL_INFO.TITLE' | translate }}
+                          {{ 'POOL_INFO.TITLE' | translate }}
                           (
                           {{
                             usingFallback ? ('POOL_INFO.FALLBACK' | translate)
@@ -359,95 +373,48 @@
                           }}
                           )
                           {{ (usingFallback ? info.fallbackStratumProtocol : info.stratumProtocol) === 1 ? 'SV2' : 'SV1' }}
-                            </span>
+                        </span>
                         <span *ngIf="isDualPool" class="text-hint">Pool {{ (idx ?? 0) + 1 }} {{ ((idx ?? 0) === 0 ? info.stratumProtocol : info.fallbackStratumProtocol) === 1 ? 'SV2' : 'SV1' }}</span>
                       </div>
 
                       <!-- Dual pool: show the pool allocation % in the title (right-aligned) -->
                       <div *ngIf="isDualPool" class="pool-tile-details__header-right">
-                        <span class="pool-tile-details__allocpct">{{ getActiveBalance(idx ?? 0) | number: '1.0-0' }}
-                          %</span>
+                        <span class="pool-tile-details__allocpct">{{ getActiveBalance(idx ?? 0) | number: '1.0-0' }}%</span>
                       </div>
                     </div>
 
                     <div class="pool-tile-info__bottom">
-                      <!-- Order (top -> bottom): HOST, PING + LOSS (same line), DIFF. Labels are placed AFTER values. -->
                       <div class="pool-tile-info__line">
-                        <a class="pool-tile-hostlink pool-tile-info__value" [href]="getQuickLink(pool.host, pool.user)"
-                           target="_blank"> {{ pool.host }}</a>
-                        <span class="pool-host-colon pool-tile-info__value">:{{ pool.port }}</span>
+                        <a class="pool-tile-hostlink pool-tile-info__value" [href]="getQuickLink(pool?.host, pool?.user)"
+                           target="_blank"> {{ pool?.host }}</a>
+                        <span class="pool-host-colon pool-tile-info__value">:{{ pool?.port }}</span>
                         <span class="pool-tile-info__label">&nbsp;{{ 'POOL_INFO.HOST' | translate }}</span>
                       </div>
 
                       <div class="pool-tile-info__line">
-                            <span class="pool-tile-info__value">
-                              {{
-                                supportsPing(pool.host) && pool.pingRtt !== undefined && pool.pingRtt !== null
-                                  ? (pool.pingRtt.toFixed(2) + ' ' + ('PERFORMANCE.MS' | translate)
-                                    + ' (' + ('PERFORMANCE.AVG' | translate) + ')')
-                                  : 'n/a'
-                              }}
-                            </span>
+                        <span class="pool-tile-info__value">
+                          {{
+                            supportsPing(pool?.host) && pool?.pingRtt !== undefined && pool?.pingRtt !== null
+                              ? (pool.pingRtt.toFixed(2) + ' ' + ('PERFORMANCE.MS' | translate)
+                                + ' (' + ('PERFORMANCE.AVG' | translate) + ')')
+                              : 'n/a'
+                          }}
+                        </span>
                         <span class="pool-tile-info__label">&nbsp;{{ 'POOL_INFO.PING' | translate }}</span>
 
                         <span class="pool-tile-info__value">&nbsp;
                           {{
-                            supportsPing(pool.host) && pool.pingLoss !== undefined && pool.pingLoss !== null
+                            supportsPing(pool?.host) && pool?.pingLoss !== undefined && pool?.pingLoss !== null
                               ? (pool.pingLoss * 100).toFixed(2) + ' %'
                               : 'n/a'
                           }}
-                            </span>
+                        </span>
                         <span class="pool-tile-info__label">&nbsp;{{ 'POOL_INFO.LOSS' | translate }}</span>
                       </div>
-
                     </div>
 
-                  </div>
-                </div>
-              </ng-template>
-
-              <ng-template #poolDisconnectedLeft>
-                <div class="pool-tile-half pool-tile-half--disconnected" dir="ltr"
-                     [class.pool-tile-half--dual]="isDualPool">
-                  <div
-                    class="pool-tile-metricbar pool-tile-metricbar--warn pool-tile-metricbar--disconnected fill-colors"
-                    role="status" aria-live="polite">
-                    <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
-                      <ng-container *ngIf="poolLeft?.verifyBlocked; else leftNotConnected">
-                        <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.VERIFY_BLOCKED' | translate }}</div>
-                        <div class="pool-tile-metricbar__dc-msg" style="font-size: 0.8em; opacity: 0.8;">
-                          <ng-container *ngIf="poolLeft?.verifyBlocked === 'address_not_found'">{{ 'HOME.VERIFY_BLOCKED_ADDRESS' | translate }}</ng-container>
-                          <ng-container *ngIf="poolLeft?.verifyBlocked === 'fee_exceeded'">{{ 'HOME.VERIFY_BLOCKED_FEE' | translate }}</ng-container>
-                        </div>
-                      </ng-container>
-                      <ng-template #leftNotConnected>
-                        <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
-                      </ng-template>
-                    </div>
-                  </div>
-                </div>
-              </ng-template>
-
-              <ng-template #poolDisconnectedRight>
-                <div class="pool-tile-half pool-tile-half--disconnected" dir="ltr"
-                     [class.pool-tile-half--dual]="isDualPool">
-                  <div
-                    class="pool-tile-metricbar pool-tile-metricbar--warn pool-tile-metricbar--disconnected fill-colors"
-                    role="status" aria-live="polite">
-                    <div class="pool-tile-metricbar__inner pool-tile-metricbar__inner--disconnected">
-                      <ng-container *ngIf="poolRight?.verifyBlocked; else rightNotConnected">
-                        <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.VERIFY_BLOCKED' | translate }}</div>
-                        <div class="pool-tile-metricbar__dc-msg" style="font-size: 0.8em; opacity: 0.8;">
-                          <ng-container *ngIf="poolRight?.verifyBlocked === 'address_not_found'">{{ 'HOME.VERIFY_BLOCKED_ADDRESS' | translate }}</ng-container>
-                          <ng-container *ngIf="poolRight?.verifyBlocked === 'fee_exceeded'">{{ 'HOME.VERIFY_BLOCKED_FEE' | translate }}</ng-container>
-                        </div>
-                      </ng-container>
-                      <ng-template #rightNotConnected>
-                        <div class="pool-tile-metricbar__dc-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
-                      </ng-template>
-                    </div>
-                  </div>
-                </div>
+                  </div><!-- end pool-tile-details -->
+                </div><!-- end pool-tile-half -->
               </ng-template>
 
             </nb-card-body>

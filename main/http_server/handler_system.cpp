@@ -163,11 +163,13 @@ esp_err_t GET_system_info(httpd_req_t *req)
                 bh["networkDifficulty"] = cb.network_difficulty;
                 bh["scriptsig"]  = cb.scriptsig;
 
-                bh["coinbaseValueTotalSatoshis"] = cb.total_value_satoshis;
-                bh["coinbaseValueUserSatoshis"]  = cb.user_value_satoshis;
-                bh["verificationOk"] = STRATUM_MANAGER->getVerificationOk(p);
-                bh["verificationFailCount"] = STRATUM_MANAGER->getVerificationFailCount(p);
-                bh["verificationCheckCount"] = STRATUM_MANAGER->getVerificationCheckCount(p);
+                if (Config::getCoinbaseVerifyMode(p) > 0) {
+                    bh["coinbaseValueTotalSatoshis"] = cb.total_value_satoshis;
+                    bh["coinbaseValueUserSatoshis"]  = cb.user_value_satoshis;
+                    bh["verificationOk"] = STRATUM_MANAGER->getVerificationOk(p);
+                    bh["verificationFailCount"] = STRATUM_MANAGER->getVerificationFailCount(p);
+                    bh["verificationCheckCount"] = STRATUM_MANAGER->getVerificationCheckCount(p);
+                }
             }
         }
         doc["coinbaseVerifyMode"]         = Config::getCoinbaseVerifyMode(0);

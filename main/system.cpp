@@ -285,6 +285,8 @@ void System::task() {
 
         if (m_boardError != Board::Error::NONE) {
             showError(Board::errorToStr(m_boardError), m_errorCode);
+        } else {
+            m_display->hideError();
         }
 
         uint32_t foundBlocks = STRATUM_MANAGER->getFoundBlocks();

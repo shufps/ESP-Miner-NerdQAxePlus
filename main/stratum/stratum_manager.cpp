@@ -540,13 +540,17 @@ void StratumManager::runVerification(int pool)
             m_verifyBlockedReason[pool] = nullptr;
         }
 
-        // If all pools are blocked, halt the ASIC
+        // If all *configured* pools are verify-blocked, raise the fault flag so
+        // the display shows an error. ASICs keep running on stale jobs until the
+        // next block; no work will be submitted to a blocked pool.
+        // (an unconfigured pool has no host and must not count as "usable")
         bool anyUsable = false;
         for (int i = 0; i < 2; i++) {
-            if (!isVerifyBlocked(i)) { anyUsable = true; break; }
+            bool configured = m_stratumConfig[i] && strlen(m_stratumConfig[i]->getHost()) > 0;
+            if (configured && !isVerifyBlocked(i)) { anyUsable = true; break; }
         }
         if (!anyUsable) {
-            ESP_LOGW("stratum_manager", "All pools blocked by verification - halting ASIC");
+            ESP_LOGW("stratum_manager", "All pools blocked by verification - raising fault flag");
             SYSTEM_MODULE.setBoardError(Board::Error::COINBASE_VERIFY_FAULT, 0);
         } else if (SYSTEM_MODULE.getBoardError() == Board::Error::COINBASE_VERIFY_FAULT) {
             SYSTEM_MODULE.clearBoardError();
@@ -570,6 +574,10 @@ void StratumManager::getManagerInfoJson(JsonObject &obj)
 void StratumManager::checkForFoundBlock(int pool, double diff, uint32_t nbits)
 {
     double networkDiff = calculateNetworkDifficulty(nbits);
+/*
+    ESP_LOGI(m_tag, "(%s) block check: nonce_diff=%.2e network_diff=%.2e nBits=0x%08lX",
+             pool ? "Sec" : "Pri", diff, networkDiff, (unsigned long)nbits);
+*/
     if (diff <= networkDiff) {
         return;
     }

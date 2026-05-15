@@ -7,28 +7,32 @@
 #include "segwit_addr.h"
 #include "libbase58.h"
 
+/* Uncomment to log all coinbase TX outputs (address + value) at INFO level */
+//#define COINBASE_DECODER_LOG_ADDRESSES
+
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include "mbedtls/sha256.h"
+#include "esp_log.h"
+#include "utils.h"
+
+static const char *TAG = "coinbase_decoder";
 
 #define MAX_ADDRESS_STRING_LEN 128
 
 /* Network difficulty calculation from nBits (same as calculateNetworkDifficulty) */
-static double calc_network_difficulty(uint32_t nbits)
+double calc_network_difficulty(uint32_t nBits)
 {
-    uint32_t mantissa = nbits & 0x007fffff;
-    uint8_t exponent = (nbits >> 24) & 0xff;
+    uint32_t mantissa = nBits & 0x007fffff;  // Extract the mantissa from nBits
+    uint8_t exponent = (nBits >> 24) & 0xff; // Extract the exponent from nBits
 
-    if (exponent <= 3) {
-        mantissa >>= 8 * (3 - exponent);
-        if (mantissa == 0) return 0.0;
-        return (double) 0xFFFF / (double) mantissa;
-    }
+    double target = (double) mantissa * pow(256, (exponent - 3)); // Calculate the target value
+    double difficulty = (pow(2, 208) * 65535) / target;           // Calculate the difficulty
 
-    if (mantissa == 0) return 0.0;
-    return (double) 0xFFFF / (double) mantissa * (1ULL << (8 * (exponent - 3))) / (1ULL << 16);
+    return difficulty;
 }
 
 /* SHA256 wrapper for libbase58 */
@@ -295,6 +299,12 @@ esp_err_t coinbase_process(const char *coinbase_1,
 
     uint64_t num_outputs = decode_varint(coinbase_2_bin, &offset, coinbase_2_len);
 
+#ifdef COINBASE_DECODER_LOG_ADDRESSES
+    ESP_LOGI(TAG, "Coinbase block=%lu tag=\"%s\" outputs=%llu diff=%.2e",
+             (unsigned long)result->block_height, result->scriptsig,
+             (unsigned long long)num_outputs, result->network_difficulty);
+#endif
+
     /* Parse each output: accumulate total value and match user address */
     for (uint64_t i = 0; i < num_outputs && offset < coinbase_2_len; i++) {
         /* Read value (8 bytes, little-endian) */
@@ -314,10 +324,19 @@ esp_err_t coinbase_process(const char *coinbase_1,
 
         if (offset + script_len > (size_t)coinbase_2_len) break;
 
+        /* Decode address (always needed for matching; log if enabled) */
+        char output_address[MAX_ADDRESS_STRING_LEN];
+        decode_address(coinbase_2_bin + offset, script_len, output_address, MAX_ADDRESS_STRING_LEN);
+
+#ifdef COINBASE_DECODER_LOG_ADDRESSES
+        ESP_LOGI(TAG, "  [%llu] %s  %.8f BTC (%llu sat)",
+                 (unsigned long long)i, output_address,
+                 (double)value_satoshis / 1e8,
+                 (unsigned long long)value_satoshis);
+#endif
+
         /* Match user address for payout share calculation */
         if (user_address && value_satoshis > 0) {
-            char output_address[MAX_ADDRESS_STRING_LEN];
-            decode_address(coinbase_2_bin + offset, script_len, output_address, MAX_ADDRESS_STRING_LEN);
             if (strcmp(user_address, output_address) == 0) {
                 result->user_value_satoshis += value_satoshis;
             }
