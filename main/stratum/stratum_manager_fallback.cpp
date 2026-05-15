@@ -48,6 +48,8 @@ void StratumManagerFallback::connectedCallback(int index)
     if (index == PRIMARY) {
         // Primary is up → Secondary should go away (unless primary is blocked)
         m_selected = PRIMARY;
+        m_verificationCheckCount[PRIMARY] = 0;  // fresh start when primary reconnects
+        m_verificationFailCount[PRIMARY] = 0;
 
         if (m_stratumTasks[SECONDARY]) {
             m_stratumTasks[SECONDARY]->disconnect();
@@ -58,6 +60,8 @@ void StratumManagerFallback::connectedCallback(int index)
         if (!isConnected(PRIMARY) || isVerifyBlocked(PRIMARY)) {
             // Primary is dead or blocked → accept Secondary as active
             m_selected = SECONDARY;
+            m_verificationCheckCount[SECONDARY] = 0;  // fresh start when secondary takes over
+            m_verificationFailCount[SECONDARY] = 0;
         } else {
             // Primary is alive and usable → we don't allow Secondary online
             m_stratumTasks[SECONDARY]->disconnect();
