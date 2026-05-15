@@ -20,6 +20,9 @@ void StratumManagerDualPool::reconnectTimerCallback(int index)
 {
     PThreadGuard lock(m_mutex);
 
+    // verify-blocked pool must not reconnect until the block is cleared
+    if (isVerifyBlocked(index)) return;
+
     // dual pool: both pools always try to stay alive
     m_stratumTasks[index]->connect();
 }
@@ -27,6 +30,12 @@ void StratumManagerDualPool::reconnectTimerCallback(int index)
 void StratumManagerDualPool::connectedCallback(int index)
 {
     PThreadGuard lock(m_mutex);
+
+    // Blocked pool connected (e.g. after settings save) — kick it off immediately
+    if (isVerifyBlocked(index)) {
+        m_stratumTasks[index]->disconnect();
+        return;
+    }
 
     // reset poolDiffErr
     if (index >= 0 && index < 2) {
