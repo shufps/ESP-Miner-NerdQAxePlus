@@ -2058,6 +2058,25 @@ private importHistoricalDataChunked(history: any): void {
     const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
     if (!bh) return '';
 
+    const lines: string[] = [];
+
+    if (mode === 1) {
+      // Basic mode: only address check. Show payout share as % and BTC.
+      const total = bh.coinbaseValueTotalSatoshis ?? 0;
+      const user  = bh.coinbaseValueUserSatoshis ?? 0;
+      if (total > 0) {
+        const pct = (user / total) * 100;
+        lines.push(`Payout: ${pct.toFixed(2)}% (${this.formatSats(user)})`);
+      } else {
+        lines.push('Payout: n/a (no coinbase data yet)');
+      }
+      if (!bh.verificationOk) {
+        lines.push('Your address was not found in the last coinbase.');
+      }
+      return lines.join('\n');
+    }
+
+    // Advanced mode (fee check etc.): keep honesty-style summary
     const checks = bh.verificationCheckCount ?? 0;
     const fails = bh.verificationFailCount ?? 0;
     const honesty = this.getPoolHonestyPct(bh);
@@ -2065,9 +2084,8 @@ private importHistoricalDataChunked(history: any): void {
     const fee = this.getBlockHeaderFee(bh);
     const feeStr = fee >= 0 ? fee.toFixed(2) + '%' : 'unknown';
 
-    const lines: string[] = [];
     lines.push(`Honesty: ${honestyStr} (${checks - fails}/${checks} checks passed)`);
-    if (mode >= 2) lines.push(`Current pool fee: ${feeStr}`);
+    lines.push(`Current pool fee: ${feeStr}`);
     if (!bh.verificationOk) {
       lines.push(bh.coinbaseValueUserSatoshis === 0
         ? 'Your address was not found in the last coinbase.'
