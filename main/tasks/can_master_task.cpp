@@ -5,6 +5,7 @@
 #include "driver/twai.h"
 #include "esp_log.h"
 #include "esp_mac.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -33,10 +34,14 @@ static const char *TAG = "can_master";
 #define NVS_SLOT_BYTES 7   // mac[6] + used[1]
 #define NVS_REG_SIZE   (CAN_SLAVE_MAX * NVS_SLOT_BYTES)
 
+#define CAN_SLAVE_TIMEOUT_MS 10000  // 10 s without telemetry → offline
+
 typedef struct {
     uint8_t mac[6];
     bool    used;
     bool    foreign;  // not persisted — detected at runtime from HELLO
+    bool    online;   // true while telemetry arrives within timeout
+    int64_t last_telem_us; // esp_timer_get_time() at last telemetry frame
 } slave_reg_entry_t;
 
 static EXT_RAM_BSS_ATTR slave_reg_entry_t s_slave_reg[CAN_SLAVE_MAX];
@@ -50,7 +55,7 @@ static void nvs_save_registry(void);
 bool can_master_is_slave_active(uint8_t slave_id)
 {
     if (slave_id >= CAN_SLAVE_MAX) return false;
-    return s_slave_reg[slave_id].used;
+    return s_slave_reg[slave_id].used && s_slave_reg[slave_id].online;
 }
 
 bool can_master_is_slave_known(uint8_t slave_id)
@@ -339,6 +344,9 @@ static void handle_telemetry(uint8_t slave_id, const uint8_t *buf, size_t len)
     memset(&s_slave_telemetry[slave_id], 0, sizeof(can_slave_telemetry_t));
     memcpy(&s_slave_telemetry[slave_id], buf, len < sizeof(can_slave_telemetry_t) ? len : sizeof(can_slave_telemetry_t));
 
+    s_slave_reg[slave_id].last_telem_us = esp_timer_get_time();
+    s_slave_reg[slave_id].online        = true;
+
     const can_slave_telemetry_t *t = &s_slave_telemetry[slave_id];
     ESP_LOGI(TAG, "slave %d | hr=%.1fGH/s | temp=%.1f°C vr=%.1f°C"
              " | fan0=%uRPM(%u%%) fan1=%uRPM(%u%%)"
@@ -352,12 +360,38 @@ static void handle_telemetry(uint8_t slave_id, const uint8_t *buf, size_t len)
              t->power, t->current, t->coreVoltageActual,
              t->shutdown ? "SHUTDOWN" : "ok");
 
-    // Recompute total external hashrate from all slaves
+    // Recompute total external hashrate from all online slaves
     float total = 0.0f;
     for (int i = 0; i < CAN_SLAVE_MAX; i++) {
-        if (s_slave_reg[i].used) total += s_slave_telemetry[i].hashRate;
+        if (s_slave_reg[i].used && s_slave_reg[i].online) total += s_slave_telemetry[i].hashRate;
     }
     HASHRATE_MONITOR.setExternalHashrate(total);
+}
+
+static void check_slave_timeouts(void)
+{
+    int64_t now = esp_timer_get_time();
+    bool    any_change = false;
+
+    for (int i = 1; i < CAN_SLAVE_MAX; i++) {
+        if (!s_slave_reg[i].used || !s_slave_reg[i].online) continue;
+
+        int64_t age_ms = (now - s_slave_reg[i].last_telem_us) / 1000;
+        if (age_ms > CAN_SLAVE_TIMEOUT_MS) {
+            ESP_LOGW(TAG, "slave %d timeout after %lldms — marking offline", i, age_ms);
+            s_slave_reg[i].online = false;
+            memset(&s_slave_telemetry[i], 0, sizeof(can_slave_telemetry_t));
+            any_change = true;
+        }
+    }
+
+    if (any_change) {
+        float total = 0.0f;
+        for (int i = 0; i < CAN_SLAVE_MAX; i++) {
+            if (s_slave_reg[i].used && s_slave_reg[i].online) total += s_slave_telemetry[i].hashRate;
+        }
+        HASHRATE_MONITOR.setExternalHashrate(total);
+    }
 }
 
 void can_master_task(void *pvParameters)
@@ -376,11 +410,17 @@ void can_master_task(void *pvParameters)
     // Announce boot so any already-running slaves re-negotiate immediately
     can_send_master_boot(s_master_mac);
 
+    int timeout_ticks = 0;
+
     for (;;) {
         twai_message_t msg;
         esp_err_t err = twai_receive(&msg, pdMS_TO_TICKS(100));
 
         if (err == ESP_ERR_TIMEOUT) {
+            if (++timeout_ticks >= 10) {  // ~1 s
+                timeout_ticks = 0;
+                check_slave_timeouts();
+            }
             continue;
         }
         if (err != ESP_OK) {
