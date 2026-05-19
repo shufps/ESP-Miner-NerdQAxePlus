@@ -16,7 +16,7 @@ import { map,
   firstValueFrom } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
-import { ISystemInfo } from '../../models/ISystemInfo';
+import { ISystemInfo, IBlockHeader } from '../../models/ISystemInfo';
 import { Chart } from 'chart.js';  // Import Chart.js
 import { registerHomeChartPlugins } from './plugins';
 import { HOME_CFG,
@@ -257,6 +257,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public activeHoverTooltipId: string | null = null;
   public hoverTooltipX: number = 0;
   public hoverTooltipY: number = 0;
+  public poolVerifyTooltipX: number = 0;
+  public poolVerifyTooltipY: number = 0;
 
   public shouldShowLowRpmHint(percent: any, rpm: any): boolean {
     const pct = Number(percent);
@@ -300,6 +302,29 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public showConditionalHoverTooltip(id: string, enabled: boolean, event: MouseEvent): void {
     if (!enabled) return;
     this.showHoverTooltip(id, event);
+  }
+
+  public showPoolVerifyTooltip(id: string, enabled: boolean, event: MouseEvent): void {
+    if (!enabled) return;
+    this.activeHoverTooltipId = id;
+    this.updatePoolVerifyTooltipPosition(event);
+  }
+
+  public movePoolVerifyTooltip(event: MouseEvent): void {
+    if (!this.activeHoverTooltipId) return;
+    this.updatePoolVerifyTooltipPosition(event);
+  }
+
+  private updatePoolVerifyTooltipPosition(event: MouseEvent): void {
+    const pad = 12;
+    const tooltipW = 200;
+    const viewportWidth = window.innerWidth || 0;
+    let x = event.clientX + 14;
+    if (x + tooltipW > viewportWidth - pad) {
+      x = Math.max(pad, viewportWidth - tooltipW - pad);
+    }
+    this.poolVerifyTooltipX = x;
+    this.poolVerifyTooltipY = event.clientY + 18;
   }
 
   public moveHoverTooltip(event: MouseEvent): void {
@@ -1830,21 +1855,17 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
   public getActiveBalance(i: 0 | 1) {
     const stratum = this._info?.stratum;
     if (!stratum) return 0;
-    const connected = stratum.pools.map(p => p.connected);
+    const active = stratum.pools.map((p: IPool) => p.connected && !p.verifyBlocked);
     const balance = stratum.poolBalance;
 
-    // If neither pool is connected
-    if (!connected[0] && !connected[1]) {
-      return 0;
-    }
+    // If neither pool is active
+    if (!active[0] && !active[1]) return 0;
 
-    // If both pools are connected
-    if (connected[0] && connected[1]) {
-      return i === 0 ? balance : 100 - balance;
-    }
+    // If both pools are active
+    if (active[0] && active[1]) return i === 0 ? balance : 100 - balance;
 
-    // Only one pool is connected → return 100 for that pool, 0 for the other
-    return connected[i] ? 100 : 0;
+    // Only one pool is active → return 100 for that pool, 0 for the other
+    return active[i] ? 100 : 0;
   }
 
 
@@ -1992,4 +2013,109 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 private importHistoricalDataChunked(history: any): void {
     this.historyDrainer.ingest(history);
   }
+
+  /* ── Block Header helpers ── */
+
+  trackByPool(_index: number, bh: IBlockHeader): number {
+    return bh.pool;
+  }
+
+  getPoolVerificationOk(poolIdx: number): boolean {
+    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    return bh?.verificationOk ?? false;
+  }
+
+  getVerifyPoolIdx(idx: number | undefined, usingFallback: boolean | undefined): number {
+    return (usingFallback && !this.isDualPool) ? 1 : (idx ?? 0);
+  }
+
+  getPoolVerifyMode(poolIdx: number): number {
+    return poolIdx === 0
+      ? (this._info?.coinbaseVerifyMode ?? 0)
+      : (this._info?.fallbackCoinbaseVerifyMode ?? 0);
+  }
+
+  getPoolHonestyPct(bh: IBlockHeader): number | null {
+    const checks = bh.verificationCheckCount ?? 0;
+    if (checks === 0) return null;
+    const fails = bh.verificationFailCount ?? 0;
+    return ((checks - fails) / checks) * 100;
+  }
+
+  getPoolVerificationColor(poolIdx: number): string | null {
+    const mode = this.getPoolVerifyMode(poolIdx);
+    if (mode === 0) return null;
+    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    if (!bh) return null;
+    const honesty = this.getPoolHonestyPct(bh);
+    if (honesty === null) return '#4caf50'; // not yet checked — neutral green
+    return honesty >= 100 ? '#4caf50' : '#f44336';
+  }
+
+  getPoolVerificationTooltip(poolIdx: number): string {
+    const mode = this.getPoolVerifyMode(poolIdx);
+    if (mode === 0) return '';
+    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    if (!bh) return '';
+
+    const lines: string[] = [];
+
+    if (mode === 1) {
+      // Basic mode: only address check. Show payout share as % and BTC.
+      const total = bh.coinbaseValueTotalSatoshis ?? 0;
+      const user  = bh.coinbaseValueUserSatoshis ?? 0;
+      if (total > 0) {
+        const pct = (user / total) * 100;
+        lines.push(`Payout: ${pct.toFixed(2)}% (${this.formatSats(user)})`);
+      } else {
+        lines.push('Payout: n/a (no coinbase data yet)');
+      }
+      if (!bh.verificationOk) {
+        lines.push('Your address was not found in the last coinbase.');
+      }
+      return lines.join('\n');
+    }
+
+    // Advanced mode (fee check etc.): keep honesty-style summary
+    const checks = bh.verificationCheckCount ?? 0;
+    const fails = bh.verificationFailCount ?? 0;
+    const honesty = this.getPoolHonestyPct(bh);
+    const honestyStr = honesty !== null ? honesty.toFixed(1) + '%' : 'n/a';
+    const fee = this.getBlockHeaderFee(bh);
+    const feeStr = fee >= 0 ? fee.toFixed(2) + '%' : 'unknown';
+
+    lines.push(`Honesty: ${honestyStr} (${checks - fails}/${checks} checks passed)`);
+    lines.push(`Current pool fee: ${feeStr}`);
+    if (!bh.verificationOk) {
+      lines.push(bh.coinbaseValueUserSatoshis === 0
+        ? 'Your address was not found in the last coinbase.'
+        : 'Pool fee exceeded configured limit.');
+    }
+    return lines.join('\n');
+  }
+
+  getBlockHeaderFee(bh: IBlockHeader): number {
+    if (bh.coinbaseValueTotalSatoshis) {
+      return (1 - (bh.coinbaseValueUserSatoshis ?? 0) / bh.coinbaseValueTotalSatoshis) * 100;
+    }
+    return -1;
+  }
+
+  formatDifficulty(diff: number | undefined): string {
+    if (!diff) return '-';
+    const suffixes = ['', 'K', 'M', 'G', 'T', 'P', 'E'];
+    let idx = 0;
+    let v = diff;
+    while (v >= 1000 && idx < suffixes.length - 1) {
+      v /= 1000;
+      idx++;
+    }
+    return v.toFixed(idx === 0 ? 0 : 2) + suffixes[idx];
+  }
+
+  formatSats(sats: number | undefined): string {
+    if (!sats) return '-';
+    return (sats / 100_000_000).toFixed(8) + ' BTC';
+  }
+
 }

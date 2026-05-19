@@ -73,10 +73,20 @@
     "HIDE_CHART": "ausblenden",
     "SHOW_CHART": "einblenden",
     "STRATUM_NOT_CONNECTED": "Stratum für diesen Pool nicht verbunden.",
+    "VERIFY_BLOCKED": "Pool durch Verifizierung gesperrt.",
+    "VERIFY_BLOCKED_ADDRESS": "Deine Adresse wurde in der Coinbase-Transaktion nicht gefunden.",
+    "VERIFY_BLOCKED_FEE": "Pool-Gebühr überschreitet das konfigurierte Limit.",
     "RESET_STATS": "Sitzungsstatistiken zurücksetzen",
     "RESET_STATS_CONFIRM": "Alle Sitzungsstatistiken zurücksetzen (Shares, beste Diff, Fehler)?",
     "RESET_STATS_SUCCESS": "Sitzungsstatistiken zurückgesetzt.",
-    "RESET_STATS_FAILED": "Zurücksetzen fehlgeschlagen."
+    "RESET_STATS_FAILED": "Zurücksetzen fehlgeschlagen.",
+    "BLOCK_HEADER": "Block Header",
+    "BLOCK_HEIGHT": "Höhe",
+    "BLOCK_DIFFICULTY": "Schwierigkeit",
+    "BLOCK_SCRIPTSIG": "Scriptsig",
+    "BLOCK_VALUE": "Wert",
+    "BLOCK_FEE": "Gebühr",
+    "BLOCK_SHARE": "Anteil"
   },
   "PERFORMANCE": {
     "TITLE": "Leistung",
@@ -461,7 +471,9 @@
     "BLOCK_FOUND_DESC": "wird ausgelöst, wenn dein Miner einen Block findet",
     "TEST": "Test",
     "BEST_DIFF_FOUND": "Beste Schwierigkeit gefunden",
-    "BEST_DIFF_FOUND_DESC": "wird ausgelöst, wenn das Gerät eine neue beste Schwierigkeit findet"
+    "BEST_DIFF_FOUND_DESC": "wird ausgelöst, wenn das Gerät eine neue beste Schwierigkeit findet",
+    "COINBASE_VERIFY_FAILED": "Coinbase-Verifizierung fehlgeschlagen",
+    "COINBASE_VERIFY_FAILED_DESC": "wird ausgelöst, wenn die Coinbase des Pools deine Adresse nicht enthält oder das konfigurierte Gebührenlimit überschreitet"
   },
   "LANGUAGE": {
     "TITLE": "Sprache / Language",
@@ -556,6 +568,19 @@
     "FORGET_THIS_DEVICE_HELP": "Beendet das 24-Stunden-Vertrauen für diesen Browser. Das lokale Sitzungstoken wird entfernt – bei der nächsten geschützten Aktion ist erneut ein 6-stelliger Code erforderlich.",
     "THIS_DEVICE_FORGOTTEN": "Dieser Browser wurde vergessen.",
     "NO_TRUSTED_DEVICE_HELP": "Keine vertrauenswürdige Sitzung in diesem Browser. Geschützte Aktionen erfordern einen 6-stelligen Code, bis du „Diesen Browser merken“ auswählst.",
-    "NOT_TRUSTED": "Nicht vertrauenswürdig"
+    "NOT_TRUSTED": "Nicht vertrauenswürdig",
+    "COINBASE_VERIFY_TITLE": "Coinbase-Verifizierung",
+    "COINBASE_VERIFY_HINT": "Überprüft, ob deine Mining-Adresse in der Coinbase-Transaktion des Pools erscheint. Bei aktivierter Prüfung wird die Adresse im Dashboard grün, wenn die Verifizierung erfolgreich ist.",
+    "COINBASE_VERIFY_BASIC_HINT": "Prüft, ob deine Adresse in der Coinbase-Auszahlung vorkommt. Die Adresse im Dashboard wird grün, wenn sie gefunden wurde.",
+    "COINBASE_VERIFY_EXTENDED_HINT": "Prüft zusätzlich, ob die Pool-Gebühr das konfigurierte Limit nicht überschreitet. Die Adresse wird im Dashboard rot, wenn das Gebührenlimit überschritten wird.",
+    "COINBASE_VERIFY_FORCE": "Erzwingen",
+    "COINBASE_VERIFY_FORCE_TOOLTIP": "Blockiert den Pool bei fehlgeschlagener Verifikation.",
+    "COINBASE_VERIFY_MODE": "Prüfmodus",
+    "COINBASE_VERIFY_DISABLED": "Deaktiviert",
+    "COINBASE_VERIFY_BASIC": "Einfach",
+    "COINBASE_VERIFY_EXTENDED": "Erweitert",
+    "COINBASE_MAX_FEE": "Max. Pool-Gebühr",
+    "COINBASE_MAX_FEE_HINT": "Die Verifizierung schlägt fehl, wenn der Pool-Anteil an der Coinbase-Belohnung diesen Prozentsatz überschreitet (z. B. 3 für ckpools 3 % Gebühr).",
+    "COINBASE_RECONNECT_HINT": "Beim Speichern wird die Verbindung zum Pool kurz getrennt und neu aufgebaut, um die neuen Einstellungen zu übernehmen."
   }
 }

@@ -55,6 +55,7 @@ void Alerter::loadConfig()
     m_wdtAlertEnabled = Config::isDiscordWatchdogAlertEnabled();
     m_blockFoundAlertEnabled = Config::isDiscordBlockFoundAlertEnabled();
     m_bestDiffAlertEnabled = Config::isDiscordBestDiffAlertEnabled();
+    m_coinbaseVerifyAlertEnabled = Config::isDiscordCoinbaseVerifyAlertEnabled();
 }
 
 DiscordAlerter::DiscordAlerter() : Alerter()
@@ -189,6 +190,35 @@ bool DiscordAlerter::sendBestDifficultyAlert(double diff, double networkDiff)
 bool DiscordAlerter::sendTestMessage()
 {
     return enqueueMessage("This is a test message!");
+}
+
+bool DiscordAlerter::sendCoinbaseVerifyFailed(int pool, const coinbase_result_t *cb, int mode)
+{
+    if (!m_coinbaseVerifyAlertEnabled) {
+        return false;
+    }
+
+    char base[192];
+
+    if (cb->user_value_satoshis == 0) {
+        snprintf(base, sizeof(base) - 1,
+                 ":warning: Coinbase verification failed for pool %d!\\n"
+                 "Your address was **not found** in the coinbase transaction.",
+                 pool + 1);
+    } else if (mode >= 2 && cb->total_value_satoshis > 0) {
+        uint32_t fee_pct_x100 = (uint32_t)(((cb->total_value_satoshis - cb->user_value_satoshis) * 10000ULL) / cb->total_value_satoshis);
+        snprintf(base, sizeof(base) - 1,
+                 ":warning: Coinbase verification failed for pool %d!\\n"
+                 "Pool fee: **%lu.%02lu%%** exceeds configured limit.",
+                 pool + 1,
+                 fee_pct_x100 / 100, fee_pct_x100 % 100);
+    } else {
+        snprintf(base, sizeof(base) - 1,
+                 ":warning: Coinbase verification failed for pool %d!",
+                 pool + 1);
+    }
+
+    return enqueueMessage(base);
 }
 
 void DiscordAlerter::taskWrapper(void *pv) {
