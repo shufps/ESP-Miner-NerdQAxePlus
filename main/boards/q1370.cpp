@@ -19,7 +19,7 @@ Q1370B::Q1370B() : NerdQaxePlus()
     m_asicModel = "BM1370";
     m_asicCount = 4;
     m_numPhases = 4;
-    m_imax = 123;//m_numPhases * 31;
+    m_imax = 123;
     m_ifault = (float) 160.0f;
 
     m_asicJobIntervalMs = 500;
@@ -53,7 +53,7 @@ Q1370B::Q1370B() : NerdQaxePlus()
     m_asicMinDifficultyDualPool = 256;
 
 #ifdef Q1370
-    m_theme = new ThemeNerdqaxeplus2();
+    m_theme = new ThemeGeneric();
 #endif
     m_asics = new BM1370();
     m_hasHashCounter = true;
