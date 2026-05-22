@@ -119,10 +119,6 @@ bool NerdQaxePlus::initBoard()
     gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(TPS53647_EN_PIN, 0);
 
-    gpio_pad_select_gpio(TPS53647_EN_PIN);
-    gpio_set_direction(TPS53647_EN_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(TPS53647_EN_PIN, 0);
-
     gpio_pad_select_gpio(LDO_EN_PIN);
     gpio_set_direction(LDO_EN_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(LDO_EN_PIN, 0);
