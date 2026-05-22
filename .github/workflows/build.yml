@@ -38,6 +38,9 @@ jobs:
           - board: NERDQX
             upload_www: false
             label: NerdQX
+          - board: Q1370
+            upload_www: false
+            label: Q1370
 
     steps:
     - name: Checkout repository
