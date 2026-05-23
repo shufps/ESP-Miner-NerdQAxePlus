@@ -125,7 +125,7 @@ void StratumManager::task()
         vTaskDelay(pdMS_TO_TICKS(30000));
 
         // Reset watchdog if there was a submit response within the last hour
-        if (m_lastSubmitResponseTimestamp && ((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 3600) {
+        if (m_lastSubmitResponseTimestamp && ((esp_timer_get_time() - m_lastSubmitResponseTimestamp) / 1000000) < 604800) {
             esp_task_wdt_reset();
         }
     }
