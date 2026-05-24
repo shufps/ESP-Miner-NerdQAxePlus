@@ -113,9 +113,8 @@
 
       <!-- Hashrate summary + Pools (side-by-side) -->
       <div class="row mt-3 d-flex align-items-stretch">
-        <!-- Hashrate summary square -->
-        <!-- Use the XL breakpoint so the pool tile wraps under the hashrate tile on smaller viewports -->
-        <div class="col-12 col-xl-6">
+        <!-- Left col: hashrate square (normal) OR fleet summary (CAN master) -->
+        <div class="col-12 col-xl-6" *ngIf="!info.can?.enabled">
           <div class="pool-summary-square h-100" role="group" [attr.aria-label]="'HOME.HASH_RATE' | translate">
             <!-- Left column: Hashrate + Expected + ASIC Frequency bar -->
             <div class="pool-summary-square__left">
@@ -207,7 +206,67 @@
           </div>
         </div>
 
-        <!-- Pools container (to the right of the hashrate summary) -->
+        <!-- CAN Master: fleet summary in place of hashrate square -->
+        <div class="col-12 col-xl-6" *ngIf="info.can?.enabled">
+          <div class="pool-summary-square pool-summary-square--fleet h-100" role="group">
+
+            <!-- Top: hashrate + uptime (same as pool-summary-square__left) -->
+            <div class="pool-summary-square__left">
+              <div class="pool-summary-square__top">
+                <div class="pool-summary-square__hashrate-row">
+                  <div class="pool-summary-square__hashrate">
+                    <div class="pool-summary-square__hashrate-main">
+                      <div class="pool-summary-square__hashrate-value">
+                        {{ info.hashRate | number: '1.2-2' }}
+                        <span class="pool-summary-square__hashrate-unit">{{ 'UNITS.HASHRATE' | translate }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="pool-summary-square__row2">
+                  <div class="pool-summary-square__uptime"
+                       *ngIf="info.uptimeSeconds !== undefined && info.uptimeSeconds !== null">
+                    <div class="pool-summary-square__uptime-value">{{ formatUptime(info.uptimeSeconds) }}</div>
+                    <div class="pool-summary-square__uptime-label">{{ 'SYSTEM.UPTIME' | translate }}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Bottom: 3 metric tiles in a row -->
+              <div class="fleet-metrics">
+                <div class="power-watt-box fleet-metrics__tile" role="img">
+                  <div class="power-watt-box__inner">
+                    <div class="power-watt-box__label-top">{{ 'HOME.EFFICIENCY' | translate }}</div>
+                    <div class="power-watt-box__value">
+                      {{ (info.can?.fleetPower ?? 0) / (info.hashRate / 1000) | number: '1.2-2' }}<span class="unit">&nbsp;J/Th</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="pool-summary-square__best fleet-metrics__tile fleet-metrics__tile--best" role="img">
+                  <div class="pool-summary-square__best-inner">
+                    <div class="pool-summary-square__best-label">{{ 'PERFORMANCE.BEST_DIFFICULTY' | translate }}</div>
+                    <div class="pool-summary-square__best-value">
+                      <ng-container *ngIf="splitHumanReadable(info.bestDiff | humanReadable) as bd">
+                        {{ bd.value }}<span class="unit" *ngIf="bd.unit">&nbsp;{{ bd.unit }}</span>
+                      </ng-container>
+                    </div>
+                    <div class="pool-summary-square__best-sub">{{ 'HOME.ALL_TIME_BEST' | translate }}</div>
+                  </div>
+                </div>
+                <div class="power-watt-box fleet-metrics__tile" role="img">
+                  <div class="power-watt-box__inner">
+                    <div class="power-watt-box__label-top">Fleet {{ 'PERFORMANCE.POWER' | translate }}</div>
+                    <div class="power-watt-box__value">
+                      {{ (info.can?.fleetPower ?? 0) | number: '1.1-1' }}<span class="unit">&nbsp;W</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Pools container (to the right of the hashrate/fleet summary) -->
         <div class="col-12 col-xl-6 mt-3 mt-xl-0">
           @let poolLeft = isDualPool ? getPoolInfo(0) : getPoolInfo();
           @let poolRight = isDualPool ? getPoolInfo(1) : null;
@@ -372,9 +431,9 @@
                               : ('POOL_INFO.PRIMARY' | translate)
                           }}
                           )
-                          {{ (usingFallback ? info.fallbackStratumProtocol : info.stratumProtocol) === 1 ? 'SV2' : 'SV1' }}
+                          {{ pool?.activeProtocol === 1 ? 'SV2' : 'SV1' }}<nb-icon *ngIf="pool?.encrypted" icon="lock-outline" title="Encrypted"></nb-icon>
                         </span>
-                        <span *ngIf="isDualPool" class="text-hint">Pool {{ (idx ?? 0) + 1 }} {{ ((idx ?? 0) === 0 ? info.stratumProtocol : info.fallbackStratumProtocol) === 1 ? 'SV2' : 'SV1' }}</span>
+                        <span *ngIf="isDualPool" class="text-hint">Pool {{ (idx ?? 0) + 1 }} {{ pool?.activeProtocol === 1 ? 'SV2' : 'SV1' }}<nb-icon *ngIf="pool?.encrypted" icon="lock-outline" title="Encrypted"></nb-icon></span>
                       </div>
 
                       <!-- Dual pool: show the pool allocation % in the title (right-aligned) -->
@@ -423,7 +482,7 @@
       </div>
 
       <!-- Power Usage + Heat (new row under pools) -->
-      <div class="row mt-3 d-flex align-items-stretch">
+      <div class="row mt-3 d-flex align-items-stretch" *ngIf="!info.can?.enabled">
         <div class="col-12 col-xl-6">
           <!-- Power Section (no tile/box) -->
           <div class="plain-section">
@@ -550,15 +609,7 @@
                   </div>
 
                   <div class="heat-bars">
-                    @let fanRpm1 = (info.fanrpm ?? 0);
-                    @let fanRpm2 = (info.fanrpm2 ?? 0);
-                    @let fanC1HasRpm = fanRpm1 > 0;
-                    @let fanC2HasRpm = fanRpm2 > 0;
-                    @let singleFanUsesC2 = !fanC1HasRpm && fanC2HasRpm;
-                    @let primaryFanPercent = singleFanUsesC2 ? (info.fanspeed2 ?? 0) : (info.fanspeed ?? 0);
-                    @let primaryFanRpm = singleFanUsesC2 ? (info.fanrpm2 ?? 0) : (info.fanrpm ?? 0);
-                    @let showFanC1 = (primaryFanPercent > 0) || (primaryFanRpm > 0) || !fanC2HasRpm;
-                    @let showFanC2 = fanC1HasRpm && fanC2HasRpm;
+                    @let showFanC2 = (info.fanCount ?? 1) > 1;
 
                     <!-- VR temp bar -->
                     <div class="power-bar power-bar--interactive" *ngIf="info.vrTemp > 0" role="img" data-bar="vr-temp"
@@ -601,15 +652,15 @@
                     </div>
 
                     <!-- Fan bar (metric = fan speed %, shows RPM as secondary label) -->
-                    @let fanC1LowRpm = shouldShowLowRpmHint(primaryFanPercent, primaryFanRpm);
-                    <div class="power-bar" *ngIf="showFanC1" role="img"
+                    @let fanC1LowRpm = shouldShowLowRpmHint(info.fanspeed ?? 0, info.fanrpm ?? 0);
+                    <div class="power-bar" role="img"
                          [class.power-bar--interactive]="fanC1LowRpm"
-                         [class.power-bar--max]="isBarMax(primaryFanPercent, 100)"
+                         [class.power-bar--max]="isBarMax(info.fanspeed ?? 0, 100)"
                          (mouseenter)="showConditionalHoverTooltip('fan-c1', fanC1LowRpm, $event)"
                          (mousemove)="moveConditionalHoverTooltip(fanC1LowRpm, $event)"
                          (mouseleave)="hideHoverTooltip('fan-c1')"
-                         [attr.aria-label]="getFanAriaLabel(showFanC2 ? 1 : null, primaryFanPercent, primaryFanRpm)">
-                      <div class="power-bar__fill" [style.width.%]="toPct(primaryFanPercent, 0, 100)"></div>
+                         [attr.aria-label]="getFanAriaLabel(showFanC2 ? 1 : null, info.fanspeed ?? 0, info.fanrpm ?? 0)">
+                      <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed ?? 0, 0, 100)"></div>
                       <div class="power-bar__label">{{ 'HOME.FAN_ASICS_LABEL' | translate }}</div>
                       <span class="power-bar-tooltip"
                             *ngIf="fanC1LowRpm"
@@ -621,11 +672,11 @@
                       </span>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
-                          <ng-container *ngIf="shouldShowFanRpm(primaryFanPercent, primaryFanRpm)">
-                            <span class="power-bar__subvalue">{{ primaryFanRpm | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
+                          <ng-container *ngIf="shouldShowFanRpm(info.fanspeed ?? 0, info.fanrpm ?? 0)">
+                            <span class="power-bar__subvalue">{{ (info.fanrpm ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
                             <span class="power-bar__sep">/</span>
                           </ng-container>
-                          <span class="power-bar__mainvalue">{{ primaryFanPercent | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
+                          <span class="power-bar__mainvalue">{{ (info.fanspeed ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
                         </span>
                       </div>
                     </div>

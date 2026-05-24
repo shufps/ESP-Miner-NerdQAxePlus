@@ -25,3 +25,12 @@ bool ui_send_hide_qr() {
     return true;
 }
 
+bool ui_send_identify(uint32_t duration_ms) {
+    ui_msg_t m = { .type = UI_CMD_IDENTIFY, .payload = nullptr,
+                   .param = duration_ms ? duration_ms : 60000 };
+    if (xQueueSend(g_ui_queue, &m, 0) != pdTRUE) {
+        return false;
+    }
+    return true;
+}
+

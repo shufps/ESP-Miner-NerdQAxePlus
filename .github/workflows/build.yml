@@ -6,6 +6,8 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    env:
+      RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
     strategy:
       matrix:
         include:
@@ -36,6 +38,9 @@ jobs:
           - board: NERDQX
             upload_www: false
             label: NerdQX
+          - board: Q1370
+            upload_www: false
+            label: Q1370
 
     steps:
     - name: Checkout repository
@@ -125,14 +130,6 @@ jobs:
         path: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
         retention-days: 7
 
-    - name: Upload ELF for crash analysis
-      if: env.RELEASE_EXISTS == 'false'
-      uses: actions/upload-artifact@v4
-      with:
-        name: esp-miner-${{ matrix.label }}.elf
-        path: build/esp-miner-${{ matrix.label }}.elf
-        retention-days: 7
-
     - name: Upload BIN firmware
       if: env.RELEASE_EXISTS == 'false'
       uses: actions/upload-artifact@v4
@@ -161,7 +158,9 @@ jobs:
 
     - name: Set files variable
       id: set_files_var
-      run: echo "files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
+      run: |
+        echo "files=$(grep -v '\.elf$' file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
+        echo "r2_files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
 
     # Skip release upload if no release exists
     - name: Skip release upload if not tagged
@@ -178,21 +177,21 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install rclone
+      if: env.RCLONE_CONF != ''
       run: |
         curl -fsSL https://rclone.org/install.sh | sudo bash
 
     - name: Upload to Cloudflare R2 using rclone
-      env:
-        RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+      if: env.RCLONE_CONF != ''
       run: |
         mkdir -p ~/.config/rclone
         echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
 
         TARGET_DIR="webflasher/${{ env.VERSION_TAG }}"
 
-        while read file; do
+        echo "$r2_files" | tr ',' '\n' | grep -v '^$' | while read file; do
           rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
-        done < file_list.txt
+        done
 
     outputs:
       release_exists: ${{ env.RELEASE_EXISTS }}

@@ -69,6 +69,8 @@
 
 #define NVS_CONFIG_SWARM "swarmconfig"
 
+#define NVS_CONFIG_CAN_ENABLED "can_enabled"
+
 #define NVS_CONFIG_VR_FREQUENCY "vr_frequency"
 
 // device global stats
@@ -280,6 +282,7 @@ namespace Config {
     inline bool isStratumTLS() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_TLS, CONFIG_STRATUM_TLS_VALUE) != 0; }
     inline bool isStratumFallbackTLS() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_TLS, CONFIG_STRATUM_FALLBACK_TLS_VALUE) != 0; }
     inline bool isShowBlockFoundEnabled() { return nvs_config_get_u16(NVS_CONFIG_SHOW_BLOCK_FOUND_ENABLE, CONFIG_SHOW_BLOCK_FOUND_ENABLE_VALUE) != 0; }
+    inline bool isCanEnabled() { return nvs_config_get_u16(NVS_CONFIG_CAN_ENABLED, 0) != 0; }
 
     // Stratum V2
     inline uint16_t getStratumProtocol() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_PROTOCOL, 0); }
@@ -312,6 +315,7 @@ namespace Config {
     inline void setStratumTLS(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_TLS, value ? 1 : 0); }
     inline void setStratumFallbackTLS(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_TLS, value ? 1 : 0); }
     inline void setShowBlockFoundEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_SHOW_BLOCK_FOUND_ENABLE, value ? 1 : 0); }
+    inline void setCanEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_CAN_ENABLED, value ? 1 : 0); }
 
     // with board specific default values
     inline uint16_t getAsicFrequency(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, d); }

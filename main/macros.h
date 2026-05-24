@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pthread.h>
+#include "esp_heap_caps.h"
 
 static inline void* _malloc_psram(size_t sz) {
     if (!sz) return NULL;

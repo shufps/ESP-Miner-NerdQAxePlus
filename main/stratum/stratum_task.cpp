@@ -52,8 +52,7 @@ StratumTaskBase::StratumTaskBase(StratumManager *manager, int index)
 
 bool StratumTaskBase::isWifiConnected()
 {
-    wifi_ap_record_t ap_info;
-    return esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK;
+    return NETWORK.hasWifiIp() || NETWORK.hasEthIp();
 }
 
 bool StratumTaskBase::resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len)
@@ -269,11 +268,9 @@ void StratumTaskBase::task()
             continue;
         }
 
-        // check if wifi is connected
-        // esp_wifi_connect is thread safe
+        // check if any network interface has an IP (WiFi or ETH)
         if (!isWifiConnected()) {
-            ESP_LOGI(m_tag, "WiFi disconnected, attempting to reconnect...");
-            esp_wifi_connect();
+            ESP_LOGI(m_tag, "No network connection, waiting...");
             vTaskDelay(pdMS_TO_TICKS(10000));
             continue;
         }

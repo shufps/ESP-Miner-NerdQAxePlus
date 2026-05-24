@@ -6,7 +6,8 @@
 typedef enum
 {
     UI_CMD_SHOW_QR,
-    UI_CMD_HIDE_QR
+    UI_CMD_HIDE_QR,
+    UI_CMD_IDENTIFY,      // blink display for identify; param = duration_ms (0 = default 60s)
 } ui_cmd_t;
 
 typedef struct
@@ -21,3 +22,4 @@ extern QueueHandle_t g_ui_queue;
 void ui_ipc_init(void);
 bool ui_send_show_qr();
 bool ui_send_hide_qr();
+bool ui_send_identify(uint32_t duration_ms);  // 0 = use default (60s)

@@ -13,6 +13,7 @@
 #include "http_utils.h"
 
 #include "ping_task.h"
+#include "tasks/can_master_task.h"
 
 static const char *TAG = "http_system";
 
@@ -135,6 +136,12 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["recentpingloss"]     = get_recent_ping_loss();
     doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
+    JsonObject can_obj = doc["can"].to<JsonObject>();
+    can_obj["hasExtension"] = board->hasCanExtension();
+    can_obj["enabled"]      = Config::isCanEnabled();
+    if (Config::isCanEnabled()) {
+        can_obj["fleetPower"] = POWER_MANAGEMENT_MODULE.getPower() + can_master_get_slave_fleet_power();
+    }
     doc["duplicateHWNonces"]  = getDuplicateHWNonces();
 
     JsonObject stratum_obj = doc["stratum"].to<JsonObject>();
@@ -381,6 +388,11 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         bool value = doc["stratum_keep"].as<int>() != 0;
         Config::setStratumKeepaliveEnabled(value);
         ESP_LOGI("system", "stratum_keep updated via WebUI: %s", value ? "ENABLED" : "DISABLED");
+    }
+    if (doc["canMaster"].is<bool>() || doc["canMaster"].is<int>()) {
+        bool value = doc["canMaster"].as<int>() != 0;
+        Config::setCanEnabled(value);
+        ESP_LOGI("system", "canMaster updated via WebUI: %s", value ? "ENABLED" : "DISABLED");
     }
     if (doc["pidTargetTemp"].is<uint16_t>()) {
         Config::setPidTargetTemp(doc["pidTargetTemp"].as<uint16_t>());

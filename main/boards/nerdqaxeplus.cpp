@@ -99,6 +99,17 @@ bool NerdQaxePlus::initBoard()
 
     ESP_LOGI(TAG, "found %d ASIC temp measuring sensors", m_numTempSensors);
 
+    // Probe for optional CAN extension board (FXL6408 at 0x43 + transceiver TX=GPIO21 RX=GPIO16).
+    // Slave enable is read from FXL6408 pin 5 (pulled to GND by DIP switch = slave, open = master).
+    if (m_canIo.init()) {
+        m_hasCanExtension = true;
+        m_canIo.set_direction(5, false);   // input
+        m_canIo.enable_pull_up(5);
+        ESP_LOGI(TAG, "CAN extension board detected");
+    } else {
+        ESP_LOGI(TAG, "No CAN extension board");
+    }
+
     EMC2302_init(m_fanInvertPolarity);
     setFanSpeed(m_fanPerc);
     setFanSpeed(m_fanPerc);
@@ -116,6 +127,7 @@ bool NerdQaxePlus::initBoard()
     gpio_set_direction(BM1368_RST_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(BM1368_RST_PIN, 0);
 
+
     return true;
 }
 
@@ -131,6 +143,10 @@ void NerdQaxePlus::shutdown() {
     Board::shutdown();
 }
 
+void NerdQaxePlus::setAsicReset(bool state) {
+    gpio_set_level(BM1368_RST_PIN, !!state);
+}
+
 bool NerdQaxePlus::initAsics()
 {
     // disable buck (disables EN pin)
@@ -140,7 +156,7 @@ bool NerdQaxePlus::initAsics()
     LDO_disable();
 
     // set reset low
-    gpio_set_level(BM1368_RST_PIN, 0);
+    setAsicReset(0);
 
     // wait 250ms
     vTaskDelay(pdMS_TO_TICKS(250));
@@ -164,7 +180,7 @@ bool NerdQaxePlus::initAsics()
     m_isBuckInitialized = true;
 
     // release reset pin
-    gpio_set_level(BM1368_RST_PIN, 1);
+    setAsicReset(1);
 
     // delay for 250ms
     vTaskDelay(pdMS_TO_TICKS(250));
@@ -230,13 +246,28 @@ void NerdQaxePlus::LDO_disable()
     gpio_set_level(LDO_EN_PIN, 0);
 }
 
+void NerdQaxePlus::VREG_enable()
+{
+    gpio_set_level(TPS53647_EN_PIN, 1);
+}
+
+void NerdQaxePlus::VREG_disable()
+{
+    gpio_set_level(TPS53647_EN_PIN, 0);
+}
+
 bool NerdQaxePlus::setVoltage(float core_voltage)
 {
     if (!validateVoltage(core_voltage)) {
         return false;
     }
 
+    if (core_voltage == 0.0) {
+        VREG_disable();
+        return true;
+    }
     ESP_LOGI(TAG, "Set ASIC voltage = %.3fV", core_voltage);
+    VREG_enable();
     return m_tps->set_vout(core_voltage);
 }
 
@@ -373,6 +404,18 @@ Board::Error NerdQaxePlus::getFault(uint32_t *status) {
     //}
 
     return Board::Error::NONE;
+}
+
+bool NerdQaxePlus::isCanSlave()
+{
+    if (!m_hasCanExtension) return false;
+    bool level = true;
+    if (m_canIo.read_pin(5, &level) != ESP_OK) {
+        ESP_LOGE(TAG, "CAN extension: failed to read slave detect pin");
+        return false;
+    }
+    ESP_LOGI(TAG, "CAN extension slave detect pin: %d (%s)", level, level ? "master" : "slave");
+    return !level;  // DIP switch pulls to GND = slave, open/pull-up = master
 }
 
 bool NerdQaxePlus::selfTest(){

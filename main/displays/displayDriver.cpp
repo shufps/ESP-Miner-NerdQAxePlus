@@ -317,17 +317,20 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
 
     case UiState::Wait:
         ESP_LOGI(TAG, "enter state wait");
-        if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
+        // Keep Splash2 visible — system task decides next screen (Portal or Mining).
+        // Cleaning Splash2 here would leave an empty (white) screen with no replacement.
         break;
 
     case UiState::Portal:
         ESP_LOGI(TAG, "enter state portal");
+        if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
         enableLvglAnimations(true);
         safe_screen_change(m_ui->ui_PortalScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
         break;
 
     case UiState::Mining:
         ESP_LOGI(TAG, "enter state mining");
+        if (m_ui->ui_Splash2) { lv_obj_clean(m_ui->ui_Splash2); m_ui->ui_Splash2 = NULL; }
         enableLvglAnimations(true);
         if (previousState == UiState::GlobalStats) {
             safe_screen_change(m_ui->ui_MiningScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 350, 0);
@@ -357,6 +360,9 @@ bool DisplayDriver::enterState(UiState s, int64_t now)
         ESP_LOGI(TAG, "enter qr state");
         enableLvglAnimations(true);
         safe_screen_change(m_ui->ui_qrScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0);
+        break;
+    case UiState::Identify:
+        ESP_LOGI(TAG, "enter state identify (blink %lums)", m_identifyDuration_ms);
         break;
     case UiState::PowerOff:
         if (!m_ui->ui_PowerOffScreen) {
@@ -445,6 +451,20 @@ void DisplayDriver::updateState(int64_t now, bool btn1Press, bool btn2Press, boo
             // abort enrollment
             otp.disableEnrollment();
             enterState(UiState::Mining, now);
+        }
+        break;
+    case UiState::Identify:
+        if (btn1Press || btn2Press || (uint32_t) ms >= m_identifyDuration_ms) {
+            m_isActiveOverlay = false;
+            displayTurnOn();
+            enterState(UiState::Mining, now);
+        } else {
+            // blink: 500ms on, 500ms off
+            if ((ms / 500) % 2 == 0) {
+                displayTurnOn();
+            } else {
+                displayTurnOff();
+            }
         }
         break;
     case UiState::PowerOff:
@@ -594,6 +614,11 @@ void DisplayDriver::handleUiQueueMessages(ui_msg_t &msg, int64_t tnow)
         case UI_CMD_HIDE_QR:
             m_isActiveOverlay = false;
             enterState(UiState::Mining, tnow);
+            break;
+        case UI_CMD_IDENTIFY:
+            m_identifyDuration_ms = msg.param;
+            m_isActiveOverlay = true;
+            enterState(UiState::Identify, tnow);
             break;
     }
 
@@ -813,14 +838,14 @@ void DisplayDriver::updateHashrate(System *module, StratumManager* manager, floa
     lv_label_set_text(m_ui->ui_lbHashrate, strData);    // Update hashrate
 
     // let it toggle on the pool view page
-    if (manager->isDualPool()) {
+    if (manager && manager->isDualPool()) {
         auto *m = static_cast<StratumManagerDualPool*>(manager);
         float activeHashrate = m->getActivePoolHashrate(pool);
         formatHashrate(strDataActive, sizeof(strDataActive), activeHashrate);
         lv_label_set_text(m_ui->ui_lbHashrateSet, strDataActive); // Update hashrate
     }
 
-    if (manager->isFallback()) {
+    if (manager && manager->isFallback()) {
         lv_label_set_text(m_ui->ui_lbHashrateSet, strData); // Update hashrate
     }
 
@@ -835,6 +860,8 @@ void DisplayDriver::updateHashrate(System *module, StratumManager* manager, floa
 
 void DisplayDriver::updateShares(StratumManager *manager, int pool)
 {
+    if (!manager) return;
+
     char strData[20];
 
     if (manager->isDualPool()) {
@@ -1012,6 +1039,29 @@ void DisplayDriver::updateIpAddress(const char *ip_address_str)
 
     lv_label_set_text(m_ui->ui_lbIP, ip_address_str);    // Update label
     lv_label_set_text(m_ui->ui_lbIPSet, ip_address_str); // Update label
+}
+
+void DisplayDriver::setNetworkIcon(bool eth_connected)
+{
+    if (m_ui->ui_imgNet == nullptr)
+        return;
+
+    if (eth_connected)
+    {
+        lv_img_set_src(m_ui->ui_imgNet, &ui_img_eth_png);
+    }
+    else
+    {
+        lv_img_set_src(m_ui->ui_imgNet, &ui_img_wifi_png);
+    }
+}
+
+void DisplayDriver::setCanIcon()
+{
+    if (m_ui->ui_imgNet == nullptr)
+        return;
+
+    lv_img_set_src(m_ui->ui_imgNet, &ui_img_can_png);
 }
 
 void DisplayDriver::logMessage(const char *message)
