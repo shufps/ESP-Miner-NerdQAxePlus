@@ -1,10 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { combineLatest, interval, Subscription } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ISystemInfo } from '../../models/ISystemInfo';
+import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 
 export interface CanSlaveFan {
   mode: number;
@@ -104,9 +105,15 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     return this.rows.filter(r => r.active).length;
   }
 
-  constructor(private http: HttpClient, private fb: FormBuilder) {}
+  otpEnabled = false;
+
+  constructor(private http: HttpClient, private fb: FormBuilder, private otpAuth: OtpAuthService) {}
 
   ngOnInit(): void {
+    this.http.get<ISystemInfo>('/api/system/info').pipe(catchError(() => of(null))).subscribe(info => {
+      this.otpEnabled = !!info?.otp;
+    });
+
     this.refresh();
 
     this.pollSub = interval(2000).pipe(
@@ -200,6 +207,12 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     this.editingId = null;
   }
 
+  private headers(totp?: string): HttpHeaders {
+    let h = new HttpHeaders();
+    if (totp) h = h.set('X-TOTP', totp);
+    return h;
+  }
+
   saveSlave(id: number): void {
     if (!this.editForm.valid) return;
     this.saving = true;
@@ -214,36 +227,43 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
       flipscreen:   v.flipscreen,
       autoscreenoff: v.autoscreenoff,
     };
-    this.http.patch(`/api/can/slaves/${id}`, body).pipe(
+    this.otpAuth.ensureOtp$('', 'OTP Required', 'Enter your OTP to save slave settings').pipe(
+      switchMap(({ totp }: EnsureOtpResult) =>
+        this.http.patch(`/api/can/slaves/${id}`, body, { headers: this.headers(totp) })
+      ),
       catchError(() => of(null))
     ).subscribe(() => {
       this.saving = false;
+      this.editingId = null;
     });
   }
 
   restartSlave(id: number): void {
     if (!confirm(`Restart slave ${id}?`)) return;
-    this.http.patch(`/api/can/slaves/${id}`, { restart: true }).pipe(
+    this.http.post(`/api/can/slaves/${id}/restart`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
 
   shutdownSlave(id: number): void {
     if (!confirm(`Shutdown slave ${id}? It will stop mining until restarted.`)) return;
-    this.http.patch(`/api/can/slaves/${id}`, { shutdown: true }).pipe(
+    this.http.post(`/api/can/slaves/${id}/shutdown`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
 
   identifySlave(id: number): void {
-    this.http.patch(`/api/can/slaves/${id}`, { identify: true }).pipe(
+    this.http.post(`/api/can/slaves/${id}/identify`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
 
   deleteSlave(id: number): void {
     if (!confirm(`Remove slave ${id} from registry?`)) return;
-    this.http.delete(`/api/can/slaves/${id}`).pipe(
+    this.otpAuth.ensureOtp$('', 'OTP Required', 'Enter your OTP to remove slave').pipe(
+      switchMap(({ totp }: EnsureOtpResult) =>
+        this.http.delete(`/api/can/slaves/${id}`, { headers: this.headers(totp) })
+      ),
       catchError(() => of(null))
     ).subscribe(() => {
       this.rows = this.rows.filter(r => r.id !== id);
