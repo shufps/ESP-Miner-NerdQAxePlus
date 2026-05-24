@@ -40,7 +40,7 @@
 #include "guards.h"
 #include "utils.h"
 
-#define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
+#define STRATUM_WATCHDOG_TIMEOUT_SECONDS 604800
 
 System SYSTEM_MODULE;
 
