@@ -145,7 +145,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.max_uri_handlers = 40;
+    config.max_uri_handlers = 50;
     config.lru_purge_enable = true;
     config.max_open_sockets = 10;
     config.stack_size = 12288;
@@ -216,6 +216,18 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_uri_t can_slave_wildcard_options_uri = {
         .uri = "/api/can/slaves/*", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
     httpd_register_uri_handler(http_server, &can_slave_wildcard_options_uri);
+
+    httpd_uri_t can_slave_restart_uri = {
+        .uri = "/api/can/slaves/*/restart", .method = HTTP_POST, .handler = POST_can_slave_restart, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &can_slave_restart_uri);
+
+    httpd_uri_t can_slave_shutdown_uri = {
+        .uri = "/api/can/slaves/*/shutdown", .method = HTTP_POST, .handler = POST_can_slave_shutdown, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &can_slave_shutdown_uri);
+
+    httpd_uri_t can_slave_identify_uri = {
+        .uri = "/api/can/slaves/*/identify", .method = HTTP_POST, .handler = POST_can_slave_identify, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &can_slave_identify_uri);
 
     httpd_uri_t system_restart_uri = {
         .uri = "/api/system/restart", .method = HTTP_POST, .handler = POST_restart, .user_ctx = rest_context};

@@ -140,6 +140,10 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid json");
     }
 
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
     // field names matching info endpoint PATCH
     if (doc["frequency"].is<uint16_t>())
         can_master_set_slave_freq(slave_id, doc["frequency"].as<uint16_t>());
@@ -168,15 +172,69 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
         can_master_set_slave_display(slave_id, flip, autoOff);
     }
 
-    if (doc["restart"].is<bool>() && doc["restart"].as<bool>())
-        can_master_restart_slave(slave_id);
+    httpd_resp_sendstr(req, "{\"ok\":true}");
+    return ESP_OK;
+}
 
-    if (doc["shutdown"].is<bool>() && doc["shutdown"].as<bool>())
-        can_master_shutdown_slave(slave_id);
+static esp_err_t parse_slave_id(httpd_req_t *req, uint8_t *out_id)
+{
+    const char *uri = req->uri;
+    // URI format: /api/can/slaves/{id}/action — find second-to-last slash
+    const char *last = strrchr(uri, '/');
+    if (!last || last == uri) return ESP_FAIL;
+    const char *prev = last - 1;
+    while (prev > uri && *prev != '/') prev--;
+    if (*prev != '/') return ESP_FAIL;
+    int id = atoi(prev + 1);
+    if (id < 1 || id >= CAN_SLAVE_MAX) return ESP_FAIL;
+    *out_id = (uint8_t) id;
+    return ESP_OK;
+}
 
-    if (doc["identify"].is<bool>() && doc["identify"].as<bool>())
-        can_master_identify_slave(slave_id);
+esp_err_t POST_can_slave_restart(httpd_req_t *req)
+{
+    ConGuard g(http_server, req);
+    if (is_network_allowed(req) != ESP_OK)
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    if (set_cors_headers(req) != ESP_OK) { httpd_resp_send_500(req); return ESP_FAIL; }
 
+    uint8_t slave_id;
+    if (parse_slave_id(req, &slave_id) != ESP_OK)
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid id");
+
+    can_master_restart_slave(slave_id);
+    httpd_resp_sendstr(req, "{\"ok\":true}");
+    return ESP_OK;
+}
+
+esp_err_t POST_can_slave_shutdown(httpd_req_t *req)
+{
+    ConGuard g(http_server, req);
+    if (is_network_allowed(req) != ESP_OK)
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    if (set_cors_headers(req) != ESP_OK) { httpd_resp_send_500(req); return ESP_FAIL; }
+
+    uint8_t slave_id;
+    if (parse_slave_id(req, &slave_id) != ESP_OK)
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid id");
+
+    can_master_shutdown_slave(slave_id);
+    httpd_resp_sendstr(req, "{\"ok\":true}");
+    return ESP_OK;
+}
+
+esp_err_t POST_can_slave_identify(httpd_req_t *req)
+{
+    ConGuard g(http_server, req);
+    if (is_network_allowed(req) != ESP_OK)
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    if (set_cors_headers(req) != ESP_OK) { httpd_resp_send_500(req); return ESP_FAIL; }
+
+    uint8_t slave_id;
+    if (parse_slave_id(req, &slave_id) != ESP_OK)
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid id");
+
+    can_master_identify_slave(slave_id);
     httpd_resp_sendstr(req, "{\"ok\":true}");
     return ESP_OK;
 }
@@ -187,6 +245,10 @@ esp_err_t DELETE_can_slave(httpd_req_t *req)
 
     if (set_cors_headers(req) != ESP_OK) {
         httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    if (validateOTP(req) != ESP_OK) {
         return ESP_FAIL;
     }
 
