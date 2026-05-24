@@ -609,15 +609,7 @@
                   </div>
 
                   <div class="heat-bars">
-                    @let fanRpm1 = (info.fanrpm ?? 0);
-                    @let fanRpm2 = (info.fanrpm2 ?? 0);
-                    @let fanC1HasRpm = fanRpm1 > 0;
-                    @let fanC2HasRpm = fanRpm2 > 0;
-                    @let singleFanUsesC2 = !fanC1HasRpm && fanC2HasRpm;
-                    @let primaryFanPercent = singleFanUsesC2 ? (info.fanspeed2 ?? 0) : (info.fanspeed ?? 0);
-                    @let primaryFanRpm = singleFanUsesC2 ? (info.fanrpm2 ?? 0) : (info.fanrpm ?? 0);
-                    @let showFanC1 = (primaryFanPercent > 0) || (primaryFanRpm > 0) || !fanC2HasRpm;
-                    @let showFanC2 = fanC1HasRpm && fanC2HasRpm;
+                    @let showFanC2 = (info.fanCount ?? 1) > 1;
 
                     <!-- VR temp bar -->
                     <div class="power-bar power-bar--interactive" *ngIf="info.vrTemp > 0" role="img" data-bar="vr-temp"
@@ -660,15 +652,15 @@
                     </div>
 
                     <!-- Fan bar (metric = fan speed %, shows RPM as secondary label) -->
-                    @let fanC1LowRpm = shouldShowLowRpmHint(primaryFanPercent, primaryFanRpm);
-                    <div class="power-bar" *ngIf="showFanC1" role="img"
+                    @let fanC1LowRpm = shouldShowLowRpmHint(info.fanspeed ?? 0, info.fanrpm ?? 0);
+                    <div class="power-bar" role="img"
                          [class.power-bar--interactive]="fanC1LowRpm"
-                         [class.power-bar--max]="isBarMax(primaryFanPercent, 100)"
+                         [class.power-bar--max]="isBarMax(info.fanspeed ?? 0, 100)"
                          (mouseenter)="showConditionalHoverTooltip('fan-c1', fanC1LowRpm, $event)"
                          (mousemove)="moveConditionalHoverTooltip(fanC1LowRpm, $event)"
                          (mouseleave)="hideHoverTooltip('fan-c1')"
-                         [attr.aria-label]="getFanAriaLabel(showFanC2 ? 1 : null, primaryFanPercent, primaryFanRpm)">
-                      <div class="power-bar__fill" [style.width.%]="toPct(primaryFanPercent, 0, 100)"></div>
+                         [attr.aria-label]="getFanAriaLabel(showFanC2 ? 1 : null, info.fanspeed ?? 0, info.fanrpm ?? 0)">
+                      <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed ?? 0, 0, 100)"></div>
                       <div class="power-bar__label">{{ 'HOME.FAN_ASICS_LABEL' | translate }}</div>
                       <span class="power-bar-tooltip"
                             *ngIf="fanC1LowRpm"
@@ -680,11 +672,11 @@
                       </span>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
-                          <ng-container *ngIf="shouldShowFanRpm(primaryFanPercent, primaryFanRpm)">
-                            <span class="power-bar__subvalue">{{ primaryFanRpm | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
+                          <ng-container *ngIf="shouldShowFanRpm(info.fanspeed ?? 0, info.fanrpm ?? 0)">
+                            <span class="power-bar__subvalue">{{ (info.fanrpm ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
                             <span class="power-bar__sep">/</span>
                           </ng-container>
-                          <span class="power-bar__mainvalue">{{ primaryFanPercent | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
+                          <span class="power-bar__mainvalue">{{ (info.fanspeed ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
                         </span>
                       </div>
                     </div>
