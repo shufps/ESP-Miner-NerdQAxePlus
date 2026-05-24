@@ -60,6 +60,7 @@ class NerdQaxePlus : public Board {
     virtual bool selfTest();
     virtual float getVRTempInt();
 
+    bool hasCanExtension() override { return m_hasCanExtension; }
     bool isCanSlave() override;
     int  getCanTxPin() override { return 21; }
     int  getCanRxPin() override { return 16; }

@@ -576,7 +576,7 @@
         <nb-card>
             <nb-card-header>{{ 'MISC.TITLE' | translate }}</nb-card-header>
             <nb-card-body>
-                <div class="form-row">
+                <div class="form-row" *ngIf="hasCanExtension">
                     <nb-checkbox formControlName="canMaster">CAN Master Mode</nb-checkbox>
                 </div>
                 <div class="form-row">

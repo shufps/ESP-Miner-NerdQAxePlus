@@ -334,6 +334,10 @@ public:
         return false;
     }
 
+    virtual bool hasCanExtension() {
+        return false;
+    }
+
     virtual bool isCanSlave() {
         return false;
     }

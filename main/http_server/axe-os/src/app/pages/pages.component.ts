@@ -23,7 +23,7 @@ import { ISystemInfo } from '../models/ISystemInfo';
         this.http.get<ISystemInfo>('/api/system/info').pipe(
             catchError(() => of(null))
         ).subscribe(info => {
-            this.canEnabled = info?.canMaster === 1;
+            this.canEnabled = info?.can?.enabled === true;
             this.buildMenu();
         });
 

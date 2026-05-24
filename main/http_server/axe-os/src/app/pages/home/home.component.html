@@ -114,7 +114,7 @@
       <!-- Hashrate summary + Pools (side-by-side) -->
       <div class="row mt-3 d-flex align-items-stretch">
         <!-- Left col: hashrate square (normal) OR fleet summary (CAN master) -->
-        <div class="col-12 col-xl-6" *ngIf="!info.canMaster">
+        <div class="col-12 col-xl-6" *ngIf="!info.can?.enabled">
           <div class="pool-summary-square h-100" role="group" [attr.aria-label]="'HOME.HASH_RATE' | translate">
             <!-- Left column: Hashrate + Expected + ASIC Frequency bar -->
             <div class="pool-summary-square__left">
@@ -207,7 +207,7 @@
         </div>
 
         <!-- CAN Master: fleet summary in place of hashrate square -->
-        <div class="col-12 col-xl-6" *ngIf="info.canMaster">
+        <div class="col-12 col-xl-6" *ngIf="info.can?.enabled">
           <div class="pool-summary-square pool-summary-square--fleet h-100" role="group">
 
             <!-- Top: hashrate + uptime (same as pool-summary-square__left) -->
@@ -237,7 +237,7 @@
                   <div class="power-watt-box__inner">
                     <div class="power-watt-box__label-top">{{ 'HOME.EFFICIENCY' | translate }}</div>
                     <div class="power-watt-box__value">
-                      {{ (info.fleetPower ?? 0) / (info.hashRate / 1000) | number: '1.2-2' }}<span class="unit">&nbsp;J/Th</span>
+                      {{ (info.can?.fleetPower ?? 0) / (info.hashRate / 1000) | number: '1.2-2' }}<span class="unit">&nbsp;J/Th</span>
                     </div>
                   </div>
                 </div>
@@ -256,7 +256,7 @@
                   <div class="power-watt-box__inner">
                     <div class="power-watt-box__label-top">Fleet {{ 'PERFORMANCE.POWER' | translate }}</div>
                     <div class="power-watt-box__value">
-                      {{ (info.fleetPower ?? 0) | number: '1.1-1' }}<span class="unit">&nbsp;W</span>
+                      {{ (info.can?.fleetPower ?? 0) | number: '1.1-1' }}<span class="unit">&nbsp;W</span>
                     </div>
                   </div>
                 </div>
@@ -482,7 +482,7 @@
       </div>
 
       <!-- Power Usage + Heat (new row under pools) -->
-      <div class="row mt-3 d-flex align-items-stretch" *ngIf="!info.canMaster">
+      <div class="row mt-3 d-flex align-items-stretch" *ngIf="!info.can?.enabled">
         <div class="col-12 col-xl-6">
           <!-- Power Section (no tile/box) -->
           <div class="plain-section">

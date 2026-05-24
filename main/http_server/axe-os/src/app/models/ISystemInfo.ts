@@ -92,8 +92,7 @@ export interface ISystemInfo {
     defaultVrFrequency?: number,
     vrFrequency: number,
     shutdown: boolean,
-    canMaster?: number,
-    fleetPower?: number,
+    can?: { hasExtension: boolean, enabled: boolean, fleetPower?: number },
 
     stratum: IStratum,
 

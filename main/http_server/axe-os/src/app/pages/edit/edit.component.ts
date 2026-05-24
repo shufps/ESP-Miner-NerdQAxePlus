@@ -61,6 +61,7 @@ export class EditComponent implements OnInit {
   private originalSettings!: any;
 
   public otpEnabled = false;
+  public hasCanExtension = false;
   private pendingTotp: string | undefined;
 
   private asicFrequencyValues: number[] = [];
@@ -110,6 +111,7 @@ export class EditComponent implements OnInit {
         this.originalSettings["poolMode"] = info.stratum?.poolMode ?? 0;
 
         this.otpEnabled = !!info.otp;
+        this.hasCanExtension = !!info.can?.hasExtension;
 
         // Model still from /info (enum-typed)
         this.ASICModel = info.ASICModel;
@@ -160,7 +162,7 @@ export class EditComponent implements OnInit {
         // Build the form (Min/Max for volt/freq will be set dynamically right after)
         this.form = this.fb.group({
           stratum_keep: [info.stratum_keep == 1],
-          canMaster: [info.canMaster == 1],
+          canMaster: [info.can?.enabled == true],
           flipscreen: [info.flipscreen == 1],
           invertscreen: [info.invertscreen == 1],
           autoscreenoff: [info.autoscreenoff == 1],

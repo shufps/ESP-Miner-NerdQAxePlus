@@ -1817,7 +1817,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       smoothingCfg: this.hashrate1mSmoothingCfg,
       windowMs: this.chartWindowMs,
       zoomCfg: this.zoomCfg,
-      hideTempDatasets: !!this._info?.canMaster,
+      hideTempDatasets: !!this._info?.can?.enabled,
     });
   }
 

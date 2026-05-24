@@ -136,9 +136,11 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["recentpingloss"]     = get_recent_ping_loss();
     doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
-    doc["canMaster"]          = Config::isCanEnabled() ? 1 : 0;
+    JsonObject can_obj = doc["can"].to<JsonObject>();
+    can_obj["hasExtension"] = board->hasCanExtension();
+    can_obj["enabled"]      = Config::isCanEnabled();
     if (Config::isCanEnabled()) {
-        doc["fleetPower"] = POWER_MANAGEMENT_MODULE.getPower() + can_master_get_slave_fleet_power();
+        can_obj["fleetPower"] = POWER_MANAGEMENT_MODULE.getPower() + can_master_get_slave_fleet_power();
     }
     doc["duplicateHWNonces"]  = getDuplicateHWNonces();
 
