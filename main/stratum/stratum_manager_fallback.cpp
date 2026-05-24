@@ -174,5 +174,6 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
     pool["pingRtt"]  = m_pingTasks[m_selected] ? m_pingTasks[m_selected]->get_last_ping_rtt() : 0;
     pool["pingLoss"] = m_pingTasks[m_selected] ? m_pingTasks[m_selected]->get_recent_ping_loss() : 0;
     pool["bestDiff"] = m_bestSessionDiff;
+    pool["activeProtocol"] = m_stratumConfig[m_selected] ? (int)m_stratumConfig[m_selected]->getProtocol() : 0;
 }
 

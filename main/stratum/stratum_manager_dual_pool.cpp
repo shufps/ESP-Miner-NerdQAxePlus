@@ -229,5 +229,6 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
         pool["pingRtt"]  = m_pingTasks[i] ? m_pingTasks[i]->get_last_ping_rtt() : 0;
         pool["pingLoss"] = m_pingTasks[i] ? m_pingTasks[i]->get_recent_ping_loss() : 0;
         pool["bestDiff"] = m_bestSessionDiff[i];
+        pool["activeProtocol"] = m_stratumConfig[i] ? (int)m_stratumConfig[i]->getProtocol() : 0;
     }
 }
