@@ -431,9 +431,9 @@
                               : ('POOL_INFO.PRIMARY' | translate)
                           }}
                           )
-                          {{ pool?.activeProtocol === 1 ? 'SV2' : 'SV1' }}
+                          {{ pool?.activeProtocol === 1 ? 'SV2' : 'SV1' }}<nb-icon *ngIf="pool?.encrypted" icon="lock-outline" title="Encrypted"></nb-icon>
                         </span>
-                        <span *ngIf="isDualPool" class="text-hint">Pool {{ (idx ?? 0) + 1 }} {{ pool?.activeProtocol === 1 ? 'SV2' : 'SV1' }}</span>
+                        <span *ngIf="isDualPool" class="text-hint">Pool {{ (idx ?? 0) + 1 }} {{ pool?.activeProtocol === 1 ? 'SV2' : 'SV1' }}<nb-icon *ngIf="pool?.encrypted" icon="lock-outline" title="Encrypted"></nb-icon></span>
                       </div>
 
                       <!-- Dual pool: show the pool allocation % in the title (right-aligned) -->

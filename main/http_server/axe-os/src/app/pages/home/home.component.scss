@@ -2265,6 +2265,15 @@ nb-card-header{
 .unit,
 .pool-tile-details .text-hint{
   color: var(--unit-color);
+
+  nb-icon {
+    font-size: 0.85em;
+    vertical-align: middle;
+    position: relative;
+    top: -2px;
+    margin-left: 2px;
+    color: #4caf50;
+  }
 }
 
 /* Expected line should use a unified tone. */

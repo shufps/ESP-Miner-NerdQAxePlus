@@ -230,5 +230,6 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
         pool["pingLoss"] = m_pingTasks[i] ? m_pingTasks[i]->get_recent_ping_loss() : 0;
         pool["bestDiff"] = m_bestSessionDiff[i];
         pool["activeProtocol"] = m_stratumConfig[i] ? (int)m_stratumConfig[i]->getProtocol() : 0;
+        pool["encrypted"] = m_stratumConfig[i] ? (m_stratumConfig[i]->isSV2() || m_stratumConfig[i]->isTLS()) : false;
     }
 }
