@@ -15,7 +15,8 @@ public:
         VREG_TEMP_FAULT,
         PSU_FAULT,
         IOUT_OC_FAULT,
-        VOUT_FAULT
+        VOUT_FAULT,
+        COINBASE_VERIFY_FAULT
     };
 
     static const char* errorToStr(Error err) {
@@ -26,6 +27,7 @@ public:
             case Error::PSU_FAULT: return "PSU FAULT";
             case Error::IOUT_OC_FAULT: return "CURRENT PROTECTION";
             case Error::VOUT_FAULT: return "VOLTAGE PROTECTION";
+            case Error::COINBASE_VERIFY_FAULT: return "VERIFY FAILED";
             default: return "INVALID ERROR";
         }
     }
@@ -327,6 +329,28 @@ public:
     virtual bool hasHashrateCounter() {
         return m_hasHashCounter;
     }
+
+    virtual bool hasEthernet() {
+        return false;
+    }
+
+    virtual bool hasCanExtension() {
+        return false;
+    }
+
+    virtual bool isCanSlave() {
+        return false;
+    }
+
+    // Returns the slave ID (1-based) to use for CAN telemetry/nonce frames.
+    // Override in boards that implement multi-slave DIP switch detection.
+    virtual uint8_t getCanSlaveId() {
+        return 1;
+    }
+
+    // CAN transceiver GPIO pins. Override in boards that have CAN hardware.
+    virtual int getCanTxPin() { return -1; }
+    virtual int getCanRxPin() { return -1; }
 
     const char* getDefaultTheme() {
         return m_defaultTheme;

@@ -63,10 +63,13 @@
 #define NVS_CONFIG_ALERT_DISCORD_URL    "alrt_disc_url"
 #define NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE "alrt_disc_bf_en"
 #define NVS_CONFIG_ALERT_DISCORD_BEST_DIFF "alrt_disc_bd_en"
+#define NVS_CONFIG_ALERT_DISCORD_COINBASE_VERIFY "alrt_disc_cb_en"
 
 #define NVS_CONFIG_SHOW_BLOCK_FOUND_ENABLE "block_found_en"
 
 #define NVS_CONFIG_SWARM "swarmconfig"
+
+#define NVS_CONFIG_CAN_ENABLED "can_enabled"
 
 #define NVS_CONFIG_VR_FREQUENCY "vr_frequency"
 
@@ -74,6 +77,14 @@
 #define NVS_TOTAL_FOUND_BLOCKS "totalblocks"
 #define NVS_CONFIG_BEST_DIFF "bestdiff"
 
+
+// Coinbase verification (per pool)
+#define NVS_CONFIG_COINBASE_VERIFY_MODE    "cb_verify_mode"
+#define NVS_CONFIG_COINBASE_MAX_FEE        "cb_max_fee"
+#define NVS_CONFIG_COINBASE_VERIFY_FORCE   "cb_vfy_force"
+#define NVS_CONFIG_FB_COINBASE_VERIFY_MODE "fb_cb_vfy_mode"
+#define NVS_CONFIG_FB_COINBASE_MAX_FEE     "fb_cb_max_fee"
+#define NVS_CONFIG_FB_COINBASE_VERIFY_FORCE "fb_cb_vfy_frc"
 
 // OTP
 #define NVS_CONFIG_OTP_SECRET "otp_secret"
@@ -115,6 +126,7 @@ namespace Config {
     void nvs_config_set_string(const char* key, const char* value);
     uint16_t nvs_config_get_u16(const char* key, uint16_t default_value);
     void nvs_config_set_u16(const char* key, uint16_t value);
+    bool nvs_config_has_u16(const char* key);
     uint64_t nvs_config_get_u64(const char* key, uint64_t default_value);
     void nvs_config_set_u64(const char* key, uint64_t value);
 
@@ -263,12 +275,14 @@ namespace Config {
     inline bool isDiscordWatchdogAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE, CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE_VALUE) != 0; }
     inline bool isDiscordBlockFoundAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE_VALUE) != 0; }
     inline bool isDiscordBestDiffAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_BEST_DIFF, CONFIG_ALERT_DISCORD_BEST_DIFF_ENABLE_VALUE) != 0; }
+    inline bool isDiscordCoinbaseVerifyAlertEnabled() { return nvs_config_get_u16(NVS_CONFIG_ALERT_DISCORD_COINBASE_VERIFY, 0) != 0; }
     inline bool isStratumKeepaliveEnabled() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_KEEPALIVE, CONFIG_STRATUM_KEEPALIVE_ENABLE_VALUE) != 0; }
     inline bool isStratumEnonceSubscribe() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_ENONCE_SUB, CONFIG_STRATUM_ENONCE_SUBSCRIBE_VALUE) != 0; }
     inline bool isStratumFallbackEnonceSubscribe() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB, CONFIG_STRATUM_FALLBACK_ENONCE_SUBSCRIBE_VALUE) != 0; }
     inline bool isStratumTLS() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_TLS, CONFIG_STRATUM_TLS_VALUE) != 0; }
     inline bool isStratumFallbackTLS() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_FALLBACK_TLS, CONFIG_STRATUM_FALLBACK_TLS_VALUE) != 0; }
     inline bool isShowBlockFoundEnabled() { return nvs_config_get_u16(NVS_CONFIG_SHOW_BLOCK_FOUND_ENABLE, CONFIG_SHOW_BLOCK_FOUND_ENABLE_VALUE) != 0; }
+    inline bool isCanEnabled() { return nvs_config_get_u16(NVS_CONFIG_CAN_ENABLED, 0) != 0; }
 
     // Stratum V2
     inline uint16_t getStratumProtocol() { return nvs_config_get_u16(NVS_CONFIG_STRATUM_PROTOCOL, 0); }
@@ -294,12 +308,14 @@ namespace Config {
     inline void setDiscordWatchdogAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE, value ? 1 : 0); }
     inline void setDiscordAlertBlockFoundEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, value ? 1 : 0); }
     inline void setDiscordAlertBestDiffEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_BEST_DIFF, value ? 1 : 0); }
+    inline void setDiscordCoinbaseVerifyAlertEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_ALERT_DISCORD_COINBASE_VERIFY, value ? 1 : 0); }
     inline void setStratumKeepaliveEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_KEEPALIVE, value ? 1 : 0); }
     inline void setStratumEnonceSubscribe(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_ENONCE_SUB, value ? 1 : 0); }
     inline void setStratumFallbackEnonceSubscribe(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB, value ? 1 : 0); }
     inline void setStratumTLS(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_TLS, value ? 1 : 0); }
     inline void setStratumFallbackTLS(bool value) { nvs_config_set_u16(NVS_CONFIG_STRATUM_FALLBACK_TLS, value ? 1 : 0); }
     inline void setShowBlockFoundEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_SHOW_BLOCK_FOUND_ENABLE, value ? 1 : 0); }
+    inline void setCanEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_CAN_ENABLED, value ? 1 : 0); }
 
     // with board specific default values
     inline uint16_t getAsicFrequency(uint16_t d) { return nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, d); }
@@ -335,6 +351,33 @@ namespace Config {
 
     inline void setOTPEnabled(bool value) { nvs_config_set_u16(NVS_CONFIG_OTP_ENABLED, value ? 1 : 0); }
     inline bool isOTPEnabled() { return nvs_config_get_u16(NVS_CONFIG_OTP_ENABLED, 0) != 0; }
+
+    // 0 = disabled, 1 = Basic (address present), 2 = Extended (address present + fee <= maxFee)
+    inline void setCoinbaseVerifyMode(int pool, uint16_t v) {
+        pool == 0 ? nvs_config_set_u16(NVS_CONFIG_COINBASE_VERIFY_MODE, v)
+                  : nvs_config_set_u16(NVS_CONFIG_FB_COINBASE_VERIFY_MODE, v);
+    }
+    inline uint16_t getCoinbaseVerifyMode(int pool = 0) {
+        return pool == 0 ? nvs_config_get_u16(NVS_CONFIG_COINBASE_VERIFY_MODE, 0)
+                         : nvs_config_get_u16(NVS_CONFIG_FB_COINBASE_VERIFY_MODE, 0);
+    }
+    inline void setCoinbaseMaxFee(int pool, uint16_t v) {
+        pool == 0 ? nvs_config_set_u16(NVS_CONFIG_COINBASE_MAX_FEE, v)
+                  : nvs_config_set_u16(NVS_CONFIG_FB_COINBASE_MAX_FEE, v);
+    }
+    // stored as tenths of percent: 5 = 0.5%, 30 = 3.0%
+    inline uint16_t getCoinbaseMaxFee(int pool = 0) {
+        return pool == 0 ? nvs_config_get_u16(NVS_CONFIG_COINBASE_MAX_FEE, 30)
+                         : nvs_config_get_u16(NVS_CONFIG_FB_COINBASE_MAX_FEE, 30);
+    }
+    inline void setCoinbaseVerifyForce(int pool, bool v) {
+        pool == 0 ? nvs_config_set_u16(NVS_CONFIG_COINBASE_VERIFY_FORCE, v ? 1 : 0)
+                  : nvs_config_set_u16(NVS_CONFIG_FB_COINBASE_VERIFY_FORCE, v ? 1 : 0);
+    }
+    inline bool getCoinbaseVerifyForce(int pool = 0) {
+        return pool == 0 ? nvs_config_get_u16(NVS_CONFIG_COINBASE_VERIFY_FORCE, 0) != 0
+                         : nvs_config_get_u16(NVS_CONFIG_FB_COINBASE_VERIFY_FORCE, 0) != 0;
+    }
 
     void migrate_config();
 }

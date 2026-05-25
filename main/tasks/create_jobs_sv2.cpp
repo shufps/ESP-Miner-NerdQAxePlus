@@ -3,7 +3,6 @@
 #include "mining_info_v2.h"
 #include "global_state.h"
 #include "macros.h"
-
 #include "esp_log.h"
 
 static const char *TAG = "create_jobs_sv2";

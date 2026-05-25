@@ -1,5 +1,6 @@
 export interface IPool {
     connected: boolean,
+    verifyBlocked?: string, // "" | "address_not_found" | "fee_exceeded"
     poolDiffErr: boolean,
     poolDifficulty: number,
     accepted: number,
@@ -7,6 +8,8 @@ export interface IPool {
     bestDiff: number,
     pingRtt: number,
     pingLoss: number,
+    activeProtocol: number, // running protocol (0=SV1, 1=SV2) — may differ from config until reboot
+    encrypted: boolean,    // true if SV2+Noise or SV1+TLS
     // for compatibility reasons only transient here
     // to not have duplicated data in the info endpoint
     host?: string,

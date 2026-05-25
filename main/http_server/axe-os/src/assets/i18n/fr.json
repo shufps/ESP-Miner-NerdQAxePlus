@@ -77,7 +77,14 @@
     "RESET_STATS": "Réinitialiser les stats de session",
     "RESET_STATS_CONFIRM": "Réinitialiser toutes les stats de session (shares, meilleure diff, erreurs) ?",
     "RESET_STATS_SUCCESS": "Stats de session réinitialisées.",
-    "RESET_STATS_FAILED": "Échec de la réinitialisation."
+    "RESET_STATS_FAILED": "Échec de la réinitialisation.",
+    "BLOCK_HEADER": "En-tête de Bloc",
+    "BLOCK_HEIGHT": "Hauteur",
+    "BLOCK_DIFFICULTY": "Difficulté",
+    "BLOCK_SCRIPTSIG": "Scriptsig",
+    "BLOCK_VALUE": "Valeur",
+    "BLOCK_FEE": "Frais",
+    "BLOCK_SHARE": "Part"
   },
   "PERFORMANCE": {
     "TITLE": "Performance",
@@ -419,7 +426,7 @@
     "FAN_SETTINGS_PORTS_HINT": "<strong>Note :</strong> En quittant le mode lié, vérifie sur quels ports de ventilateur chaque ventilateur est connecté avant d'enregistrer.",
     "FAN1_CONNECTOR_HINT": "Branchez le <strong>ventilateur ASIC</strong> sur le connecteur <strong>{{connector}}</strong>.",
     "FAN2_CONNECTOR_HINT": "Branchez le <strong>ventilateur du régulateur de tension</strong> sur le connecteur <strong>{{connector}}</strong>.",
-    "FAN_LINKED_HINT": "Le canal secondaire suit toujours la sortie du canal primaire. En mode PID, le régulateur utilise la température la plus élevée entre les ASICs et le VReg."
+    "FAN_LINKED_HINT": "Le ventilateur VReg suit la sortie du ventilateur ASIC. En mode PID, le régulateur utilise la température la plus élevée entre l'ASIC et le VReg."
   },
   "MISC": {
     "TITLE": "Paramètres Divers",
@@ -548,6 +555,13 @@
     "FORGET_THIS_DEVICE_HELP": "Met fin à la confiance de 24 heures pour ce navigateur. Le jeton de session local est supprimé — la prochaine action protégée nécessitera à nouveau un code à 6 chiffres.",
     "THIS_DEVICE_FORGOTTEN": "Ce navigateur a été oublié.",
     "NO_TRUSTED_DEVICE_HELP": "Aucune session approuvée dans ce navigateur. Les actions protégées demanderont un code à 6 chiffres jusqu’à ce que vous choisissiez « Se souvenir de ce navigateur ».",
-    "NOT_TRUSTED": "Non approuvé"
+    "NOT_TRUSTED": "Non approuvé",
+    "COINBASE_VERIFY_TITLE": "Vérification Coinbase",
+    "COINBASE_VERIFY_HINT": "Vérifie que l'adresse de votre mineur apparaît dans la transaction coinbase du pool. Lorsqu'elle est activée, l'adresse dans le tableau de bord devient verte si la vérification réussit.",
+    "COINBASE_VERIFY_MODE": "Mode de vérification",
+    "COINBASE_VERIFY_BASIC": "Basique (adresse dans coinbase)",
+    "COINBASE_VERIFY_EXTENDED": "Étendu (adresse + limite de frais)",
+    "COINBASE_MAX_FEE": "Frais pool max",
+    "COINBASE_MAX_FEE_HINT": "La vérification échoue si la part du pool dans la récompense coinbase dépasse ce pourcentage (ex. 3 pour les frais de 3% de ckpool)."
   }
 }

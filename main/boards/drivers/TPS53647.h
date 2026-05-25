@@ -28,6 +28,9 @@ protected:
 
     virtual void set_phases(int num_phases);
 
+    void power_enable();
+    void power_disable();
+
 public:
     TPS53647();
 
@@ -45,9 +48,6 @@ public:
     float get_vout();
     bool set_vout(float volts);
     uint16_t get_vout_vid();
-
-    void power_enable();
-    void power_disable();
 
     void show_voltage_settings();
     virtual void status();

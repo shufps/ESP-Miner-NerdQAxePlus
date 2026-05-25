@@ -2,6 +2,18 @@
 
 #include "mining.h"
 
+typedef struct __attribute__((__packed__))
+{
+    uint8_t job_id;
+    uint8_t num_midstates;
+    uint8_t starting_nonce[4];
+    uint8_t nbits[4];
+    uint8_t ntime[4];
+    uint8_t merkle_root[32];
+    uint8_t prev_block_hash[32];
+    uint8_t version[4];
+} BM1368_job;
+
 #define CRC5_MASK 0x1F
 
 // debug serial
@@ -118,6 +130,7 @@ public:
     Asic();
     virtual const char* getName() = 0;
     uint8_t sendWork(uint32_t job_id, bm_job *next_bm_job);
+    void sendRawJob(BM1368_job *job);
     bool processWork(task_result *result);
     void setJobDifficultyMask(int difficulty);
     bool setAsicFrequency(float frequency);

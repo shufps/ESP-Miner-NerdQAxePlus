@@ -54,7 +54,6 @@ class System {
     History *m_history;
 
     // Network interface
-    esp_netif_t *m_netif;         // ESP32 network interface structure
     esp_netif_ip_info_t m_ipInfo; // IP information for the network interface
 
     // FreeRTOS queue for handling user input
@@ -71,12 +70,6 @@ class System {
     TimerHandle_t m_timer;
 
     // Internal helper methods for system management
-    void initSystem();                                 // Initialize system components
-    void updateHashrate();                             // Update the hashrate
-    void updateBestDiff();                             // Update the best difficulty found
-    void clearDisplay();                               // Clear the display
-    void updateSystemInfo();                           // Update system information
-    void updateEsp32Info();                            // Update ESP32-specific information
     void initConnection();                             // Initialize network connection
     void updateConnection();                           // Update connection status
     void updateSystemPerformance();                    // Update performance metrics
@@ -88,6 +81,9 @@ class System {
     static void timerWrapper(TimerHandle_t xTimer);
   public:
     System();
+
+    void init();                                 // Initialize system components
+    void initDisplay();
 
     // Task wrapper for FreeRTOS task creation
     static void taskWrapper(void *pvParameters);
@@ -132,6 +128,14 @@ class System {
     {
         m_errorCode = code;
         m_boardError = error;
+    }
+
+    Board::Error getBoardError() const { return m_boardError; }
+
+    void clearBoardError()
+    {
+        m_errorCode = 0;
+        m_boardError = Board::Error::NONE;
     }
 
     // WiFi-related getters and setters
@@ -213,4 +217,6 @@ class System {
     }
 
     void pushHistory();
+
+    esp_netif_t* getWifiInterface();
 };

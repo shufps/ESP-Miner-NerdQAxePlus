@@ -82,6 +82,7 @@ class DisplayDriver {
         BTCScreen,
         GlobalStats,
         ShowQR,
+        Identify,
         PowerOff,
         NOP
     };
@@ -96,6 +97,7 @@ class DisplayDriver {
     bool m_displayIsOn;         // Flag indicating if the display is currently on
     int m_nextScreen;           // The next screen to display
     bool m_isActiveOverlay;     // flag if we have an overlay. LED light is forced to be on
+    uint32_t m_identifyDuration_ms = 60000;
     char m_portalWifiName[30];  // WiFi name displayed on the portal screen
 
     // cache settings to not hammer the NVS
@@ -196,6 +198,9 @@ class DisplayDriver {
     void logMessage(const char *message);                           // Log a message to the display
     void waitForSplashs();
     void loadSettings();                                            // (re)load settings
+
+    void setNetworkIcon(bool eth_connected);
+    void setCanIcon();
 
     void setScreenAnimationRunning(bool state) {
       m_screenAnimationRunning = state;

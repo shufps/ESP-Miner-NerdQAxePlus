@@ -19,18 +19,6 @@ typedef enum
 } packet_type_t;
 
 
-typedef struct __attribute__((__packed__))
-{
-    uint8_t job_id;
-    uint8_t num_midstates;
-    uint8_t starting_nonce[4];
-    uint8_t nbits[4];
-    uint8_t ntime[4];
-    uint8_t merkle_root[32];
-    uint8_t prev_block_hash[32];
-    uint8_t version[4];
-} BM1368_job;
-
 const static char* TAG = "asic";
 
 Asic::Asic() {
@@ -345,6 +333,11 @@ uint8_t Asic::sendWork(uint32_t job_id, bm_job *next_bm_job)
 
     // we return it because different asics calculate it differently
     return job.job_id;
+}
+
+void Asic::sendRawJob(BM1368_job *job)
+{
+    send((TYPE_JOB | GROUP_SINGLE | CMD_WRITE), (uint8_t*) job, sizeof(BM1368_job));
 }
 
 bool Asic::receiveWork(asic_result_t *result)

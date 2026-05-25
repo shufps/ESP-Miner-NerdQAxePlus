@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "esp_attr.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_netif.h"
@@ -20,6 +21,7 @@
 #include "boards/nerdqaxeplus.h"
 #include "boards/nerdqaxeplus2.h"
 #include "boards/nerdqx.h"
+#include "boards/q1370.h"
 #include "create_jobs_task.h"
 #include "discord.h"
 #include "global_state.h"
@@ -37,8 +39,12 @@
 #include "stratum/stratum_manager_dual_pool.h"
 #include "system.h"
 #include "wifi_health.h"
+#include "can_task.h"
+#include "can_slave_task.h"
+#include "can_master_task.h"
 #include "guards.h"
 #include "utils.h"
+#include "network/network_manager.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
 
@@ -54,9 +60,12 @@ FactoryOTAUpdate FACTORY_OTA_UPDATER;
 DiscordAlerter discordAlerter;
 
 AsicJobs asicJobs;
+EXT_RAM_BSS_ATTR AsicJobs slaveAsicJobs[CAN_SLAVE_MAX];
 
 OTP otp;
 SNTP sntp;
+
+NetworkManager NETWORK;
 
 static const char *TAG = "nerd*axe";
 
@@ -82,51 +91,56 @@ bool is_time_synced(void)
     return (sntp.isTimeSynced() && now() >= 1609459200);
 }
 
-static void setup_wifi()
+static void request_stratum_reconnect()
 {
-    // pull the wifi credentials and hostname out of NVS
+    if (!STRATUM_MANAGER) {
+        return;
+    }
+    STRATUM_MANAGER->reconnectAll();
+}
+
+// Reconnect when preferred route changes (ETH<->WiFi) or when ETH becomes available
+static void on_preferred_changed()
+{
+    ESP_LOGW(TAG, "Network preferred route changed -> request stratum reconnect");
+    request_stratum_reconnect();
+}
+
+static void setup_network(bool hasEth)
+{
     char *wifi_ssid = Config::getWifiSSID();
     char *wifi_pass = Config::getWifiPass();
     char *hostname  = Config::getHostname();
 
-    // release on exit of scope (RAII)
     MemoryGuard gSsid(wifi_ssid);
     MemoryGuard gWifiPass(wifi_pass);
     MemoryGuard gHostname(hostname);
 
-    // copy the wifi ssid to the global state
     SYSTEM_MODULE.setSsid(wifi_ssid);
 
-    // init and connect to wifi (asynchronous setup)
-    wifi_init(wifi_ssid, wifi_pass, hostname);
+    NETWORK.setHookPreferredChanged(on_preferred_changed);
 
-    // start rest server (needed in AP fallback for config)
+    ESP_ERROR_CHECK(NETWORK.start(wifi_ssid, wifi_pass, hostname, hasEth));
+
+    // REST server for AP fallback/config (and also reachable via LAN/WiFi)
     start_rest_server(NULL);
 
-    // initial blocking wait: CONNECTED or FAIL
-    EventBits_t bits = wifi_connect();
-
-    if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "Connected to SSID: %s", wifi_ssid);
-        SYSTEM_MODULE.setWifiStatus("Connected!");
-        return;
-    }
-
-    // Initial connect failed: stay in AP fallback, keep waiting for STA recovery
-    ESP_LOGW(TAG, "Initial WiFi connect failed. Staying in AP fallback and waiting for STA recovery...");
-
+    // Wait until ANY interface has an IP
     for (;;) {
-        // Wait up to 30s for STA to come up (retries run in background)
-        EventBits_t w = wifi_wait_connected_ms(pdMS_TO_TICKS(30000));
+        EventBits_t bits = NETWORK.waitAnyIpMs(pdMS_TO_TICKS(30000));
 
-        if (w & WIFI_CONNECTED_BIT) {
-            ESP_LOGI(TAG, "STA recovered and connected to SSID: %s", wifi_ssid);
-            SYSTEM_MODULE.setWifiStatus("Connected!");
-            return; // continue normal init after this
+        if (bits != 0) {
+            if (NETWORK.hasEthIp()) {
+                ESP_LOGI(TAG, "Network up via ETH (preferred)");
+                SYSTEM_MODULE.setWifiStatus("LAN Connected!");
+            } else {
+                ESP_LOGI(TAG, "Network up via WiFi");
+                SYSTEM_MODULE.setWifiStatus("WiFi Connected!");
+            }
+            return;
         }
 
-        // Heartbeat while waiting in AP mode
-        ESP_LOGI(TAG, "Still waiting for STA to connect... (AP is available for config)");
+        ESP_LOGI(TAG, "Waiting for network IP... (AP is available for config)");
     }
 }
 
@@ -209,6 +223,18 @@ extern "C" void app_main(void)
     // migrate config
     Config::migrate_config();
 
+    esp_err_t err = gpio_install_isr_service(0);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "gpio_install_isr_service failed: %s", esp_err_to_name(err));
+    }
+
+    ESP_ERROR_CHECK(esp_netif_init());
+
+    err = esp_event_loop_create_default();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_ERROR_CHECK(err);
+    }
+
 #ifdef NERDQAXEPLUS
     Board *board = new NerdQaxePlus();
 #endif
@@ -236,9 +262,16 @@ extern "C" void app_main(void)
 #ifdef NERDQX
     Board *board = new NerdQX();
 #endif
+#ifdef Q1370
+    Board *board = new Q1370B();
+#endif
 
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
+    if (board->hasEthernet()) {
+        NETWORK.earlyEthSpiInit();
+    }
+
     board->loadSettings();
     board->initBoard();
 
@@ -257,65 +290,113 @@ extern "C" void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(60 * 60 * 1000));
     }
 
-    STRATUM_MANAGER = newStratumManager();
+    const bool canSlave = board->isCanSlave();
 
-    if (!STRATUM_MANAGER) {
-        ESP_LOGE(TAG, "stratumManager is null! main task suspended.");
-        vTaskSuspend(NULL);
-    }
+    if (canSlave) {
+        // ----------------------------------------------------------------
+        // CAN Slave mode: no network, no stratum, no HTTP server.
+        // Receives raw ASIC jobs from master via CAN, forwards to ASICs,
+        // returns nonces via CAN.
+        // ----------------------------------------------------------------
+        ESP_LOGI(TAG, "CAN Slave mode");
 
-    STRATUM_MANAGER->loadSettings();
+        SYSTEM_MODULE.init();
+        SYSTEM_MODULE.initDisplay();
 
-    xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
-    xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
+        xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
+        xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
+        SYSTEM_MODULE.setStartupDone();
 
-    setup_wifi();
+        can_init(board->getCanTxPin(), board->getCanRxPin());
 
-    // set the startup_done flag
-    SYSTEM_MODULE.setStartupDone();
-
-
-    // when a username is configured we will continue with startup and start mining
-    const char *username = Config::nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL); // TODO
-    if (username) {
-        // wifi is connected, switch the AP off
-        wifi_softap_off();
-
-        // start the discord alerter early
-        discordAlerter.start();
-
-        // initialize OTP
-        if (!otp.init()) {
-            ESP_LOGE(TAG, "error init otp");
-        }
-
-        // start SNTP
-        sntp.start();
-
-        // we only use alerting if we are in a normal operating mode
-        if (reason == ESP_RST_TASK_WDT) {
-            discordAlerter.sendWatchdogAlert();
-        }
-
-        // and continue with initialization
         POWER_MANAGEMENT_MODULE.lock();
         if (!board->initAsics()) {
             ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
         }
         POWER_MANAGEMENT_MODULE.unlock();
 
-        xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
-        xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
-        xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
-        xTaskCreatePSRAM(APIs_FETCHER.taskWrapper, "apis ticker", 8192, (void *) &APIs_FETCHER, 5, NULL);
-        xTaskCreatePSRAM(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
-        xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 8192, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
-        xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, NULL);
+        xTaskCreate(can_slave_task, "can slave", 4096, NULL, 10, NULL);
+        xTaskCreate(can_slave_result_task, "can result", 4096, NULL, 10, NULL);
+        xTaskCreatePSRAM(can_slave_telemetry_task, "can telem", 4096, NULL, 5, NULL);
 
         if (board->hasHashrateCounter()) {
             HASHRATE_MONITOR.start(board, board->getAsics());
         }
+
+    } else {
+        // ----------------------------------------------------------------
+        // Master mode: full stack — network, stratum, HTTP, CAN sender.
+        // ----------------------------------------------------------------
+        STRATUM_MANAGER = newStratumManager();
+
+        if (!STRATUM_MANAGER) {
+            ESP_LOGE(TAG, "stratumManager is null! main task suspended.");
+            vTaskSuspend(NULL);
+        }
+
+        STRATUM_MANAGER->loadSettings();
+
+        SYSTEM_MODULE.init();
+        SYSTEM_MODULE.initDisplay();
+
+        // Start display-driving tasks BEFORE setup_network() so the display can show
+        // the Portal screen when there is no network. setup_network() blocks forever
+        // when neither WiFi nor LAN is available, so the SYSTEM_task must be running
+        // beforehand — otherwise portalScreen() is never called and the display stays
+        // on a blank (white) screen.
+        xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
+        xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
+        SYSTEM_MODULE.setStartupDone();
+
+        setup_network(board->hasEthernet());
+
+        // when a username is configured we will continue with startup and start mining
+        const char *username = Config::nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL); // TODO
+        if (username) {
+            // wifi is connected, switch the AP off (no-op if already done by NetworkManager)
+            NETWORK.shutdownApOnce();
+
+            // start the discord alerter early
+            discordAlerter.start();
+
+            // initialize OTP
+            if (!otp.init()) {
+                ESP_LOGE(TAG, "error init otp");
+            }
+
+            // start SNTP
+            sntp.start();
+
+            // we only use alerting if we are in a normal operating mode
+            if (reason == ESP_RST_TASK_WDT) {
+                discordAlerter.sendWatchdogAlert();
+            }
+
+            // and continue with initialization
+            POWER_MANAGEMENT_MODULE.lock();
+            if (!board->initAsics()) {
+                ESP_LOGE(TAG, "error initializing board %s", board->getDeviceModel());
+            }
+            POWER_MANAGEMENT_MODULE.unlock();
+
+            xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
+            xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
+            xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
+            xTaskCreatePSRAM(APIs_FETCHER.taskWrapper, "apis ticker", 8192, (void *) &APIs_FETCHER, 5, NULL);
+            xTaskCreatePSRAM(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
+            if (Config::isCanEnabled()) {
+                can_init(board->getCanTxPin(), board->getCanRxPin());
+                xTaskCreate(can_master_task, "can master", 4096, NULL, 5, NULL);
+            }
+            xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 8192, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
+            xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, NULL);
+
+            if (board->hasHashrateCounter()) {
+                HASHRATE_MONITOR.start(board, board->getAsics());
+            }
+        }
     }
+
     // char* taskList = (char*) malloc(8192);
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(10000));

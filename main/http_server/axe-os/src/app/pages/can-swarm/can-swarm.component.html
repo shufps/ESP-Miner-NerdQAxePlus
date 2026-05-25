@@ -1,0 +1,207 @@
+<nb-card class="totals-card" *ngIf="!loading">
+  <nb-card-body>
+    <div class="totals-row">
+      <div class="total-item">
+        <span class="total-label">Devices</span>
+        <span class="total-value">{{ activeCount }}</span>
+      </div>
+      <div class="total-item">
+        <span class="total-label">Total Hashrate</span>
+        <span class="total-value">{{ totalHashRate | number:'1.2-2' }} <span class="unit">GH/s</span></span>
+      </div>
+      <div class="total-item">
+        <span class="total-label">Total Power</span>
+        <span class="total-value">{{ totalPower | number:'1.1-1' }} <span class="unit">W</span></span>
+      </div>
+      <div class="total-item">
+        <span class="total-label">Efficiency</span>
+        <span class="total-value">{{ efficiency | number:'1.2-2' }} <span class="unit">W/TH</span></span>
+      </div>
+    </div>
+  </nb-card-body>
+</nb-card>
+
+<nb-card>
+  <nb-card-header>CAN Fleet</nb-card-header>
+  <nb-card-body>
+
+    <div *ngIf="loading">
+      <h4>Loading...</h4>
+    </div>
+
+    <table *ngIf="!loading" class="can-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>MAC</th>
+          <th>Device</th>
+          <th>Status</th>
+          <th>Hash Rate</th>
+          <th>Power</th>
+          <th>Efficiency</th>
+          <th>Temp</th>
+          <th>VR Temp</th>
+          <th>ASIC Temps</th>
+          <th>Fan 1</th>
+          <th>Fan 2</th>
+          <th>FW</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let s of rows">
+          <tr [class.master-row]="s.isMaster"
+              [class.inactive]="!s.active"
+              [class.foreign]="s.foreign"
+              [class.shutdown]="s.shutdown"
+              [class.editing]="editingId === s.id">
+            <td>
+              <span *ngIf="s.isMaster" class="badge badge-master">Controller</span>
+              <span *ngIf="!s.isMaster">{{ s.id }}</span>
+            </td>
+            <td class="mac">{{ s.mac }}</td>
+            <td>{{ s.deviceModel || '—' }}</td>
+            <td>
+              <span *ngIf="s.boardError" class="badge badge-danger" [title]="boardErrorStr(s.boardError)">{{ boardErrorStr(s.boardError) }}</span>
+              <span *ngIf="!s.boardError && s.shutdown" class="badge badge-danger">SHUTDOWN</span>
+              <span *ngIf="!s.boardError && !s.shutdown && s.active" class="badge badge-success">Active</span>
+              <span *ngIf="!s.active" class="badge badge-warning">Offline</span>
+              <span *ngIf="s.foreign" class="badge badge-info" title="From a different fleet">Foreign</span>
+            </td>
+            <td>{{ s.active ? (s.hashRate | number:'1.2-2') + ' GH/s' : '—' }}</td>
+            <td>{{ s.active ? (s.power | number:'1.1-1') + ' W' : '—' }}</td>
+            <td>{{ s.active && s.hashRate > 0 ? ((s.power / (s.hashRate / 1000)) | number:'1.2-2') + ' W/TH' : '—' }}</td>
+            <td>{{ s.active ? (s.temp | number:'1.1-1') + ' °C' : '—' }}</td>
+            <td>{{ s.active ? (s.vrTemp | number:'1.1-1') + ' °C' : '—' }}</td>
+            <td class="asic-temps">
+              <ng-container *ngIf="s.active && s.asicTemps?.length; else naTemps">
+                <ng-container *ngIf="s.asicTemps[0] || s.asicTemps[1] || s.asicTemps[2] || s.asicTemps[3]; else naTemps">
+                  {{ s.asicTemps[0] | number:'1.1-1' }} /
+                  {{ s.asicTemps[1] | number:'1.1-1' }} /
+                  {{ s.asicTemps[2] | number:'1.1-1' }} /
+                  {{ s.asicTemps[3] | number:'1.1-1' }} °C
+                </ng-container>
+              </ng-container>
+              <ng-template #naTemps>N/A</ng-template>
+            </td>
+            <td>{{ s.active && s.fanrpm ? (s.fanrpm + ' RPM (' + s.fanspeed + '%)') : (s.active ? 'N/A' : '—') }}</td>
+            <td>{{ s.active && s.fanrpm2 ? (s.fanrpm2 + ' RPM (' + s.fanspeed2 + '%)') : (s.active ? 'N/A' : '—') }}</td>
+            <td>{{ s.version || '—' }}</td>
+            <td class="actions-cell">
+              <button *ngIf="!s.isMaster" nbButton status="primary" size="tiny"
+                      (click)="editingId === s.id ? cancelEdit() : editSlave(s)"
+                      [title]="editingId === s.id ? 'Close' : 'Settings'">
+                <nb-icon [icon]="editingId === s.id ? 'close-outline' : 'settings-2-outline'"></nb-icon>
+              </button>
+              <button *ngIf="!s.isMaster" nbButton status="info" size="tiny"
+                      (click)="restartSlave(s.id)" title="Restart">
+                <nb-icon icon="refresh-outline"></nb-icon>
+              </button>
+              <button *ngIf="!s.isMaster && !s.shutdown" nbButton status="warning" size="tiny"
+                      (click)="shutdownSlave(s.id)" title="Shutdown (stop mining)">
+                <nb-icon icon="power-outline"></nb-icon>
+              </button>
+              <button *ngIf="!s.isMaster" nbButton status="basic" size="tiny"
+                      (click)="identifySlave(s.id)" title="Identify (blink display)">
+                <nb-icon icon="bulb-outline"></nb-icon>
+              </button>
+              <button *ngIf="!s.isMaster" nbButton status="danger" size="tiny"
+                      (click)="deleteSlave(s.id)" title="Remove from registry">
+                <nb-icon icon="trash-2-outline"></nb-icon>
+              </button>
+            </td>
+          </tr>
+
+          <!-- Inline settings panel -->
+          <tr *ngIf="editingId === s.id" class="edit-row">
+            <td colspan="14">
+              <form [formGroup]="editForm" class="settings-panel">
+
+                <div class="settings-section">
+                  <span class="settings-label">ASIC</span>
+                  <div class="settings-fields">
+                    <div class="field-group">
+                      <label>Frequency (MHz)</label>
+                      <input nbInput formControlName="frequency" type="number" fieldSize="small">
+                    </div>
+                    <div class="field-group">
+                      <label>Voltage (mV)</label>
+                      <input nbInput formControlName="coreVoltage" type="number" fieldSize="small">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-section">
+                  <span class="settings-label">Fan 1</span>
+                  <div class="settings-fields">
+                    <div class="field-group">
+                      <label>Mode</label>
+                      <nb-select formControlName="fan0Mode" size="small">
+                        <nb-option *ngFor="let m of fanModes" [value]="m.value">{{ m.label }}</nb-option>
+                      </nb-select>
+                    </div>
+                    <div class="field-group" *ngIf="editForm.value.fan0Mode === 0">
+                      <label>Speed (%)</label>
+                      <input nbInput formControlName="fan0Speed" type="number" fieldSize="small">
+                    </div>
+                    <div class="field-group" *ngIf="editForm.value.fan0Mode === 2">
+                      <label>Target Temp (°C)</label>
+                      <input nbInput formControlName="fan0TargetTemp" type="number" fieldSize="small">
+                    </div>
+                    <div class="field-group">
+                      <label>Shutdown Temp (°C)</label>
+                      <input nbInput formControlName="fan0Overheat" type="number" fieldSize="small">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-section">
+                  <span class="settings-label">Fan 2</span>
+                  <div class="settings-fields">
+                    <div class="field-group">
+                      <label>Mode</label>
+                      <nb-select formControlName="fan1Mode" size="small">
+                        <nb-option *ngFor="let m of fanModes" [value]="m.value">{{ m.label }}</nb-option>
+                      </nb-select>
+                    </div>
+                    <div class="field-group" *ngIf="editForm.value.fan1Mode === 0">
+                      <label>Speed (%)</label>
+                      <input nbInput formControlName="fan1Speed" type="number" fieldSize="small">
+                    </div>
+                    <div class="field-group" *ngIf="editForm.value.fan1Mode === 2">
+                      <label>Target Temp (°C)</label>
+                      <input nbInput formControlName="fan1TargetTemp" type="number" fieldSize="small">
+                    </div>
+                    <div class="field-group">
+                      <label>Shutdown Temp (°C)</label>
+                      <input nbInput formControlName="fan1Overheat" type="number" fieldSize="small">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-section">
+                  <span class="settings-label">Display</span>
+                  <div class="settings-fields settings-fields--checkboxes">
+                    <nb-checkbox formControlName="flipscreen">Flip Screen</nb-checkbox>
+                    <nb-checkbox formControlName="autoscreenoff">Auto Screen Off</nb-checkbox>
+                  </div>
+                </div>
+
+                <div class="settings-actions">
+                  <button nbButton status="success" size="small" [disabled]="!editForm.valid || saving"
+                          (click)="saveSlave(s.id)">
+                    <nb-icon icon="save-outline"></nb-icon>
+                    {{ saving ? 'Saving…' : 'Save' }}
+                  </button>
+                  <button nbButton status="basic" size="small" (click)="cancelEdit()">Cancel</button>
+                </div>
+
+              </form>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+
+  </nb-card-body>
+</nb-card>

@@ -51,6 +51,32 @@
         min-width: 0;
     }
 
+    .hint-tooltip {
+        position: relative;
+        display: inline-block;
+
+        .hint-tooltip__text {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 0;
+            width: 220px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.80);
+            color: #fff;
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.4;
+            white-space: normal;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        &:hover .hint-tooltip__text {
+            display: block;
+        }
+    }
+
     .form-control-wrapper-no-label {
         flex: 1;
         margin-left: 115px;

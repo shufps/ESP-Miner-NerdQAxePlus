@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { NbCardModule, NbBadgeModule, NbButtonModule, NbCheckboxModule, NbInputModule, NbTooltipModule } from '@nebular/theme';
+import { NbCardModule, NbBadgeModule, NbButtonModule, NbCheckboxModule, NbInputModule, NbTooltipModule, NbSelectModule } from '@nebular/theme';
 import { TranslateModule } from '@ngx-translate/core';
 import { SecurityComponent } from './security.component';
 import { OtpDialogModule } from '../../components/otp-dialog/otp-dialog.module';
@@ -19,6 +19,7 @@ import { OtpDialogModule } from '../../components/otp-dialog/otp-dialog.module';
     NbCheckboxModule,
     NbInputModule,
     NbTooltipModule,
+    NbSelectModule,
     TranslateModule,
     NbBadgeModule,
     OtpDialogModule,

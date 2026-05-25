@@ -40,6 +40,19 @@ export class EditComponent implements OnInit {
   public defaultCoreVoltage: number = 0;
   public defaultVrFrequency: number = 0;
   public fanCount: number = 1;
+
+  public lastCoinbaseVerifyMode: number = 1;
+  public lastFallbackCoinbaseVerifyMode: number = 1;
+
+  toggleCoinbaseVerify(enabled: boolean, controlName: string, lastRef: 'lastCoinbaseVerifyMode' | 'lastFallbackCoinbaseVerifyMode') {
+    const ctrl = this.form.controls[controlName];
+    if (enabled) {
+      ctrl.setValue(this[lastRef]);
+    } else {
+      this[lastRef] = ctrl.value;
+      ctrl.setValue(0);
+    }
+  }
   public fanLabels: string[] = ['Fan 1', 'Fan 2'];
 
   public ecoFrequency: number = 0;
@@ -48,6 +61,7 @@ export class EditComponent implements OnInit {
   private originalSettings!: any;
 
   public otpEnabled = false;
+  public hasCanExtension = false;
   private pendingTotp: string | undefined;
 
   private asicFrequencyValues: number[] = [];
@@ -65,6 +79,7 @@ export class EditComponent implements OnInit {
     'invertfanpolarity',
     'stratumDifficulty',
     'stratum_keep',
+    'canMaster',
     'poolMode',
     'stratumProtocol',
     'fallbackStratumProtocol',
@@ -96,6 +111,7 @@ export class EditComponent implements OnInit {
         this.originalSettings["poolMode"] = info.stratum?.poolMode ?? 0;
 
         this.otpEnabled = !!info.otp;
+        this.hasCanExtension = !!info.can?.hasExtension;
 
         // Model still from /info (enum-typed)
         this.ASICModel = info.ASICModel;
@@ -146,6 +162,7 @@ export class EditComponent implements OnInit {
         // Build the form (Min/Max for volt/freq will be set dynamically right after)
         this.form = this.fb.group({
           stratum_keep: [info.stratum_keep == 1],
+          canMaster: [info.can?.enabled == true],
           flipscreen: [info.flipscreen == 1],
           invertscreen: [info.invertscreen == 1],
           autoscreenoff: [info.autoscreenoff == 1],
@@ -165,6 +182,9 @@ export class EditComponent implements OnInit {
           stratumPassword: ['*****', [Validators.required]],
           stratumEnonceSubscribe: [info.stratumEnonceSubscribe == 1],
           stratumTLS: [info.stratumTLS == 1],
+          coinbaseVerifyMode: [info.coinbaseVerifyMode ?? 0],
+          coinbaseMaxFee: [info.coinbaseMaxFee ?? 3.0],
+          coinbaseVerifyForce: [info.coinbaseVerifyForce ?? false],
 
           fallbackStratumURL: [info.fallbackStratumURL, [
             Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
@@ -179,6 +199,9 @@ export class EditComponent implements OnInit {
           fallbackStratumPassword: ['*****'],
           fallbackStratumEnonceSubscribe: [info.fallbackStratumEnonceSubscribe == 1],
           fallbackStratumTLS: [info.fallbackStratumTLS == 1],
+          fallbackCoinbaseVerifyMode: [info.fallbackCoinbaseVerifyMode ?? 0],
+          fallbackCoinbaseMaxFee: [info.fallbackCoinbaseMaxFee ?? 3],
+          fallbackCoinbaseVerifyForce: [info.fallbackCoinbaseVerifyForce ?? false],
 
           hostname: [info.hostname, [Validators.required]],
           ssid: [info.ssid, [Validators.required]],
@@ -250,6 +273,9 @@ export class EditComponent implements OnInit {
 
         this.stratum = info.stratum;
 
+        this.lastCoinbaseVerifyMode = info.coinbaseVerifyMode || 1;
+        this.lastFallbackCoinbaseVerifyMode = info.fallbackCoinbaseVerifyMode || 1;
+
         this.form.controls['autofanspeed'].valueChanges
           .pipe(startWith(this.form.controls['autofanspeed'].value))
           .subscribe(() => this.updatePIDFieldStates());
@@ -302,7 +328,8 @@ export class EditComponent implements OnInit {
     const disable = (ctrl: string) => this.form.controls[ctrl]?.disable({ emitEvent: false });
 
     if (mode === 3) {
-      // LINKED — disable fan1-controls (overheatTemp stays enabled for shutdown protection)
+      // LINKED — disable fan1-controls; overheatTemp stays enabled (VReg shutdown threshold)
+      enable('fan1OverheatTemp');
       disable('fan1ManualSpeed');
       disable('fan1PidTargetTemp');
       disable('fan1PidP');
@@ -350,6 +377,7 @@ export class EditComponent implements OnInit {
     if (form.fallbackStratumPassword === '*****') delete form.fallbackStratumPassword;
 
     form.stratum_keep = form.stratum_keep ? 1 : 0;
+    form.canMaster = form.canMaster ? 1 : 0;
 
 
     // fans[]-Array for the new per channel api
@@ -592,50 +620,29 @@ export class EditComponent implements OnInit {
   public swapPools(): void {
     if (!this.form) return;
 
-    const a = {
-      url: 'stratumURL',
-      port: 'stratumPort',
-      user: 'stratumUser',
-      pass: 'stratumPassword',
-      tls: 'stratumTLS',
-      en: 'stratumEnonceSubscribe',
-    };
-
-    const b = {
-      url: 'fallbackStratumURL',
-      port: 'fallbackStratumPort',
-      user: 'fallbackStratumUser',
-      pass: 'fallbackStratumPassword',
-      tls: 'fallbackStratumTLS',
-      en: 'fallbackStratumEnonceSubscribe',
-    };
+    const pairs: [string, string][] = [
+      ['stratumURL',              'fallbackStratumURL'],
+      ['stratumPort',             'fallbackStratumPort'],
+      ['stratumUser',             'fallbackStratumUser'],
+      ['stratumPassword',         'fallbackStratumPassword'],
+      ['stratumTLS',              'fallbackStratumTLS'],
+      ['stratumEnonceSubscribe',  'fallbackStratumEnonceSubscribe'],
+      ['stratumProtocol',         'fallbackStratumProtocol'],
+      ['sv2AuthorityPubkey',      'fallbackSv2AuthorityPubkey'],
+      ['sv2ChannelType',          'fallbackSv2ChannelType'],
+      ['coinbaseVerifyMode',      'fallbackCoinbaseVerifyMode'],
+      ['coinbaseMaxFee',          'fallbackCoinbaseMaxFee'],
+      ['coinbaseVerifyForce',     'fallbackCoinbaseVerifyForce'],
+    ];
 
     const get = (k: string) => this.form.get(k)?.value;
     const set = (k: string, v: any) => this.form.get(k)?.setValue(v, { emitEvent: false });
 
-    // Swap all values
-    const tmp = {
-      url: get(a.url),
-      port: get(a.port),
-      user: get(a.user),
-      pass: get(a.pass),
-      tls: get(a.tls),
-      en: get(a.en),
-    };
-
-    set(a.url, get(b.url));
-    set(a.port, get(b.port));
-    set(a.user, get(b.user));
-    set(a.pass, get(b.pass));
-    set(a.tls, get(b.tls));
-    set(a.en, get(b.en));
-
-    set(b.url, tmp.url);
-    set(b.port, tmp.port);
-    set(b.user, tmp.user);
-    set(b.pass, tmp.pass);
-    set(b.tls, tmp.tls);
-    set(b.en, tmp.en);
+    for (const [ka, kb] of pairs) {
+      const tmp = get(ka);
+      set(ka, get(kb));
+      set(kb, tmp);
+    }
   }
 
 }

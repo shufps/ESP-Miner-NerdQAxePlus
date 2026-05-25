@@ -429,7 +429,7 @@
     "FAN_SETTINGS_PORTS_HINT": "<strong>Uwaga:</strong> Podczas przełączania z trybu Połączone, sprawdź, które porty wentylatora są podłączone do każdego wentylatora przed zapisaniem.",
     "FAN1_CONNECTOR_HINT": "Podłącz <strong>wentylator ASIC</strong> do złącza <strong>{{connector}}</strong>.",
     "FAN2_CONNECTOR_HINT": "Podłącz <strong>wentylator regulatora napięcia</strong> do złącza <strong>{{connector}}</strong>.",
-    "FAN_LINKED_HINT": "Kanał wtórny zawsze odpowiada wyjściu podstawowemu. W trybie PID kontroler używa najwyższej temperatury ASIC i VReg."
+    "FAN_LINKED_HINT": "Wentylator VReg podąża za wyjściem wentylatora ASIC. W trybie PID kontroler używa najwyższej temperatury spośród ASIC i VReg."
   },
   "MISC": {
     "TITLE": "Różne ustawienia",

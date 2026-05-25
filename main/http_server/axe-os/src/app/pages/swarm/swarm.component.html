@@ -221,7 +221,7 @@
       <!-- Legend -->
       <div class="d-flex flex-wrap gap-3 mt-3 text-sm justify-content-center">
         <ng-container *ngFor="let item of colorLegend">
-          <div class="legend-chip" [title]="item.label + ' (' + item.color + ') ×' + item.count">
+          <div class="legend-chip" [title]="item.label + ' ×' + item.count">
             <span class="swarm-dot" [style.background]="item.color"></span>
             <span class="legend-label">{{ item.label }}</span>
             <span class="legend-count">×{{ item.count }}</span>

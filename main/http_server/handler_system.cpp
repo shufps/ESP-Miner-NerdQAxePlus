@@ -1,3 +1,4 @@
+#include <math.h>
 #include "esp_ota_ops.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -12,6 +13,7 @@
 #include "http_utils.h"
 
 #include "ping_task.h"
+#include "tasks/can_master_task.h"
 
 static const char *TAG = "http_system";
 
@@ -134,6 +136,12 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["lastpingrtt"]        = get_last_ping_rtt();
     doc["recentpingloss"]     = get_recent_ping_loss();
     doc["shutdown"]           = POWER_MANAGEMENT_MODULE.isShutdown();
+    JsonObject can_obj = doc["can"].to<JsonObject>();
+    can_obj["hasExtension"] = board->hasCanExtension();
+    can_obj["enabled"]      = Config::isCanEnabled();
+    if (Config::isCanEnabled()) {
+        can_obj["fleetPower"] = POWER_MANAGEMENT_MODULE.getPower() + can_master_get_slave_fleet_power();
+    }
     doc["duplicateHWNonces"]  = getDuplicateHWNonces();
 
     JsonObject stratum_obj = doc["stratum"].to<JsonObject>();
@@ -149,6 +157,35 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiff();
 
     STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
+
+    // Block header / coinbase data (one entry per pool)
+    {
+        JsonArray blockHeaders = doc["blockHeaders"].to<JsonArray>();
+        for (int p = 0; p < 2; p++) {
+            const coinbase_result_t cb = STRATUM_MANAGER->getCoinbaseResult(p);
+            if (cb.block_height > 0) {
+                JsonObject bh = blockHeaders.add<JsonObject>();
+                bh["pool"]       = p;
+                bh["blockHeight"] = cb.block_height;
+                bh["networkDifficulty"] = cb.network_difficulty;
+                bh["scriptsig"]  = cb.scriptsig;
+
+                if (Config::getCoinbaseVerifyMode(p) > 0) {
+                    bh["coinbaseValueTotalSatoshis"] = cb.total_value_satoshis;
+                    bh["coinbaseValueUserSatoshis"]  = cb.user_value_satoshis;
+                    bh["verificationOk"] = STRATUM_MANAGER->getVerificationOk(p);
+                    bh["verificationFailCount"] = STRATUM_MANAGER->getVerificationFailCount(p);
+                    bh["verificationCheckCount"] = STRATUM_MANAGER->getVerificationCheckCount(p);
+                }
+            }
+        }
+        doc["coinbaseVerifyMode"]         = Config::getCoinbaseVerifyMode(0);
+        doc["coinbaseMaxFee"]             = Config::getCoinbaseMaxFee(0) / 10.0f;
+        doc["coinbaseVerifyForce"]        = Config::getCoinbaseVerifyForce(0);
+        doc["fallbackCoinbaseVerifyMode"] = Config::getCoinbaseVerifyMode(1);
+        doc["fallbackCoinbaseMaxFee"]     = Config::getCoinbaseMaxFee(1) / 10.0f;
+        doc["fallbackCoinbaseVerifyForce"] = Config::getCoinbaseVerifyForce(1);
+    }
 
     // asic temps
     {
@@ -352,6 +389,11 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         Config::setStratumKeepaliveEnabled(value);
         ESP_LOGI("system", "stratum_keep updated via WebUI: %s", value ? "ENABLED" : "DISABLED");
     }
+    if (doc["canMaster"].is<bool>() || doc["canMaster"].is<int>()) {
+        bool value = doc["canMaster"].as<int>() != 0;
+        Config::setCanEnabled(value);
+        ESP_LOGI("system", "canMaster updated via WebUI: %s", value ? "ENABLED" : "DISABLED");
+    }
     if (doc["pidTargetTemp"].is<uint16_t>()) {
         Config::setPidTargetTemp(doc["pidTargetTemp"].as<uint16_t>());
     }
@@ -395,6 +437,49 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
             }
             ch++;
         }
+    }
+
+    // Coinbase verification settings (per pool) — read old values before saving for change detection
+    bool verifyChanged[2] = {false, false};
+
+    if (doc["coinbaseVerifyMode"].is<uint16_t>()) {
+        verifyChanged[0] |= Config::getCoinbaseVerifyMode(0) != doc["coinbaseVerifyMode"].as<uint16_t>();
+        Config::setCoinbaseVerifyMode(0, doc["coinbaseVerifyMode"].as<uint16_t>());
+    }
+    if (doc["coinbaseMaxFee"].is<float>()) {
+        uint16_t newVal = (uint16_t)roundf(doc["coinbaseMaxFee"].as<float>() * 10.0f);
+        verifyChanged[0] |= Config::getCoinbaseMaxFee(0) != newVal;
+        Config::setCoinbaseMaxFee(0, newVal);
+    }
+    if (doc["coinbaseVerifyForce"].is<bool>()) {
+        verifyChanged[0] |= Config::getCoinbaseVerifyForce(0) != doc["coinbaseVerifyForce"].as<bool>();
+        Config::setCoinbaseVerifyForce(0, doc["coinbaseVerifyForce"].as<bool>());
+    }
+    if (doc["fallbackCoinbaseVerifyMode"].is<uint16_t>()) {
+        verifyChanged[1] |= Config::getCoinbaseVerifyMode(1) != doc["fallbackCoinbaseVerifyMode"].as<uint16_t>();
+        Config::setCoinbaseVerifyMode(1, doc["fallbackCoinbaseVerifyMode"].as<uint16_t>());
+    }
+    if (doc["fallbackCoinbaseMaxFee"].is<float>()) {
+        uint16_t newVal = (uint16_t)roundf(doc["fallbackCoinbaseMaxFee"].as<float>() * 10.0f);
+        verifyChanged[1] |= Config::getCoinbaseMaxFee(1) != newVal;
+        Config::setCoinbaseMaxFee(1, newVal);
+    }
+    if (doc["fallbackCoinbaseVerifyForce"].is<bool>()) {
+        verifyChanged[1] |= Config::getCoinbaseVerifyForce(1) != doc["fallbackCoinbaseVerifyForce"].as<bool>();
+        Config::setCoinbaseVerifyForce(1, doc["fallbackCoinbaseVerifyForce"].as<bool>());
+    }
+
+    // Re-run verification for changed pools, reset stats/block only if settings actually changed
+    for (int i = 0; i < 2; i++) {
+        if (verifyChanged[i]) {
+            STRATUM_MANAGER->clearVerifyBlocked(i);
+            STRATUM_MANAGER->resetVerificationStats(i);
+        }
+        STRATUM_MANAGER->rerunVerification(i);
+    }
+    if (SYSTEM_MODULE.getBoardError() == Board::Error::COINBASE_VERIFY_FAULT &&
+        !STRATUM_MANAGER->isVerifyBlocked(0) && !STRATUM_MANAGER->isVerifyBlocked(1)) {
+        SYSTEM_MODULE.clearBoardError();
     }
 
     // save stratum settings

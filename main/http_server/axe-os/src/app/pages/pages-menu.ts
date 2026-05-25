@@ -13,6 +13,11 @@ export const MENU_ITEMS: NbMenuItem[] = [
     link: '/pages/swarm',
   },
   {
+    title: 'CAN Fleet',
+    icon: 'share-outline',
+    link: '/pages/can-fleet',
+  },
+  {
     title: 'Settings',
     icon: 'settings-2-outline',
     link: '/pages/settings',

@@ -271,12 +271,20 @@ const POOLS: PoolMeta[] = [
     match: (h) => h.includes('powermining.io'),
     quickLink: (a) => `https://pool.powermining.io/#/app/${a}`,
   },
-  {                                                                                                                                                                                                 
-      id: 'blitzpool',                                                                                                                                                                              
-      name: 'blitzpool.yourdevice.ch',                                                                                                                                                              
-      match: (h) => h.includes('blitzpool.yourdevice.ch'),                                                                                                                                          
-      quickLink: (a) => `https://blitzpool.yourdevice.ch/#/app/${a}`,                                                                                                                               
-  },     
+  {
+    id: 'blitzpool',
+    name: 'blitzpool.yourdevice.ch',
+    match: (h) => h.includes('blitzpool.yourdevice.ch'),
+    quickLink: (a) => `https://blitzpool.yourdevice.ch/#/app/${a}`,
+  },
+  {
+    id: 'braiins-solo',
+    name: 'Braiins Solo',
+    match: (h) => h.includes('solo.stratum.braiins.com'),
+    quickLink: (a) => `https://solo.braiins.com/stats/${a}`,
+    faviconHost: 'solo.braiins.com',
+    faviconPath: '/icon.png'
+  }
 ];
 
 /* ------------------------------------------------------------------

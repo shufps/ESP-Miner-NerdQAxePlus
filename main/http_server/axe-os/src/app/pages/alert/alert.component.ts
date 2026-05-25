@@ -40,6 +40,7 @@ export class AlertComponent implements OnInit {
           alertDiscordWatchdogEnable: [data?.alertDiscordWatchdogEnable === 1],
           alertDiscordBlockFoundEnable: [data?.alertDiscordBlockFoundEnable === 1],
           alertDiscordBestDiffEnable: [data?.alertDiscordBestDiffEnable === 1],
+          alertDiscordCoinbaseVerifyEnable: [data?.alertDiscordCoinbaseVerifyEnable === 1],
           showBlockFoundScreenEnable: [data?.showBlockFoundScreenEnable === 1],
 
           // Keep the sentinel so users do not need to re-enter an existing webhook.
@@ -59,6 +60,7 @@ export class AlertComponent implements OnInit {
       alertDiscordWatchdogEnable: !!form.alertDiscordWatchdogEnable,
       alertDiscordBlockFoundEnable: !!form.alertDiscordBlockFoundEnable,
       alertDiscordBestDiffEnable: !!form.alertDiscordBestDiffEnable,
+      alertDiscordCoinbaseVerifyEnable: !!form.alertDiscordCoinbaseVerifyEnable,
       showBlockFoundScreenEnable: !!form.showBlockFoundScreenEnable,
     };
 

@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>
@@ -25,6 +26,7 @@
 #include "stratum_manager.h"
 #include "stratum_task_v2.h"
 #include "utils.h"
+#include "discord.h"
 
 // ------------  stratum manager
 StratumManager::StratumManager(PoolMode poolmode) : m_poolmode(poolmode)
@@ -173,6 +175,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     switch (m_stratum_api_v1_message.method) {
     case MINING_NOTIFY: {
         setNetworkDifficulty(pool, m_stratum_api_v1_message.mining_notification->target);
+        processCoinbase(pool, m_stratum_api_v1_message.mining_notification);
         create_job_mining_notify(pool, m_stratum_api_v1_message.mining_notification,
                                  m_stratum_api_v1_message.should_abandon_work || selected->m_firstJob);
 
@@ -203,6 +206,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
         // the new extranonce gets active with the next mining.notify
         ESP_LOGI(tag, "Set next enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
                  m_stratum_api_v1_message.extranonce_2_len);
+        storeExtranonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         set_next_enonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         break;
     }
@@ -210,6 +214,7 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
     case STRATUM_RESULT_SUBSCRIBE: {
         ESP_LOGI(tag, "Set enonce %s enonce2-len: %d", m_stratum_api_v1_message.extranonce_str,
                  m_stratum_api_v1_message.extranonce_2_len);
+        storeExtranonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         create_job_set_enonce(pool, m_stratum_api_v1_message.extranonce_str, m_stratum_api_v1_message.extranonce_2_len);
         break;
     }
@@ -302,6 +307,28 @@ void StratumManager::loadSettings(bool reconnect)
             m_stratumTasks[i]->triggerReconnect();
         }
 
+        // reset verification stats and unblock pool on reconnect
+        // NOTE: do NOT call resetVerificationStats() here — loadSettings() is always
+        // called while m_mutex is already held (by the Fallback/DualPool overrides),
+        // so re-entering PThreadGuard on the same non-recursive mutex would deadlock.
+        m_verificationCheckCount[i] = 0;
+        m_verificationFailCount[i] = 0;
+        clearVerifyBlocked(i);
+
+        // reset ping stats
+        if (m_pingTasks[i]) {
+            m_pingTasks[i]->reset();
+        }
+    }
+}
+
+void StratumManager::reconnectAll() {
+    for (int i=0;i<2;i++) {
+        // trigger a reconnect
+        if (m_stratumTasks[i]) {
+            m_stratumTasks[i]->triggerReconnect();
+        }
+
         // reset ping stats
         if (m_pingTasks[i]) {
             m_pingTasks[i]->reset();
@@ -387,6 +414,164 @@ void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)
     discordAlerter.sendBestDifficultyAlert(diff, networkDiff);
 }
 
+void StratumManager::storeExtranonce(int pool, const char *extranonce, int extranonce2_len)
+{
+    if (pool < 0 || pool > 1) return;
+    free(m_extranonce1[pool]);
+    m_extranonce1[pool] = extranonce ? strdup(extranonce) : nullptr;
+    m_extranonce2_len[pool] = extranonce2_len;
+}
+
+static void extractUserAddress(const char *user, char *out, size_t out_len)
+{
+    if (!user) { out[0] = '\0'; return; }
+    strncpy(out, user, out_len - 1);
+    out[out_len - 1] = '\0';
+    char *dot = strchr(out, '.');
+    if (dot) *dot = '\0';
+    // Normalize to lowercase so BC1Q... matches bc1q... from segwit_addr_encode
+    for (char *p = out; *p; p++) *p = tolower((unsigned char)*p);
+}
+
+void StratumManager::processCoinbase(int pool, const mining_notify *notify)
+{
+    if (!notify || !notify->coinbase_1 || !notify->coinbase_2) return;
+    if (pool < 0 || pool > 1 || !m_extranonce1[pool]) return;
+    // SV2 pools use the hex-string overload via enqueueExtendedJob — skip V1 path
+    if (m_stratumConfig[pool] && m_stratumConfig[pool]->isSV2()) return;
+
+    char user_address[128] = {};
+    const char *user = m_stratumConfig[pool] ? m_stratumConfig[pool]->getUser() : nullptr;
+    extractUserAddress(user, user_address, sizeof(user_address));
+    coinbase_result_t result{};
+    esp_err_t err = coinbase_process(
+        notify->coinbase_1,
+        notify->coinbase_2,
+        notify->version,
+        notify->target,
+        m_extranonce1[pool],
+        m_extranonce2_len[pool],
+        user ? user_address : nullptr,
+        &result
+    );
+
+    if (err == ESP_OK) {
+/*
+        ESP_LOGW("stratum_manager", "SV2 coinbase ok: height=%lu total=%llu user=%llu addr=%s",
+                 (unsigned long)result.block_height,
+                 (unsigned long long)result.total_value_satoshis,
+                 (unsigned long long)result.user_value_satoshis,
+                 user_address);
+*/
+        m_coinbaseResult[pool & 1] = result;
+        runVerification(pool & 1);
+    } else {
+        ESP_LOGE("stratum_manager", "SV2 coinbase parse failed");
+    }
+}
+
+void StratumManager::processCoinbase(int pool, const char *coinbase_1_hex, const char *coinbase_2_hex,
+                                     uint32_t version, uint32_t nbits,
+                                     const char *extranonce1_hex, int extranonce2_len)
+{
+    if (!coinbase_1_hex || !coinbase_2_hex || !extranonce1_hex) return;
+    if (pool < 0 || pool > 1) return;
+
+    char user_address[128] = {};
+    const char *user = m_stratumConfig[pool] ? m_stratumConfig[pool]->getUser() : nullptr;
+    extractUserAddress(user, user_address, sizeof(user_address));
+
+    coinbase_result_t result{};
+    esp_err_t err = coinbase_process(
+        coinbase_1_hex,
+        coinbase_2_hex,
+        version,
+        nbits,
+        extranonce1_hex,
+        extranonce2_len,
+        user ? user_address : nullptr,
+        &result
+    );
+
+    if (err == ESP_OK) {
+/*
+        ESP_LOGW("stratum_manager", "SV2 coinbase ok: height=%lu total=%llu user=%llu addr=%s",
+                 (unsigned long)result.block_height,
+                 (unsigned long long)result.total_value_satoshis,
+                 (unsigned long long)result.user_value_satoshis,
+                 user_address);
+*/
+        m_coinbaseResult[pool & 1] = result;
+        runVerification(pool & 1);
+    } else {
+        ESP_LOGE("stratum_manager", "SV2 coinbase parse failed");
+    }
+}
+
+void StratumManager::runVerification(int pool)
+{
+    const coinbase_result_t &cb = m_coinbaseResult[pool];
+
+    uint16_t mode = Config::getCoinbaseVerifyMode(pool);
+
+    // mode 0 = disabled, mode 1 = basic, mode 2 = extended
+    if (mode == 0) {
+        m_verificationOk[pool] = false;
+        return;
+    }
+
+    // Basic (mode >= 1): user address must appear in coinbase
+    bool ok = cb.user_value_satoshis > 0;
+
+    // Extended (mode >= 2): additionally check pool fee does not exceed configured max
+    if (ok && mode >= 2 && cb.total_value_satoshis > 0) {
+        uint64_t pool_take = cb.total_value_satoshis - cb.user_value_satoshis;
+        uint32_t fee_pct_x100 = (uint32_t)((pool_take * 10000ULL) / cb.total_value_satoshis);
+        uint32_t max_fee_x100 = (uint32_t)Config::getCoinbaseMaxFee(pool) * 10;
+        ok = fee_pct_x100 <= max_fee_x100;
+    }
+
+    // Send discord alert on transition to failed state
+    if (!ok && m_verificationOk[pool]) {
+        discordAlerter.sendCoinbaseVerifyFailed(pool, &cb, mode);
+    }
+
+    m_verificationCheckCount[pool]++;
+    if (!ok) m_verificationFailCount[pool]++;
+    // ESP_LOGE("runverify", "check count: %d, failed: %d, pool: %d", (int) m_verificationCheckCount[pool], (int) m_verificationFailCount[pool], (int) pool);
+
+    m_verificationOk[pool] = ok;
+
+    // Force mode: block this pool and check if any pool is still usable
+    // Only act if we have actual coinbase data — skip if cache is empty (e.g. after settings save for new pool)
+    if (Config::getCoinbaseVerifyForce(pool) && cb.block_height > 0) {
+        if (!ok && !isVerifyBlocked(pool)) {
+            const char *reason = (cb.user_value_satoshis == 0) ? "address_not_found" : "fee_exceeded";
+            ESP_LOGW("stratum_manager", "Coinbase verification failed for pool %d (%s) - blocking", pool, reason);
+            m_verifyBlockedReason[pool] = reason;
+            if (m_stratumTasks[pool]) m_stratumTasks[pool]->triggerReconnect();
+        } else if (ok && isVerifyBlocked(pool)) {
+            m_verifyBlockedReason[pool] = nullptr;
+        }
+
+        // If all *configured* pools are verify-blocked, raise the fault flag so
+        // the display shows an error. ASICs keep running on stale jobs until the
+        // next block; no work will be submitted to a blocked pool.
+        // (an unconfigured pool has no host and must not count as "usable")
+        bool anyUsable = false;
+        for (int i = 0; i < 2; i++) {
+            bool configured = m_stratumConfig[i] && strlen(m_stratumConfig[i]->getHost()) > 0;
+            if (configured && !isVerifyBlocked(i)) { anyUsable = true; break; }
+        }
+        if (!anyUsable) {
+            ESP_LOGW("stratum_manager", "All pools blocked by verification - raising fault flag");
+            SYSTEM_MODULE.setBoardError(Board::Error::COINBASE_VERIFY_FAULT, 0);
+        } else if (SYSTEM_MODULE.getBoardError() == Board::Error::COINBASE_VERIFY_FAULT) {
+            SYSTEM_MODULE.clearBoardError();
+        }
+    }
+}
+
 void StratumManager::getManagerInfoJson(JsonObject &obj)
 {
     obj["poolMode"] = Config::getPoolMode();
@@ -403,6 +588,10 @@ void StratumManager::getManagerInfoJson(JsonObject &obj)
 void StratumManager::checkForFoundBlock(int pool, double diff, uint32_t nbits)
 {
     double networkDiff = calculateNetworkDifficulty(nbits);
+/*
+    ESP_LOGI(m_tag, "(%s) block check: nonce_diff=%.2e network_diff=%.2e nBits=0x%08lX",
+             pool ? "Sec" : "Pri", diff, networkDiff, (unsigned long)nbits);
+*/
     if (diff <= networkDiff) {
         return;
     }

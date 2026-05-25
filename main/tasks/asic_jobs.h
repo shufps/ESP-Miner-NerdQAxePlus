@@ -25,7 +25,7 @@ protected:
 
     bm_job *cloneBmJob(bm_job *src)
     {
-        bm_job *dst = (bm_job *) malloc(sizeof(bm_job));
+        bm_job *dst = (bm_job *) MALLOC(sizeof(bm_job));
 
         // copy all
         memcpy(dst, src, sizeof(bm_job));

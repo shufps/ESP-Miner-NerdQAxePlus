@@ -26,6 +26,9 @@
 #include "history.h"
 #include "boards/board.h"
 #include "utils.h"
+#include "tasks/can_slave_task.h"
+#include "tasks/can_sender.h"
+#include "tasks/can_master_task.h"
 
 static const char* TAG = "SystemModule";
 
@@ -33,7 +36,7 @@ System::System() {
     // NOP
 }
 
-void System::initSystem() {
+void System::init() {
     m_screenPage = 0;
     m_startTime = esp_timer_get_time();
     m_startupDone = false;
@@ -57,9 +60,6 @@ void System::initSystem() {
     // Initialize the display
     m_display = new DisplayDriver();
     m_display->loadSettings();
-    m_display->init(m_board);
-
-    m_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 
     m_hostname = Config::getHostname();
 
@@ -69,21 +69,22 @@ void System::initSystem() {
     }
 }
 
+void System::initDisplay() {
+    m_display->init(m_board);
+}
+
+esp_netif_t* System::getWifiInterface() {
+    return esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+}
+
 void System::loadSettings() {
     if (m_display) {
         m_display->loadSettings();
     }
 }
 
-void System::updateHashrate() {}
-void System::updateBestDiff() {}
-void System::clearDisplay() {}
-void System::updateSystemInfo() {}
-void System::updateEsp32Info() {}
-void System::initConnection() {}
-
 void System::updateConnection() {
-    m_display->updateWifiStatus(m_wifiStatus);
+    //m_display->updateWifiStatus(m_wifiStatus);
 }
 
 void System::updateSystemPerformance() {}
@@ -105,17 +106,17 @@ int System::get_wifi_rssi()
 
     // Query the connected Access Point's information
     if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
-        ESP_LOGI("WIFI_RSSI", "Current RSSI: %d dBm", ap_info.rssi);
+        ESP_LOGD("WIFI_RSSI", "Current RSSI: %d dBm", ap_info.rssi);
         return ap_info.rssi;  // Return the actual RSSI value
     } else {
-        ESP_LOGE("WIFI_RSSI", "Failed to fetch RSSI");
+        ESP_LOGD("WIFI_RSSI", "Failed to fetch RSSI");
         return -90;  // Return -90 to indicate an error
     }
 }
 
 float System::getCurrentHashrate() {
     if (m_board->hasHashrateCounter()) {
-        return HASHRATE_MONITOR.getSmoothedTotalChipHashrate();
+        return HASHRATE_MONITOR.getSmoothedTotalChipHashrate() + HASHRATE_MONITOR.getExternalHashrate();
     }
     return getCurrentHashrate10m();
 }
@@ -205,7 +206,7 @@ void System::pushHistory() {
     constexpr float alpha = 0.50f; // slight smoothing
 
     uint64_t timestamp = esp_timer_get_time() / 1000llu;
-    float hashrate = HASHRATE_MONITOR.getHashrate();
+    float hashrate = HASHRATE_MONITOR.getHashrate() + HASHRATE_MONITOR.getExternalHashrate();
     float vregTemp = POWER_MANAGEMENT_MODULE.getVRTemp();
     float asicTemp = POWER_MANAGEMENT_MODULE.getChipTempMax();
 
@@ -221,9 +222,6 @@ void System::pushHistory() {
 }
 
 void System::task() {
-    initSystem();
-    clearDisplay();
-    initConnection();
     startTimer();
 
     ESP_LOGI(TAG, "SYSTEM_task started");
@@ -234,32 +232,24 @@ void System::task() {
     wifi_mode_t wifiMode;
     esp_err_t result;
 
-    while (!m_startupDone) {
-        // Check if STA has a valid IP
-        char ip[20] = {0};
-        bool sta_has_ip = connect_get_ip_addr(ip, sizeof(ip)); // returns true if ip_valid
-
-        // Check whether AP is active
-        result = esp_wifi_get_mode(&wifiMode);
-        bool ap_active = (result == ESP_OK) && (wifiMode == WIFI_MODE_AP || wifiMode == WIFI_MODE_APSTA);
-
-        if (!sta_has_ip && ap_active) {
+    if (!m_board->isCanSlave()) {
+        while (!NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress), nullptr)) {
             // STA not connected yet -> show captive/config info
             showApInformation(nullptr);
             vTaskDelay(pdMS_TO_TICKS(5000)); // avoid flicker/spam
-        } else {
-            // Either STA is connected or AP is off -> show normal connection UI
-            updateConnection();
-            vTaskDelay(pdMS_TO_TICKS(100));
         }
+        m_display->updateIpAddress(m_ipAddress);
+        updateConnection();
     }
 
     m_display->miningScreen();
 
+    if (m_board->isCanSlave()) {
+        m_display->setCanIcon();
+    }
+
     char lastIpAddress[20] = {0};
 
-    // show initial 0.0.0.0
-    m_display->updateIpAddress(m_ipAddress);
     int lastFoundBlocks = 0;
 
     int toggle = 1;
@@ -274,26 +264,43 @@ void System::task() {
             vTaskSuspend(NULL);
         }
 
-        // update IP on the screen if it is available
-        if (connect_get_ip_addr(m_ipAddress, sizeof(m_ipAddress))) {
-            if (strcmp(m_ipAddress, lastIpAddress) != 0) {
-                ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
-                m_display->updateIpAddress(m_ipAddress);
+        if (m_board->isCanSlave()) {
+            // Show CAN ID in the IP label; refresh every tick in case negotiation just completed
+            uint8_t can_id = g_can_slave_id;
+            char canLabel[16];
+            if (can_id == CAN_SLAVE_ID_UNASSIGNED) {
+                snprintf(canLabel, sizeof(canLabel), "CAN: ...");
+            } else {
+                snprintf(canLabel, sizeof(canLabel), "CAN ID: %d", can_id);
             }
-            strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
+            if (strcmp(canLabel, lastIpAddress) != 0) {
+                m_display->updateIpAddress(canLabel);
+                strncpy(lastIpAddress, canLabel, sizeof(lastIpAddress));
+            }
+        } else {
+            // update IP on the screen if it is available
+            bool isEth = false;
+            if (NETWORK.getPreferredIpAddr(m_ipAddress, sizeof(m_ipAddress), &isEth)) {
+                if (strcmp(m_ipAddress, lastIpAddress) != 0) {
+                    ESP_LOGI(TAG, "ip address: %s", m_ipAddress);
+                    m_display->updateIpAddress(m_ipAddress);
+                    m_display->setNetworkIcon(isEth);
+                }
+                strncpy(lastIpAddress, m_ipAddress, sizeof(lastIpAddress));
+            }
+
+            uint32_t foundBlocks = STRATUM_MANAGER->getFoundBlocks();
+            if (foundBlocks != lastFoundBlocks && foundBlocks) {
+                m_display->showFoundBlockOverlay();
+            }
+            lastFoundBlocks = foundBlocks;
         }
 
         if (m_boardError != Board::Error::NONE) {
             showError(Board::errorToStr(m_boardError), m_errorCode);
+        } else {
+            m_display->hideError();
         }
-
-        uint32_t foundBlocks = STRATUM_MANAGER->getFoundBlocks();
-
-        // trigger the overlay only once when block is found
-        if (foundBlocks != lastFoundBlocks && foundBlocks) {
-            m_display->showFoundBlockOverlay();
-        }
-        lastFoundBlocks = foundBlocks;
 
         // toggle
         toggle = 1-toggle;

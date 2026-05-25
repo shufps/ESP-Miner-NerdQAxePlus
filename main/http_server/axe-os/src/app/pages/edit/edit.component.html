@@ -167,6 +167,32 @@
                                 translate
                                 }}</nb-checkbox>
                         </div>
+                        <div class="form-row" style="align-items: flex-start;">
+                            <nb-checkbox [checked]="form.controls['coinbaseVerifyMode'].value > 0"
+                                         (checkedChange)="toggleCoinbaseVerify($event, 'coinbaseVerifyMode', 'lastCoinbaseVerifyMode')"
+                                         style="margin-top: 6px;">
+                                {{ 'SECURITY.COINBASE_VERIFY_TITLE' | translate }}
+                            </nb-checkbox>
+                            <div *ngIf="form.controls['coinbaseVerifyMode'].value > 0"
+                                 style="flex: 1; min-width: 0; margin-left: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <nb-select formControlName="coinbaseVerifyMode" style="min-width: unset;">
+                                        <nb-option [value]="1">{{ 'SECURITY.COINBASE_VERIFY_BASIC' | translate }}</nb-option>
+                                        <nb-option [value]="2">{{ 'SECURITY.COINBASE_VERIFY_EXTENDED' | translate }}</nb-option>
+                                    </nb-select>
+                                    <div *ngIf="form.controls['coinbaseVerifyMode'].value === 2" style="display: flex; align-items: center; gap: 4px;">
+                                        <input nbInput formControlName="coinbaseMaxFee" type="number" min="0" max="100" step="0.1" style="width: 55px;" />
+                                        <span>%</span>
+                                    </div>
+                                    <span class="hint-tooltip" style="margin-left: 16px;">
+                                        <nb-checkbox formControlName="coinbaseVerifyForce">{{ 'SECURITY.COINBASE_VERIFY_FORCE' | translate }}</nb-checkbox>
+                                        <span class="hint-tooltip__text">{{ 'SECURITY.COINBASE_VERIFY_FORCE_TOOLTIP' | translate }}</span>
+                                    </span>
+                                </div>
+                                <small *ngIf="form.controls['coinbaseVerifyMode'].value === 1">{{ 'SECURITY.COINBASE_VERIFY_BASIC_HINT' | translate }}</small>
+                                <small *ngIf="form.controls['coinbaseVerifyMode'].value === 2">{{ 'SECURITY.COINBASE_VERIFY_EXTENDED_HINT' | translate }}</small>
+                            </div>
+                        </div>
                     </nb-card-body>
                 </nb-tab>
 
@@ -252,6 +278,32 @@
                             <nb-checkbox formControlName="fallbackStratumEnonceSubscribe">{{ 'MINING.ENABLE_EXTRANONCE'
                                 |
                                 translate }}</nb-checkbox>
+                        </div>
+                        <div class="form-row" style="align-items: flex-start;">
+                            <nb-checkbox [checked]="form.controls['fallbackCoinbaseVerifyMode'].value > 0"
+                                         (checkedChange)="toggleCoinbaseVerify($event, 'fallbackCoinbaseVerifyMode', 'lastFallbackCoinbaseVerifyMode')"
+                                         style="margin-top: 6px;">
+                                {{ 'SECURITY.COINBASE_VERIFY_TITLE' | translate }}
+                            </nb-checkbox>
+                            <div *ngIf="form.controls['fallbackCoinbaseVerifyMode'].value > 0"
+                                 style="flex: 1; min-width: 0; margin-left: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <nb-select formControlName="fallbackCoinbaseVerifyMode" style="min-width: unset;">
+                                        <nb-option [value]="1">{{ 'SECURITY.COINBASE_VERIFY_BASIC' | translate }}</nb-option>
+                                        <nb-option [value]="2">{{ 'SECURITY.COINBASE_VERIFY_EXTENDED' | translate }}</nb-option>
+                                    </nb-select>
+                                    <div *ngIf="form.controls['fallbackCoinbaseVerifyMode'].value === 2" style="display: flex; align-items: center; gap: 4px;">
+                                        <input nbInput formControlName="fallbackCoinbaseMaxFee" type="number" min="0" max="100" step="0.1" style="width: 55px;" />
+                                        <span>%</span>
+                                    </div>
+                                    <span class="hint-tooltip" style="margin-left: 16px;">
+                                        <nb-checkbox formControlName="fallbackCoinbaseVerifyForce">{{ 'SECURITY.COINBASE_VERIFY_FORCE' | translate }}</nb-checkbox>
+                                        <span class="hint-tooltip__text">{{ 'SECURITY.COINBASE_VERIFY_FORCE_TOOLTIP' | translate }}</span>
+                                    </span>
+                                </div>
+                                <small *ngIf="form.controls['fallbackCoinbaseVerifyMode'].value === 1">{{ 'SECURITY.COINBASE_VERIFY_BASIC_HINT' | translate }}</small>
+                                <small *ngIf="form.controls['fallbackCoinbaseVerifyMode'].value === 2">{{ 'SECURITY.COINBASE_VERIFY_EXTENDED_HINT' | translate }}</small>
+                            </div>
                         </div>
                     </nb-card-body>
                 </nb-tab>
@@ -463,14 +515,6 @@
                             </div>
                         </div>
 
-                        <div class="form-row" *ngIf="form.controls['fan1Mode'].value === 3">
-                            <label class="form-label"></label>
-                            <div class="form-control-wrapper">
-                                <small class="fan-sync-hint fan-sync-hint--important"
-                                       [innerHTML]="'FAN.FAN_SETTINGS_PORTS_HINT' | translate">
-                                </small>
-                            </div>
-                        </div>
 
                         <div *ngIf="form.controls['fan1Mode'].value === 0">
                             <div class="form-row">
@@ -518,7 +562,7 @@
                             </div>
                         </div>
 
-                        <div class="form-row" *ngIf="form.controls['fan1Mode'].value !== 3">
+                        <div class="form-row">
                             <label for="fan1OverheatTemp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
                             <div class="form-control-wrapper">
                                 <input nbInput id="fan1OverheatTemp" formControlName="fan1OverheatTemp" type="number" />
@@ -532,6 +576,9 @@
         <nb-card>
             <nb-card-header>{{ 'MISC.TITLE' | translate }}</nb-card-header>
             <nb-card-body>
+                <div class="form-row" *ngIf="hasCanExtension">
+                    <nb-checkbox formControlName="canMaster">CAN Master Mode</nb-checkbox>
+                </div>
                 <div class="form-row">
                     <nb-checkbox formControlName="flipscreen">{{ 'MISC.FLIP_SCREEN' | translate }}</nb-checkbox>
                 </div>
