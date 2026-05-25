@@ -75,10 +75,20 @@
     "HIDE_CHART": "Ascunde",
     "SHOW_CHART": "Arată",
     "STRATUM_NOT_CONNECTED": "Stratum nu este conectat pentru acest pool.",
+    "VERIFY_BLOCKED": "Pool blocat de verificare.",
+    "VERIFY_BLOCKED_ADDRESS": "Adresa dvs. nu a fost găsită în tranzacția coinbase.",
+    "VERIFY_BLOCKED_FEE": "Taxa pool-ului depășește limita configurată.",
     "RESET_STATS": "Resetează statisticile sesiunii",
     "RESET_STATS_CONFIRM": "Resetați toate statisticile sesiunii (acțiuni, dificultate optimă, erori)?",
     "RESET_STATS_SUCCESS": "Statisticile sesiunii au fost resetate.",
-    "RESET_STATS_FAILED": "Nu s-a putut reseta statisticile sesiunii."
+    "RESET_STATS_FAILED": "Nu s-a putut reseta statisticile sesiunii.",
+    "BLOCK_HEADER": "Antet bloc",
+    "BLOCK_HEIGHT": "Înălțime",
+    "BLOCK_DIFFICULTY": "Dificultate",
+    "BLOCK_SCRIPTSIG": "Scriptsig",
+    "BLOCK_VALUE": "Valoare",
+    "BLOCK_FEE": "Taxă",
+    "BLOCK_SHARE": "Cotă"
   },
   "PERFORMANCE": {
     "TITLE": "Performanță",
@@ -463,7 +473,9 @@
     "BLOCK_FOUND_DESC": "se declanșează când minerul dvs. găsește un bloc",
     "TEST": "Test",
     "BEST_DIFF_FOUND": "Dificultate optimă găsită",
-    "BEST_DIFF_FOUND_DESC": "se declanșează când dispozitivul găsește o nouă dificultate optimă"
+    "BEST_DIFF_FOUND_DESC": "se declanșează când dispozitivul găsește o nouă dificultate optimă",
+    "COINBASE_VERIFY_FAILED": "Verificare coinbase eșuată",
+    "COINBASE_VERIFY_FAILED_DESC": "se declanșează când coinbase-ul pool-ului nu conține adresa dvs. sau depășește limita de taxe configurată"
   },
   "LANGUAGE": {
     "TITLE": "Limbă / Langue",
@@ -558,6 +570,19 @@
     "FORGET_THIS_DEVICE_HELP": "Încheie încrederea pe 24 de ore pentru acest browser. Jetonul sesiunii locale este eliminat — următoarea acțiune protejată va necesita din nou un cod de 6 cifre.",
     "THIS_DEVICE_FORGOTTEN": "Acest browser a fost uitat.",
     "NO_TRUSTED_DEVICE_HELP": "Nicio sesiune de încredere în acest browser. Acțiunile protejate vor solicita un cod de 6 cifre până când alegeți \"Ține minte acest browser\".",
-    "NOT_TRUSTED": "Neîncredere"
+    "NOT_TRUSTED": "Neîncredere",
+    "COINBASE_VERIFY_TITLE": "Verificare Coinbase",
+    "COINBASE_VERIFY_HINT": "Verifică dacă adresa minerului dvs. apare în tranzacția coinbase a pool-ului. Când este activată, adresa din tabloul de bord devine verde dacă verificarea reușește.",
+    "COINBASE_VERIFY_BASIC_HINT": "Verifică dacă adresa dvs. apare în plata coinbase. Adresa din tabloul de bord devine verde dacă este găsită.",
+    "COINBASE_VERIFY_EXTENDED_HINT": "Verifică și dacă taxa pool-ului nu depășește limita configurată. Adresa devine roșie în tabloul de bord dacă limita este depășită.",
+    "COINBASE_VERIFY_FORCE": "Aplică",
+    "COINBASE_VERIFY_FORCE_TOOLTIP": "Deconectează și blochează pool-ul dacă verificarea eșuează.",
+    "COINBASE_VERIFY_MODE": "Mod de verificare",
+    "COINBASE_VERIFY_DISABLED": "Dezactivat",
+    "COINBASE_VERIFY_BASIC": "De bază",
+    "COINBASE_VERIFY_EXTENDED": "Extins",
+    "COINBASE_MAX_FEE": "Taxă pool maximă",
+    "COINBASE_MAX_FEE_HINT": "Verificarea eșuează dacă cota pool-ului din recompensa coinbase depășește acest procent (de ex. 3 pentru taxa de 3% a ckpool).",
+    "COINBASE_RECONNECT_HINT": "Salvarea va deconecta și reconecta scurt la pool pentru a aplica noile setări."
   }
 }

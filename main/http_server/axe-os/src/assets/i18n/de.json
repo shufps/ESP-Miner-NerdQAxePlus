@@ -40,6 +40,8 @@
     "HASHRATE_ESTIMATED": "Hash-Rate geschätzt durch gefundene Anteile.",
     "SHARES": "Anteile",
     "POWER": "Leistung",
+    "BEST_DIFFICULTY": "Beste Schwierigkeit",
+    "ALL_TIME_BEST": "aller Zeiten",
     "TEMPERATURE": "Temperatur",
     "FAN_SPEED": "Lüfter",
     "UPTIME": "Betriebszeit",

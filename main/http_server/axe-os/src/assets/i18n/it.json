@@ -75,10 +75,20 @@
     "HIDE_CHART": "Nascondi",
     "SHOW_CHART": "Mostra",
     "STRATUM_NOT_CONNECTED": "Stratum non connesso per questo pool.",
+    "VERIFY_BLOCKED": "Pool bloccato dalla verifica.",
+    "VERIFY_BLOCKED_ADDRESS": "Il tuo indirizzo non è stato trovato nella transazione coinbase.",
+    "VERIFY_BLOCKED_FEE": "La commissione del pool supera il limite configurato.",
     "RESET_STATS": "Ripristina statistiche sessione",
     "RESET_STATS_CONFIRM": "Ripristinare tutte le statistiche della sessione (azioni, difficoltà migliore, errori)?",
     "RESET_STATS_SUCCESS": "Statistiche sessione ripristinate.",
-    "RESET_STATS_FAILED": "Impossibile ripristinare le statistiche della sessione."
+    "RESET_STATS_FAILED": "Impossibile ripristinare le statistiche della sessione.",
+    "BLOCK_HEADER": "Intestazione blocco",
+    "BLOCK_HEIGHT": "Altezza",
+    "BLOCK_DIFFICULTY": "Difficoltà",
+    "BLOCK_SCRIPTSIG": "Scriptsig",
+    "BLOCK_VALUE": "Valore",
+    "BLOCK_FEE": "Commissione",
+    "BLOCK_SHARE": "Quota"
   },
   "PERFORMANCE": {
     "TITLE": "Prestazioni",
@@ -463,7 +473,9 @@
     "BLOCK_FOUND_DESC": "si attiva quando il tuo miner trova un blocco",
     "TEST": "Test",
     "BEST_DIFF_FOUND": "Difficoltà migliore trovata",
-    "BEST_DIFF_FOUND_DESC": "si attiva quando il dispositivo trova una nuova difficoltà migliore"
+    "BEST_DIFF_FOUND_DESC": "si attiva quando il dispositivo trova una nuova difficoltà migliore",
+    "COINBASE_VERIFY_FAILED": "Verifica coinbase fallita",
+    "COINBASE_VERIFY_FAILED_DESC": "si attiva quando la coinbase del pool non contiene il tuo indirizzo o supera il limite di commissione configurato"
   },
   "LANGUAGE": {
     "TITLE": "Lingua / Langue",
@@ -558,6 +570,19 @@
     "FORGET_THIS_DEVICE_HELP": "Termina la fiducia per 24 ore per questo browser. Il token di sessione locale viene rimosso — l'azione protetta successiva richiederà nuovamente un codice a 6 cifre.",
     "THIS_DEVICE_FORGOTTEN": "Questo browser è stato dimenticato.",
     "NO_TRUSTED_DEVICE_HELP": "Nessuna sessione attendibile in questo browser. Le azioni protette richiederanno un codice a 6 cifre fino a quando non scegli \"Ricorda questo browser\".",
-    "NOT_TRUSTED": "Non attendibile"
+    "NOT_TRUSTED": "Non attendibile",
+    "COINBASE_VERIFY_TITLE": "Verifica Coinbase",
+    "COINBASE_VERIFY_HINT": "Verifica che l'indirizzo del tuo miner appaia nella transazione coinbase del pool. Quando abilitata, l'indirizzo nella dashboard diventa verde se la verifica ha successo.",
+    "COINBASE_VERIFY_BASIC_HINT": "Controlla che il tuo indirizzo appaia nel pagamento coinbase. L'indirizzo nella dashboard diventa verde se trovato.",
+    "COINBASE_VERIFY_EXTENDED_HINT": "Controlla anche che la commissione del pool non superi il limite configurato. L'indirizzo diventa rosso nella dashboard se il limite viene superato.",
+    "COINBASE_VERIFY_FORCE": "Applica",
+    "COINBASE_VERIFY_FORCE_TOOLTIP": "Disconnette e blocca il pool se la verifica fallisce.",
+    "COINBASE_VERIFY_MODE": "Modalità di verifica",
+    "COINBASE_VERIFY_DISABLED": "Disabilitato",
+    "COINBASE_VERIFY_BASIC": "Base",
+    "COINBASE_VERIFY_EXTENDED": "Esteso",
+    "COINBASE_MAX_FEE": "Commissione pool massima",
+    "COINBASE_MAX_FEE_HINT": "La verifica fallisce se la quota del pool nella ricompensa coinbase supera questa percentuale (ad es. 3 per la commissione del 3% di ckpool).",
+    "COINBASE_RECONNECT_HINT": "Il salvataggio disconnetterà brevemente dal pool e si riconnetterà per applicare le nuove impostazioni."
   }
 }

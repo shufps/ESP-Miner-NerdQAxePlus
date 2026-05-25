@@ -75,10 +75,20 @@
     "HIDE_CHART": "Ukryj",
     "SHOW_CHART": "Pokaż",
     "STRATUM_NOT_CONNECTED": "Stratum nie jest połączony dla tego poola.",
+    "VERIFY_BLOCKED": "Pool zablokowany przez weryfikację.",
+    "VERIFY_BLOCKED_ADDRESS": "Twój adres nie został znaleziony w transakcji coinbase.",
+    "VERIFY_BLOCKED_FEE": "Opłata poola przekracza skonfigurowany limit.",
     "RESET_STATS": "Resetuj statystyki sesji",
     "RESET_STATS_CONFIRM": "Zresetować wszystkie statystyki sesji (udziały, najlepszą trudność, błędy)?",
     "RESET_STATS_SUCCESS": "Statystyki sesji zresetowane.",
-    "RESET_STATS_FAILED": "Nie udało się zresetować statystyk sesji."
+    "RESET_STATS_FAILED": "Nie udało się zresetować statystyk sesji.",
+    "BLOCK_HEADER": "Nagłówek bloku",
+    "BLOCK_HEIGHT": "Wysokość",
+    "BLOCK_DIFFICULTY": "Trudność",
+    "BLOCK_SCRIPTSIG": "Scriptsig",
+    "BLOCK_VALUE": "Wartość",
+    "BLOCK_FEE": "Opłata",
+    "BLOCK_SHARE": "Udział"
   },
   "PERFORMANCE": {
     "TITLE": "Wydajność",
@@ -463,7 +473,9 @@
     "BLOCK_FOUND_DESC": "wyzwala się, gdy górnik znajduje blok",
     "TEST": "Test",
     "BEST_DIFF_FOUND": "Znaleziono najlepszą trudność",
-    "BEST_DIFF_FOUND_DESC": "wyzwala się, gdy urządzenie znajdzie nową najlepszą trudność"
+    "BEST_DIFF_FOUND_DESC": "wyzwala się, gdy urządzenie znajdzie nową najlepszą trudność",
+    "COINBASE_VERIFY_FAILED": "Weryfikacja coinbase nie powiodła się",
+    "COINBASE_VERIFY_FAILED_DESC": "wyzwala się, gdy coinbase poola nie zawiera twojego adresu lub przekracza skonfigurowany limit opłat"
   },
   "LANGUAGE": {
     "TITLE": "Język / Langue",
@@ -558,6 +570,19 @@
     "FORGET_THIS_DEVICE_HELP": "Kończy zaufanie przez 24 godziny dla tej przeglądarki. Token sesji lokalnej jest usuwany — następne chronione działanie będzie wymagać 6-cyfrowego kodu.",
     "THIS_DEVICE_FORGOTTEN": "Ta przeglądarka została zapomniana.",
     "NO_TRUSTED_DEVICE_HELP": "Brak zaufanej sesji w tej przeglądarce. Chronione działania będą wymagać 6-cyfrowego kodu, aż wybierzesz \"Zapamiętaj tę przeglądarkę\".",
-    "NOT_TRUSTED": "Niezaufane"
+    "NOT_TRUSTED": "Niezaufane",
+    "COINBASE_VERIFY_TITLE": "Weryfikacja Coinbase",
+    "COINBASE_VERIFY_HINT": "Sprawdza, czy adres twojego górnika pojawia się w transakcji coinbase poola. Po włączeniu adres na pulpicie staje się zielony, jeśli weryfikacja się powiedzie.",
+    "COINBASE_VERIFY_BASIC_HINT": "Sprawdza, czy twój adres pojawia się w wypłacie coinbase. Adres na pulpicie staje się zielony, jeśli zostanie znaleziony.",
+    "COINBASE_VERIFY_EXTENDED_HINT": "Sprawdza również, czy opłata poola nie przekracza skonfigurowanego limitu. Adres staje się czerwony na pulpicie, jeśli limit zostanie przekroczony.",
+    "COINBASE_VERIFY_FORCE": "Wymuś",
+    "COINBASE_VERIFY_FORCE_TOOLTIP": "Rozłącza i blokuje pool, jeśli weryfikacja się nie powiedzie.",
+    "COINBASE_VERIFY_MODE": "Tryb weryfikacji",
+    "COINBASE_VERIFY_DISABLED": "Wyłączony",
+    "COINBASE_VERIFY_BASIC": "Podstawowy",
+    "COINBASE_VERIFY_EXTENDED": "Rozszerzony",
+    "COINBASE_MAX_FEE": "Maks. opłata poola",
+    "COINBASE_MAX_FEE_HINT": "Weryfikacja kończy się niepowodzeniem, jeśli udział poola w nagrodzie coinbase przekracza ten procent (np. 3 dla opłaty 3% ckpoola).",
+    "COINBASE_RECONNECT_HINT": "Zapisanie krótko rozłączy i ponownie połączy z poolem, aby zastosować nowe ustawienia."
   }
 }

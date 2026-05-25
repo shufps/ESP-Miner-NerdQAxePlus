@@ -41,6 +41,7 @@
     "SHARES": "Parts",
     "POWER": "Puissance",
     "BEST_DIFFICULTY": "Meilleure difficulté",
+    "ALL_TIME_BEST": "record absolu",
     "TEMPERATURE": "Température",
     "FAN_SPEED": "Vitesse du Ventilateur",
     "UPTIME": "Temps de Fonctionnement",
@@ -74,6 +75,9 @@
     "HIDE_CHART": "masquer",
     "SHOW_CHART": "afficher",
     "STRATUM_NOT_CONNECTED": "Stratum non connecté pour ce pool.",
+    "VERIFY_BLOCKED": "Pool bloqué par la vérification.",
+    "VERIFY_BLOCKED_ADDRESS": "Votre adresse n'a pas été trouvée dans la transaction coinbase.",
+    "VERIFY_BLOCKED_FEE": "Les frais du pool dépassent la limite configurée.",
     "RESET_STATS": "Réinitialiser les stats de session",
     "RESET_STATS_CONFIRM": "Réinitialiser toutes les stats de session (shares, meilleure diff, erreurs) ?",
     "RESET_STATS_SUCCESS": "Stats de session réinitialisées.",
@@ -94,6 +98,7 @@
     "INPUT_VOLTAGE": "Tension d'Entrée",
     "ASIC_VOLTAGE": "Tension ASIC",
     "ASIC_VOLTAGE_MEASURED": "Tension ASIC Mesurée",
+    "BEST_DIFFICULTY": "Meilleure difficulté",
     "HEAT": "Chaleur",
     "TITLE_HEAT": "Chaleur",
     "ASIC_TEMP": "Temp ASIC",
@@ -160,6 +165,14 @@
     "TIME_FORMAT": "Format d'Heure",
     "TIME_FORMAT_24H": "Format 24 heures",
     "TIME_FORMAT_12H": "Format 12 heures (AM/PM)",
+    "STRATUM_PROTOCOL": "Protocole Stratum",
+    "STRATUM_V1": "Stratum V1",
+    "STRATUM_V2": "Stratum V2",
+    "SV2_AUTHORITY_PUBKEY": "Clé publique SV2 Authority",
+    "SV2_AUTHORITY_PUBKEY_HINT": "Clé optionnelle encodée en Base58 pour la vérification du certificat du serveur.",
+    "SV2_CHANNEL_TYPE": "Type de canal SV2",
+    "SV2_CHANNEL_EXTENDED": "Canal étendu",
+    "SV2_CHANNEL_STANDARD": "Canal standard (expérimental)",
     "POOL_MODE": "Mode de pool",
     "POOL_MODE_FAILOVER": "Failover (primaire/secours)",
     "POOL_MODE_DUAL": "Pool double",
@@ -460,7 +473,9 @@
     "BLOCK_FOUND_DESC": "se déclenche lorsque votre mineur trouve un bloc",
     "TEST": "Test",
     "BEST_DIFF_FOUND": "Meilleure difficulté trouvée",
-    "BEST_DIFF_FOUND_DESC": "se déclenche lorsque l’appareil trouve une nouvelle meilleure difficulté"
+    "BEST_DIFF_FOUND_DESC": "se déclenche lorsque l’appareil trouve une nouvelle meilleure difficulté",
+    "COINBASE_VERIFY_FAILED": "Vérification coinbase échouée",
+    "COINBASE_VERIFY_FAILED_DESC": "se déclenche lorsque la coinbase du pool ne contient pas votre adresse ou dépasse la limite de frais configurée"
   },
   "LANGUAGE": {
     "TITLE": "Langue / Language",
@@ -562,6 +577,12 @@
     "COINBASE_VERIFY_BASIC": "Basique (adresse dans coinbase)",
     "COINBASE_VERIFY_EXTENDED": "Étendu (adresse + limite de frais)",
     "COINBASE_MAX_FEE": "Frais pool max",
-    "COINBASE_MAX_FEE_HINT": "La vérification échoue si la part du pool dans la récompense coinbase dépasse ce pourcentage (ex. 3 pour les frais de 3% de ckpool)."
+    "COINBASE_MAX_FEE_HINT": "La vérification échoue si la part du pool dans la récompense coinbase dépasse ce pourcentage (ex. 3 pour les frais de 3% de ckpool).",
+    "COINBASE_VERIFY_BASIC_HINT": "Vérifie que votre adresse apparaît dans le paiement coinbase. L'adresse dans le tableau de bord devient verte si trouvée.",
+    "COINBASE_VERIFY_EXTENDED_HINT": "Vérifie aussi que les frais du pool ne dépassent pas la limite configurée. L'adresse devient rouge dans le tableau de bord si la limite est dépassée.",
+    "COINBASE_VERIFY_FORCE": "Appliquer",
+    "COINBASE_VERIFY_FORCE_TOOLTIP": "Déconnecte et bloque le pool si la vérification échoue.",
+    "COINBASE_VERIFY_DISABLED": "Désactivé",
+    "COINBASE_RECONNECT_HINT": "La sauvegarde déconnectera brièvement du pool et le reconnectera pour appliquer les nouveaux paramètres."
   }
 }

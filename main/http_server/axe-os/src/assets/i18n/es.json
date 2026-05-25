@@ -40,6 +40,8 @@
     "HASHRATE_ESTIMATED": "Tasa de hash estimada por las acciones encontradas.",
     "SHARES": "Acciones",
     "POWER": "Potencia",
+    "BEST_DIFFICULTY": "Mejor Dificultad",
+    "ALL_TIME_BEST": "récord absoluto",
     "TEMPERATURE": "Temperatura",
     "FAN_SPEED": "Velocidad del Ventilador",
     "UPTIME": "Tiempo de Actividad",
@@ -73,6 +75,9 @@
     "HIDE_CHART": "ocultar",
     "SHOW_CHART": "mostrar",
     "STRATUM_NOT_CONNECTED": "Stratum no conectado para este pool.",
+    "VERIFY_BLOCKED": "Pool bloqueado por verificación.",
+    "VERIFY_BLOCKED_ADDRESS": "Tu dirección no fue encontrada en la transacción coinbase.",
+    "VERIFY_BLOCKED_FEE": "La comisión del pool excede el límite configurado.",
     "RESET_STATS": "Restablecer estadísticas de sesión",
     "RESET_STATS_CONFIRM": "¿Restablecer todas las estadísticas de sesión (shares, mejor diff, errores)?",
     "RESET_STATS_SUCCESS": "Estadísticas de sesión restablecidas.",
@@ -160,6 +165,14 @@
     "TIME_FORMAT": "Formato de Hora",
     "TIME_FORMAT_24H": "Formato 24 horas",
     "TIME_FORMAT_12H": "Formato 12 horas (AM/PM)",
+    "STRATUM_PROTOCOL": "Protocolo Stratum",
+    "STRATUM_V1": "Stratum V1",
+    "STRATUM_V2": "Stratum V2",
+    "SV2_AUTHORITY_PUBKEY": "Clave pública SV2 Authority",
+    "SV2_AUTHORITY_PUBKEY_HINT": "Clave opcional codificada en Base58 para verificación del certificado del servidor.",
+    "SV2_CHANNEL_TYPE": "Tipo de canal SV2",
+    "SV2_CHANNEL_EXTENDED": "Canal extendido",
+    "SV2_CHANNEL_STANDARD": "Canal estándar (experimental)",
     "POOL_MODE": "Modo de pool",
     "POOL_MODE_FAILOVER": "Failover (primario/secundario)",
     "POOL_MODE_DUAL": "Pool dual",
@@ -460,7 +473,9 @@
     "BLOCK_FOUND_DESC": "se activa cuando tu minero encuentra un bloque",
     "TEST": "Prueba",
     "BEST_DIFF_FOUND": "Mejor dificultad encontrada",
-    "BEST_DIFF_FOUND_DESC": "se activa cuando el dispositivo encuentra una nueva mejor dificultad"
+    "BEST_DIFF_FOUND_DESC": "se activa cuando el dispositivo encuentra una nueva mejor dificultad",
+    "COINBASE_VERIFY_FAILED": "Verificación de coinbase fallida",
+    "COINBASE_VERIFY_FAILED_DESC": "se activa cuando la coinbase del pool no contiene tu dirección o excede el límite de comisión configurado"
   },
   "LANGUAGE": {
     "TITLE": "Idioma / Language",
@@ -562,6 +577,12 @@
     "COINBASE_VERIFY_BASIC": "Básico (dirección en coinbase)",
     "COINBASE_VERIFY_EXTENDED": "Extendido (dirección + límite de comisión)",
     "COINBASE_MAX_FEE": "Comisión máxima del pool",
-    "COINBASE_MAX_FEE_HINT": "La verificación falla si la parte del pool en la recompensa coinbase supera este porcentaje (p. ej. 3 para la comisión del 3% de ckpool)."
+    "COINBASE_MAX_FEE_HINT": "La verificación falla si la parte del pool en la recompensa coinbase supera este porcentaje (p. ej. 3 para la comisión del 3% de ckpool).",
+    "COINBASE_VERIFY_BASIC_HINT": "Comprueba que tu dirección aparezca en el pago coinbase. La dirección en el panel se vuelve verde si se encuentra.",
+    "COINBASE_VERIFY_EXTENDED_HINT": "También comprueba que la comisión del pool no exceda el límite configurado. La dirección se vuelve roja en el panel si se excede el límite.",
+    "COINBASE_VERIFY_FORCE": "Forzar",
+    "COINBASE_VERIFY_FORCE_TOOLTIP": "Desconecta y bloquea el pool si la verificación falla.",
+    "COINBASE_VERIFY_DISABLED": "Desactivado",
+    "COINBASE_RECONNECT_HINT": "Guardar desconectará y reconectará brevemente al pool para aplicar la nueva configuración."
   }
 }
