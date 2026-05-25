@@ -70,17 +70,17 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         slave["power"]              = has_telem ? t.power             : 0.0f;
         slave["current"]            = has_telem ? t.current           : 0;
         slave["coreVoltageActual"]  = has_telem ? t.coreVoltageActual : 0;
-        slave["fanrpm"]             = has_telem ? t.fanRpm            : 0;   // info: "fanrpm"
+        slave["fanRpm"]             = has_telem ? t.fanRpm            : 0;   // info: "fanRpm"
         slave["fanrpm2"]            = has_telem ? t.fanRpm2           : 0;   // info: "fanrpm2"
-        slave["fanspeed"]           = has_telem ? t.fanSpeed          : 0;   // info: "fanspeed"
+        slave["fanSpeed"]           = has_telem ? t.fanSpeed          : 0;   // info: "fanSpeed"
         slave["fanspeed2"]          = has_telem ? t.fanSpeed2         : 0;   // info: "fanspeed2"
         slave["shutdown"]           = has_telem && t.shutdown;
         slave["boardError"]         = has_telem ? t.boardError        : 0;
         slave["freeHeapInt"]        = has_telem ? t.freeHeap          : 0;
         slave["frequency"]          = has_config ? cfg.freqMhz        : 0;   // info: "frequency"
         slave["coreVoltage"]        = has_config ? cfg.voltageMv      : 0;   // info: "coreVoltage"
-        slave["flipscreen"]         = has_config && cfg.flipScreen;           // info: "flipscreen"
-        slave["autoscreenoff"]      = has_config && cfg.autoScreenOff;        // info: "autoscreenoff"
+        slave["flipScreen"]         = has_config && cfg.flipScreen;           // info: "flipScreen"
+        slave["autoScreenOff"]      = has_config && cfg.autoScreenOff;        // info: "autoScreenOff"
 
         {
             JsonArray asic_temps = slave["asicTemps"].to<JsonArray>();
@@ -166,9 +166,9 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
         }
     }
 
-    if (doc["flipscreen"].is<bool>() || doc["autoscreenoff"].is<bool>()) {
-        uint8_t flip    = doc["flipscreen"].as<bool>()    ? 1 : 0;
-        uint8_t autoOff = doc["autoscreenoff"].as<bool>() ? 1 : 0;
+    if (doc["flipScreen"].is<bool>() || doc["autoScreenOff"].is<bool>()) {
+        uint8_t flip    = doc["flipScreen"].as<bool>()    ? 1 : 0;
+        uint8_t autoOff = doc["autoScreenOff"].as<bool>() ? 1 : 0;
         can_master_set_slave_display(slave_id, flip, autoOff);
     }
 

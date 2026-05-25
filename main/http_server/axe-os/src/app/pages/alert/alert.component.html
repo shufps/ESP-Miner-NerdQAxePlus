@@ -15,28 +15,28 @@
 
         <!-- Checkboxes with inline descriptions -->
         <div class="form-row">
-          <nb-checkbox formControlName="alertDiscordWatchdogEnable" class="cb-line">
+          <nb-checkbox formControlName="watchdogEnable" class="cb-line">
             <span class="cb-title">{{ 'DISCORD.MINER_WATCHDOG' | translate }}</span>
             <span class="cb-desc">— {{ 'DISCORD.MINER_WATCHDOG_DESC' | translate }}</span>
           </nb-checkbox>
         </div>
 
         <div class="form-row">
-          <nb-checkbox formControlName="alertDiscordBlockFoundEnable" class="cb-line">
+          <nb-checkbox formControlName="blockFoundEnable" class="cb-line">
             <span class="cb-title">{{ 'DISCORD.BLOCK_FOUND' | translate }}</span>
             <span class="cb-desc">— {{ 'DISCORD.BLOCK_FOUND_DESC' | translate }}</span>
           </nb-checkbox>
         </div>
 
         <div class="form-row">
-          <nb-checkbox formControlName="alertDiscordBestDiffEnable" class="cb-line">
+          <nb-checkbox formControlName="bestDiffEnable" class="cb-line">
             <span class="cb-title">{{ 'DISCORD.BEST_DIFF_FOUND' | translate }}</span>
             <span class="cb-desc">— {{ 'DISCORD.BEST_DIFF_FOUND_DESC' | translate }}</span>
           </nb-checkbox>
         </div>
 
         <div class="form-row">
-          <nb-checkbox formControlName="alertDiscordCoinbaseVerifyEnable" class="cb-line">
+          <nb-checkbox formControlName="coinbaseVerifyEnable" class="cb-line">
             <span class="cb-title">{{ 'DISCORD.COINBASE_VERIFY_FAILED' | translate }}</span>
             <span class="cb-desc">— {{ 'DISCORD.COINBASE_VERIFY_FAILED_DESC' | translate }}</span>
           </nb-checkbox>
@@ -44,12 +44,12 @@
         <!-- Webhook -->
         <div class="form-row webhook-row mt-3">
           <div class="form-control-wrapper webhook-control">
-            <label for="alertDiscordWebhook" class="form-label webhook-label">{{ 'DISCORD.WEBHOOK_URL' | translate }}:</label>
+            <label for="webhookUrl" class="form-label webhook-label">{{ 'DISCORD.WEBHOOK_URL' | translate }}:</label>
             <input
               nbInput
-              id="alertDiscordWebhook"
+              id="webhookUrl"
               type="password"
-              formControlName="alertDiscordWebhook"
+              formControlName="webhookUrl"
               placeholder="https://example.com/webhook/alerts"
             />
             <small>{{ 'DISCORD.WEBHOOK_HELP' | translate }}</small>
@@ -67,7 +67,7 @@
         </div>
 
         <div class="form-row">
-          <nb-checkbox formControlName="showBlockFoundScreenEnable" class="cb-line">
+          <nb-checkbox formControlName="showBlockFoundScreen" class="cb-line">
             <span class="cb-title">{{ 'DISPLAY.BLOCK_FOUND_SCREEN' | translate }}</span>
             <span class="cb-desc">— {{ 'DISPLAY.BLOCK_FOUND_SCREEN_DESC' | translate }}</span>
           </nb-checkbox>

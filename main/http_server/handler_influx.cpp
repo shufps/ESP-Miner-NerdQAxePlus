@@ -38,12 +38,12 @@ esp_err_t GET_influx_info(httpd_req_t *req)
     JsonDocument doc(&allocator);
 
     // Fill the JSON object with values
-    doc["influxURL"]    = influxURL;
-    doc["influxPort"]   = Config::getInfluxPort();
-    doc["influxBucket"] = influxBucket;
-    doc["influxOrg"]    = influxOrg;
-    doc["influxPrefix"] = influxPrefix;
-    doc["influxEnable"] = Config::isInfluxEnabled() ? 1 : 0;
+    doc["url"]    = influxURL;
+    doc["port"]   = Config::getInfluxPort();
+    doc["bucket"] = influxBucket;
+    doc["org"]    = influxOrg;
+    doc["prefix"] = influxPrefix;
+    doc["enabled"] = Config::isInfluxEnabled() ? 1 : 0;
 
     // Serialize the JSON document into a string (using Arduino's String type)
     esp_err_t ret = sendJsonResponse(req, doc);
@@ -88,26 +88,26 @@ esp_err_t PATCH_update_influx(httpd_req_t *req)
     }
 
     // Check and apply each setting if the key exists and has the correct type
-    if (doc["influxEnable"].is<bool>()) {
-        Config::setInfluxEnabled(doc["influxEnable"].as<bool>());
+    if (doc["enabled"].is<bool>()) {
+        Config::setInfluxEnabled(doc["enabled"].as<bool>());
     }
-    if (doc["influxURL"].is<const char*>()) {
-        Config::setInfluxURL(doc["influxURL"].as<const char*>());
+    if (doc["url"].is<const char*>()) {
+        Config::setInfluxURL(doc["url"].as<const char*>());
     }
-    if (doc["influxPort"].is<uint16_t>()) {
-        Config::setInfluxPort(doc["influxPort"].as<uint16_t>());
+    if (doc["port"].is<uint16_t>()) {
+        Config::setInfluxPort(doc["port"].as<uint16_t>());
     }
-    if (doc["influxToken"].is<const char*>()) {
-        Config::setInfluxToken(doc["influxToken"].as<const char*>());
+    if (doc["token"].is<const char*>()) {
+        Config::setInfluxToken(doc["token"].as<const char*>());
     }
-    if (doc["influxBucket"].is<const char*>()) {
-        Config::setInfluxBucket(doc["influxBucket"].as<const char*>());
+    if (doc["bucket"].is<const char*>()) {
+        Config::setInfluxBucket(doc["bucket"].as<const char*>());
     }
-    if (doc["influxOrg"].is<const char*>()) {
-        Config::setInfluxOrg(doc["influxOrg"].as<const char*>());
+    if (doc["org"].is<const char*>()) {
+        Config::setInfluxOrg(doc["org"].as<const char*>());
     }
-    if (doc["influxPrefix"].is<const char*>()) {
-        Config::setInfluxPrefix(doc["influxPrefix"].as<const char*>());
+    if (doc["prefix"].is<const char*>()) {
+        Config::setInfluxPrefix(doc["prefix"].as<const char*>());
     }
 
     doc.clear();

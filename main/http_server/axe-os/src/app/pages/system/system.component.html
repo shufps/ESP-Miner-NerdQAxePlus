@@ -6,7 +6,7 @@
       <table class="overview-table">
         <tr>
           <td><b>{{ 'SYSTEM.MODEL' | translate }}:</b></td>
-          <td>{{ info.deviceModel }} ({{ info.ASICModel }})</td>
+          <td>{{ info.deviceModel }} ({{ info.asicModel }})</td>
         </tr>
         <tr>
           <td><b>{{ 'SYSTEM.UPTIME' | translate }}:</b></td>
@@ -32,14 +32,14 @@
           <td><b>{{ 'SYSTEM.WIFI_STATUS' | translate }}:</b></td>
           <td>
             <span class="wifi-status-combined">
-              {{ info.wifiStatus | translate }}
+              {{ info.network.wifiStatus | translate }}
               <span class="rssi-inline">
-                ({{ info.wifiRSSI }} dBm)
-                <div class="wifi-bars" [attr.title]="getRssiTooltip(info.wifiRSSI)">
-                  <div class="bar" [class.active]="info.wifiRSSI > -85"></div>
-                  <div class="bar" [class.active]="info.wifiRSSI > -75"></div>
-                  <div class="bar" [class.active]="info.wifiRSSI > -65"></div>
-                  <div class="bar" [class.active]="info.wifiRSSI > -55"></div>
+                ({{ info.network.wifiRSSI }} dBm)
+                <div class="wifi-bars" [attr.title]="getRssiTooltip(info.network.wifiRSSI)">
+                  <div class="bar" [class.active]="info.network.wifiRSSI > -85"></div>
+                  <div class="bar" [class.active]="info.network.wifiRSSI > -75"></div>
+                  <div class="bar" [class.active]="info.network.wifiRSSI > -65"></div>
+                  <div class="bar" [class.active]="info.network.wifiRSSI > -55"></div>
                 </div>
               </span>
             </span>
@@ -47,11 +47,11 @@
         </tr>
         <tr>
           <td><b>{{ 'SYSTEM.MAC_ADDRESS' | translate }}:</b></td>
-          <td>{{ info.macAddr }}</td>
+          <td>{{ info.network.macAddr }}</td>
         </tr>
         <tr>
           <td><b>{{ 'SYSTEM.FREE_HEAP_MEMORY' | translate }}:</b></td>
-          <td>SRAM: {{ info.freeHeapInt }}, PSRAM: {{ info.freeHeap }}</td>
+          <td>SRAM: {{ info.memory.freeHeapInt }}, PSRAM: {{ info.memory.freeHeap }}</td>
         </tr>
         <tr>
           <td><b>{{ 'SYSTEM.VERSION' | translate }}:</b></td>

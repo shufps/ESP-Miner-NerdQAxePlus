@@ -12,7 +12,6 @@ import {
   catchError,
   filter as rxFilter,
   interval,
-  map,
   Observable,
   of,
   shareReplay,
@@ -27,7 +26,7 @@ import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { NbThemeService, NbToastrService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 
-import { ISystemInfo } from '../../models/ISystemInfo';
+import { ISystemV2 } from '../../models/ISystemV2';
 import { LoadingService } from '../../services/loading.service';
 import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 import { SystemService } from '../../services/system.service';
@@ -51,7 +50,7 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
   @ViewChild('viewport') viewport?: CdkVirtualScrollViewport;
 
   /** Periodic system info stream. */
-  public info$: Observable<ISystemInfo>;
+  public info$: Observable<ISystemV2>;
 
   /** Full log buffer (capped by `maxLogs`). */
   public logs: LogLine[] = [];
@@ -140,19 +139,7 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
 
     this.info$ = interval(5000).pipe(
       startWith(0),
-      switchMap(() => this.systemService.getInfo()),
-      map(info => {
-        info.power = parseFloat(info.power.toFixed(1));
-        info.voltage = parseFloat((info.voltage / 1000).toFixed(1));
-        info.current = parseFloat((info.current / 1000).toFixed(1));
-        info.coreVoltageActual = parseFloat((info.coreVoltageActual / 1000).toFixed(2));
-        info.coreVoltage = parseFloat((info.coreVoltage / 1000).toFixed(2));
-
-        // Fixed log limit (independent of device heap)
-        this.updateMaxLogsFromHeap(info.freeHeap);
-
-        return info;
-      }),
+      switchMap(() => this.systemService.getSystemV2()),
       shareReplay({ refCount: true, bufferSize: 1 })
     );
 
@@ -255,20 +242,6 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
 
       this.cdr.markForCheck();
     }
-  }
-
-  /**
-   * Sets the maximum number of stored log lines.
-   * The limit is fixed to 10,000 lines (independent of device free heap).
-   *
-   * Input:
-   *  @param _freeHeap number - Free heap memory reported by the device (bytes)
-   *
-   * Output: void
-   * Side effects: updates `maxLogs`
-   */
-  private updateMaxLogsFromHeap(_freeHeap: number) {
-    this.maxLogs = 10000;
   }
 
   /**

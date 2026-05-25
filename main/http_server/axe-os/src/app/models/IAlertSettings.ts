@@ -1,7 +1,8 @@
 export interface IAlertSettings {
-  alertDiscordWebhook: string;
-  alertDiscordWatchdogEnable: boolean;
-  alertDiscordBlockFoundEnable: boolean;
-  alertDiscordBestDiffEnable: boolean;
-  showBlockFoundScreenEnable: boolean;
+  webhookUrl: string;
+  watchdogEnable: boolean;
+  blockFoundEnable: boolean;
+  bestDiffEnable: boolean;
+  coinbaseVerifyEnable: boolean;
+  showBlockFoundScreen: boolean;
 }

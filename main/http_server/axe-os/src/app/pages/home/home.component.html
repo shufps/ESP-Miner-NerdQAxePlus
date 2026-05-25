@@ -17,7 +17,7 @@
         [style.left.px]="poolVerifyTooltipX" [style.top.px]="poolVerifyTooltipY"
         aria-hidden="true">{{ getPoolVerificationTooltip(1) }}</span>
   <div *ngIf="info$ | async as info; else loading">
-    <div *ngIf="!info.shutdown; else shutdown">
+    <div *ngIf="!info.system.shutdown; else shutdown">
       <!-- Chart (full width, top) -->
       <div class="row d-flex align-items-stretch">
         <div class="col-12">
@@ -114,7 +114,7 @@
       <!-- Hashrate summary + Pools (side-by-side) -->
       <div class="row mt-3 d-flex align-items-stretch">
         <!-- Left col: hashrate square (normal) OR fleet summary (CAN master) -->
-        <div class="col-12 col-xl-6" *ngIf="!info.can?.enabled">
+        <div class="col-12 col-xl-6" *ngIf="!info.can.enabled">
           <div class="pool-summary-square h-100" role="group" [attr.aria-label]="'HOME.HASH_RATE' | translate">
             <!-- Left column: Hashrate + Expected + ASIC Frequency bar -->
             <div class="pool-summary-square__left">
@@ -125,7 +125,7 @@
                     <!-- Always show total hashrate as the big number -->
                     <div class="pool-summary-square__hashrate-main">
                       <div class="pool-summary-square__hashrate-value">
-                        {{ info.hashRate | number: '1.2-2' }}
+                        {{ info.performance.hashRate | number: '1.2-2' }}
                         <span class="pool-summary-square__hashrate-unit">{{ 'UNITS.HASHRATE' | translate }}</span>
                       </div>
 
@@ -167,8 +167,8 @@
                   </ng-container>
 
                   <div class="pool-summary-square__uptime"
-                       *ngIf="info.uptimeSeconds !== undefined && info.uptimeSeconds !== null">
-                    <div class="pool-summary-square__uptime-value">{{ formatUptime(info.uptimeSeconds) }}</div>
+                       *ngIf="info.system.uptime !== undefined && info.system.uptime !== null">
+                    <div class="pool-summary-square__uptime-value">{{ formatUptime(info.system.uptime) }}</div>
                     <div class="pool-summary-square__uptime-label">{{ 'SYSTEM.UPTIME' | translate }}</div>
                   </div>
                 </div>
@@ -178,12 +178,12 @@
                 <!-- ASIC frequency bar (device-scaled using m_asicFrequencies when available) -->
                 <!-- Never warn-color within normal range; only turn yellow when above max. -->
                 <div class="power-bar pool-summary-square__bar" role="img"
-                     [class.power-bar--warn]="isBarOver(info.frequency, asicFreqMax(info))"
-                     [class.power-bar--max]="isBarMax(info.frequency, asicFreqMax(info))"
-                     [attr.aria-label]="('PERFORMANCE.ASIC_FREQUENCY' | translate) + ': ' + (info.frequency | number: '1.0-0') + ' MHz'">
-                  <div class="power-bar__fill" [style.width.%]="toPct(info.frequency, 0, asicFreqMax(info))"></div>
+                     [class.power-bar--warn]="isBarOver(info.performance.frequency, asicFreqMax(info))"
+                     [class.power-bar--max]="isBarMax(info.performance.frequency, asicFreqMax(info))"
+                     [attr.aria-label]="('PERFORMANCE.ASIC_FREQUENCY' | translate) + ': ' + (info.performance.frequency | number: '1.0-0') + ' MHz'">
+                  <div class="power-bar__fill" [style.width.%]="toPct(info.performance.frequency, 0, asicFreqMax(info))"></div>
                   <div class="power-bar__label">{{ 'PERFORMANCE.ASIC_FREQUENCY' | translate }}</div>
-                  <div class="power-bar__value">{{ info.frequency | number: '1.0-0' }}<span
+                  <div class="power-bar__value">{{ info.performance.frequency | number: '1.0-0' }}<span
                     class="unit">&nbsp;MHz</span></div>
                 </div>
               </div>
@@ -192,11 +192,11 @@
 
             <!-- Right column: All‑time best square -->
             <div class="pool-summary-square__best" role="img"
-                 [attr.aria-label]="('PERFORMANCE.BEST_DIFFICULTY' | translate) + ': ' + (info.bestDiff | humanReadable)">
+                 [attr.aria-label]="('PERFORMANCE.BEST_DIFFICULTY' | translate) + ': ' + (info.performance.bestDiff | humanReadable)">
               <div class="pool-summary-square__best-inner">
                 <div class="pool-summary-square__best-label">{{ 'PERFORMANCE.BEST_DIFFICULTY' | translate }}</div>
                 <div class="pool-summary-square__best-value">
-                  <ng-container *ngIf="splitHumanReadable(info.bestDiff | humanReadable) as bd">
+                  <ng-container *ngIf="splitHumanReadable(info.performance.bestDiff | humanReadable) as bd">
                     {{ bd.value }}<span class="unit" *ngIf="bd.unit">&nbsp;{{ bd.unit }}</span>
                   </ng-container>
                 </div>
@@ -207,7 +207,7 @@
         </div>
 
         <!-- CAN Master: fleet summary in place of hashrate square -->
-        <div class="col-12 col-xl-6" *ngIf="info.can?.enabled">
+        <div class="col-12 col-xl-6" *ngIf="info.can.enabled">
           <div class="pool-summary-square pool-summary-square--fleet h-100" role="group">
 
             <!-- Top: hashrate + uptime (same as pool-summary-square__left) -->
@@ -217,7 +217,7 @@
                   <div class="pool-summary-square__hashrate">
                     <div class="pool-summary-square__hashrate-main">
                       <div class="pool-summary-square__hashrate-value">
-                        {{ info.hashRate | number: '1.2-2' }}
+                        {{ info.performance.hashRate | number: '1.2-2' }}
                         <span class="pool-summary-square__hashrate-unit">{{ 'UNITS.HASHRATE' | translate }}</span>
                       </div>
                     </div>
@@ -225,8 +225,8 @@
                 </div>
                 <div class="pool-summary-square__row2">
                   <div class="pool-summary-square__uptime"
-                       *ngIf="info.uptimeSeconds !== undefined && info.uptimeSeconds !== null">
-                    <div class="pool-summary-square__uptime-value">{{ formatUptime(info.uptimeSeconds) }}</div>
+                       *ngIf="info.system.uptime !== undefined && info.system.uptime !== null">
+                    <div class="pool-summary-square__uptime-value">{{ formatUptime(info.system.uptime) }}</div>
                     <div class="pool-summary-square__uptime-label">{{ 'SYSTEM.UPTIME' | translate }}</div>
                   </div>
                 </div>
@@ -237,7 +237,7 @@
                   <div class="power-watt-box__inner">
                     <div class="power-watt-box__label-top">{{ 'HOME.EFFICIENCY' | translate }}</div>
                     <div class="power-watt-box__value">
-                      {{ (info.can?.fleetPower ?? 0) / (info.hashRate / 1000) | number: '1.2-2' }}<span class="unit">&nbsp;J/Th</span>
+                      {{ (info.can.fleetPower ?? 0) / (info.performance.hashRate / 1000) | number: '1.2-2' }}<span class="unit">&nbsp;J/Th</span>
                     </div>
                   </div>
                 </div>
@@ -245,7 +245,7 @@
                   <div class="pool-summary-square__best-inner">
                     <div class="pool-summary-square__best-label">{{ 'PERFORMANCE.BEST_DIFFICULTY' | translate }}</div>
                     <div class="pool-summary-square__best-value">
-                      <ng-container *ngIf="splitHumanReadable(info.bestDiff | humanReadable) as bd">
+                      <ng-container *ngIf="splitHumanReadable(info.performance.bestDiff | humanReadable) as bd">
                         {{ bd.value }}<span class="unit" *ngIf="bd.unit">&nbsp;{{ bd.unit }}</span>
                       </ng-container>
                     </div>
@@ -256,7 +256,7 @@
                   <div class="power-watt-box__inner">
                     <div class="power-watt-box__label-top">Fleet {{ 'PERFORMANCE.POWER' | translate }}</div>
                     <div class="power-watt-box__value">
-                      {{ (info.can?.fleetPower ?? 0) | number: '1.1-1' }}<span class="unit">&nbsp;W</span>
+                      {{ (info.can.fleetPower ?? 0) | number: '1.1-1' }}<span class="unit">&nbsp;W</span>
                     </div>
                   </div>
                 </div>
@@ -270,7 +270,7 @@
         <div class="col-12 col-xl-6 mt-3 mt-xl-0">
           @let poolLeft = isDualPool ? getPoolInfo(0) : getPoolInfo();
           @let poolRight = isDualPool ? getPoolInfo(1) : null;
-          @let usingFallback = info.stratum?.usingFallback;
+          @let usingFallback = info.stratum.usingFallback;
 
           <nb-card class="h-100 pool-tile-card" [class.pool-tile-card--dual]="isDualPool">
             <nb-card-body class="no-scroll pool-tile-card__body" style="position: relative;">
@@ -482,7 +482,7 @@
       </div>
 
       <!-- Power Usage + Heat (new row under pools) -->
-      <div class="row mt-3 d-flex align-items-stretch" *ngIf="!info.can?.enabled">
+      <div class="row mt-3 d-flex align-items-stretch" *ngIf="!info.can.enabled">
         <div class="col-12 col-xl-6">
           <!-- Power Section (no tile/box) -->
           <div class="plain-section">
@@ -493,42 +493,42 @@
                   <div class="power-bars" [attr.aria-label]="'PERFORMANCE.TITLE_POWER_USAGE' | translate">
                     <!-- Measured ASIC voltage bar (keep this in the Power tile) -->
                     <div class="power-bar" role="img"
-                         [class.power-bar--max]="isBarMax(info.coreVoltageActual, asicCoreVoltageMax(info))"
-                         [attr.aria-label]="('PERFORMANCE.ASIC_VOLTAGE_MEASURED' | translate) + ': ' + (info.coreVoltageActual | number: '1.2-2') + ' V'">
+                         [class.power-bar--max]="isBarMax(info.power.coreVoltageActual, asicCoreVoltageMax(info))"
+                         [attr.aria-label]="('PERFORMANCE.ASIC_VOLTAGE_MEASURED' | translate) + ': ' + (info.power.coreVoltageActual | number: '1.2-2') + ' V'">
                       <div class="power-bar__fill"
-                           [style.width.%]="toPct(info.coreVoltageActual, 0.9, asicCoreVoltageMax(info))"></div>
+                           [style.width.%]="toPct(info.power.coreVoltageActual, 0.9, asicCoreVoltageMax(info))"></div>
                       <div class="power-bar__label">{{ 'PERFORMANCE.ASIC_VOLTAGE_MEASURED' | translate }}</div>
                       <div class="power-bar__value"
-                           [class.power-bar__value--overmax]="info.coreVoltageActual > asicCoreVoltageMax(info)">
-                        {{ info.coreVoltageActual | number: '1.2-2' }}<span class="unit">&nbsp;V</span>
+                           [class.power-bar__value--overmax]="info.power.coreVoltageActual > asicCoreVoltageMax(info)">
+                        {{ info.power.coreVoltageActual | number: '1.2-2' }}<span class="unit">&nbsp;V</span>
                       </div>
                     </div>
 
                     <!-- Input current bar -->
                     <div class="power-bar" role="img"
-                         [class.power-bar--warn]="isInputCurrentWarn(info.currentA, info.minCurrentA ?? 0, info.maxCurrentA ?? 6)"
-                         [class.power-bar--crit]="isInputCurrentCrit(info.currentA, info.minCurrentA ?? 0, info.maxCurrentA ?? 6)"
-                         [class.power-bar--max]="isBarMax(info.currentA, info.maxCurrentA ?? 6)"
-                         [attr.aria-label]="('PERFORMANCE.INPUT_CURRENT' | translate) + ': ' + (info.currentA | number: '1.2-2') + ' A'">
+                         [class.power-bar--warn]="isInputCurrentWarn(info.power.currentA, info.power.currentAMin ?? 0, info.power.currentAMax ?? 6)"
+                         [class.power-bar--crit]="isInputCurrentCrit(info.power.currentA, info.power.currentAMin ?? 0, info.power.currentAMax ?? 6)"
+                         [class.power-bar--max]="isBarMax(info.power.currentA, info.power.currentAMax ?? 6)"
+                         [attr.aria-label]="('PERFORMANCE.INPUT_CURRENT' | translate) + ': ' + (info.power.currentA | number: '1.2-2') + ' A'">
                       <div class="power-bar__fill"
-                           [style.width.%]="toPct(info.currentA, info.minCurrentA ?? 0, info.maxCurrentA ?? 6)">
+                           [style.width.%]="toPct(info.power.currentA, info.power.currentAMin ?? 0, info.power.currentAMax ?? 6)">
                       </div>
                       <div class="power-bar__label">{{ 'PERFORMANCE.INPUT_CURRENT' | translate }}</div>
-                      <div class="power-bar__value">{{ info.currentA | number: '1.2-2' }}<span
+                      <div class="power-bar__value">{{ info.power.currentA | number: '1.2-2' }}<span
                         class="unit">&nbsp;A</span></div>
                     </div>
 
                     <!-- Input voltage bar -->
                     <div class="power-bar" role="img"
-                         [class.power-bar--warn]="isInputVoltageWarn(info.voltage)"
+                         [class.power-bar--warn]="isInputVoltageWarn(info.power.voltage)"
                          [class.power-bar--crit]="false"
-                         [class.power-bar--max]="isBarMax(info.voltage, info.maxVoltage)"
-                         [attr.aria-label]="('PERFORMANCE.INPUT_VOLTAGE' | translate) + ': ' + (info.voltage | number: '1.1-1') + ' V'">
+                         [class.power-bar--max]="isBarMax(info.power.voltage, info.power.voltageMax)"
+                         [attr.aria-label]="('PERFORMANCE.INPUT_VOLTAGE' | translate) + ': ' + (info.power.voltage | number: '1.1-1') + ' V'">
                       <div class="power-bar__fill"
-                           [style.width.%]="toPct(info.voltage, info.minVoltage, info.maxVoltage)">
+                           [style.width.%]="toPct(info.power.voltage, info.power.voltageMin, info.power.voltageMax)">
                       </div>
                       <div class="power-bar__label">{{ 'PERFORMANCE.INPUT_VOLTAGE' | translate }}</div>
-                      <div class="power-bar__value">{{ info.voltage | number: '1.1-1' }}<span
+                      <div class="power-bar__value">{{ info.power.voltage | number: '1.1-1' }}<span
                         class="unit">&nbsp;V</span></div>
                     </div>
 
@@ -536,26 +536,26 @@
 
                   <!-- Efficiency square (spans the height of the 3 bars) -->
                   <div class="power-watt-box" role="img"
-                       [attr.aria-label]="('HOME.EFFICIENCY' | translate) + ': ' + (info.power / (info.hashRate / 1000) | number: '1.2-2') + ' J/Th'">
+                       [attr.aria-label]="('HOME.EFFICIENCY' | translate) + ': ' + (info.power.watts / (info.performance.hashRate / 1000) | number: '1.2-2') + ' J/Th'">
                     <div class="power-watt-box__inner">
                       <div class="power-watt-box__label-top">{{ 'HOME.EFFICIENCY' | translate }}</div>
                       <div class="power-watt-box__value">
-                        {{ info.power / (info.hashRate / 1000) | number: '1.2-2' }}<span class="unit">&nbsp;J/Th</span>
+                        {{ info.power.watts / (info.performance.hashRate / 1000) | number: '1.2-2' }}<span class="unit">&nbsp;J/Th</span>
                       </div>
                     </div>
                   </div>
 
                   <!-- Power bar (full width under the 3 bars + square) -->
                   <div class="power-bar power-bar--full" role="img"
-                       [class.power-bar--warn]="info.maxPower ? isBarWarn(info.power, info.minPower ?? 0, info.maxPower) : false"
-                       [class.power-bar--crit]="info.maxPower ? isBarCrit(info.power, info.minPower ?? 0, info.maxPower) : false"
-                       [class.power-bar--max]="info.maxPower ? isBarMax(info.power, info.maxPower) : false"
-                       [attr.aria-label]="('PERFORMANCE.POWER' | translate) + ': ' + (info.power | number: '1.1-1') + ' W'">
+                       [class.power-bar--warn]="info.power.max ? isBarWarn(info.power.watts, info.power.min ?? 0, info.power.max) : false"
+                       [class.power-bar--crit]="info.power.max ? isBarCrit(info.power.watts, info.power.min ?? 0, info.power.max) : false"
+                       [class.power-bar--max]="info.power.max ? isBarMax(info.power.watts, info.power.max) : false"
+                       [attr.aria-label]="('PERFORMANCE.POWER' | translate) + ': ' + (info.power.watts | number: '1.1-1') + ' W'">
                     <div class="power-bar__fill"
-                         [style.width.%]="toPct(info.power, info.minPower ?? 0, info.maxPower ?? info.power)">
+                         [style.width.%]="toPct(info.power.watts, info.power.min ?? 0, info.power.max ?? info.power.watts)">
                     </div>
                     <div class="power-bar__label">{{ 'PERFORMANCE.POWER' | translate }}</div>
-                    <div class="power-bar__value">{{ info.power | number: '1.1-1' }}<span class="unit">&nbsp;W</span>
+                    <div class="power-bar__value">{{ info.power.watts | number: '1.1-1' }}<span class="unit">&nbsp;W</span>
                     </div>
                   </div>
                 </div>
@@ -609,19 +609,19 @@
                   </div>
 
                   <div class="heat-bars">
-                    @let showFanC2 = (info.fanCount ?? 1) > 1;
+                    @let showFanC2 = (info.thermal.fans?.length ?? 1) > 1;
 
                     <!-- VR temp bar -->
-                    <div class="power-bar power-bar--interactive" *ngIf="info.vrTemp > 0" role="img" data-bar="vr-temp"
-                         [class.power-bar--warn]="isVrTempWarn(info.vrTemp)"
-                         [class.power-bar--crit]="isVrTempCrit(info.vrTemp)"
-                         [class.power-bar--max]="isVrTempCrit(info.vrTemp)"
+                    <div class="power-bar power-bar--interactive" *ngIf="info.thermal.vrTemp > 0" role="img" data-bar="vr-temp"
+                         [class.power-bar--warn]="isVrTempWarn(info.thermal.vrTemp)"
+                         [class.power-bar--crit]="isVrTempCrit(info.thermal.vrTemp)"
+                         [class.power-bar--max]="isVrTempCrit(info.thermal.vrTemp)"
                          (mouseenter)="showHoverTooltip('vr-temp', $event)"
                          (mousemove)="moveHoverTooltip($event)"
                          (mouseleave)="hideHoverTooltip('vr-temp')"
-                         [attr.aria-label]="('PERFORMANCE.VR_TEMP' | translate) + ': ' + (info.vrTemp | number: '1.1-1') + ' °C'">
+                         [attr.aria-label]="('PERFORMANCE.VR_TEMP' | translate) + ': ' + (info.thermal.vrTemp | number: '1.1-1') + ' °C'">
                       <div class="power-bar__fill"
-                           [style.width.%]="toPct(info.vrTemp, BAR_LIMITS.vrTemp.min, BAR_LIMITS.vrTemp.max)"></div>
+                           [style.width.%]="toPct(info.thermal.vrTemp, BAR_LIMITS.vrTemp.min, BAR_LIMITS.vrTemp.max)"></div>
                       <div class="power-bar__label">{{ 'PERFORMANCE.VR_TEMP' | translate }}</div>
                       <span class="power-bar-tooltip"
                             [class.power-bar-tooltip--active]="activeHoverTooltipId === 'vr-temp'"
@@ -635,32 +635,32 @@
                       </span>
                       <div class="power-bar__value power-bar__value--inline power-bar__value--vr">
                         <span class="fan-inline fan-inline--vr">
-                          <span class="power-bar__subvalue power-bar__subvalue--vrmeta" *ngIf="info.vrTempInt > 0">
+                          <span class="power-bar__subvalue power-bar__subvalue--vrmeta" *ngIf="info.thermal.vrTempInt > 0">
                             <span class="power-bar__meta-row">
                               <span class="power-bar__meta-label">{{ 'PERFORMANCE.VR_TEMP_EXT' | translate }}</span>
-                              <span class="power-bar__meta-number">{{ info.vrTemp | number: '1.1-1' }}</span><span class="unit">°C</span>
+                              <span class="power-bar__meta-number">{{ info.thermal.vrTemp | number: '1.1-1' }}</span><span class="unit">°C</span>
                             </span>
                             <span class="power-bar__meta-row">
                               <span class="power-bar__meta-label">{{ 'PERFORMANCE.VR_TEMP_INT' | translate }}</span>
-                              <span class="power-bar__meta-number">{{ info.vrTempInt | number: '1.1-1' }}</span><span class="unit">°C</span>
+                              <span class="power-bar__meta-number">{{ info.thermal.vrTempInt | number: '1.1-1' }}</span><span class="unit">°C</span>
                             </span>
                           </span>
-                          <span class="power-bar__sep" *ngIf="info.vrTempInt > 0">/</span>
-                          <span class="power-bar__mainvalue">{{ info.vrTemp | number: '1.1-1' }}<span class="unit">°C</span></span>
+                          <span class="power-bar__sep" *ngIf="info.thermal.vrTempInt > 0">/</span>
+                          <span class="power-bar__mainvalue">{{ info.thermal.vrTemp | number: '1.1-1' }}<span class="unit">°C</span></span>
                         </span>
                       </div>
                     </div>
 
                     <!-- Fan bar (metric = fan speed %, shows RPM as secondary label) -->
-                    @let fanC1LowRpm = shouldShowLowRpmHint(info.fanspeed ?? 0, info.fanrpm ?? 0);
+                    @let fanC1LowRpm = shouldShowLowRpmHint(info.thermal.fans[0]?.speed ?? 0, info.thermal.fans[0]?.rpm ?? 0);
                     <div class="power-bar" role="img"
                          [class.power-bar--interactive]="fanC1LowRpm"
-                         [class.power-bar--max]="isBarMax(info.fanspeed ?? 0, 100)"
+                         [class.power-bar--max]="isBarMax(info.thermal.fans[0]?.speed ?? 0, 100)"
                          (mouseenter)="showConditionalHoverTooltip('fan-c1', fanC1LowRpm, $event)"
                          (mousemove)="moveConditionalHoverTooltip(fanC1LowRpm, $event)"
                          (mouseleave)="hideHoverTooltip('fan-c1')"
-                         [attr.aria-label]="getFanAriaLabel(showFanC2 ? 1 : null, info.fanspeed ?? 0, info.fanrpm ?? 0)">
-                      <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed ?? 0, 0, 100)"></div>
+                         [attr.aria-label]="getFanAriaLabel(showFanC2 ? 1 : null, info.thermal.fans[0]?.speed ?? 0, info.thermal.fans[0]?.rpm ?? 0)">
+                      <div class="power-bar__fill" [style.width.%]="toPct(info.thermal.fans[0]?.speed ?? 0, 0, 100)"></div>
                       <div class="power-bar__label">{{ 'HOME.FAN_ASICS_LABEL' | translate }}</div>
                       <span class="power-bar-tooltip"
                             *ngIf="fanC1LowRpm"
@@ -672,25 +672,25 @@
                       </span>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
-                          <ng-container *ngIf="shouldShowFanRpm(info.fanspeed ?? 0, info.fanrpm ?? 0)">
-                            <span class="power-bar__subvalue">{{ (info.fanrpm ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
+                          <ng-container *ngIf="shouldShowFanRpm(info.thermal.fans[0]?.speed ?? 0, info.thermal.fans[0]?.rpm ?? 0)">
+                            <span class="power-bar__subvalue">{{ (info.thermal.fans[0]?.rpm ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
                             <span class="power-bar__sep">/</span>
                           </ng-container>
-                          <span class="power-bar__mainvalue">{{ (info.fanspeed ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
+                          <span class="power-bar__mainvalue">{{ (info.thermal.fans[0]?.speed ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
                         </span>
                       </div>
                     </div>
 
                     <!-- Fan bar (channel 2, only if present) -->
-                    @let fanC2LowRpm = shouldShowLowRpmHint(info.fanspeed2 ?? 0, info.fanrpm2 ?? 0);
+                    @let fanC2LowRpm = shouldShowLowRpmHint(info.thermal.fans[1]?.speed ?? 0, info.thermal.fans[1]?.rpm ?? 0);
                     <div class="power-bar" *ngIf="showFanC2" role="img"
                          [class.power-bar--interactive]="fanC2LowRpm"
-                         [class.power-bar--max]="isBarMax(info.fanspeed2 ?? 0, 100)"
+                         [class.power-bar--max]="isBarMax(info.thermal.fans[1]?.speed ?? 0, 100)"
                          (mouseenter)="showConditionalHoverTooltip('fan-c2', fanC2LowRpm, $event)"
                          (mousemove)="moveConditionalHoverTooltip(fanC2LowRpm, $event)"
                          (mouseleave)="hideHoverTooltip('fan-c2')"
-                         [attr.aria-label]="getFanAriaLabel(2, info.fanspeed2 ?? 0, info.fanrpm2 ?? 0)">
-                      <div class="power-bar__fill" [style.width.%]="toPct(info.fanspeed2 ?? 0, 0, 100)"></div>
+                         [attr.aria-label]="getFanAriaLabel(2, info.thermal.fans[1]?.speed ?? 0, info.thermal.fans[1]?.rpm ?? 0)">
+                      <div class="power-bar__fill" [style.width.%]="toPct(info.thermal.fans[1]?.speed ?? 0, 0, 100)"></div>
                       <div class="power-bar__label">{{ 'HOME.FAN_VR_LABEL' | translate }}</div>
                       <span class="power-bar-tooltip"
                             *ngIf="fanC2LowRpm"
@@ -702,11 +702,11 @@
                       </span>
                       <div class="power-bar__value power-bar__value--inline">
                         <span class="fan-inline">
-                          <ng-container *ngIf="shouldShowFanRpm(info.fanspeed2 ?? 0, info.fanrpm2 ?? 0)">
-                            <span class="power-bar__subvalue">{{ (info.fanrpm2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
+                          <ng-container *ngIf="shouldShowFanRpm(info.thermal.fans[1]?.speed ?? 0, info.thermal.fans[1]?.rpm ?? 0)">
+                            <span class="power-bar__subvalue">{{ (info.thermal.fans[1]?.rpm ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;RPM</span></span>
                             <span class="power-bar__sep">/</span>
                           </ng-container>
-                          <span class="power-bar__mainvalue">{{ (info.fanspeed2 ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
+                          <span class="power-bar__mainvalue">{{ (info.thermal.fans[1]?.speed ?? 0) | number: '1.0-0' }}<span class="unit">&nbsp;%</span></span>
                         </span>
                       </div>
                     </div>
@@ -715,8 +715,8 @@
 
                   <!-- Chip temps row: always below heatsink temp + fan bars -->
                   <div class="heat-chips heat-chips--row" aria-label="ASIC chip temperatures"
-                       *ngIf="hasChipTemps && (info?.asicTemps?.length ?? 0) > 0">
-                    <div class="chip-square" *ngFor="let t of (info?.asicTemps ?? []); let i = index"
+                       *ngIf="hasChipTemps && (info?.thermal.asicTemps?.length ?? 0) > 0">
+                    <div class="chip-square" *ngFor="let t of (info?.thermal.asicTemps ?? []); let i = index"
                          role="img"
                          [class.power-bar--warn]="isAsicTempWarn(t, 10, shutdownTempC(info))"
                          [class.power-bar--crit]="isAsicTempCrit(t, 10, shutdownTempC(info))"

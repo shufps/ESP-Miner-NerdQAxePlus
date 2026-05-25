@@ -8,12 +8,12 @@
             <nb-card-header>{{ 'INFLUXDB.TITLE' | translate }}</nb-card-header>
             <nb-card-body>
                 <div class="form-row">
-                    <nb-checkbox formControlName="influxEnable">{{ 'INFLUXDB.ENABLED' | translate }}</nb-checkbox>
+                    <nb-checkbox formControlName="enabled">{{ 'INFLUXDB.ENABLED' | translate }}</nb-checkbox>
                 </div>
                 <div class="form-row">
                     <label for="influxURL" class="form-label">{{ 'INFLUXDB.URL' | translate }}:</label>
                     <div class="form-control-wrapper">
-                        <input nbInput id="influxURL" type="text" formControlName="influxURL"
+                        <input nbInput id="influxURL" type="text" formControlName="url"
                             placeholder="e.g., http://192.168.0.123" /><br />
                         <small>e.g., http://192.168.0.123</small>
                     </div>
@@ -21,31 +21,31 @@
                 <div class="form-row">
                     <label for="influxPort" class="form-label">{{ 'INFLUXDB.PORT' | translate }}:</label>
                     <div class="form-control-wrapper">
-                        <input nbInput id="influxPort" formControlName="influxPort" type="number" />
+                        <input nbInput id="influxPort" formControlName="port" type="number" />
                     </div>
                 </div>
                 <div class="form-row">
                     <label for="influxToken" class="form-label">{{ 'INFLUXDB.TOKEN' | translate }}:</label>
                     <div class="form-control-wrapper">
-                        <input nbInput id="influxToken" formControlName="influxToken" type="password" />
+                        <input nbInput id="influxToken" formControlName="token" type="password" />
                     </div>
                 </div>
                 <div class="form-row">
                     <label for="influxBucket" class="form-label">{{ 'INFLUXDB.BUCKET' | translate }}:</label>
                     <div class="form-control-wrapper">
-                        <input nbInput id="influxBucket" formControlName="influxBucket" type="text" />
+                        <input nbInput id="influxBucket" formControlName="bucket" type="text" />
                     </div>
                 </div>
                 <div class="form-row">
                     <label for="influxOrg" class="form-label">{{ 'INFLUXDB.ORG' | translate }}:</label>
                     <div class="form-control-wrapper">
-                        <input nbInput id="influxOrg" formControlName="influxOrg" type="text" />
+                        <input nbInput id="influxOrg" formControlName="org" type="text" />
                     </div>
                 </div>
                 <div class="form-row">
                     <label for="influxPrefix" class="form-label">{{ 'INFLUXDB.PREFIX' | translate }}:</label>
                     <div class="form-control-wrapper">
-                        <input nbInput id="influxPrefix" formControlName="influxPrefix" type="text" />
+                        <input nbInput id="influxPrefix" formControlName="prefix" type="text" />
                     </div>
                 </div>
                 <div class="d-flex align-items-center justify-content-between mt-2">

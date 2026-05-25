@@ -4,7 +4,7 @@ import { LayoutService } from '../../../@core/utils.ts';
 import { SystemService } from '../../../services/system.service';
 import { map, takeUntil } from 'rxjs/operators';
 import { Subject, Observable } from 'rxjs';
-import { ISystemInfo } from 'src/app/models/ISystemInfo.js';
+import { IIdentifyV2 } from 'src/app/models/IIdentifyV2';
 
 @Component({
   selector: 'ngx-header',
@@ -38,7 +38,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private static readonly PLACEHOLDER_LOGO = '/assets/default_dark.png';
 
   userMenu = [{ title: 'Profile' }, { title: 'Log out' }];
-  info$: Observable<ISystemInfo>;
+  info$: Observable<IIdentifyV2>;
 
   constructor(
     private sidebarService: NbSidebarService,
@@ -85,7 +85,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
 
     // 2) Always load backend info (device name/model + default theme)
-    this.infoService.getInfo().subscribe(info => {
+    this.infoService.getIdentifyV2().subscribe(info => {
       if (info?.deviceModel) {
         // Replace gamma symbol with "Gamma" to match asset filenames if needed
         this.deviceModel = String(info.deviceModel).replace('γ', 'Gamma');

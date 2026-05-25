@@ -32,21 +32,21 @@ export class InfluxdbComponent implements OnInit {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe(info => {
         this.form = this.fb.group({
-          influxURL: [info.influxURL, [
+          url: [info.url, [
             Validators.required,
             Validators.pattern(/^http:\/\/.*[^:]*$/), // http:// without port
           ]],
-          influxPort: [info.influxPort, [
+          port: [info.port, [
             Validators.required,
             Validators.pattern(/^[^:]*$/),
             Validators.min(0),
             Validators.max(65353)
           ]],
-          influxToken: ['password', [Validators.required]],
-          influxBucket: [info.influxBucket, [Validators.required]],
-          influxOrg: [info.influxOrg, [Validators.required]],
-          influxPrefix: [info.influxPrefix, [Validators.required]],
-          influxEnable: [info.influxEnable == 1]
+          token: ['password', [Validators.required]],
+          bucket: [info.bucket, [Validators.required]],
+          org: [info.org, [Validators.required]],
+          prefix: [info.prefix, [Validators.required]],
+          enabled: [info.enabled == 1]
         });
       });
   }
@@ -55,15 +55,15 @@ export class InfluxdbComponent implements OnInit {
     const form = this.form.getRawValue();
 
     const payload: any = {
-      influxURL: form.influxURL,
-      influxPort: form.influxPort,
-      influxBucket: form.influxBucket,
-      influxOrg: form.influxOrg,
-      influxPrefix: form.influxPrefix,
-      influxEnable: !!form.influxEnable,
+      url: form.url,
+      port: form.port,
+      bucket: form.bucket,
+      org: form.org,
+      prefix: form.prefix,
+      enabled: !!form.enabled,
     };
-    if (form.influxToken !== 'password') {
-      payload.influxToken = form.influxToken;
+    if (form.token !== 'password') {
+      payload.token = form.token;
     }
 
     this.otpAuth.ensureOtp$(

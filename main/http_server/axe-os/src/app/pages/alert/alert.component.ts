@@ -37,14 +37,14 @@ export class AlertComponent implements OnInit {
       .subscribe((data: any) => {
         this.form = this.fb.group({
           // Per-topic toggles
-          alertDiscordWatchdogEnable: [data?.alertDiscordWatchdogEnable === 1],
-          alertDiscordBlockFoundEnable: [data?.alertDiscordBlockFoundEnable === 1],
-          alertDiscordBestDiffEnable: [data?.alertDiscordBestDiffEnable === 1],
-          alertDiscordCoinbaseVerifyEnable: [data?.alertDiscordCoinbaseVerifyEnable === 1],
-          showBlockFoundScreenEnable: [data?.showBlockFoundScreenEnable === 1],
+          watchdogEnable: [data?.watchdogEnable === 1],
+          blockFoundEnable: [data?.blockFoundEnable === 1],
+          bestDiffEnable: [data?.bestDiffEnable === 1],
+          coinbaseVerifyEnable: [data?.coinbaseVerifyEnable === 1],
+          showBlockFoundScreen: [data?.showBlockFoundScreen === 1],
 
           // Keep the sentinel so users do not need to re-enter an existing webhook.
-          alertDiscordWebhook: ['WEBHOOK', [
+          webhookUrl: ['WEBHOOK', [
             Validators.required,
             Validators.pattern(WEBHOOK_URL_PATTERN)
           ]],
@@ -57,15 +57,15 @@ export class AlertComponent implements OnInit {
 
     // Build payload; strip sentinel if user didn’t update the webhook.
     const payload: any = {
-      alertDiscordWatchdogEnable: !!form.alertDiscordWatchdogEnable,
-      alertDiscordBlockFoundEnable: !!form.alertDiscordBlockFoundEnable,
-      alertDiscordBestDiffEnable: !!form.alertDiscordBestDiffEnable,
-      alertDiscordCoinbaseVerifyEnable: !!form.alertDiscordCoinbaseVerifyEnable,
-      showBlockFoundScreenEnable: !!form.showBlockFoundScreenEnable,
+      watchdogEnable: !!form.watchdogEnable,
+      blockFoundEnable: !!form.blockFoundEnable,
+      bestDiffEnable: !!form.bestDiffEnable,
+      coinbaseVerifyEnable: !!form.coinbaseVerifyEnable,
+      showBlockFoundScreen: !!form.showBlockFoundScreen,
     };
 
-    if (form.alertDiscordWebhook !== 'WEBHOOK') {
-      payload.alertDiscordWebhook = form.alertDiscordWebhook;
+    if (form.webhookUrl !== 'WEBHOOK') {
+      payload.webhookUrl = form.webhookUrl;
     }
 
     this.otpAuth.ensureOtp$(

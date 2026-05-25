@@ -10,9 +10,7 @@ import {
   tap,
 } from 'rxjs';
 
-import type { ISystemInfo } from '../../../models/ISystemInfo';
-
-export interface CreateSystemInfoPollingDeps {
+export interface CreateSystemInfoPollingDeps<T = any> {
   /** Poll interval in milliseconds */
   pollMs: number;
 
@@ -23,10 +21,10 @@ export interface CreateSystemInfoPollingDeps {
   historyWindowMs?: number;
 
   /** Fetch fresh system info starting at a given timestamp (ms). */
-  fetchInfo: (startTimestampMs: number, chunkSize: number) => Observable<ISystemInfo>;
+  fetchInfo: (startTimestampMs: number, chunkSize: number) => Observable<T>;
 
   /** Returns a safe default info object if a poll emits a falsy value. */
-  defaultInfo: () => ISystemInfo;
+  defaultInfo: () => T;
 
   /** Returns the last persisted absolute timestamp in ms (or null if unknown). */
   getStoredLastTimestampMs: () => number | null;
@@ -41,10 +39,10 @@ export interface CreateSystemInfoPollingDeps {
   logError?: (...args: any[]) => void;
 
   /** Optional side-effects for every successful info payload. */
-  onInfo?: (info: ISystemInfo) => void;
+  onInfo?: (info: T) => void;
 
   /** Optional mapping/normalization step (can include side-effects). */
-  mapInfo?: (info: ISystemInfo) => ISystemInfo;
+  mapInfo?: (info: T) => T;
 }
 
 /**
@@ -56,7 +54,7 @@ export interface CreateSystemInfoPollingDeps {
  * - optional `onInfo` and `mapInfo` hooks
  * - shareReplay(1)
  */
-export function createSystemInfoPolling$(deps: CreateSystemInfoPollingDeps): Observable<ISystemInfo> {
+export function createSystemInfoPolling$<T = any>(deps: CreateSystemInfoPollingDeps<T>): Observable<T> {
   const log = deps.logError ?? ((...args: any[]) => console.error(...args));
 
   return interval(deps.pollMs).pipe(

@@ -15,6 +15,10 @@
 #include "handler_influx.h"
 #include "handler_swarm.h"
 #include "handler_can_swarm.h"
+#include "v2/handler_v2_dashboard.h"
+#include "v2/handler_v2_settings.h"
+#include "v2/handler_v2_identify.h"
+#include "v2/handler_v2_system.h"
 #include "handler_system.h"
 #include "handler_ota.h"
 #include "handler_restart.h"
@@ -179,7 +183,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     /* URI handler for fetching system info */
     httpd_uri_t influx_info_get_uri = {
-        .uri = "/api/influx/info", .method = HTTP_GET, .handler = GET_influx_info, .user_ctx = rest_context};
+        .uri = "/api/v2/influx/info", .method = HTTP_GET, .handler = GET_influx_info, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &influx_info_get_uri);
 
     httpd_uri_t swarm_get_uri = {.uri = "/api/swarm/info", .method = HTTP_GET, .handler = GET_swarm, .user_ctx = rest_context};
@@ -198,36 +202,68 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_register_uri_handler(http_server, &swarm_options_uri);
 
     httpd_uri_t can_slaves_get_uri = {
-        .uri = "/api/can/slaves", .method = HTTP_GET, .handler = GET_can_slaves, .user_ctx = rest_context};
+        .uri = "/api/v2/can/slaves", .method = HTTP_GET, .handler = GET_can_slaves, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slaves_get_uri);
 
     httpd_uri_t can_slaves_options_uri = {
-        .uri = "/api/can/slaves", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+        .uri = "/api/v2/can/slaves", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
     httpd_register_uri_handler(http_server, &can_slaves_options_uri);
 
     httpd_uri_t can_slave_patch_uri = {
-        .uri = "/api/can/slaves/*", .method = HTTP_PATCH, .handler = PATCH_can_slave, .user_ctx = rest_context};
+        .uri = "/api/v2/can/slaves/*", .method = HTTP_PATCH, .handler = PATCH_can_slave, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slave_patch_uri);
 
     httpd_uri_t can_slave_delete_uri = {
-        .uri = "/api/can/slaves/*", .method = HTTP_DELETE, .handler = DELETE_can_slave, .user_ctx = rest_context};
+        .uri = "/api/v2/can/slaves/*", .method = HTTP_DELETE, .handler = DELETE_can_slave, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slave_delete_uri);
 
     httpd_uri_t can_slave_wildcard_options_uri = {
-        .uri = "/api/can/slaves/*", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+        .uri = "/api/v2/can/slaves/*", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
     httpd_register_uri_handler(http_server, &can_slave_wildcard_options_uri);
 
     httpd_uri_t can_slave_restart_uri = {
-        .uri = "/api/can/slaves/*/restart", .method = HTTP_POST, .handler = POST_can_slave_restart, .user_ctx = rest_context};
+        .uri = "/api/v2/can/slaves/*/restart", .method = HTTP_POST, .handler = POST_can_slave_restart, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slave_restart_uri);
 
     httpd_uri_t can_slave_shutdown_uri = {
-        .uri = "/api/can/slaves/*/shutdown", .method = HTTP_POST, .handler = POST_can_slave_shutdown, .user_ctx = rest_context};
+        .uri = "/api/v2/can/slaves/*/shutdown", .method = HTTP_POST, .handler = POST_can_slave_shutdown, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slave_shutdown_uri);
 
     httpd_uri_t can_slave_identify_uri = {
-        .uri = "/api/can/slaves/*/identify", .method = HTTP_POST, .handler = POST_can_slave_identify, .user_ctx = rest_context};
+        .uri = "/api/v2/can/slaves/*/identify", .method = HTTP_POST, .handler = POST_can_slave_identify, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slave_identify_uri);
+
+    httpd_uri_t v2_dashboard_get_uri = {
+        .uri = "/api/v2/dashboard", .method = HTTP_GET, .handler = GET_V2_dashboard, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &v2_dashboard_get_uri);
+
+    httpd_uri_t v2_dashboard_options_uri = {
+        .uri = "/api/v2/dashboard", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &v2_dashboard_options_uri);
+
+    httpd_uri_t v2_settings_get = {
+        .uri = "/api/v2/settings", .method = HTTP_GET, .handler = GET_V2_settings, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &v2_settings_get);
+    httpd_uri_t v2_settings_patch = {
+        .uri = "/api/v2/settings", .method = HTTP_PATCH, .handler = PATCH_V2_settings, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &v2_settings_patch);
+    httpd_uri_t v2_settings_options = {
+        .uri = "/api/v2/settings", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &v2_settings_options);
+
+    httpd_uri_t v2_identify_get = {
+        .uri = "/api/v2/identify", .method = HTTP_GET, .handler = GET_V2_identify, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &v2_identify_get);
+    httpd_uri_t v2_identify_options = {
+        .uri = "/api/v2/identify", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &v2_identify_options);
+
+    httpd_uri_t v2_system_get = {
+        .uri = "/api/v2/system", .method = HTTP_GET, .handler = GET_V2_system, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &v2_system_get);
+    httpd_uri_t v2_system_options = {
+        .uri = "/api/v2/system", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &v2_system_options);
 
     httpd_uri_t system_restart_uri = {
         .uri = "/api/system/restart", .method = HTTP_POST, .handler = POST_restart, .user_ctx = rest_context};
@@ -262,7 +298,7 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_register_uri_handler(http_server, &update_system_settings_uri);
 
     httpd_uri_t update_influx_settings_uri = {
-        .uri = "/api/influx", .method = HTTP_PATCH, .handler = PATCH_update_influx, .user_ctx = rest_context};
+        .uri = "/api/v2/influx", .method = HTTP_PATCH, .handler = PATCH_update_influx, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &update_influx_settings_uri);
 
     httpd_uri_t system_options_uri = {
@@ -274,34 +310,31 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_register_uri_handler(http_server, &system_options_uri);
 
     httpd_uri_t update_otp_uri = {
-        .uri = "/api/otp", .method = HTTP_PATCH, .handler = PATCH_update_otp, .user_ctx = rest_context};
+        .uri = "/api/v2/otp", .method = HTTP_PATCH, .handler = PATCH_update_otp, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &update_otp_uri);
 
     httpd_uri_t post_otp_uri = {
-        .uri = "/api/otp", .method = HTTP_POST, .handler = POST_create_otp, .user_ctx = rest_context};
+        .uri = "/api/v2/otp", .method = HTTP_POST, .handler = POST_create_otp, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &post_otp_uri);
 
     httpd_uri_t post_otp_session_uri = {
-        .uri = "/api/otp/session", .method = HTTP_POST, .handler = POST_create_otp_session, .user_ctx = rest_context};
+        .uri = "/api/v2/otp/session", .method = HTTP_POST, .handler = POST_create_otp_session, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &post_otp_session_uri);
 
     httpd_uri_t get_otp_status = {
-        .uri = "/api/otp/status", .method = HTTP_GET, .handler = GET_otp_status, .user_ctx = rest_context};
+        .uri = "/api/v2/otp/status", .method = HTTP_GET, .handler = GET_otp_status, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &get_otp_status);
 
-    /* URI handler for fetching Discord alert settings */
     httpd_uri_t alert_info_get_uri = {
-        .uri = "/api/alert/info", .method = HTTP_GET, .handler = GET_alert_info, .user_ctx = rest_context};
+        .uri = "/api/v2/alert/info", .method = HTTP_GET, .handler = GET_alert_info, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &alert_info_get_uri);
 
-    /* URI handler for updating Discord alert settings */
     httpd_uri_t alert_update_patch_uri = {
-        .uri = "/api/alert/update", .method = HTTP_POST, .handler = POST_update_alert, .user_ctx = rest_context};
+        .uri = "/api/v2/alert/update", .method = HTTP_POST, .handler = POST_update_alert, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &alert_update_patch_uri);
 
-    /* URI handler for test webhook */
     httpd_uri_t alert_test_uri = {
-        .uri = "/api/alert/test", .method = HTTP_POST, .handler = POST_test_alert, .user_ctx = rest_context};
+        .uri = "/api/v2/alert/test", .method = HTTP_POST, .handler = POST_test_alert, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &alert_test_uri);
 
 

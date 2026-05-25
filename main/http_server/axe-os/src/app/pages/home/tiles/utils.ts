@@ -161,7 +161,7 @@ export function toPct(
  * Spec: show the MAX ASIC temp, not the average.
  */
 export function maxAsicTemp(info: any): number {
-  const arr = info?.asicTemps;
+  const arr = info?.thermal?.asicTemps;
   if (Array.isArray(arr)) {
     const vals = arr
       .map((v: any) => Number(v))
@@ -169,7 +169,7 @@ export function maxAsicTemp(info: any): number {
     if (vals.length) return Math.max(...vals);
   }
 
-  const t = Number(info?.temp);
+  const t = Number(info?.thermal?.asicTemp);
   return Number.isFinite(t) ? t : 0;
 }
 
@@ -377,8 +377,8 @@ export function getAsicCoreVoltageBoundsFromAsic(
       .filter((v: any): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0)
     : [];
 
-  const curV = normalizeVoltageToV(info?.coreVoltageActual);
-  const setV = normalizeVoltageToV(info?.coreVoltage);
+  const curV = normalizeVoltageToV(info?.power?.coreVoltageActual ?? info?.coreVoltageActual);
+  const setV = normalizeVoltageToV(info?.power?.coreVoltage ?? info?.coreVoltage);
 
   const min = fallback.min; // keep fixed
 
@@ -411,7 +411,7 @@ export function getAsicCoreVoltageBoundsFromAsic(
  * Settings fixes this back to 70 °C - mirror the same behavior here.
  */
 export function shutdownTempC(info: any, fallback: number = 70): number {
-  let v = Number(info?.overheat_temp);
+  let v = Number(info?.system?.overheatTemp ?? info?.overheat_temp);
   if (!Number.isFinite(v) || v <= 0) v = fallback;
 
   // Avoid invalid ranges in the UI (min for the bar is 10 °C).
@@ -446,7 +446,7 @@ export function getAsicFrequencyBoundsFromAsic(
         .filter((v: number) => Number.isFinite(v) && v >= 0)
     : [];
 
-  const cur = Number(info?.frequency);
+  const cur = Number(info?.performance?.frequency ?? info?.frequency);
   const curOk = Number.isFinite(cur) && cur >= 0;
 
   const candidates = curOk ? nums.concat([cur]) : nums;
@@ -569,8 +569,8 @@ export function applyPowerUsageBarAliases(info: any, cfg: PowerUsageAliasCfg): v
 
 export function computeCurrentInputBarMaxWanted(info: any): boolean {
   try {
-    const v = Number((info as any)?.currentA);
-    const mx = Number((info as any)?.maxCurrentA);
+    const v = Number(info?.power?.currentA);
+    const mx = Number(info?.power?.currentAMax);
     return Number.isFinite(v) && Number.isFinite(mx) && mx > 0 && v >= mx;
   } catch {
     return false;
@@ -579,7 +579,7 @@ export function computeCurrentInputBarMaxWanted(info: any): boolean {
 
 export function computeVrTempBarCritWanted(info: any, limits: BarLimits = (BAR_LIMITS as any).vrTemp): boolean {
   try {
-    return isBarCrit(Number((info as any)?.vrTemp), limits?.min, limits?.max, (limits as any)?.critRel);
+    return isBarCrit(Number(info?.thermal?.vrTemp), limits?.min, limits?.max, (limits as any)?.critRel);
   } catch {
     return false;
   }
@@ -605,40 +605,38 @@ export function normalizeHomeTileInfo(
     };
   }
 
-  // --- Power usage / current / voltage normalization (UI wants neat rounding)
+  // --- v2: power sub-object; round display values in-place
   try {
-    info.minVoltage = parseFloat(Number(info.minVoltage).toFixed(1));
-    info.maxVoltage = parseFloat(Number(info.maxVoltage).toFixed(1));
-    info.minPower = parseFloat(Number(info.minPower).toFixed(1));
-    info.maxPower = parseFloat(Number(info.maxPower).toFixed(1));
-    info.power = parseFloat(Number(info.power).toFixed(1));
-    // voltage/current come in mV/mA
-    info.voltage = parseFloat((Number(info.voltage) / 1000).toFixed(1));
-    info.current = parseFloat((Number(info.current) / 1000).toFixed(1));
+    const pwr = info.power;
+    pwr.voltageMin  = parseFloat(Number(pwr.voltageMin).toFixed(1));
+    pwr.voltageMax  = parseFloat(Number(pwr.voltageMax).toFixed(1));
+    pwr.min         = parseFloat(Number(pwr.min).toFixed(1));
+    pwr.max         = parseFloat(Number(pwr.max).toFixed(1));
+    pwr.watts       = parseFloat(Number(pwr.watts).toFixed(1));
+    // voltage and currentA already in V / A from the v2 backend
+    pwr.voltage     = parseFloat(Number(pwr.voltage).toFixed(1));
   } catch {
     // ignore, keep raw
   }
 
-  // --- Power usage bar aliases (currentA/minCurrentA/maxCurrentA)
-  applyPowerUsageBarAliases(info, args.powerUsageAliases);
-
+  // --- Power usage bar: currentA/currentAMin/currentAMax already present in v2 power object
   const currentInputBarMaxWanted = computeCurrentInputBarMaxWanted(info);
 
-  // --- Core voltage/temps come in mV / °C (already numeric)
+  // --- Thermal: round display values in-place
   try {
-    info.coreVoltageActual = parseFloat((Number(info.coreVoltageActual) / 1000).toFixed(2));
-    info.coreVoltage = parseFloat((Number(info.coreVoltage) / 1000).toFixed(2));
-    info.temp = parseFloat(Number(info.temp).toFixed(1));
-    info.vrTemp = parseFloat(Number(info.vrTemp).toFixed(1));
-    info.overheat_temp = parseFloat(Number(info.overheat_temp).toFixed(1));
+    const therm = info.thermal;
+    therm.asicTemp  = parseFloat(Number(therm.asicTemp).toFixed(1));
+    therm.vrTemp    = parseFloat(Number(therm.vrTemp).toFixed(1));
+    // coreVoltageActual already in V from v2 backend
+    info.power.coreVoltageActual = parseFloat(Number(info.power.coreVoltageActual).toFixed(2));
   } catch {}
 
   const vrTempLimits = args.vrTempLimits ?? (BAR_LIMITS as any).vrTemp;
   const vrTempBarCritWanted = computeVrTempBarCritWanted(info, vrTempLimits);
 
-  const isDualPool = Number((info as any)?.stratum?.activePoolMode ?? 0) === 1;
+  const isDualPool = Number(info?.stratum?.activePoolMode ?? 0) === 1;
 
-  const chipTemps = (info as any)?.asicTemps ?? [];
+  const chipTemps = info?.thermal?.asicTemps ?? [];
   const hasChipTemps =
     Array.isArray(chipTemps) &&
     chipTemps.length > 0 &&

@@ -1,9 +1,8 @@
 import { Observable, Subscription, take } from 'rxjs';
-import type { ISystemInfo } from '../../../models/ISystemInfo';
 
 export interface HomeHistoryDrainerDeps {
   /** Fetches a chunk starting at `startTimestampMs` (milliseconds). */
-  fetchInfo: (startTimestampMs: number, chunkSize: number) => Observable<ISystemInfo>;
+  fetchInfo: (startTimestampMs: number, chunkSize: number) => Observable<any>;
 
   /** Imports a single history chunk into the chart state. */
   importHistoryChunk: (history: any) => void;
