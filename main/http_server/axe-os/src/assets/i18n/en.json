@@ -461,12 +461,12 @@
     "PROCEED_ANYWAY": "Proceed Anyway"
   },
   "DISCORD": {
-    "TITLE": "Discord Alerts",
-    "ALERTS": "Discord Alerts",
-    "WEBHOOK": "Discord Webhook",
+    "TITLE": "Webhook Alerts",
+    "ALERTS": "Webhook Alerts",
+    "WEBHOOK": "Webhook",
     "WEBHOOK_URL": "Webhook URL",
-    "WEBHOOK_HELP": "Webhook from your Discord channel integration",
-    "CONFIGURE_DESCRIPTION": "Configure which Discord alerts you want to receive. The webhook is used for all selected alerts.",
+    "WEBHOOK_HELP": "Any HTTP(S) endpoint that accepts a JSON body with a content field.",
+    "CONFIGURE_DESCRIPTION": "Configure which alerts you want to receive. The selected webhook receives a JSON body with a content field for every enabled alert.",
     "MINER_WATCHDOG": "Miner watchdog triggered",
     "MINER_WATCHDOG_DESC": "triggers when the device reboots after failing to submit a share for 1 hour",
     "BLOCK_FOUND": "Block found",

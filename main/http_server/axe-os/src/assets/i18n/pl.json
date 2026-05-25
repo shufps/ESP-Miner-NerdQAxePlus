@@ -286,7 +286,7 @@
   },
   "ALERTS": {
     "TITLE": "Konfiguracja alertów",
-    "DISCORD_WEBHOOK": "Adres URL Discord Webhook",
+    "DISCORD_WEBHOOK": "Adres URL webhooka",
     "TEMPERATURE_ALERT": "Alert temperatury",
     "HASHRATE_ALERT": "Alert mocy obliczeniowej",
     "OFFLINE_ALERT": "Alert offline",
@@ -451,12 +451,12 @@
     "PROCEED_ANYWAY": "Kontynuuj mimo wszystko"
   },
   "DISCORD": {
-    "TITLE": "Alerty Discord",
-    "ALERTS": "Alerty Discord",
-    "WEBHOOK": "Webhook Discord",
+    "TITLE": "Alerty webhooka",
+    "ALERTS": "Alerty webhooka",
+    "WEBHOOK": "Webhook",
     "WEBHOOK_URL": "Adres URL webhooka",
-    "WEBHOOK_HELP": "Webhook z integracji kanału Discord",
-    "CONFIGURE_DESCRIPTION": "Skonfiguruj, które alerty Discord chcesz otrzymywać. Webhook jest używany dla wszystkich wybranych alertów.",
+    "WEBHOOK_HELP": "Dowolny endpoint HTTP(S), który akceptuje treść JSON z polem content.",
+    "CONFIGURE_DESCRIPTION": "Skonfiguruj, które alerty chcesz otrzymywać. Wybrany webhook otrzymuje treść JSON z polem content dla każdego włączonego alertu.",
     "MINER_WATCHDOG": "Watchdog górnika wyzwolony",
     "MINER_WATCHDOG_DESC": "wyzwala się, gdy urządzenie ponownie się uruchamia po niepowodzeniu przesłania akcji przez 1 godzinę",
     "BLOCK_FOUND": "Znaleziono blok",

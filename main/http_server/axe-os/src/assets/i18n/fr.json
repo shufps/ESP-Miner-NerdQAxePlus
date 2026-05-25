@@ -283,7 +283,7 @@
   },
   "ALERTS": {
     "TITLE": "Configuration des Alertes",
-    "DISCORD_WEBHOOK": "URL Webhook Discord",
+    "DISCORD_WEBHOOK": "URL du webhook",
     "TEMPERATURE_ALERT": "Alerte de Température",
     "HASHRATE_ALERT": "Alerte de Taux de Hachage",
     "OFFLINE_ALERT": "Alerte Hors Ligne",
@@ -448,12 +448,12 @@
     "PROCEED_ANYWAY": "Continuer Quand Même"
   },
   "DISCORD": {
-    "TITLE": "Alertes Discord",
-    "ALERTS": "Alertes Discord",
-    "WEBHOOK": "Webhook Discord",
+    "TITLE": "Alertes webhook",
+    "ALERTS": "Alertes webhook",
+    "WEBHOOK": "Webhook",
     "WEBHOOK_URL": "URL du webhook",
-    "WEBHOOK_HELP": "Webhook issu de l’intégration du canal Discord",
-    "CONFIGURE_DESCRIPTION": "Configurez les alertes Discord que vous souhaitez recevoir. Le webhook est utilisé pour tous les sujets sélectionnés.",
+    "WEBHOOK_HELP": "Tout point de terminaison HTTP(S) acceptant un corps JSON avec un champ content.",
+    "CONFIGURE_DESCRIPTION": "Configurez les alertes que vous souhaitez recevoir. Le webhook sélectionné reçoit un corps JSON avec un champ content pour chaque alerte activée.",
     "MINER_WATCHDOG": "Watchdog du mineur déclenché",
     "MINER_WATCHDOG_DESC": "se déclenche lorsque l’appareil redémarre après n’avoir envoyé aucun share pendant 1 heure",
     "BLOCK_FOUND": "Bloc trouvé",

@@ -132,12 +132,13 @@ stratumdiff,data,u64,1000
 # ↓↓↓ ALERTING ↓↓↓
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Enable discord alerter
+# Enable webhook alerter
 # An alert will be triggered if the device reboots after failing to submit a share for 1 hour.
 #alrt_disc_en,data,u16,0
 
-# Discord Webhook URL
-#alrt_disc_url,data,string,https://discord.com/api/webhooks/your_token_here
+# Webhook URL
+# The firmware POSTs JSON with a single "content" field.
+#alrt_disc_url,data,string,https://example.com/webhook/alerts
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ↓↓↓ STRATUM KEEPALIVE ↓↓↓

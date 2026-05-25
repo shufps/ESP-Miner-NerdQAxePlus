@@ -42,16 +42,16 @@
           </nb-checkbox>
         </div>
         <!-- Webhook -->
-        <div class="form-row mt-3">
-          <label for="alertDiscordWebhook" class="form-label">{{ 'DISCORD.WEBHOOK_URL' | translate }}:</label>
-          <div class="form-control-wrapper">
+        <div class="form-row webhook-row mt-3">
+          <div class="form-control-wrapper webhook-control">
+            <label for="alertDiscordWebhook" class="form-label webhook-label">{{ 'DISCORD.WEBHOOK_URL' | translate }}:</label>
             <input
               nbInput
               id="alertDiscordWebhook"
               type="password"
               formControlName="alertDiscordWebhook"
-              placeholder="https://discord.com/api/webhooks/..."
-            /><br />
+              placeholder="https://example.com/webhook/alerts"
+            />
             <small>{{ 'DISCORD.WEBHOOK_HELP' | translate }}</small>
           </div>
         </div>
