@@ -22,6 +22,7 @@ public:
 private:
     bool m_use_tls;
     void applyKeepAlive_();
+    void setNoDelay_();
 
 protected:
     esp_transport_handle_t m_t;

@@ -1,6 +1,10 @@
 #include <errno.h>
 #include <string.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
 #include "esp_log.h"
 #include "esp_crt_bundle.h"
 #include "esp_transport.h"
@@ -58,8 +62,32 @@ bool StratumTransport::connect(const char* host, const char* ip, uint16_t port)
         return false;
     }
 
+    setNoDelay_();
+
     ESP_LOGI(TAG, "Connected");
     return true;
+}
+
+void StratumTransport::setNoDelay_()
+{
+    // Disable Nagle's algorithm on the pool socket.
+    // Share submits are latency-sensitive, and the SV2 noise transport writes
+    // the encrypted header and payload as separate TCP segments. With Nagle
+    // enabled, the second segment is held back until the first is ACKed by the
+    // pool, which adds a full delayed-ACK delay (~40ms) to every share submit.
+    // SV1 writes in a single segment but also benefits from immediate sends.
+    int sock = esp_transport_get_socket(m_t);
+    if (sock < 0) {
+        ESP_LOGW(TAG, "Could not get socket fd to set TCP_NODELAY");
+        return;
+    }
+
+    int nodelay = 1;
+    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)) < 0) {
+        ESP_LOGW(TAG, "Failed to set TCP_NODELAY (errno=%d: %s)", errno, strerror(errno));
+    } else {
+        ESP_LOGI(TAG, "TCP_NODELAY enabled");
+    }
 }
 
 int StratumTransport::send(const void* data, size_t len)
