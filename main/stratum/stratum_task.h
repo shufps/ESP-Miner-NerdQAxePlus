@@ -46,8 +46,6 @@ class StratumTaskBase {
     // Connection and network-related methods
     bool isWifiConnected();                                                      ///< Check if Wi-Fi is connected
     bool resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len); ///< Resolve hostname to IP
-    int connectStratum(const char *host_ip, uint16_t port);                      ///< Connect to a Stratum pool
-    bool setupSocketTimeouts(int sock);                                          ///< Set up socket timeouts
     char m_lastResolvedIp[INET_ADDRSTRLEN] = {0};                                ///< Last resolved IP (for use by ping_task)
 
     void connect();    ///< Establish a connection to the pool

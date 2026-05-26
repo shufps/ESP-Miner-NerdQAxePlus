@@ -23,6 +23,7 @@ public:
 private:
     bool m_use_tls;
     void applyKeepAlive_();
+    void setNoDelay_();
 
 protected:
     void shutdownSocket_();
