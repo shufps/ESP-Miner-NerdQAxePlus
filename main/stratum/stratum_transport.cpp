@@ -14,6 +14,11 @@
 #include "nvs_config.h"
 #include "stratum_transport.h"
 
+// esp_transport_get_socket() exists in IDF 5.3 but is only declared in
+// the private header (esp_transport_internal.h).  A forward declaration
+// avoids pulling in the entire private API surface.
+extern "C" int esp_transport_get_socket(esp_transport_handle_t t);
+
 static const char* TAG = "stratum_transport";
 
 StratumTransport::StratumTransport(bool use_tls)
