@@ -29,6 +29,56 @@ static void tx_unlock(void)
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+// Try to transmit a single CAN frame. On failure, attempt BUS_OFF recovery.
+static esp_err_t can_transmit_with_recovery(twai_message_t *frame)
+{
+    esp_err_t err = twai_transmit(frame, pdMS_TO_TICKS(50));
+    if (err == ESP_OK) return ESP_OK;
+
+    twai_status_info_t status;
+    if (err == ESP_ERR_INVALID_STATE &&
+        twai_get_status_info(&status) == ESP_OK) {
+
+        if (status.state == TWAI_STATE_BUS_OFF) {
+            ESP_LOGW(TAG, "BUS_OFF detected (tx_err=%lu), initiating recovery", status.tx_error_counter);
+            twai_initiate_recovery();
+            for (int i = 0; i < 20; i++) {
+                vTaskDelay(pdMS_TO_TICKS(50));
+                if (twai_get_status_info(&status) == ESP_OK &&
+                    status.state == TWAI_STATE_RUNNING) {
+                    ESP_LOGI(TAG, "CAN bus recovered");
+                    return ESP_ERR_INVALID_STATE;
+                }
+            }
+            ESP_LOGW(TAG, "CAN bus recovery timed out, restarting TWAI");
+        }
+
+        // STOPPED or recovery failed — restart the driver
+        if (twai_get_status_info(&status) == ESP_OK &&
+            status.state == TWAI_STATE_STOPPED) {
+            if (twai_start() == ESP_OK) {
+                ESP_LOGI(TAG, "TWAI restarted from STOPPED state");
+            } else {
+                ESP_LOGE(TAG, "TWAI restart failed");
+            }
+        }
+    } else if (err == ESP_ERR_TIMEOUT) {
+        // TX queue full or no ACK — clear stale frames and log
+        if (twai_get_status_info(&status) == ESP_OK) {
+            ESP_LOGW(TAG, "TX timeout id=0x%03lX (state=%d tx_err=%lu rx_err=%lu q=%lu)",
+                     frame->identifier, status.state, status.tx_error_counter,
+                     status.rx_error_counter, status.msgs_to_tx);
+            if (status.msgs_to_tx > 0) {
+                twai_clear_transmit_queue();
+            }
+        }
+    } else {
+        ESP_LOGW(TAG, "TX failed id=0x%03lX: %s", frame->identifier, esp_err_to_name(err));
+    }
+
+    return err;
+}
+
 static void send_multiframe(uint32_t can_id, const uint8_t *data, size_t len)
 {
     size_t  offset = 0;
@@ -45,31 +95,7 @@ static void send_multiframe(uint32_t can_id, const uint8_t *data, size_t len)
         frame.data[0]          = is_last ? CAN_SEQ_LAST : seq++;
         memcpy(&frame.data[1], data + offset, chunk);
 
-        esp_err_t err = twai_transmit(&frame, pdMS_TO_TICKS(50));
-        if (err == ESP_ERR_INVALID_STATE) {
-            // TWAI may be in BUS_OFF — attempt recovery
-            twai_status_info_t status;
-            if (twai_get_status_info(&status) == ESP_OK &&
-                status.state == TWAI_STATE_BUS_OFF) {
-                ESP_LOGW(TAG, "BUS_OFF detected, initiating recovery");
-                twai_initiate_recovery();
-                // wait up to 1s for recovery to complete
-                for (int i = 0; i < 20; i++) {
-                    vTaskDelay(pdMS_TO_TICKS(50));
-                    if (twai_get_status_info(&status) == ESP_OK &&
-                        status.state == TWAI_STATE_RUNNING) {
-                        ESP_LOGI(TAG, "CAN bus recovered");
-                        break;
-                    }
-                }
-            } else {
-                ESP_LOGW(TAG, "TX failed id=0x%03lX seq=%02X: %s",
-                         can_id, frame.data[0], esp_err_to_name(err));
-            }
-        } else if (err != ESP_OK) {
-            ESP_LOGW(TAG, "TX failed id=0x%03lX seq=%02X: %s",
-                     can_id, frame.data[0], esp_err_to_name(err));
-        }
+        can_transmit_with_recovery(&frame);
 
         offset += chunk;
     }
@@ -85,9 +111,10 @@ void can_send_hello(const uint8_t mac[6])
     msg.identifier       = CAN_ID_HELLO;
     msg.data_length_code = 6;
     memcpy(msg.data, mac, 6);
-    twai_transmit(&msg, pdMS_TO_TICKS(50));
-    ESP_LOGD(TAG, "TX HELLO MAC=%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    if (can_transmit_with_recovery(&msg) == ESP_OK) {
+        ESP_LOGI(TAG, "TX HELLO MAC=%02X:%02X:%02X:%02X:%02X:%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    }
 }
 
 void can_send_assign(const uint8_t mac[6], uint8_t can_id)
@@ -97,9 +124,10 @@ void can_send_assign(const uint8_t mac[6], uint8_t can_id)
     msg.data_length_code = 7;
     memcpy(msg.data, mac, 6);
     msg.data[6] = can_id;
-    twai_transmit(&msg, pdMS_TO_TICKS(50));
-    ESP_LOGI(TAG, "TX ASSIGN MAC=%02X:%02X:%02X:%02X:%02X:%02X → id=%d",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], can_id);
+    if (can_transmit_with_recovery(&msg) == ESP_OK) {
+        ESP_LOGI(TAG, "TX ASSIGN MAC=%02X:%02X:%02X:%02X:%02X:%02X → id=%d",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], can_id);
+    }
 }
 
 void can_send_master_boot(const uint8_t master_mac[6])
@@ -108,10 +136,11 @@ void can_send_master_boot(const uint8_t master_mac[6])
     msg.identifier       = CAN_ID_MASTER_BOOT;
     msg.data_length_code = 6;
     memcpy(msg.data, master_mac, 6);
-    twai_transmit(&msg, pdMS_TO_TICKS(50));
-    ESP_LOGI(TAG, "TX MASTER_BOOT MAC=%02X:%02X:%02X:%02X:%02X:%02X",
-             master_mac[0], master_mac[1], master_mac[2],
-             master_mac[3], master_mac[4], master_mac[5]);
+    if (can_transmit_with_recovery(&msg) == ESP_OK) {
+        ESP_LOGI(TAG, "TX MASTER_BOOT MAC=%02X:%02X:%02X:%02X:%02X:%02X",
+                 master_mac[0], master_mac[1], master_mac[2],
+                 master_mac[3], master_mac[4], master_mac[5]);
+    }
 }
 
 void can_send_telemetry(uint8_t slave_id, const can_slave_telemetry_t *t)

@@ -420,6 +420,14 @@ void can_master_task(void *pvParameters)
             if (++timeout_ticks >= 10) {  // ~1 s
                 timeout_ticks = 0;
                 check_slave_timeouts();
+
+                // Periodic TWAI status for debugging
+                twai_status_info_t st;
+                if (twai_get_status_info(&st) == ESP_OK) {
+                    ESP_LOGI(TAG, "TWAI state=%d tx_err=%lu rx_err=%lu msgs_to_tx=%lu msgs_to_rx=%lu tx_fail=%lu",
+                             st.state, st.tx_error_counter, st.rx_error_counter,
+                             st.msgs_to_tx, st.msgs_to_rx, st.tx_failed_count);
+                }
             }
             continue;
         }

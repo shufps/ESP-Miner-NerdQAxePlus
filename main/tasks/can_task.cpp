@@ -29,4 +29,14 @@ void can_init(int tx_gpio, int rx_gpio)
     }
 
     ESP_LOGI(TAG, "TWAI ready at 500 kbit/s (TX=GPIO%d RX=GPIO%d)", tx_gpio, rx_gpio);
+
+    // Workaround: reading the status register after start seems to stabilize
+    // the TWAI controller on ESP32-S3 and prevent the tx_err=128 issue.
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    twai_status_info_t st;
+    if (twai_get_status_info(&st) == ESP_OK) {
+        ESP_LOGI(TAG, "TWAI initial state=%d tx_err=%lu rx_err=%lu", st.state, st.tx_error_counter, st.rx_error_counter);
+    }
+
 }
