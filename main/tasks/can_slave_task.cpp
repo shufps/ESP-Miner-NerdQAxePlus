@@ -219,6 +219,14 @@ void can_slave_task(void *pvParameters)
         if (state == SLAVE_UNASSIGNED && (now - last_hello) >= pdMS_TO_TICKS(1000)) {
             can_send_hello(mac);
             last_hello = now;
+
+            // Periodic TWAI status while unassigned
+            twai_status_info_t st;
+            if (twai_get_status_info(&st) == ESP_OK) {
+                ESP_LOGI(TAG, "TWAI state=%d tx_err=%lu rx_err=%lu msgs_to_tx=%lu msgs_to_rx=%lu tx_fail=%lu",
+                         st.state, st.tx_error_counter, st.rx_error_counter,
+                         st.msgs_to_tx, st.msgs_to_rx, st.tx_failed_count);
+            }
         }
 
         twai_message_t msg;
