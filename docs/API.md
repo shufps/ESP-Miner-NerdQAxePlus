@@ -346,7 +346,7 @@ Send a test message to the configured webhook. Requires OTP.
 
 ### InfluxDB
 
-#### `GET /api/v2/influx/info`
+#### `GET /api/v2/influx`
 
 Returns InfluxDB configuration. The token is **not** returned for security.
 

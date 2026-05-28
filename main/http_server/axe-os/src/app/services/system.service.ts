@@ -235,7 +235,7 @@ export class SystemService {
   }
 
   public getInfluxInfo(uri: string = ''): Observable<IInfluxDB> {
-    return this.httpClient.get(`${uri}/api/v2/influx/info`) as Observable<IInfluxDB>;
+    return this.httpClient.get(`${uri}/api/v2/influx`) as Observable<IInfluxDB>;
   }
 
   public getHistoryLen(): Observable<any> {

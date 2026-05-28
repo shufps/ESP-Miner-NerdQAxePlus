@@ -183,7 +183,7 @@ esp_err_t start_rest_server(void * pvParameters)
 
     /* URI handler for fetching system info */
     httpd_uri_t influx_info_get_uri = {
-        .uri = "/api/v2/influx/info", .method = HTTP_GET, .handler = GET_influx_info, .user_ctx = rest_context};
+        .uri = "/api/v2/influx", .method = HTTP_GET, .handler = GET_influx_info, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &influx_info_get_uri);
 
     httpd_uri_t swarm_get_uri = {.uri = "/api/swarm/info", .method = HTTP_GET, .handler = GET_swarm, .user_ctx = rest_context};
