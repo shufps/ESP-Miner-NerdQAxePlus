@@ -32,8 +32,7 @@ esp_err_t GET_alert_info(httpd_req_t *req)
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
-    // don't send the alertDiscordWebhook on the API
-    //doc["webhookUrl"]  = alertDiscordWebhook;
+    doc["hasWebhook"] = (alertDiscordWebhook && alertDiscordWebhook[0] != '\0');
     doc["watchdogEnable"] = Config::isDiscordWatchdogAlertEnabled() ? 1 : 0;
     doc["blockFoundEnable"] = Config::isDiscordBlockFoundAlertEnabled() ? 1 : 0;
     doc["bestDiffEnable"] = Config::isDiscordBestDiffAlertEnabled() ? 1 : 0;

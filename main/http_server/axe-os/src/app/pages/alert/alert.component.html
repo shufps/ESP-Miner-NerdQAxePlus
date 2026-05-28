@@ -55,11 +55,11 @@
             <small>{{ 'DISCORD.WEBHOOK_HELP' | translate }}</small>
           </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between mt-3">
-          <div>
-            <button nbButton size="small" (click)="sendTest()" status="info">{{ 'DISCORD.TEST' | translate }}</button>
-          </div>
+        <div class="d-flex align-items-center mt-3" style="gap: 8px;">
+          <button nbButton size="small" (click)="saveAlerts()" status="primary">{{ 'COMMON.SAVE' | translate }}</button>
+          <button nbButton size="small" (click)="sendTest()" status="info" [disabled]="!hasWebhook">{{ 'DISCORD.TEST' | translate }}</button>
         </div>
+
         <hr class="my-4" />
 
         <div class="form-row mb-2">
@@ -73,11 +73,8 @@
           </nb-checkbox>
         </div>
 
-        <!-- Actions -->
-        <div class="d-flex align-items-center justify-content-between mt-3">
-          <div>
-            <button nbButton size="small" (click)="save()" status="danger">{{ 'COMMON.SAVE' | translate }}</button>
-          </div>
+        <div class="d-flex align-items-center mt-3">
+          <button nbButton size="small" (click)="saveDisplay()" status="primary">{{ 'COMMON.SAVE' | translate }}</button>
         </div>
       </nb-card-body>
     </nb-card>
