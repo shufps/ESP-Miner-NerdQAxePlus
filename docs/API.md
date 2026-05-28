@@ -144,8 +144,7 @@ Real-time mining telemetry. Used by the Home page (polled every 2s).
   },
   "can": {
     "hasExtension": false,
-    "enabled": false,
-    "fleetPower": 45.6
+    "enabled": false
   },
   "coinbase": {
     "blockHeaders": [

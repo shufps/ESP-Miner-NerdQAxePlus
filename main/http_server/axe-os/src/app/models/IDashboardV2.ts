@@ -79,7 +79,6 @@ export interface IDashboardV2Stratum {
 export interface IDashboardV2Can {
     hasExtension: boolean;
     enabled: boolean;
-    fleetPower?: number;
 }
 
 export interface IDashboardV2BlockHeader {

@@ -158,9 +158,6 @@ esp_err_t GET_V2_dashboard(httpd_req_t *req)
         JsonObject can = doc["can"].to<JsonObject>();
         can["hasExtension"] = board->hasCanExtension();
         can["enabled"]      = Config::isCanEnabled();
-        if (Config::isCanEnabled()) {
-            can["fleetPower"] = POWER_MANAGEMENT_MODULE.getPower() + can_master_get_slave_fleet_power();
-        }
     }
 
     // --- coinbase ---
