@@ -117,7 +117,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["vrTempInt"]          = POWER_MANAGEMENT_MODULE.getVRTempInt();
     doc["hashRateTimestamp"]  = history->getCurrentTimestamp();
     // set hashrate values to 0 in shutdown
-    doc["hashRate"]           = !shutdown ? SYSTEM_MODULE.getCurrentHashrate() : 0.0;
+    doc["hashRate"]           = !shutdown ? SYSTEM_MODULE.getCurrentHashrate() + HASHRATE_MONITOR.getExternalHashrate() : 0.0;
     doc["hashRate_1m"]        = !shutdown ? history->getCurrentHashrate1m()    : 0.0;
     doc["hashRate_10m"]       = !shutdown ? history->getCurrentHashrate10m()   : 0.0;
     doc["hashRate_1h"]        = !shutdown ? history->getCurrentHashrate1h()    : 0.0;

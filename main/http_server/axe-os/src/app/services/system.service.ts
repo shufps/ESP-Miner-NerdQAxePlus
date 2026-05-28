@@ -1,11 +1,15 @@
 import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { delay, Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { eASICModel } from '../models/enum/eASICModel';
 import { ISystemInfo } from '../models/ISystemInfo';
+import { IDashboardV2 } from '../models/IDashboardV2';
 import { IHistory } from '../models/IHistory';
 import { IAlertSettings } from '../models/IAlertSettings';
 import { AsicInfo } from '../models/IAsicInfo';
+import { ISettingsV2 } from '../models/ISettingsV2';
+import { IIdentifyV2 } from '../models/IIdentifyV2';
+import { ISystemV2 } from '../models/ISystemV2';
 import { environment } from '../../environments/environment';
 import { IInfluxDB } from '../models/IInfluxDB';
 import { IUpdateStatus } from '../models/IUpdateStatus';
@@ -148,6 +152,19 @@ export class SystemService {
     return defaultInfo;
   }
 
+  static defaultDashboardV2(): IDashboardV2 {
+    return {
+      system:      { uptime: 0, shutdown: false, boardError: 0, overheatTemp: 0 },
+      performance: { hashRateTimestamp: 0, hashRate: 0, hashRate1m: 0, hashRate10m: 0, hashRate1h: 0, hashRate1d: 0, bestDiff: 0, bestSessionDiff: 0, sharesAccepted: 0, sharesRejected: 0, frequency: 0, asicCount: 0, smallCoreCount: 0 },
+      power:       { watts: 0, min: 0, max: 0, voltage: 0, voltageMin: 0, voltageMax: 0, currentA: 0, currentAMin: 0, currentAMax: 0, coreVoltageActual: 0 },
+      thermal:     { asicTemp: 0, vrTemp: 0, vrTempInt: 0, asicTemps: [], fans: [{ speed: 0, rpm: 0 }] },
+      stratum:     { poolMode: 0, activePoolMode: 0, usingFallback: false, totalBestDiff: 0, poolBalance: 0, pools: [{ host: '', port: 0, user: '', connected: false, activeProtocol: 0, encrypted: false, accepted: 0, rejected: 0, bestDiff: 0, pingRtt: 0, pingLoss: 0, poolDifficulty: 0 }] },
+      can:         { hasExtension: false, enabled: false },
+      coinbase:    { blockHeaders: [], pools: [] },
+      history:     { hashrate_1m: [], hashrate_10m: [], hashrate_1h: [], hashrate_1d: [], vregTemp: [], asicTemp: [], hasMore: false, timestamps: [], timestampBase: 0 },
+    };
+  }
+
   public getInfo(ts = 0, limit = 0, uri = ''): Observable<ISystemInfo> {
     let params = new HttpParams();
 
@@ -184,12 +201,41 @@ export class SystemService {
     return this.httpClient.get<ISystemInfo>(endpoint, { params });
   }
 
+  // Home dashboard v2: fetches /api/v2/dashboard and returns IDashboardV2 directly.
+  public getDashboardV2WithSpan(ts = 0, limit = 0, spanMs = 0): Observable<IDashboardV2> {
+    let params = new HttpParams();
+    if (ts > 0) {
+      params = params.set('ts', ts).set('cur', Date.now());
+      if (limit > 0) params = params.set('limit', limit);
+      if (spanMs > 0) params = params.set('historySpan', spanMs);
+    }
+    return this.httpClient.get<IDashboardV2>('/api/v2/dashboard', { params });
+  }
+
   public getAsicInfo(uri: string = ''): Observable<AsicInfo> {
     return this.httpClient.get<AsicInfo>(`${uri}/api/system/asic`);
   }
 
+  public getSettingsV2(uri: string = ''): Observable<ISettingsV2> {
+    return this.httpClient.get<ISettingsV2>(`${uri}/api/v2/settings`);
+  }
+
+  public updateSettingsV2(uri: string = '', update: any, totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) headers = headers.set('X-TOTP', totp);
+    return this.httpClient.patch(`${uri}/api/v2/settings`, update, { headers });
+  }
+
+  public getIdentifyV2(uri: string = ''): Observable<IIdentifyV2> {
+    return this.httpClient.get<IIdentifyV2>(`${uri}/api/v2/identify`);
+  }
+
+  public getSystemV2(): Observable<ISystemV2> {
+    return this.httpClient.get<ISystemV2>(`/api/v2/system`);
+  }
+
   public getInfluxInfo(uri: string = ''): Observable<IInfluxDB> {
-    return this.httpClient.get(`${uri}/api/influx/info`) as Observable<IInfluxDB>;
+    return this.httpClient.get(`${uri}/api/v2/influx`) as Observable<IInfluxDB>;
   }
 
   public getHistoryLen(): Observable<any> {
@@ -244,7 +290,7 @@ export class SystemService {
   public updateInflux(uri: string = '', update: any, totp?: string) {
     let headers = new HttpHeaders();
     if (totp) headers = headers.set('X-TOTP', totp);
-    return this.httpClient.patch(`${uri}/api/influx`, update, { headers });
+    return this.httpClient.patch(`${uri}/api/v2/influx`, update, { headers });
   }
 
 
@@ -313,19 +359,19 @@ export class SystemService {
 
 
   public getAlertInfo(uri: string = ''): Observable<IAlertSettings> {
-    return this.httpClient.get(`${uri}/api/alert/info`) as Observable<IAlertSettings>;
+    return this.httpClient.get(`${uri}/api/v2/alert`) as Observable<IAlertSettings>;
   }
 
   // Alerts: POST /api/alert/update
   public updateAlertInfo(uri: string = '', data: IAlertSettings, totp?: string) {
     let headers = new HttpHeaders();
     if (totp) headers = headers.set('X-TOTP', totp);
-    return this.httpClient.post(`${uri}/api/alert/update`, data, { headers });
+    return this.httpClient.patch(`${uri}/api/v2/alert`, data, { headers });
   }
 
   public sendAlertTest(uri: string = '', totp?: string): Observable<any> {
     const headers = totp ? new HttpHeaders({ 'X-OTP-Code': totp }) : undefined;
-    return this.httpClient.post(`${uri}/api/alert/test`, {}, {
+    return this.httpClient.post(`${uri}/api/v2/alert/test`, {}, {
       responseType: 'text',
       headers,
     });
@@ -333,13 +379,13 @@ export class SystemService {
 
   /** POST /api/otp -> starts enrollment (shows QR on device) */
   public startOtpEnrollment(): Observable<void> {
-    return this.httpClient.post<void>('/api/otp', {}); // empty body
+    return this.httpClient.post<void>('/api/v2/otp', {}); // empty body
   }
 
   /** PATCH /api/otp -> {enabled:boolean, totp:string} */
   public updateOtp(enabled: boolean, totp: string): Observable<void> {
     const headers = new HttpHeaders().set('X-TOTP', totp);
-    return this.httpClient.patch<void>('/api/otp', { enabled }, { headers });
+    return this.httpClient.patch<void>('/api/v2/otp', { enabled }, { headers });
   }
 
   /** POST /api/otp/session - creates session token with expiration */
@@ -349,12 +395,12 @@ export class SystemService {
       headers = headers.set('X-OTP-Session-TTL', String(ttlMs));
     }
     return this.httpClient.post<{ token: string; ttlMs?: number; expiresAt?: number }>(
-      '/api/otp/session', {}, { headers }
+      '/api/v2/otp/session', {}, { headers }
     );
   }
 
   // only returns enabled flag
   public getOTPStatus(): Observable<{ enabled: boolean }> {
-    return this.httpClient.get('/api/otp/status') as Observable<{ enabled: boolean }>;
+    return this.httpClient.get('/api/v2/otp/status') as Observable<{ enabled: boolean }>;
   }
 }

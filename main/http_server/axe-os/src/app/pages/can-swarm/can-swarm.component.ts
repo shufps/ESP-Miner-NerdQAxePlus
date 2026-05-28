@@ -1,11 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { combineLatest, interval, Subscription } from 'rxjs';
+import { interval, Subscription } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { ISystemInfo } from '../../models/ISystemInfo';
 import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
+import { SystemService } from '../../services/system.service';
 
 export interface CanSlaveFan {
   mode: number;
@@ -25,10 +25,10 @@ export interface CanSlave {
   temp: number;
   vrTemp: number;
   asicTemps: number[];
-  fanrpm: number;
-  fanrpm2: number;
-  fanspeed: number;
-  fanspeed2: number;
+  fanRpm: number;
+  fanRpm2: number;
+  fanSpeed: number;
+  fanSpeed2: number;
   fans?: CanSlaveFan[];
   power: number;
   current: number;
@@ -41,8 +41,8 @@ export interface CanSlave {
   // Settings
   frequency?: number;
   coreVoltage?: number;
-  flipscreen?: boolean;
-  autoscreenoff?: boolean;
+  flipScreen?: boolean;
+  autoScreenOff?: boolean;
 }
 
 // Mirrors Board::Error enum order from board.h
@@ -73,6 +73,7 @@ export const FAN_MODES = [
 })
 export class CanSwarmComponent implements OnInit, OnDestroy {
   rows: CanSlave[] = [];
+  fleet = { hashRate: 0, power: 0 };
   loading = true;
   fanModes = FAN_MODES;
 
@@ -88,11 +89,11 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
   }
 
   get totalHashRate(): number {
-    return this.rows.filter(r => r.active && !r.shutdown).reduce((sum, r) => sum + r.hashRate, 0);
+    return this.fleet.hashRate;
   }
 
   get totalPower(): number {
-    return this.rows.filter(r => r.active).reduce((sum, r) => sum + r.power, 0);
+    return this.fleet.power;
   }
 
   get efficiency(): number {
@@ -107,19 +108,20 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
 
   otpEnabled = false;
 
-  constructor(private http: HttpClient, private fb: FormBuilder, private otpAuth: OtpAuthService) {}
+  constructor(private http: HttpClient, private fb: FormBuilder, private otpAuth: OtpAuthService, private systemService: SystemService) {}
 
   ngOnInit(): void {
-    this.http.get<ISystemInfo>('/api/system/info').pipe(catchError(() => of(null))).subscribe(info => {
+    this.systemService.getIdentifyV2().pipe(catchError(() => of(null))).subscribe(info => {
       this.otpEnabled = !!info?.otp;
     });
 
     this.refresh();
 
     this.pollSub = interval(2000).pipe(
-      switchMap(() => this.fetchAll())
-    ).subscribe(rows => {
-      this.mergeRows(rows);
+      switchMap(() => this.fetchNodes())
+    ).subscribe(res => {
+      this.fleet = res.fleet;
+      this.mergeRows(res.nodes);
       this.loading = false;
     });
   }
@@ -128,18 +130,16 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     this.pollSub?.unsubscribe();
   }
 
-  private fetchAll() {
-    return combineLatest([
-      this.http.get<ISystemInfo>('/api/system/info').pipe(catchError(() => of(null))),
-      this.http.get<CanSlave[]>('/api/can/slaves').pipe(catchError(() => of([] as CanSlave[]))),
-    ]).pipe(
-      switchMap(([info, slaves]) => of(this.buildRows(info, slaves)))
+  private fetchNodes() {
+    return this.http.get<{ fleet: { hashRate: number; power: number }; nodes: CanSlave[] }>('/api/v2/can/nodes').pipe(
+      catchError(() => of({ fleet: { hashRate: 0, power: 0 }, nodes: [] as CanSlave[] }))
     );
   }
 
   private refresh(): void {
-    this.fetchAll().subscribe(rows => {
-      this.mergeRows(rows);
+    this.fetchNodes().subscribe(res => {
+      this.fleet = res.fleet;
+      this.mergeRows(res.nodes);
       this.loading = false;
     });
   }
@@ -154,33 +154,6 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
       }
     });
     this.rows = this.rows.filter(r => incoming.some(nr => nr.id === r.id));
-  }
-
-  private buildRows(info: ISystemInfo | null, slaves: CanSlave[]): CanSlave[] {
-    const slavesHr = slaves.filter(s => s.active && !s.shutdown).reduce((sum, s) => sum + s.hashRate, 0);
-    const masterHr = Math.max(0, (info?.hashRate ?? 0) - slavesHr);
-    const masterRow: CanSlave = {
-      id: 0,
-      mac: info?.macAddr ?? '—',
-      active: true,
-      foreign: false,
-      isMaster: true,
-      deviceModel: info?.deviceModel ?? undefined,
-      version: info?.version ?? undefined,
-      hashRate: masterHr,
-      temp: info?.temp ?? 0,
-      vrTemp: info?.vrTemp ?? 0,
-      asicTemps: info?.asicTemps ?? [0, 0, 0, 0],
-      fanrpm: info?.fanrpm ?? 0,
-      fanrpm2: info?.fanrpm2 ?? 0,
-      fanspeed: info?.fanspeed ?? 0,
-      fanspeed2: info?.fanspeed2 ?? 0,
-      power: info?.power ?? 0,
-      current: info?.current ?? 0,
-      coreVoltageActual: info?.coreVoltageActual ?? 0,
-      shutdown: info?.shutdown ?? false,
-    };
-    return [masterRow, ...slaves];
   }
 
   editSlave(s: CanSlave): void {
@@ -198,8 +171,8 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
       fan1Speed:      [fan1?.manualSpeed ?? 100,   [Validators.min(0), Validators.max(100)]],
       fan1TargetTemp: [fan1?.targetTemp ?? 65,     [Validators.min(30), Validators.max(90)]],
       fan1Overheat:   [fan1?.overheatTemp ?? 80,   [Validators.min(40), Validators.max(100)]],
-      flipscreen:     [s.flipscreen ?? false],
-      autoscreenoff:  [s.autoscreenoff ?? false],
+      flipScreen:     [s.flipScreen ?? false],
+      autoScreenOff:  [s.autoScreenOff ?? false],
     });
   }
 
@@ -224,12 +197,12 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
         { mode: v.fan0Mode, manualSpeed: v.fan0Speed, targetTemp: v.fan0TargetTemp, overheatTemp: v.fan0Overheat },
         { mode: v.fan1Mode, manualSpeed: v.fan1Speed, targetTemp: v.fan1TargetTemp, overheatTemp: v.fan1Overheat },
       ],
-      flipscreen:   v.flipscreen,
-      autoscreenoff: v.autoscreenoff,
+      flipScreen:   v.flipScreen,
+      autoScreenOff: v.autoScreenOff,
     };
     this.otpAuth.ensureOtp$('', 'OTP Required', 'Enter your OTP to save slave settings').pipe(
       switchMap(({ totp }: EnsureOtpResult) =>
-        this.http.patch(`/api/can/slaves/${id}`, body, { headers: this.headers(totp) })
+        this.http.patch(`/api/v2/can/nodes/${id}`, body, { headers: this.headers(totp) })
       ),
       catchError(() => of(null))
     ).subscribe(() => {
@@ -240,20 +213,20 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
 
   restartSlave(id: number): void {
     if (!confirm(`Restart slave ${id}?`)) return;
-    this.http.post(`/api/can/slaves/${id}/restart`, null).pipe(
+    this.http.post(`/api/v2/can/nodes/${id}/restart`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
 
   shutdownSlave(id: number): void {
     if (!confirm(`Shutdown slave ${id}? It will stop mining until restarted.`)) return;
-    this.http.post(`/api/can/slaves/${id}/shutdown`, null).pipe(
+    this.http.post(`/api/v2/can/nodes/${id}/shutdown`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
 
   identifySlave(id: number): void {
-    this.http.post(`/api/can/slaves/${id}/identify`, null).pipe(
+    this.http.post(`/api/v2/can/nodes/${id}/identify`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
@@ -262,7 +235,7 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     if (!confirm(`Remove slave ${id} from registry?`)) return;
     this.otpAuth.ensureOtp$('', 'OTP Required', 'Enter your OTP to remove slave').pipe(
       switchMap(({ totp }: EnsureOtpResult) =>
-        this.http.delete(`/api/can/slaves/${id}`, { headers: this.headers(totp) })
+        this.http.delete(`/api/v2/can/nodes/${id}`, { headers: this.headers(totp) })
       ),
       catchError(() => of(null))
     ).subscribe(() => {

@@ -11,7 +11,7 @@ import { NbToastrService } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { IUpdateStatus } from 'src/app/models/IUpdateStatus';
 import { OtpAuthService, EnsureOtpResult, EnsureOtpOptions } from '../../services/otp-auth.service';
-import { ISystemInfo } from '../../models/ISystemInfo';
+import { ISettingsV2 } from '../../models/ISettingsV2';
 import { getAppVersion } from 'src/app/app.module';
 
 @Component({
@@ -27,7 +27,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public deviceModel: string = "";
   public devToolsOpen: boolean = false;
   public eASICModel = eASICModel;
-  public ASICModel!: eASICModel;
+  public asicModel!: eASICModel;
 
   public expectedFileName: string = "";
   public expectedFactoryFilename: string = "";
@@ -35,7 +35,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   public selectedFirmwareFile: File | null = null;
   public selectedWebsiteFile: File | null = null;
 
-  public info$: Observable<ISystemInfo>;
+  public info$: Observable<ISettingsV2>;
 
   public isWebsiteUploading = false;
   public isFirmwareUploading = false;
@@ -77,7 +77,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
     private otpAuth: OtpAuthService,
   ) {
-    this.info$ = this.systemService.getInfo().pipe(
+    this.info$ = this.systemService.getSettingsV2().pipe(
       shareReplay({ refCount: true, bufferSize: 1 })
     );
   }
@@ -89,7 +89,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.currentWebVersion = this.getAppVersion();
         //this.deviceModel = "NerdQAxe++";
         this.deviceModel = info.deviceModel;
-        this.ASICModel = info.ASICModel;
+        this.asicModel = info.asicModel;
         this.otpEnabled = !!info.otp;
 
         // Replace 'γ' with 'Gamma' if present and remove spaces

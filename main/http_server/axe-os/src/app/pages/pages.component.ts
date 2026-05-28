@@ -4,7 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { NbMenuItem } from '@nebular/theme';
 import { catchError } from 'rxjs/operators';
 import { of, Subscription } from 'rxjs';
-import { ISystemInfo } from '../models/ISystemInfo';
+import { IIdentifyV2 } from '../models/IIdentifyV2';
 
 @Component({
     selector: 'ngx-pages',
@@ -20,7 +20,7 @@ import { ISystemInfo } from '../models/ISystemInfo';
     constructor(private translateService: TranslateService, private http: HttpClient) {}
 
     ngOnInit(): void {
-        this.http.get<ISystemInfo>('/api/system/info').pipe(
+        this.http.get<IIdentifyV2>('/api/v2/identify').pipe(
             catchError(() => of(null))
         ).subscribe(info => {
             this.canEnabled = info?.can?.enabled === true;

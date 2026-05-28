@@ -16,7 +16,7 @@ import { map,
   firstValueFrom } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
-import { ISystemInfo, IBlockHeader } from '../../models/ISystemInfo';
+import { IDashboardV2, IDashboardV2BlockHeader, IDashboardV2Pool } from '../../models/IDashboardV2';
 import { Chart } from 'chart.js';  // Import Chart.js
 import { registerHomeChartPlugins } from './plugins';
 import { HOME_CFG,
@@ -54,7 +54,6 @@ import { NbThemeService, NbDialogService, NbToastrService } from '@nebular/theme
 import { NbTrigger } from '@nebular/theme';
 import { TranslateService } from '@ngx-translate/core';
 import { LocalStorageService } from '../../services/local-storage.service';
-import { IPool } from 'src/app/models/IStratum';
 import {
   getPoolIconUrl as resolvePoolIconUrl,
   getQuickLink,
@@ -470,13 +469,13 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private chart?: Chart;
   private themeSubscription?: Subscription;
   private chartInitialized = false;
-  private _info: any;
+  private _info: IDashboardV2 | undefined;
   private timeFormatListener: any;
 
   private wasLoaded = false;
   private saveLock = false;
 
-  public info$: Observable<ISystemInfo>;
+  public info$: Observable<IDashboardV2>;
   public quickLink$: Observable<string | undefined>;
   public fallbackQuickLink$!: Observable<string | undefined>;
   public expectedHashRate$: Observable<number | undefined>;
@@ -639,7 +638,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.historyDrainer = new HomeHistoryDrainer(
       {
         fetchInfo: (startTimestampMs, chunkSize) =>
-          this.systemService.getInfoWithSpan(startTimestampMs, chunkSize, HOME_CFG.xAxis.maxWindowMs),
+          this.systemService.getDashboardV2WithSpan(startTimestampMs, chunkSize, HOME_CFG.xAxis.maxWindowMs),
         importHistoryChunk: (history) => this.importHistoricalData(history),
         setRunning: (running) => (this.historyDrainRunning = running),
         setSuppressed: (suppressed) => (this.suppressChartUpdatesDuringHistoryDrain = suppressed),
@@ -699,8 +698,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
       chunkSize: this.chunkSizeDrainer,
       historyWindowMs: HOME_CFG.xAxis.maxWindowMs,
       fetchInfo: (startTimestampMs, chunkSize) =>
-        this.systemService.getInfoWithSpan(startTimestampMs, chunkSize, HOME_CFG.xAxis.maxWindowMs),
-      defaultInfo: () => SystemService.defaultInfo(),
+        this.systemService.getDashboardV2WithSpan(startTimestampMs, chunkSize, HOME_CFG.xAxis.maxWindowMs),
+      defaultInfo: () => SystemService.defaultDashboardV2(),
       getStoredLastTimestampMs: () => this.getStoredTimestamp(),
       getForceStartTimestampMs: () => {
         try {
@@ -736,7 +735,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         // expectedHashRate$ returns an "expected" value used in UI. For internal comparisons
         // we keep everything in H/s to match live pool sums and chart values.
         try {
-          const expectedGh = Math.floor(Number(info.frequency) * ((Number(info.smallCoreCount) * Number(info.asicCount)) / 1000));
+          const expectedGh = Math.floor(Number(info.performance.frequency) * ((Number(info.performance.smallCoreCount) * Number(info.performance.asicCount)) / 1000));
           const expectedHs = Number.isFinite(expectedGh) && expectedGh > 0 ? expectedGh * 1e9 : 0;
           this.expectedHashrateHsLast = expectedHs;
         } catch {
@@ -757,8 +756,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         const systemOk = Number.isFinite(this.expectedHashrateHsLast) && this.expectedHashrateHsLast > 0;
         this.warmupMachine.observeLive({
           nowMs,
-          vregTempC: (info as any).vrTemp,
-          asicTempC: (info as any).temp,
+          vregTempC: info.thermal.vrTemp,
+          asicTempC: info.thermal.asicTemp,
           liveHashrateHs: liveHs,
           expectedHashrateHs: this.expectedHashrateHsLast,
           systemOk,
@@ -780,7 +779,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
         //(info as any).asicTemps = [50, 51, 52, 53, 54, 55, 53, 51];
 
         // Normalize/derive everything the tiles need (bars + squares).
-        const derived = normalizeHomeTileInfo(info as any, {
+        const derived = normalizeHomeTileInfo(info, {
           powerUsageAliases: HOME_CFG.tiles.powerUsageAliases,
           vrTempLimits: (BAR_LIMITS as any).vrTemp,
         });
@@ -795,17 +794,17 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     });
 
     this.expectedHashRate$ = this.info$.pipe(map(info => {
-      if (!info || info.frequency == null || info.smallCoreCount == null || info.asicCount == null) return undefined;
-      const val = Math.floor(info.frequency * ((info.smallCoreCount * info.asicCount) / 1000));
+      if (!info || info.performance.frequency == null || info.performance.smallCoreCount == null || info.performance.asicCount == null) return undefined;
+      const val = Math.floor(info.performance.frequency * ((info.performance.smallCoreCount * info.performance.asicCount) / 1000));
       return Number.isFinite(val) ? val : undefined;
     }));
 
     this.quickLink$ = this.info$.pipe(
-      map(info => this.getQuickLink(info.stratumURL, info.stratumUser))
+      map(info => this.getQuickLink((info.stratum.pools[0]?.host ?? ''), (info.stratum.pools[0]?.user ?? '')))
     );
 
     this.fallbackQuickLink$ = this.info$.pipe(
-      map(info => this.getQuickLink(info.fallbackStratumURL, info.fallbackStratumUser))
+      map(info => this.getQuickLink((info.stratum.pools[1]?.host ?? ''), (info.stratum.pools[1]?.user ?? '')))
     );
   }
 
@@ -1817,7 +1816,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       smoothingCfg: this.hashrate1mSmoothingCfg,
       windowMs: this.chartWindowMs,
       zoomCfg: this.zoomCfg,
-      hideTempDatasets: !!this._info?.can?.enabled,
+      hideTempDatasets: false,
     });
   }
 
@@ -1850,13 +1849,13 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
   public getPoolHashrate(i: 0 | 1) {
     if (!this._info?.stratum) return 0;
     const balance = this.getActiveBalance(i);
-    return this._info.hashRate * balance / 100.0;
+    return this._info.performance.hashRate * balance / 100.0;
   }
 
   public getActiveBalance(i: 0 | 1) {
     const stratum = this._info?.stratum;
     if (!stratum) return 0;
-    const active = stratum.pools.map((p: IPool) => p.connected && !p.verifyBlocked);
+    const active = stratum.pools.map((p: IDashboardV2Pool) => p.connected && !p.verifyBlocked);
     const balance = stratum.poolBalance;
 
     // If neither pool is active
@@ -1870,34 +1869,14 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
   }
 
 
-  public getPoolInfo(i?: 0 | 1): IPool {
+  public getPoolInfo(i?: 0 | 1): IDashboardV2Pool {
     const stratum = this._info?.stratum;
-    if (!this._info || !stratum) {
-      return {} as IPool;
-    }
+    if (!this._info || !stratum) return {} as any;
 
-    // failover logic, "current" pool — backend always emits the active pool as pools[0]
     if (i === undefined) {
-      const useFallback = stratum?.usingFallback ?? false;
-      const base = stratum?.pools[0] ?? {};
-
-      return {
-        ...base,
-        host: useFallback ? this._info.fallbackStratumURL : this._info.stratumURL,
-        port: useFallback ? this._info.fallbackStratumPort : this._info.stratumPort,
-        user: useFallback ? this._info.fallbackStratumUser : this._info.stratumUser,
-      };
+      return stratum.pools[0] ?? {} as any;
     }
-
-    // explicit pool 0 / 1 (dual pool)
-    const base = stratum.pools[i];
-
-    return {
-      ...base,
-      host: i === 0 ? this._info.stratumURL : this._info.fallbackStratumURL,
-      port: i === 0 ? this._info.stratumPort : this._info.fallbackStratumPort,
-      user: i === 0 ? this._info.stratumUser : this._info.fallbackStratumUser,
-    };
+    return stratum.pools[i] ?? {} as any;
   }
 
   private clearChartHistoryInternal(updateChartNow: boolean): void {
@@ -1928,7 +1907,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     let info: any = null;
     try {
       info = await firstValueFrom(
-        this.systemService.getInfoWithSpan(start, this.chunkSizeDrainer, windowMs)
+        this.systemService.getDashboardV2WithSpan(start, this.chunkSizeDrainer, windowMs)
       );
     } catch {
       // ignore (next polling tick will retry)
@@ -2017,12 +1996,12 @@ private importHistoricalDataChunked(history: any): void {
 
   /* ── Block Header helpers ── */
 
-  trackByPool(_index: number, bh: IBlockHeader): number {
+  trackByPool(_index: number, bh: IDashboardV2BlockHeader): number {
     return bh.pool;
   }
 
   getPoolVerificationOk(poolIdx: number): boolean {
-    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    const bh = this._info?.coinbase?.blockHeaders?.find(h => h.pool === poolIdx);
     return bh?.verificationOk ?? false;
   }
 
@@ -2032,11 +2011,11 @@ private importHistoricalDataChunked(history: any): void {
 
   getPoolVerifyMode(poolIdx: number): number {
     return poolIdx === 0
-      ? (this._info?.coinbaseVerifyMode ?? 0)
-      : (this._info?.fallbackCoinbaseVerifyMode ?? 0);
+      ? (this._info?.coinbase?.pools[0]?.mode ?? 0)
+      : (this._info?.coinbase?.pools[1]?.mode ?? 0);
   }
 
-  getPoolHonestyPct(bh: IBlockHeader): number | null {
+  getPoolHonestyPct(bh: IDashboardV2BlockHeader): number | null {
     const checks = bh.verificationCheckCount ?? 0;
     if (checks === 0) return null;
     const fails = bh.verificationFailCount ?? 0;
@@ -2046,7 +2025,7 @@ private importHistoricalDataChunked(history: any): void {
   getPoolVerificationColor(poolIdx: number): string | null {
     const mode = this.getPoolVerifyMode(poolIdx);
     if (mode === 0) return null;
-    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    const bh = this._info?.coinbase?.blockHeaders?.find(h => h.pool === poolIdx);
     if (!bh) return null;
     const honesty = this.getPoolHonestyPct(bh);
     if (honesty === null) return '#4caf50'; // not yet checked — neutral green
@@ -2056,7 +2035,7 @@ private importHistoricalDataChunked(history: any): void {
   getPoolVerificationTooltip(poolIdx: number): string {
     const mode = this.getPoolVerifyMode(poolIdx);
     if (mode === 0) return '';
-    const bh = (this._info?.blockHeaders as IBlockHeader[] | undefined)?.find((h: IBlockHeader) => h.pool === poolIdx);
+    const bh = this._info?.coinbase?.blockHeaders?.find(h => h.pool === poolIdx);
     if (!bh) return '';
 
     const lines: string[] = [];
@@ -2095,7 +2074,7 @@ private importHistoricalDataChunked(history: any): void {
     return lines.join('\n');
   }
 
-  getBlockHeaderFee(bh: IBlockHeader): number {
+  getBlockHeaderFee(bh: IDashboardV2BlockHeader): number {
     if (bh.coinbaseValueTotalSatoshis) {
       return (1 - (bh.coinbaseValueUserSatoshis ?? 0) / bh.coinbaseValueTotalSatoshis) * 100;
     }

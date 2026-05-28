@@ -20,6 +20,7 @@ const WEBHOOK_URL_PATTERN = /^https?:\/\/.+$/i;
 export class AlertComponent implements OnInit {
 
   public form!: FormGroup;
+  public hasWebhook = false;
   @Input() uri = '';
 
   constructor(
@@ -35,16 +36,16 @@ export class AlertComponent implements OnInit {
     this.systemService.getAlertInfo(this.uri)
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe((data: any) => {
+        this.hasWebhook = !!data?.hasWebhook;
         this.form = this.fb.group({
           // Per-topic toggles
-          alertDiscordWatchdogEnable: [data?.alertDiscordWatchdogEnable === 1],
-          alertDiscordBlockFoundEnable: [data?.alertDiscordBlockFoundEnable === 1],
-          alertDiscordBestDiffEnable: [data?.alertDiscordBestDiffEnable === 1],
-          alertDiscordCoinbaseVerifyEnable: [data?.alertDiscordCoinbaseVerifyEnable === 1],
-          showBlockFoundScreenEnable: [data?.showBlockFoundScreenEnable === 1],
+          watchdogEnable: [data?.watchdogEnable === 1],
+          blockFoundEnable: [data?.blockFoundEnable === 1],
+          bestDiffEnable: [data?.bestDiffEnable === 1],
+          coinbaseVerifyEnable: [data?.coinbaseVerifyEnable === 1],
+          showBlockFoundScreen: [data?.showBlockFoundScreen === 1],
 
-          // Keep the sentinel so users do not need to re-enter an existing webhook.
-          alertDiscordWebhook: ['WEBHOOK', [
+          webhookUrl: [data?.hasWebhook ? 'WEBHOOK' : '', [
             Validators.required,
             Validators.pattern(WEBHOOK_URL_PATTERN)
           ]],
@@ -52,22 +53,29 @@ export class AlertComponent implements OnInit {
       });
   }
 
-  public save() {
+  public saveAlerts() {
     const form = this.form.getRawValue();
-
-    // Build payload; strip sentinel if user didn’t update the webhook.
     const payload: any = {
-      alertDiscordWatchdogEnable: !!form.alertDiscordWatchdogEnable,
-      alertDiscordBlockFoundEnable: !!form.alertDiscordBlockFoundEnable,
-      alertDiscordBestDiffEnable: !!form.alertDiscordBestDiffEnable,
-      alertDiscordCoinbaseVerifyEnable: !!form.alertDiscordCoinbaseVerifyEnable,
-      showBlockFoundScreenEnable: !!form.showBlockFoundScreenEnable,
+      watchdogEnable: !!form.watchdogEnable,
+      blockFoundEnable: !!form.blockFoundEnable,
+      bestDiffEnable: !!form.bestDiffEnable,
+      coinbaseVerifyEnable: !!form.coinbaseVerifyEnable,
     };
-
-    if (form.alertDiscordWebhook !== 'WEBHOOK') {
-      payload.alertDiscordWebhook = form.alertDiscordWebhook;
+    if (form.webhookUrl !== 'WEBHOOK') {
+      payload.webhookUrl = form.webhookUrl || '';
     }
+    this.savePatch(payload, () => {
+      this.hasWebhook = !!payload.webhookUrl;
+      this.form.controls['webhookUrl'].setValue(this.hasWebhook ? 'WEBHOOK' : '');
+    });
+  }
 
+  public saveDisplay() {
+    const form = this.form.getRawValue();
+    this.savePatch({ showBlockFoundScreen: !!form.showBlockFoundScreen });
+  }
+
+  private savePatch(payload: any, onSuccess?: () => void) {
     this.otpAuth.ensureOtp$(
       this.uri,
       this.translate.instant('SECURITY.OTP_TITLE'),
@@ -81,6 +89,7 @@ export class AlertComponent implements OnInit {
       )
       .subscribe({
         next: () => {
+          onSuccess?.();
           this.toastrService.success(this.translate.instant('ALERTS.SETTINGS_SAVED'), this.translate.instant('COMMON.SUCCESS'));
         },
         error: (err: HttpErrorResponse) => {

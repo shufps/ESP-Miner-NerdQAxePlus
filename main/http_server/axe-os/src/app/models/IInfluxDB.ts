@@ -1,11 +1,9 @@
-import { eASICModel } from './enum/eASICModel';
-
 export interface IInfluxDB {
-    influxEnable: number;
-    influxURL: string,
-    influxPort: number,
-    influxToken: string,
-    influxBucket: string,
-    influxOrg: string,
-    influxPrefix: string
+    enabled: number;
+    url: string;
+    port: number;
+    token: string;
+    bucket: string;
+    org: string;
+    prefix: string;
 }

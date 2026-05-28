@@ -32,13 +32,12 @@ esp_err_t GET_alert_info(httpd_req_t *req)
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
 
-    // don't send the alertDiscordWebhook on the API
-    //doc["alertDiscordWebhook"]  = alertDiscordWebhook;
-    doc["alertDiscordWatchdogEnable"] = Config::isDiscordWatchdogAlertEnabled() ? 1 : 0;
-    doc["alertDiscordBlockFoundEnable"] = Config::isDiscordBlockFoundAlertEnabled() ? 1 : 0;
-    doc["alertDiscordBestDiffEnable"] = Config::isDiscordBestDiffAlertEnabled() ? 1 : 0;
-    doc["alertDiscordCoinbaseVerifyEnable"] = Config::isDiscordCoinbaseVerifyAlertEnabled() ? 1 : 0;
-    doc["showBlockFoundScreenEnable"] = Config::isShowBlockFoundEnabled() ? 1 : 0;
+    doc["hasWebhook"] = (alertDiscordWebhook && alertDiscordWebhook[0] != '\0');
+    doc["watchdogEnable"] = Config::isDiscordWatchdogAlertEnabled() ? 1 : 0;
+    doc["blockFoundEnable"] = Config::isDiscordBlockFoundAlertEnabled() ? 1 : 0;
+    doc["bestDiffEnable"] = Config::isDiscordBestDiffAlertEnabled() ? 1 : 0;
+    doc["coinbaseVerifyEnable"] = Config::isDiscordCoinbaseVerifyAlertEnabled() ? 1 : 0;
+    doc["showBlockFoundScreen"] = Config::isShowBlockFoundEnabled() ? 1 : 0;
 
     esp_err_t ret = sendJsonResponse(req, doc);
 
@@ -75,23 +74,23 @@ esp_err_t POST_update_alert(httpd_req_t *req)
         return err;
     }
 
-    if (doc["alertDiscordWebhook"].is<const char*>()) {
-        Config::setDiscordWebhook(doc["alertDiscordWebhook"].as<const char*>());
+    if (doc["webhookUrl"].is<const char*>()) {
+        Config::setDiscordWebhook(doc["webhookUrl"].as<const char*>());
     }
-    if (doc["alertDiscordWatchdogEnable"].is<bool>()) {
-        Config::setDiscordWatchdogAlertEnabled(doc["alertDiscordWatchdogEnable"].as<bool>());
+    if (doc["watchdogEnable"].is<bool>()) {
+        Config::setDiscordWatchdogAlertEnabled(doc["watchdogEnable"].as<bool>());
     }
-    if (doc["alertDiscordBlockFoundEnable"].is<bool>()) {
-        Config::setDiscordAlertBlockFoundEnabled(doc["alertDiscordBlockFoundEnable"].as<bool>());
+    if (doc["blockFoundEnable"].is<bool>()) {
+        Config::setDiscordAlertBlockFoundEnabled(doc["blockFoundEnable"].as<bool>());
     }
-    if (doc["alertDiscordBestDiffEnable"].is<bool>()) {
-        Config::setDiscordAlertBestDiffEnabled(doc["alertDiscordBestDiffEnable"].as<bool>());
+    if (doc["bestDiffEnable"].is<bool>()) {
+        Config::setDiscordAlertBestDiffEnabled(doc["bestDiffEnable"].as<bool>());
     }
-    if (doc["alertDiscordCoinbaseVerifyEnable"].is<bool>()) {
-        Config::setDiscordCoinbaseVerifyAlertEnabled(doc["alertDiscordCoinbaseVerifyEnable"].as<bool>());
+    if (doc["coinbaseVerifyEnable"].is<bool>()) {
+        Config::setDiscordCoinbaseVerifyAlertEnabled(doc["coinbaseVerifyEnable"].as<bool>());
     }
-    if (doc["showBlockFoundScreenEnable"].is<bool>()) {
-        Config::setShowBlockFoundEnabled(doc["showBlockFoundScreenEnable"].as<bool>());
+    if (doc["showBlockFoundScreen"].is<bool>()) {
+        Config::setShowBlockFoundEnabled(doc["showBlockFoundScreen"].as<bool>());
     }
 
     doc.clear();

@@ -84,8 +84,8 @@
               </ng-container>
               <ng-template #naTemps>N/A</ng-template>
             </td>
-            <td>{{ s.active && s.fanrpm ? (s.fanrpm + ' RPM (' + s.fanspeed + '%)') : (s.active ? 'N/A' : '—') }}</td>
-            <td>{{ s.active && s.fanrpm2 ? (s.fanrpm2 + ' RPM (' + s.fanspeed2 + '%)') : (s.active ? 'N/A' : '—') }}</td>
+            <td>{{ s.active && s.fanRpm ? (s.fanRpm + ' RPM (' + s.fanSpeed + '%)') : (s.active ? 'N/A' : '—') }}</td>
+            <td>{{ s.active && s.fanRpm2 ? (s.fanRpm2 + ' RPM (' + s.fanSpeed2 + '%)') : (s.active ? 'N/A' : '—') }}</td>
             <td>{{ s.version || '—' }}</td>
             <td class="actions-cell">
               <button *ngIf="!s.isMaster" nbButton status="primary" size="tiny"
@@ -182,8 +182,8 @@
                 <div class="settings-section">
                   <span class="settings-label">Display</span>
                   <div class="settings-fields settings-fields--checkboxes">
-                    <nb-checkbox formControlName="flipscreen">Flip Screen</nb-checkbox>
-                    <nb-checkbox formControlName="autoscreenoff">Auto Screen Off</nb-checkbox>
+                    <nb-checkbox formControlName="flipScreen">Flip Screen</nb-checkbox>
+                    <nb-checkbox formControlName="autoScreenOff">Auto Screen Off</nb-checkbox>
                   </div>
                 </div>
 
