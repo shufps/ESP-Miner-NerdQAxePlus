@@ -35,9 +35,19 @@ esp_err_t GET_can_nodes(httpd_req_t *req)
     bool   shutdown    = POWER_MANAGEMENT_MODULE.isShutdown();
     int    numFans     = board->getNumFans();
 
-    float masterHashRate = !shutdown ? HASHRATE_MONITOR.getSmoothedTotalChipHashrate() : 0.0f;
-    float fleetHashRate  = !shutdown ? SYSTEM_MODULE.getCurrentHashrate() : 0.0f;
+    float masterHashRate = !shutdown ? SYSTEM_MODULE.getCurrentHashrate() : 0.0f;
     float masterPower    = POWER_MANAGEMENT_MODULE.getPower();
+
+    // Fleet totals: master + all active slaves
+    float slaveHashRate = 0.0f;
+    for (int i = 1; i < CAN_SLAVE_MAX; i++) {
+        if (!can_master_is_slave_known((uint8_t) i)) continue;
+        can_slave_telemetry_t st = {};
+        if (can_master_get_slave_telemetry((uint8_t) i, &st) && !st.shutdown) {
+            slaveHashRate += st.hashRate;
+        }
+    }
+    float fleetHashRate = masterHashRate + slaveHashRate;
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
