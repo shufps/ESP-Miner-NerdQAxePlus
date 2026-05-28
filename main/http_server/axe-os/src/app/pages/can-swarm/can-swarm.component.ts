@@ -1,11 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { combineLatest, interval, Subscription } from 'rxjs';
+import { interval, Subscription } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { IDashboardV2 } from '../../models/IDashboardV2';
-import { ISystemV2 } from '../../models/ISystemV2';
 import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 import { SystemService } from '../../services/system.service';
 
@@ -109,16 +107,9 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
 
   otpEnabled = false;
 
-  private masterSystemInfo: ISystemV2 | null = null;
-
   constructor(private http: HttpClient, private fb: FormBuilder, private otpAuth: OtpAuthService, private systemService: SystemService) {}
 
   ngOnInit(): void {
-    this.systemService.getSystemV2().pipe(catchError(() => of(null))).subscribe(info => {
-      this.masterSystemInfo = info;
-      this.otpEnabled = !!info;  // OTP is implied by successful v2 access
-    });
-
     this.systemService.getIdentifyV2().pipe(catchError(() => of(null))).subscribe(info => {
       this.otpEnabled = !!info?.otp;
     });
@@ -126,9 +117,9 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     this.refresh();
 
     this.pollSub = interval(2000).pipe(
-      switchMap(() => this.fetchAll())
-    ).subscribe(rows => {
-      this.mergeRows(rows);
+      switchMap(() => this.fetchNodes())
+    ).subscribe(nodes => {
+      this.mergeRows(nodes);
       this.loading = false;
     });
   }
@@ -137,18 +128,15 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     this.pollSub?.unsubscribe();
   }
 
-  private fetchAll() {
-    return combineLatest([
-      this.systemService.getDashboardV2WithSpan().pipe(catchError(() => of(null))),
-      this.http.get<CanSlave[]>('/api/v2/can/slaves').pipe(catchError(() => of([] as CanSlave[]))),
-    ]).pipe(
-      switchMap(([dashboard, slaves]) => of(this.buildRows(dashboard, slaves)))
+  private fetchNodes() {
+    return this.http.get<CanSlave[]>('/api/v2/can/nodes').pipe(
+      catchError(() => of([] as CanSlave[]))
     );
   }
 
   private refresh(): void {
-    this.fetchAll().subscribe(rows => {
-      this.mergeRows(rows);
+    this.fetchNodes().subscribe(nodes => {
+      this.mergeRows(nodes);
       this.loading = false;
     });
   }
@@ -163,35 +151,6 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
       }
     });
     this.rows = this.rows.filter(r => incoming.some(nr => nr.id === r.id));
-  }
-
-  private buildRows(dashboard: IDashboardV2 | null, slaves: CanSlave[]): CanSlave[] {
-    const slavesHr = slaves.filter(s => s.active && !s.shutdown).reduce((sum, s) => sum + s.hashRate, 0);
-    const masterHr = Math.max(0, (dashboard?.performance?.hashRate ?? 0) - slavesHr);
-    const fans = dashboard?.thermal?.fans ?? [];
-    const sysInfo = this.masterSystemInfo;
-    const masterRow: CanSlave = {
-      id: 0,
-      mac: sysInfo?.network?.macAddr ?? '—',
-      active: true,
-      foreign: false,
-      isMaster: true,
-      deviceModel: sysInfo?.deviceModel ?? undefined,
-      version: sysInfo?.version ?? undefined,
-      hashRate: masterHr,
-      temp: dashboard?.thermal?.asicTemp ?? 0,
-      vrTemp: dashboard?.thermal?.vrTemp ?? 0,
-      asicTemps: dashboard?.thermal?.asicTemps ?? [0, 0, 0, 0],
-      fanRpm: fans[0]?.rpm ?? 0,
-      fanRpm2: fans[1]?.rpm ?? 0,
-      fanSpeed: fans[0]?.speed ?? 0,
-      fanSpeed2: fans[1]?.speed ?? 0,
-      power: dashboard?.power?.watts ?? 0,
-      current: dashboard?.power?.currentA ?? 0,
-      coreVoltageActual: dashboard?.power?.coreVoltageActual ?? 0,
-      shutdown: dashboard?.system?.shutdown ?? false,
-    };
-    return [masterRow, ...slaves];
   }
 
   editSlave(s: CanSlave): void {
@@ -240,7 +199,7 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     };
     this.otpAuth.ensureOtp$('', 'OTP Required', 'Enter your OTP to save slave settings').pipe(
       switchMap(({ totp }: EnsureOtpResult) =>
-        this.http.patch(`/api/v2/can/slaves/${id}`, body, { headers: this.headers(totp) })
+        this.http.patch(`/api/v2/can/nodes/${id}`, body, { headers: this.headers(totp) })
       ),
       catchError(() => of(null))
     ).subscribe(() => {
@@ -251,20 +210,20 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
 
   restartSlave(id: number): void {
     if (!confirm(`Restart slave ${id}?`)) return;
-    this.http.post(`/api/v2/can/slaves/${id}/restart`, null).pipe(
+    this.http.post(`/api/v2/can/nodes/${id}/restart`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
 
   shutdownSlave(id: number): void {
     if (!confirm(`Shutdown slave ${id}? It will stop mining until restarted.`)) return;
-    this.http.post(`/api/v2/can/slaves/${id}/shutdown`, null).pipe(
+    this.http.post(`/api/v2/can/nodes/${id}/shutdown`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
 
   identifySlave(id: number): void {
-    this.http.post(`/api/v2/can/slaves/${id}/identify`, null).pipe(
+    this.http.post(`/api/v2/can/nodes/${id}/identify`, null).pipe(
       catchError(() => of(null))
     ).subscribe();
   }
@@ -273,7 +232,7 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     if (!confirm(`Remove slave ${id} from registry?`)) return;
     this.otpAuth.ensureOtp$('', 'OTP Required', 'Enter your OTP to remove slave').pipe(
       switchMap(({ totp }: EnsureOtpResult) =>
-        this.http.delete(`/api/v2/can/slaves/${id}`, { headers: this.headers(totp) })
+        this.http.delete(`/api/v2/can/nodes/${id}`, { headers: this.headers(totp) })
       ),
       catchError(() => of(null))
     ).subscribe(() => {

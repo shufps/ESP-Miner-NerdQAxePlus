@@ -359,14 +359,14 @@ export class SystemService {
 
 
   public getAlertInfo(uri: string = ''): Observable<IAlertSettings> {
-    return this.httpClient.get(`${uri}/api/v2/alert/info`) as Observable<IAlertSettings>;
+    return this.httpClient.get(`${uri}/api/v2/alert`) as Observable<IAlertSettings>;
   }
 
   // Alerts: POST /api/alert/update
   public updateAlertInfo(uri: string = '', data: IAlertSettings, totp?: string) {
     let headers = new HttpHeaders();
     if (totp) headers = headers.set('X-TOTP', totp);
-    return this.httpClient.post(`${uri}/api/v2/alert/update`, data, { headers });
+    return this.httpClient.patch(`${uri}/api/v2/alert`, data, { headers });
   }
 
   public sendAlertTest(uri: string = '', totp?: string): Observable<any> {

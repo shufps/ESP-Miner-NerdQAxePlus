@@ -302,7 +302,7 @@ Accepts the same structure as `GET /api/v2/settings`. Pool settings use the `poo
 
 ### Alerts (Webhook)
 
-#### `GET /api/v2/alert/info`
+#### `GET /api/v2/alert`
 
 Returns webhook alert configuration. The webhook URL is **not** returned for security.
 
@@ -316,7 +316,7 @@ Returns webhook alert configuration. The webhook URL is **not** returned for sec
 }
 ```
 
-#### `POST /api/v2/alert/update`
+#### `PATCH /api/v2/alert`
 
 Update alert configuration. Requires OTP.
 
@@ -435,19 +435,20 @@ Use the returned token in subsequent requests via `X-OTP-Session` header.
 
 ### CAN Swarm
 
-CAN bus extension for multi-board setups. The master board exposes these endpoints to manage connected slave boards.
+CAN bus extension for multi-board setups. The master board exposes these endpoints to manage connected nodes.
 
-#### `GET /api/v2/can/slaves`
+#### `GET /api/v2/can/nodes`
 
-Returns an array of all known CAN slave boards.
+Returns an array of all CAN nodes. The master board is always `[0]` with `isMaster: true`. Slave boards follow with `id >= 1`.
 
 ```json
 [
   {
-    "id": 1,
-    "mac": "AA:BB:CC:DD:EE:FF",
+    "id": 0,
+    "mac": "B4:3A:45:A2:3E:44",
     "active": true,
     "foreign": false,
+    "isMaster": true,
     "deviceModel": "NerdQAxe+",
     "version": "1.2.3",
     "hashRate": 600.0,
@@ -469,16 +470,25 @@ Returns an array of all known CAN slave boards.
     "autoScreenOff": false,
     "asicTemps": [57.5, 58.0, 59.0, 58.5],
     "fans": [
-      { "mode": 1, "manualSpeed": 75, "overheatTemp": 75, "targetTemp": 55, "rpm": 3200, "speedPerc": 72 },
-      { "mode": 3, "manualSpeed": 100, "overheatTemp": 80, "targetTemp": 65, "rpm": 2800, "speedPerc": 65 }
+      { "mode": 1, "manualSpeed": 75, "overheatTemp": 75, "targetTemp": 55, "rpm": 3200, "speedPerc": 72 }
     ]
+  },
+  {
+    "id": 1,
+    "mac": "AA:BB:CC:DD:EE:FF",
+    "active": true,
+    "foreign": false,
+    "deviceModel": "NerdQAxe++",
+    "version": "1.2.3",
+    "hashRate": 600.0,
+    "..."
   }
 ]
 ```
 
-#### `PATCH /api/v2/can/slaves/{id}`
+#### `PATCH /api/v2/can/nodes/{id}`
 
-Update slave configuration. Requires OTP.
+Update node configuration (slaves only, `id >= 1`). Requires OTP.
 
 **Request body** (all fields optional):
 
@@ -497,27 +507,27 @@ Update slave configuration. Requires OTP.
 
 **Response**: `{"ok": true}`
 
-#### `POST /api/v2/can/slaves/{id}/restart`
+#### `POST /api/v2/can/nodes/{id}/restart`
 
-Restart a slave board.
-
-**Response**: `{"ok": true}`
-
-#### `POST /api/v2/can/slaves/{id}/shutdown`
-
-Shutdown a slave board (stops mining until restarted).
+Restart a node (slaves only, `id >= 1`).
 
 **Response**: `{"ok": true}`
 
-#### `POST /api/v2/can/slaves/{id}/identify`
+#### `POST /api/v2/can/nodes/{id}/shutdown`
 
-Trigger identification sequence on a slave (e.g. blink LED).
+Shutdown a node (slaves only, `id >= 1`). Stops mining until restarted.
 
 **Response**: `{"ok": true}`
 
-#### `DELETE /api/v2/can/slaves/{id}`
+#### `POST /api/v2/can/nodes/{id}/identify`
 
-Remove a slave from the registry. Requires OTP.
+Trigger identification sequence on a node (slaves only, `id >= 1`).
+
+**Response**: `{"ok": true}`
+
+#### `DELETE /api/v2/can/nodes/{id}`
+
+Remove a node from the registry (slaves only, `id >= 1`). Requires OTP.
 
 **Response**: `{"ok": true}`
 

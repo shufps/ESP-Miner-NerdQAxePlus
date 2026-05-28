@@ -4,17 +4,20 @@
 #include <string.h>
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_app_desc.h"
 
 #include "ArduinoJson.h"
 #include "http_cors.h"
 #include "http_utils.h"
 #include "psram_allocator.h"
+#include "global_state.h"
+#include "nvs_config.h"
 #include "tasks/can_master_task.h"
 #include "tasks/can_sender.h"
 
 static const char *TAG = "http_can_swarm";
 
-esp_err_t GET_can_slaves(httpd_req_t *req)
+esp_err_t GET_can_nodes(httpd_req_t *req)
 {
     ConGuard g(http_server, req);
 
@@ -28,10 +31,65 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    Board *board       = SYSTEM_MODULE.getBoard();
+    bool   shutdown    = POWER_MANAGEMENT_MODULE.isShutdown();
+    int    numFans     = board->getNumFans();
+
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
     JsonArray arr = doc.to<JsonArray>();
 
+    // --- Node [0]: master board ---
+    {
+        JsonObject master = arr.add<JsonObject>();
+        master["id"]       = 0;
+        master["mac"]      = SYSTEM_MODULE.getMacAddress();
+        master["active"]   = true;
+        master["foreign"]  = false;
+        master["isMaster"] = true;
+
+        master["deviceModel"]       = board->getDeviceModel();
+        master["version"]           = esp_app_get_description()->version;
+        master["hashRate"]          = !shutdown ? SYSTEM_MODULE.getCurrentHashrate() : 0.0;
+        master["temp"]              = POWER_MANAGEMENT_MODULE.getChipTempMax();
+        master["vrTemp"]            = POWER_MANAGEMENT_MODULE.getVRTemp();
+        master["power"]             = POWER_MANAGEMENT_MODULE.getPower();
+        master["current"]           = (int) POWER_MANAGEMENT_MODULE.getCurrent();
+        master["coreVoltageActual"] = (int) (board->getVout() * 1000.0f);
+        master["fanRpm"]            = POWER_MANAGEMENT_MODULE.getFanRPM(0);
+        master["fanRpm2"]           = numFans > 1 ? POWER_MANAGEMENT_MODULE.getFanRPM(1) : 0;
+        master["fanSpeed"]          = POWER_MANAGEMENT_MODULE.getFanPerc(0);
+        master["fanSpeed2"]         = numFans > 1 ? POWER_MANAGEMENT_MODULE.getFanPerc(1) : 0;
+        master["shutdown"]          = shutdown;
+        master["boardError"]        = (int) SYSTEM_MODULE.getBoardError();
+        master["freeHeapInt"]       = (int) heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+        master["frequency"]         = board->getAsicFrequency();
+        master["coreVoltage"]       = board->getAsicVoltageMillis();
+        master["flipScreen"]        = board->isFlipScreenEnabled();
+        master["autoScreenOff"]     = Config::isAutoScreenOffEnabled();
+
+        {
+            JsonArray asicTemps = master["asicTemps"].to<JsonArray>();
+            for (int j = 0; j < board->getAsicCount(); j++) {
+                asicTemps.add(board->getChipTemp(j));
+            }
+        }
+
+        {
+            JsonArray fans = master["fans"].to<JsonArray>();
+            for (int ch = 0; ch < numFans; ch++) {
+                JsonObject fan   = fans.add<JsonObject>();
+                fan["mode"]        = Config::getFanMode(ch);
+                fan["manualSpeed"] = Config::getFanManualSpeed(ch);
+                fan["overheatTemp"]= Config::getFanOverheatTemp(ch);
+                fan["targetTemp"]  = board->getPidSettings(ch)->targetTemp;
+                fan["rpm"]         = POWER_MANAGEMENT_MODULE.getFanRPM(ch);
+                fan["speedPerc"]   = POWER_MANAGEMENT_MODULE.getFanPerc(ch);
+            }
+        }
+    }
+
+    // --- Nodes [1..N]: CAN slaves ---
     for (int i = 1; i < CAN_SLAVE_MAX; i++) {
         if (!can_master_is_slave_known((uint8_t) i)) continue;
 
@@ -43,7 +101,6 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         bool has_telem  = can_master_get_slave_telemetry((uint8_t) i, &t);
         bool has_config = can_master_get_slave_config((uint8_t) i, &cfg);
 
-        // Null-terminate strings from config struct
         char device_model[sizeof(cfg.deviceModel) + 1] = {};
         char fw_version[sizeof(cfg.fwVersion)     + 1] = {};
         if (has_config) {
@@ -55,43 +112,41 @@ esp_err_t GET_can_slaves(httpd_req_t *req)
         snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-        JsonObject slave = arr.add<JsonObject>();
-        slave["id"]      = i;
-        slave["mac"]     = mac_str;
-        slave["active"]  = can_master_is_slave_active((uint8_t) i);
-        slave["foreign"] = can_master_is_slave_foreign((uint8_t) i);
+        JsonObject node = arr.add<JsonObject>();
+        node["id"]      = i;
+        node["mac"]     = mac_str;
+        node["active"]  = can_master_is_slave_active((uint8_t) i);
+        node["foreign"] = can_master_is_slave_foreign((uint8_t) i);
 
-        // --- fields matching info endpoint ---
-        slave["deviceModel"]        = device_model;
-        slave["version"]            = fw_version;           // info: "version"
-        slave["hashRate"]           = has_telem ? t.hashRate          : 0.0f;
-        slave["temp"]               = has_telem ? t.temp              : 0.0f;
-        slave["vrTemp"]             = has_telem ? t.vrTemp            : 0.0f;
-        slave["power"]              = has_telem ? t.power             : 0.0f;
-        slave["current"]            = has_telem ? t.current           : 0;
-        slave["coreVoltageActual"]  = has_telem ? t.coreVoltageActual : 0;
-        slave["fanRpm"]             = has_telem ? t.fanRpm            : 0;   // info: "fanRpm"
-        slave["fanrpm2"]            = has_telem ? t.fanRpm2           : 0;   // info: "fanrpm2"
-        slave["fanSpeed"]           = has_telem ? t.fanSpeed          : 0;   // info: "fanSpeed"
-        slave["fanspeed2"]          = has_telem ? t.fanSpeed2         : 0;   // info: "fanspeed2"
-        slave["shutdown"]           = has_telem && t.shutdown;
-        slave["boardError"]         = has_telem ? t.boardError        : 0;
-        slave["freeHeapInt"]        = has_telem ? t.freeHeap          : 0;
-        slave["frequency"]          = has_config ? cfg.freqMhz        : 0;   // info: "frequency"
-        slave["coreVoltage"]        = has_config ? cfg.voltageMv      : 0;   // info: "coreVoltage"
-        slave["flipScreen"]         = has_config && cfg.flipScreen;           // info: "flipScreen"
-        slave["autoScreenOff"]      = has_config && cfg.autoScreenOff;        // info: "autoScreenOff"
+        node["deviceModel"]        = device_model;
+        node["version"]            = fw_version;
+        node["hashRate"]           = has_telem ? t.hashRate          : 0.0f;
+        node["temp"]               = has_telem ? t.temp              : 0.0f;
+        node["vrTemp"]             = has_telem ? t.vrTemp            : 0.0f;
+        node["power"]              = has_telem ? t.power             : 0.0f;
+        node["current"]            = has_telem ? t.current           : 0;
+        node["coreVoltageActual"]  = has_telem ? t.coreVoltageActual : 0;
+        node["fanRpm"]             = has_telem ? t.fanRpm            : 0;
+        node["fanRpm2"]            = has_telem ? t.fanRpm2           : 0;
+        node["fanSpeed"]           = has_telem ? t.fanSpeed          : 0;
+        node["fanSpeed2"]          = has_telem ? t.fanSpeed2         : 0;
+        node["shutdown"]           = has_telem && t.shutdown;
+        node["boardError"]         = has_telem ? t.boardError        : 0;
+        node["freeHeapInt"]        = has_telem ? t.freeHeap          : 0;
+        node["frequency"]          = has_config ? cfg.freqMhz        : 0;
+        node["coreVoltage"]        = has_config ? cfg.voltageMv      : 0;
+        node["flipScreen"]         = has_config && cfg.flipScreen;
+        node["autoScreenOff"]      = has_config && cfg.autoScreenOff;
 
         {
-            JsonArray asic_temps = slave["asicTemps"].to<JsonArray>();
+            JsonArray asicTemps = node["asicTemps"].to<JsonArray>();
             for (int j = 0; j < 4; j++) {
-                asic_temps.add(has_telem ? t.asicTemps[j] : 0.0f);
+                asicTemps.add(has_telem ? t.asicTemps[j] : 0.0f);
             }
         }
 
-        // fans array — matches info endpoint structure (minus pid, not available from slave)
         {
-            JsonArray fans = slave["fans"].to<JsonArray>();
+            JsonArray fans = node["fans"].to<JsonArray>();
             for (int ch = 0; ch < 2; ch++) {
                 JsonObject fan      = fans.add<JsonObject>();
                 fan["mode"]         = has_config ? (ch == 0 ? cfg.fan0Mode       : cfg.fan1Mode)       : 0;
@@ -116,7 +171,7 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    // Extract id from URI: /api/can/slaves/{id}
+    // Extract id from URI: /api/v2/can/nodes/{id}
     const char *uri = req->uri;
     const char *last_slash = strrchr(uri, '/');
     if (!last_slash || *(last_slash + 1) == '\0') {
@@ -179,7 +234,7 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
 static esp_err_t parse_slave_id(httpd_req_t *req, uint8_t *out_id)
 {
     const char *uri = req->uri;
-    // URI format: /api/can/slaves/{id}/action — find second-to-last slash
+    // URI format: /api/v2/can/nodes/{id}/action — find second-to-last slash
     const char *last = strrchr(uri, '/');
     if (!last || last == uri) return ESP_FAIL;
     const char *prev = last - 1;
@@ -191,7 +246,10 @@ static esp_err_t parse_slave_id(httpd_req_t *req, uint8_t *out_id)
     return ESP_OK;
 }
 
-esp_err_t POST_can_slave_restart(httpd_req_t *req)
+// Single POST handler for /api/v2/can/nodes/* — dispatches by trailing action.
+// ESP-IDF httpd only supports wildcards at the end of the URI, so we can't
+// register separate handlers for /nodes/*/restart, /nodes/*/shutdown, etc.
+esp_err_t POST_can_slave_action(httpd_req_t *req)
 {
     ConGuard g(http_server, req);
     if (is_network_allowed(req) != ESP_OK)
@@ -202,39 +260,21 @@ esp_err_t POST_can_slave_restart(httpd_req_t *req)
     if (parse_slave_id(req, &slave_id) != ESP_OK)
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid id");
 
-    can_master_restart_slave(slave_id);
-    httpd_resp_sendstr(req, "{\"ok\":true}");
-    return ESP_OK;
-}
+    // Dispatch based on the last path segment (restart, shutdown, identify)
+    const char *last = strrchr(req->uri, '/');
+    if (!last) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid uri");
+    last++; // skip the '/'
 
-esp_err_t POST_can_slave_shutdown(httpd_req_t *req)
-{
-    ConGuard g(http_server, req);
-    if (is_network_allowed(req) != ESP_OK)
-        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
-    if (set_cors_headers(req) != ESP_OK) { httpd_resp_send_500(req); return ESP_FAIL; }
+    if (strcmp(last, "restart") == 0) {
+        can_master_restart_slave(slave_id);
+    } else if (strcmp(last, "shutdown") == 0) {
+        can_master_shutdown_slave(slave_id);
+    } else if (strcmp(last, "identify") == 0) {
+        can_master_identify_slave(slave_id);
+    } else {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "unknown action");
+    }
 
-    uint8_t slave_id;
-    if (parse_slave_id(req, &slave_id) != ESP_OK)
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid id");
-
-    can_master_shutdown_slave(slave_id);
-    httpd_resp_sendstr(req, "{\"ok\":true}");
-    return ESP_OK;
-}
-
-esp_err_t POST_can_slave_identify(httpd_req_t *req)
-{
-    ConGuard g(http_server, req);
-    if (is_network_allowed(req) != ESP_OK)
-        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
-    if (set_cors_headers(req) != ESP_OK) { httpd_resp_send_500(req); return ESP_FAIL; }
-
-    uint8_t slave_id;
-    if (parse_slave_id(req, &slave_id) != ESP_OK)
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid id");
-
-    can_master_identify_slave(slave_id);
     httpd_resp_sendstr(req, "{\"ok\":true}");
     return ESP_OK;
 }
@@ -252,7 +292,7 @@ esp_err_t DELETE_can_slave(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    // Extract id from URI: /api/can/slaves/{id}
+    // Extract id from URI: /api/v2/can/nodes/{id}
     const char *uri = req->uri;
     const char *last_slash = strrchr(uri, '/');
     if (!last_slash || *(last_slash + 1) == '\0') {

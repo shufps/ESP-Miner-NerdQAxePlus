@@ -202,36 +202,31 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_register_uri_handler(http_server, &swarm_options_uri);
 
     httpd_uri_t can_slaves_get_uri = {
-        .uri = "/api/v2/can/slaves", .method = HTTP_GET, .handler = GET_can_slaves, .user_ctx = rest_context};
+        .uri = "/api/v2/can/nodes", .method = HTTP_GET, .handler = GET_can_nodes, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slaves_get_uri);
 
     httpd_uri_t can_slaves_options_uri = {
-        .uri = "/api/v2/can/slaves", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+        .uri = "/api/v2/can/nodes", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
     httpd_register_uri_handler(http_server, &can_slaves_options_uri);
 
+    // Single POST catch-all for actions (restart/shutdown/identify).
+    // ESP-IDF httpd only supports wildcards at the end of URIs, so we can't
+    // register /slaves/*/restart etc. separately — the handler dispatches internally.
+    httpd_uri_t can_slave_post_uri = {
+        .uri = "/api/v2/can/nodes/*", .method = HTTP_POST, .handler = POST_can_slave_action, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &can_slave_post_uri);
+
     httpd_uri_t can_slave_patch_uri = {
-        .uri = "/api/v2/can/slaves/*", .method = HTTP_PATCH, .handler = PATCH_can_slave, .user_ctx = rest_context};
+        .uri = "/api/v2/can/nodes/*", .method = HTTP_PATCH, .handler = PATCH_can_slave, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slave_patch_uri);
 
     httpd_uri_t can_slave_delete_uri = {
-        .uri = "/api/v2/can/slaves/*", .method = HTTP_DELETE, .handler = DELETE_can_slave, .user_ctx = rest_context};
+        .uri = "/api/v2/can/nodes/*", .method = HTTP_DELETE, .handler = DELETE_can_slave, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &can_slave_delete_uri);
 
     httpd_uri_t can_slave_wildcard_options_uri = {
-        .uri = "/api/v2/can/slaves/*", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+        .uri = "/api/v2/can/nodes/*", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
     httpd_register_uri_handler(http_server, &can_slave_wildcard_options_uri);
-
-    httpd_uri_t can_slave_restart_uri = {
-        .uri = "/api/v2/can/slaves/*/restart", .method = HTTP_POST, .handler = POST_can_slave_restart, .user_ctx = rest_context};
-    httpd_register_uri_handler(http_server, &can_slave_restart_uri);
-
-    httpd_uri_t can_slave_shutdown_uri = {
-        .uri = "/api/v2/can/slaves/*/shutdown", .method = HTTP_POST, .handler = POST_can_slave_shutdown, .user_ctx = rest_context};
-    httpd_register_uri_handler(http_server, &can_slave_shutdown_uri);
-
-    httpd_uri_t can_slave_identify_uri = {
-        .uri = "/api/v2/can/slaves/*/identify", .method = HTTP_POST, .handler = POST_can_slave_identify, .user_ctx = rest_context};
-    httpd_register_uri_handler(http_server, &can_slave_identify_uri);
 
     httpd_uri_t v2_dashboard_get_uri = {
         .uri = "/api/v2/dashboard", .method = HTTP_GET, .handler = GET_V2_dashboard, .user_ctx = rest_context};
@@ -326,11 +321,11 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_register_uri_handler(http_server, &get_otp_status);
 
     httpd_uri_t alert_info_get_uri = {
-        .uri = "/api/v2/alert/info", .method = HTTP_GET, .handler = GET_alert_info, .user_ctx = rest_context};
+        .uri = "/api/v2/alert", .method = HTTP_GET, .handler = GET_alert_info, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &alert_info_get_uri);
 
     httpd_uri_t alert_update_patch_uri = {
-        .uri = "/api/v2/alert/update", .method = HTTP_POST, .handler = POST_update_alert, .user_ctx = rest_context};
+        .uri = "/api/v2/alert", .method = HTTP_PATCH, .handler = POST_update_alert, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &alert_update_patch_uri);
 
     httpd_uri_t alert_test_uri = {
