@@ -439,10 +439,15 @@ CAN bus extension for multi-board setups. The master board exposes these endpoin
 
 #### `GET /api/v2/can/nodes`
 
-Returns an array of all CAN nodes. The master board is always `[0]` with `isMaster: true`. Slave boards follow with `id >= 1`.
+Returns fleet totals and an array of all CAN nodes. The master board is always `nodes[0]` with `isMaster: true`. Each node's `hashRate` is its **own** hashrate, not the combined fleet total.
 
 ```json
-[
+{
+  "fleet": {
+    "hashRate": 1200.0,
+    "power": 30.0
+  },
+  "nodes": [
   {
     "id": 0,
     "mac": "B4:3A:45:A2:3E:44",
@@ -483,7 +488,8 @@ Returns an array of all CAN nodes. The master board is always `[0]` with `isMast
     "hashRate": 600.0,
     "..."
   }
-]
+  ]
+}
 ```
 
 #### `PATCH /api/v2/can/nodes/{id}`

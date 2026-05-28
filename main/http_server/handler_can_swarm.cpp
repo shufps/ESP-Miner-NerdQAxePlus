@@ -35,9 +35,19 @@ esp_err_t GET_can_nodes(httpd_req_t *req)
     bool   shutdown    = POWER_MANAGEMENT_MODULE.isShutdown();
     int    numFans     = board->getNumFans();
 
+    float masterHashRate = !shutdown ? HASHRATE_MONITOR.getSmoothedTotalChipHashrate() : 0.0f;
+    float fleetHashRate  = !shutdown ? SYSTEM_MODULE.getCurrentHashrate() : 0.0f;
+    float masterPower    = POWER_MANAGEMENT_MODULE.getPower();
+
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
-    JsonArray arr = doc.to<JsonArray>();
+
+    // --- Fleet totals ---
+    JsonObject fleet = doc["fleet"].to<JsonObject>();
+    fleet["hashRate"] = fleetHashRate;
+    fleet["power"]    = masterPower + can_master_get_slave_fleet_power();
+
+    JsonArray arr = doc["nodes"].to<JsonArray>();
 
     // --- Node [0]: master board ---
     {
@@ -50,7 +60,7 @@ esp_err_t GET_can_nodes(httpd_req_t *req)
 
         master["deviceModel"]       = board->getDeviceModel();
         master["version"]           = esp_app_get_description()->version;
-        master["hashRate"]          = !shutdown ? SYSTEM_MODULE.getCurrentHashrate() : 0.0;
+        master["hashRate"]          = masterHashRate;
         master["temp"]              = POWER_MANAGEMENT_MODULE.getChipTempMax();
         master["vrTemp"]            = POWER_MANAGEMENT_MODULE.getVRTemp();
         master["power"]             = POWER_MANAGEMENT_MODULE.getPower();

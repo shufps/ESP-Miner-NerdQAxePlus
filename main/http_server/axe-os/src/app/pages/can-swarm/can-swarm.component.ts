@@ -73,6 +73,7 @@ export const FAN_MODES = [
 })
 export class CanSwarmComponent implements OnInit, OnDestroy {
   rows: CanSlave[] = [];
+  fleet = { hashRate: 0, power: 0 };
   loading = true;
   fanModes = FAN_MODES;
 
@@ -88,11 +89,11 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
   }
 
   get totalHashRate(): number {
-    return this.rows.filter(r => r.active && !r.shutdown).reduce((sum, r) => sum + r.hashRate, 0);
+    return this.fleet.hashRate;
   }
 
   get totalPower(): number {
-    return this.rows.filter(r => r.active).reduce((sum, r) => sum + r.power, 0);
+    return this.fleet.power;
   }
 
   get efficiency(): number {
@@ -118,8 +119,9 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
 
     this.pollSub = interval(2000).pipe(
       switchMap(() => this.fetchNodes())
-    ).subscribe(nodes => {
-      this.mergeRows(nodes);
+    ).subscribe(res => {
+      this.fleet = res.fleet;
+      this.mergeRows(res.nodes);
       this.loading = false;
     });
   }
@@ -129,14 +131,15 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
   }
 
   private fetchNodes() {
-    return this.http.get<CanSlave[]>('/api/v2/can/nodes').pipe(
-      catchError(() => of([] as CanSlave[]))
+    return this.http.get<{ fleet: { hashRate: number; power: number }; nodes: CanSlave[] }>('/api/v2/can/nodes').pipe(
+      catchError(() => of({ fleet: { hashRate: 0, power: 0 }, nodes: [] as CanSlave[] }))
     );
   }
 
   private refresh(): void {
-    this.fetchNodes().subscribe(nodes => {
-      this.mergeRows(nodes);
+    this.fetchNodes().subscribe(res => {
+      this.fleet = res.fleet;
+      this.mergeRows(res.nodes);
       this.loading = false;
     });
   }
