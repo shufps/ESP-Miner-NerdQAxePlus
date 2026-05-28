@@ -26,6 +26,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   public deviceModel: string = "";
   public devToolsOpen: boolean = false;
+
+  get isDangerZone(): boolean {
+    const level = Number(localStorage.getItem('support-level') ?? 0);
+    return level >= 1;
+  }
   public eASICModel = eASICModel;
   public asicModel!: eASICModel;
 
