@@ -7,6 +7,7 @@
 #include "freertos/event_groups.h"
 
 #include "esp_netif.h"
+#include "esp_wifi_types.h"
 #include "lwip/sys.h"
 #include <arpa/inet.h>
 #include <lwip/netdb.h>
