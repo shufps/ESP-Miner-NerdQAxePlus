@@ -22,6 +22,7 @@
 #include "boards/nerdqaxeplus2.h"
 #include "boards/nerdqx.h"
 #include "boards/q1370.h"
+#include "boards/q1373.h"
 #include "create_jobs_task.h"
 #include "discord.h"
 #include "global_state.h"
@@ -264,6 +265,9 @@ extern "C" void app_main(void)
 #endif
 #ifdef Q1370
     Board *board = new Q1370B();
+#endif
+#ifdef Q1373
+    Board *board = new Q1373B();
 #endif
 
     // initialize everything non-asic-specific like

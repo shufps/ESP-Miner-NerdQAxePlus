@@ -141,13 +141,6 @@ uint8_t BM1370::asicToJobId(uint8_t asic_id) {
     return (asic_id & 0xf0) >> 1;
 }
 
-uint8_t BM1370::nonceToAsicNr(uint32_t nonce) {
-    return (uint8_t) ((nonce & 0x0000fc00) >> 11);
-}
-
-// chipIndexFromAddr and addrFromChipIndex now use base class
-// implementation with m_addressInterval (set during init)
-
 uint16_t BM1370::getSmallCoreCount() {
     return BM1370_SMALL_CORE_COUNT;
 }

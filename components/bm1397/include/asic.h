@@ -124,8 +124,6 @@ protected:
     uint32_t vrFreqToReg(uint32_t freq_hz);
     uint32_t vrRegToFreq(uint32_t reg);
 
-    virtual uint8_t nonceToAsicNr(uint32_t nonce) = 0;
-
 public:
     Asic();
     virtual const char* getName() = 0;

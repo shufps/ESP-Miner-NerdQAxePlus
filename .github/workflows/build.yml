@@ -41,6 +41,9 @@ jobs:
           - board: Q1370
             upload_www: false
             label: Q1370
+          - board: Q1373
+            upload_www: false
+            label: Q1373
 
     steps:
     - name: Checkout repository

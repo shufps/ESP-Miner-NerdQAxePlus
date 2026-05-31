@@ -4,6 +4,7 @@ SRCS
     "bm1366.cpp"
     "bm1368.cpp"
     "bm1370.cpp"
+    "bm1373.cpp"
     "serial.cpp"
     "crc.cpp"
     "mining_utils.cpp"
