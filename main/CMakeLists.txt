@@ -16,6 +16,7 @@ SRCS
     "boards/nerdqx.cpp"
     "boards/nerdeko.cpp"
     "boards/q1370.cpp"
+    "boards/q1373.cpp"
     "boards/drivers/EMC2302.cpp"
     "boards/drivers/TMP1075.cpp"
     "boards/drivers/TPS53647.cpp"

@@ -13,7 +13,6 @@ protected:
     virtual uint8_t jobToAsicId(uint8_t job_id);
     virtual uint8_t asicToJobId(uint8_t asic_id);
 
-    virtual uint8_t nonceToAsicNr(uint32_t nonce);
 public:
     BM1370();
     virtual const char* getName() { return "BM1370"; };
