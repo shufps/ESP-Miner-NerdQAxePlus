@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "esp_attr.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -32,7 +33,7 @@ static bool s_ip_valid = false;
 /* WiFi scan state */
 static volatile bool s_is_scanning = false;
 static uint16_t s_scan_ap_count = 0;
-static wifi_ap_record_t s_scan_ap_info[WIFI_SCAN_MAX_APS];
+static EXT_RAM_BSS_ATTR wifi_ap_record_t s_scan_ap_info[WIFI_SCAN_MAX_APS];
 
 static esp_netif_t *s_netif_ap = nullptr;
 static esp_netif_t *s_netif_sta = nullptr;
