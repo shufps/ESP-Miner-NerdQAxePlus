@@ -49,3 +49,14 @@ esp_netif_t *wifi_get_ap_netif(void);
 /* Hooks for the NetworkManager */
 void wifi_set_hook_got_ip(WifiHookFn fn);
 void wifi_set_hook_disconnected(WifiHookFn fn);
+
+/* WiFi scan */
+#define WIFI_SCAN_MAX_APS 20
+
+typedef struct {
+    char ssid[33];
+    int8_t rssi;
+    wifi_auth_mode_t authmode;
+} wifi_ap_record_simple_t;
+
+esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count);

@@ -35,6 +35,7 @@ export interface ISettingsV2 {
     deviceModel: string;
     version: string;
     otp: boolean;
+    apActive: boolean;
 
     // CAN
     can: { hasExtension: boolean; enabled: boolean; };

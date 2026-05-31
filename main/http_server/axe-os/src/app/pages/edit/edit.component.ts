@@ -44,6 +44,11 @@ export class EditComponent implements OnInit {
   public lastCoinbaseVerifyMode: number = 1;
   public lastFallbackCoinbaseVerifyMode: number = 1;
 
+  // WiFi scan
+  public apActive = false;
+  public wifiScanning = false;
+  public wifiScanResults: { ssid: string; rssi: number; authmode: number }[] = [];
+
   toggleCoinbaseVerify(enabled: boolean, controlName: string, lastRef: 'lastCoinbaseVerifyMode' | 'lastFallbackCoinbaseVerifyMode') {
     const ctrl = this.form.controls[controlName];
     if (enabled) {
@@ -105,6 +110,7 @@ export class EditComponent implements OnInit {
         this.originalSettings["poolMode"] = info.poolMode ?? 0;
 
         this.otpEnabled = !!info.otp;
+        this.apActive = !!info.apActive;
         this.hasCanExtension = !!info.can.hasExtension;
 
         this.asicModel = info.asicModel;
@@ -664,6 +670,47 @@ export class EditComponent implements OnInit {
       set(ka, get(kb));
       set(kb, tmp);
     }
+  }
+
+  public scanWifi(dialog: TemplateRef<any>): void {
+    if (this.wifiScanning) return;
+    this.wifiScanning = true;
+    this.systemService.scanWifi().subscribe({
+      next: (response) => {
+        const byStrength: { [ssid: string]: { ssid: string; rssi: number; authmode: number } } = {};
+        for (const n of response.networks || []) {
+          if (!n.ssid) continue;
+          if (!byStrength[n.ssid] || n.rssi > byStrength[n.ssid].rssi) {
+            byStrength[n.ssid] = n;
+          }
+        }
+        this.wifiScanResults = Object.values(byStrength).sort((a, b) => b.rssi - a.rssi);
+        this.wifiScanning = false;
+        this.dialogRef = this.dialogService.open(dialog, { closeOnBackdropClick: true });
+      },
+      error: () => {
+        this.wifiScanning = false;
+        this.toastrService.danger(
+          this.translate.instant('SETTINGS.WIFI_SCAN_FAILED'),
+          this.translate.instant('COMMON.ERROR')
+        );
+      }
+    });
+  }
+
+  public selectWifiNetwork(ssid: string): void {
+    this.form.patchValue({ ssid });
+    this.form.markAsDirty();
+    if (this.dialogRef) {
+      this.dialogRef.close();
+    }
+  }
+
+  public wifiSignalStrength(rssi: number): string {
+    if (rssi >= -50) return 'excellent';
+    if (rssi >= -60) return 'good';
+    if (rssi >= -70) return 'fair';
+    return 'weak';
   }
 
 }

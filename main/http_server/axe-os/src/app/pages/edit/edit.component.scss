@@ -336,3 +336,40 @@
     }
 }
 
+.wifi-scan-entry {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: left !important;
+    padding: 6px 10px !important;
+    margin-bottom: 4px !important;
+    width: 100%;
+    text-transform: none !important;
+}
+
+.wifi-scan-entry * {
+    text-transform: none !important;
+}
+
+.wifi-scan-entry__ssid {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.wifi-scan-entry__rssi {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.wifi-scan-entry__rssi--excellent { color: #4caf50; }
+.wifi-scan-entry__rssi--good      { color: #8bc34a; }
+.wifi-scan-entry__rssi--fair      { color: #ffc107; }
+.wifi-scan-entry__rssi--weak      { color: #f44336; }
+

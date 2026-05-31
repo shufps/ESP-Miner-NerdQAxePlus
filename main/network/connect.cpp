@@ -29,6 +29,11 @@ static char s_ip_addr[20] = "0.0.0.0";
 static char s_mac_addr[18] = {0};
 static bool s_ip_valid = false;
 
+/* WiFi scan state */
+static volatile bool s_is_scanning = false;
+static uint16_t s_scan_ap_count = 0;
+static wifi_ap_record_t s_scan_ap_info[WIFI_SCAN_MAX_APS];
+
 static esp_netif_t *s_netif_ap = nullptr;
 static esp_netif_t *s_netif_sta = nullptr;
 
@@ -78,6 +83,17 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
+        return;
+    }
+
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
+        s_scan_ap_count = WIFI_SCAN_MAX_APS;
+        if (esp_wifi_scan_get_ap_records(&s_scan_ap_count, s_scan_ap_info) != ESP_OK) {
+            ESP_LOGW(TAG, "esp_wifi_scan_get_ap_records failed");
+            s_scan_ap_count = 0;
+        }
+        ESP_LOGI(TAG, "WiFi scan done: %u APs", (unsigned) s_scan_ap_count);
+        s_is_scanning = false;
         return;
     }
 
@@ -294,6 +310,62 @@ esp_netif_t *wifi_init(const char *wifi_ssid, const char *wifi_pass, const char 
     snprintf(s_mac_addr, sizeof(s_mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     return s_netif_sta;
+}
+
+esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count)
+{
+    if (!ap_records || !ap_count) return ESP_ERR_INVALID_ARG;
+
+    if (s_is_scanning) {
+        ESP_LOGW(TAG, "WiFi scan already in progress");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    ESP_LOGI(TAG, "Starting WiFi scan");
+    s_scan_ap_count = 0;
+    s_is_scanning = true;
+
+    // Foreground scan while staying connected. Do NOT disconnect - that would
+    // drop the HTTP TCP connection serving this request.
+    wifi_scan_config_t scan_config = {
+        .ssid = 0,
+        .bssid = 0,
+        .channel = 0,
+        .show_hidden = false,
+    };
+
+    esp_err_t err = esp_wifi_scan_start(&scan_config, false);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_wifi_scan_start failed: %s", esp_err_to_name(err));
+        s_is_scanning = false;
+        return err;
+    }
+
+    // Poll for completion, max ~10 seconds
+    int retries = 20;
+    while (s_is_scanning && retries-- > 0) {
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+
+    if (s_is_scanning) {
+        ESP_LOGE(TAG, "WiFi scan timeout");
+        s_is_scanning = false;
+        return ESP_ERR_TIMEOUT;
+    }
+
+    // Copy results to caller buffer
+    uint16_t n = s_scan_ap_count;
+    if (n > WIFI_SCAN_MAX_APS) n = WIFI_SCAN_MAX_APS;
+    memset(ap_records, 0, n * sizeof(wifi_ap_record_simple_t));
+    for (uint16_t i = 0; i < n; i++) {
+        memcpy(ap_records[i].ssid, s_scan_ap_info[i].ssid, sizeof(ap_records[i].ssid));
+        ap_records[i].ssid[sizeof(ap_records[i].ssid) - 1] = '\0';
+        ap_records[i].rssi = s_scan_ap_info[i].rssi;
+        ap_records[i].authmode = s_scan_ap_info[i].authmode;
+    }
+    *ap_count = n;
+
+    return ESP_OK;
 }
 
 EventBits_t wifi_connect(void)

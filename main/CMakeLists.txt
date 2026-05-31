@@ -49,6 +49,7 @@ SRCS
     "./http_server/handler_otp.cpp"
     "./http_server/handler_restart.cpp"
     "./http_server/handler_shutdown.cpp"
+    "./http_server/handler_wifi_scan.cpp"
     "./http_server/handler_file.cpp"
     "./http_server/handler_ota_factory.cpp"
     "./http_server/v2/handler_v2_dashboard.cpp"
