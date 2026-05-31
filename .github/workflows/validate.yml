@@ -30,6 +30,8 @@ jobs:
             label: NerdQX
           - board: Q1370
             label: Q1370
+          - board: Q1373
+            label: Q1373
 
     steps:
     - name: Checkout repository
