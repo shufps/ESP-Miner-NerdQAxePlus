@@ -475,9 +475,16 @@
                         </div>
 
                         <div class="form-row">
-                            <label for="overheat_temp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
+                            <label for="overheat_temp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }} ({{ 'FAN.PRIMARY_CONTROLLER' | translate }}):</label>
                             <div class="form-control-wrapper">
                                 <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" />
+                            </div>
+                        </div>
+
+                        <div class="form-row" *ngIf="fanCount === 1">
+                            <label for="fan1OverheatTemp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }} ({{ 'FAN.SECONDARY_CONTROLLER' | translate }}):</label>
+                            <div class="form-control-wrapper">
+                                <input nbInput id="fan1OverheatTemp" formControlName="fan1OverheatTemp" type="number" />
                             </div>
                         </div>
 
@@ -568,9 +575,9 @@
                         </div>
 
                         <div class="form-row">
-                            <label for="fan1OverheatTemp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
+                            <label for="fan1OverheatTemp2" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }}:</label>
                             <div class="form-control-wrapper">
-                                <input nbInput id="fan1OverheatTemp" formControlName="fan1OverheatTemp" type="number" />
+                                <input nbInput id="fan1OverheatTemp2" formControlName="fan1OverheatTemp" type="number" />
                             </div>
                         </div>
 

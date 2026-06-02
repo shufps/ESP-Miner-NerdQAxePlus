@@ -403,6 +403,9 @@ export class EditComponent implements OnInit {
         overheatTemp: f.fan1OverheatTemp,
         pid: { targetTemp: f.fan1PidTargetTemp, p: f.fan1PidP, i: f.fan1PidI, d: f.fan1PidD }
       });
+    } else {
+      // Single-fan boards: still send VReg overheat threshold
+      fans.push({ overheatTemp: f.fan1OverheatTemp });
     }
 
     // Build v2 payload

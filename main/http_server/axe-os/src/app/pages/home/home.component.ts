@@ -211,9 +211,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
    * Input Voltage warn-band (yellow) should be data-driven (HOME_CFG) and centralized.
    * We keep the template free of thresholds by routing through this method.
    */
-  public isInputVoltageWarn(voltage: any): boolean {
-    const band = HOME_CFG.tiles.inputVoltageBand;
-    return isOutsideBand(voltage, band.low, band.high);
+  public isInputVoltageWarn(voltage: any, voltageMin?: number, voltageMax?: number): boolean {
+    const low = voltageMin ?? HOME_CFG.tiles.inputVoltageBand.low;
+    const high = voltageMax ?? HOME_CFG.tiles.inputVoltageBand.high;
+    return isOutsideBand(voltage, low, high);
   }
 
   /**
