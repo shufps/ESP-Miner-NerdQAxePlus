@@ -29,9 +29,11 @@ static int s_retry_num = 0;
 static char s_ip_addr[20] = "0.0.0.0";
 static char s_mac_addr[18] = {0};
 static bool s_ip_valid = false;
+static bool s_has_ssid = false;
 
 /* WiFi scan state */
 static volatile bool s_is_scanning = false;
+static volatile bool s_scan_suppress_reconnect = false;
 static uint16_t s_scan_ap_count = 0;
 static EXT_RAM_BSS_ATTR wifi_ap_record_t s_scan_ap_info[WIFI_SCAN_MAX_APS];
 
@@ -83,7 +85,9 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
     (void) arg;
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
+        if (s_has_ssid) {
+            esp_wifi_connect();
+        }
         return;
     }
 
@@ -110,6 +114,11 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
 
         if (s_hook_disconnected) {
             s_hook_disconnected();
+        }
+
+        /* No SSID configured or scan in progress — don't reconnect */
+        if (!s_has_ssid || s_scan_suppress_reconnect) {
+            return;
         }
 
         /* Small backoff */
@@ -232,6 +241,7 @@ static esp_netif_t *wifi_init_sta(const char *wifi_ssid, const char *wifi_pass)
     wifi_sta_config.sta.rm_enabled = 1;
 
     /* Copy credentials */
+    s_has_ssid = (wifi_ssid && wifi_ssid[0] != '\0');
     strncpy((char *) wifi_sta_config.sta.ssid, wifi_ssid, sizeof(wifi_sta_config.sta.ssid));
     wifi_sta_config.sta.ssid[sizeof(wifi_sta_config.sta.ssid) - 1] = '\0';
 
@@ -326,8 +336,12 @@ esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count)
     s_scan_ap_count = 0;
     s_is_scanning = true;
 
-    // Foreground scan while staying connected. Do NOT disconnect - that would
-    // drop the HTTP TCP connection serving this request.
+    // Disconnect STA if it's trying to connect — scan is blocked while connecting.
+    // The HTTP request comes in via AP, so disconnecting STA is safe.
+    s_scan_suppress_reconnect = true;
+    esp_wifi_disconnect();
+    vTaskDelay(pdMS_TO_TICKS(100)); // let disconnect event settle
+
     wifi_scan_config_t scan_config = {
         .ssid = 0,
         .bssid = 0,
@@ -339,6 +353,8 @@ esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count)
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_wifi_scan_start failed: %s", esp_err_to_name(err));
         s_is_scanning = false;
+        s_scan_suppress_reconnect = false;
+        if (s_has_ssid) esp_wifi_connect();
         return err;
     }
 
@@ -365,6 +381,12 @@ esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count)
         ap_records[i].authmode = s_scan_ap_info[i].authmode;
     }
     *ap_count = n;
+
+    // Resume STA connection attempts
+    s_scan_suppress_reconnect = false;
+    if (s_has_ssid) {
+        esp_wifi_connect();
+    }
 
     return ESP_OK;
 }
