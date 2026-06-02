@@ -1,9 +1,10 @@
 #pragma once
 
+#include "BuckConverter.h"
 #include "driver/i2c.h"
 #include "esp_err.h"
 
-class TPS53647 {
+class TPS53647 : public BuckConverter {
 protected:
     uint8_t m_i2cAddr;
     float m_hwMinVoltage;
@@ -34,29 +35,29 @@ protected:
 public:
     TPS53647();
 
-    virtual bool init(int num_phases, int imax, float ifault);
+    bool init(int num_phases, int imax, float ifault) override;
 
-    void clear_faults();
+    void clear_faults() override;
 
-    float get_temperature();
-    float get_pin();
-    float get_pout();
-    float get_vin();
-    float get_iin();
-    float get_iout();
+    float get_temperature() override;
+    float get_pin() override;
+    float get_pout() override;
+    float get_vin() override;
+    float get_iin() override;
+    float get_iout() override;
 
-    float get_vout();
-    bool set_vout(float volts);
+    float get_vout() override;
+    bool set_vout(float volts) override;
     uint16_t get_vout_vid();
 
     void show_voltage_settings();
-    virtual void status();
+    void status() override;
 
-    uint8_t get_status_byte();
-    uint8_t get_status_iout();
-    uint8_t get_status_vout();
-    uint8_t get_status_input();
-    uint8_t get_status_temp();
+    uint8_t get_status_byte() override;
+    uint8_t get_status_iout() override;
+    uint8_t get_status_vout() override;
+    uint8_t get_status_input() override;
+    uint8_t get_status_temp() override;
 
 };
 

@@ -3,6 +3,7 @@
 #include "asic.h"
 #include "bm1368.h"
 #include "board.h"
+#include "./drivers/BuckConverter.h"
 #include "./drivers/TPS53647.h"
 #include "./drivers/fxl6408.h"
 
@@ -23,7 +24,7 @@ class NerdQaxePlus : public Board {
 
     int detectNumTempSensors();
 
-    TPS53647 *m_tps;
+    BuckConverter *m_tps;
 
     // Optional CAN extension board (FXL6408 + transceiver on GPIO21/16)
     Fxl6408 m_canIo;

@@ -25,6 +25,7 @@ SRCS
     "boards/drivers/nerdaxe/INA260.cpp"
     "boards/drivers/nerdaxe/EMC2101.cpp"
     "boards/drivers/nerdaxe/TPS546.cpp"
+    "boards/drivers/rev7/TPS546.cpp"
     "boards/drivers/nerdaxe/adc.cpp"
     "boards/drivers/i2c_master.cpp"
     "boards/drivers/tmp451.cpp"

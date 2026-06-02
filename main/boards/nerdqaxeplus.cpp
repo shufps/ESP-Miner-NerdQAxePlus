@@ -312,6 +312,9 @@ float NerdQaxePlus::getTemperature(int index) {
 
 
 float NerdQaxePlus::getVRTemp() {
+    if (!m_tps->uses_external_vr_temperature()) {
+        return m_tps->get_temperature();
+    }
     return TMP1075_read_temperature(1);
 }
 
