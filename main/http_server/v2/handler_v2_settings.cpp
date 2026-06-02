@@ -138,6 +138,11 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
             pid_obj["i"]          = (float) fanPid->i / 100.0f;
             pid_obj["d"]          = (float) fanPid->d / 100.0f;
         }
+        // Single-fan boards: still expose VReg overheat threshold
+        if (numFans < 2) {
+            JsonObject fan1 = fans.add<JsonObject>();
+            fan1["overheatTemp"] = Config::getFanOverheatTemp(1);
+        }
     }
     doc["invertFanPolarity"] = board->isInvertFanPolarityEnabled() ? 1 : 0;
 

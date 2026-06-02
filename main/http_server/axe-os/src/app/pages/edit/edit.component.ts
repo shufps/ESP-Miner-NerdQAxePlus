@@ -126,7 +126,7 @@ export class EditComponent implements OnInit {
 
         this.defaultVrFrequency = info.defaultVrFrequency ?? undefined;
 
-        this.fanCount = info.fans?.length ?? 1;
+        this.fanCount = info.fans?.filter((f: any) => f.mode !== undefined).length ?? 1;
         this.fanLabels = info.fans?.map((f: ISettingsV2Fan, i: number) => f.label || `Fan ${i + 1}`) ?? ['Fan 1', 'Fan 2'];
         const fan1cfg = info.fans?.[1];
 
