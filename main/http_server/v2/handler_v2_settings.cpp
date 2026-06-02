@@ -12,6 +12,7 @@
 #include "http_cors.h"
 #include "http_utils.h"
 #include "macros.h"
+#include "network_manager.h"
 
 static const char *TAG = "http_v2_settings";
 
@@ -39,6 +40,7 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
     doc["deviceModel"] = board->getDeviceModel();
     doc["version"]     = esp_app_get_description()->version;
     doc["otp"]         = Config::isOTPEnabled();
+    doc["apActive"]    = NETWORK.isApActive();
 
     // --- can ---
     {

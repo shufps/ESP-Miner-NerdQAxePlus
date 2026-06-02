@@ -59,6 +59,10 @@ class NetworkManager {
         m_hookAnyIp = fn;
     }
 
+    bool isApActive() const {
+        return !m_apShutdownDone;
+    }
+
     void earlyEthSpiInit()
     {
         m_eth.earlySpiInit();

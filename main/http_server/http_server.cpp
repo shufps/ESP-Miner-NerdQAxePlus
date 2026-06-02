@@ -20,6 +20,7 @@
 #include "v2/handler_v2_identify.h"
 #include "v2/handler_v2_system.h"
 #include "handler_system.h"
+#include "handler_wifi_scan.h"
 #include "handler_ota.h"
 #include "handler_restart.h"
 #include "handler_shutdown.h"
@@ -263,6 +264,10 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_uri_t system_restart_uri = {
         .uri = "/api/system/restart", .method = HTTP_POST, .handler = POST_restart, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &system_restart_uri);
+
+    httpd_uri_t wifi_scan_get_uri = {
+        .uri = "/api/v2/wifi/scan", .method = HTTP_GET, .handler = GET_wifi_scan, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &wifi_scan_get_uri);
 
     httpd_uri_t system_restart_options_uri = {
         .uri = "/api/system/restart",

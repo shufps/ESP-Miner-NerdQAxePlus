@@ -9,6 +9,7 @@
 #include "nvs_config.h"
 #include "http_cors.h"
 #include "http_utils.h"
+#include "network_manager.h"
 
 static const char *TAG = "http_v2_identify";
 
@@ -34,6 +35,7 @@ esp_err_t GET_V2_identify(httpd_req_t *req)
     doc["deviceModel"] = board->getDeviceModel();
     doc["defaultTheme"] = board->getDefaultTheme();
     doc["otp"]          = Config::isOTPEnabled();
+    doc["apActive"]     = NETWORK.isApActive();
 
     JsonObject can = doc["can"].to<JsonObject>();
     can["enabled"] = Config::isCanEnabled();

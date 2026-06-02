@@ -226,6 +226,10 @@ export class SystemService {
     return this.httpClient.patch(`${uri}/api/v2/settings`, update, { headers });
   }
 
+  public scanWifi(): Observable<{ networks: { ssid: string; rssi: number; authmode: number }[] }> {
+    return this.httpClient.get<{ networks: { ssid: string; rssi: number; authmode: number }[] }>('/api/v2/wifi/scan');
+  }
+
   public getIdentifyV2(uri: string = ''): Observable<IIdentifyV2> {
     return this.httpClient.get<IIdentifyV2>(`${uri}/api/v2/identify`);
   }
