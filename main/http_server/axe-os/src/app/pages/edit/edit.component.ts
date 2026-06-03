@@ -77,8 +77,6 @@ export class EditComponent implements OnInit {
     'invertScreen',
     'hostname',
     'ssid',
-    'wifiPass',
-    'wifiStatus',
     'invertFanPolarity',
     'stratumDifficulty',
     'stratumKeep',
@@ -457,9 +455,12 @@ export class EditComponent implements OnInit {
       const currentValue = this.normalizeValue(current[key]);
       const originalValue = this.normalizeValue(this.originalSettings[key]);
 
-      // Special case: masked password fields
+      // Special case: masked password fields or missing original values
       if (typeof currentValue === 'string' && currentValue === '*****') {
-        continue; // User hasn't changed this field
+        continue;
+      }
+      if (originalValue === undefined || originalValue === null) {
+        continue;
       }
 
       if (currentValue !== originalValue) {
