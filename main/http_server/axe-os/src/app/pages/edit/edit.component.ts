@@ -77,6 +77,7 @@ export class EditComponent implements OnInit {
     'invertScreen',
     'hostname',
     'ssid',
+    'wifiPass',
     'invertFanPolarity',
     'stratumDifficulty',
     'stratumKeep',
@@ -106,6 +107,9 @@ export class EditComponent implements OnInit {
         this.originalSettings = structuredClone(info);
 
         this.originalSettings["poolMode"] = info.poolMode ?? 0;
+        this.originalSettings["stratumProtocol"] = info.pools?.[0]?.protocol ?? 0;
+        this.originalSettings["fallbackStratumProtocol"] = info.pools?.[1]?.protocol ?? 0;
+        this.originalSettings["canMaster"] = info.can?.enabled ? 1 : 0;
 
         this.otpEnabled = !!info.otp;
         this.apActive = !!info.apActive;
@@ -455,12 +459,14 @@ export class EditComponent implements OnInit {
       const currentValue = this.normalizeValue(current[key]);
       const originalValue = this.normalizeValue(this.originalSettings[key]);
 
-      // Special case: masked password fields or missing original values
+      // Masked password fields: unchanged if still '*****', changed otherwise
       if (typeof currentValue === 'string' && currentValue === '*****') {
         continue;
       }
+      // Fields not present in original settings (e.g. wifiPass):
+      // if we got past the '*****' check, the user has typed something new
       if (originalValue === undefined || originalValue === null) {
-        continue;
+        return true;
       }
 
       if (currentValue !== originalValue) {
