@@ -58,6 +58,7 @@
 #define NVS_CONFIG_FAN1_PID_I    "fan1_pid_i"
 #define NVS_CONFIG_FAN1_PID_D    "fan1_pid_d"
 #define NVS_CONFIG_FAN1_OVERHEAT "fan1_overheat"
+#define NVS_CONFIG_FAN_PID_USE_MAX "fan_pid_max"
 
 #define NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE "alrt_disc_en"
 #define NVS_CONFIG_ALERT_DISCORD_URL    "alrt_disc_url"
@@ -255,6 +256,10 @@ namespace Config {
         if (ch == 0) nvs_config_set_u16(NVS_CONFIG_PID_D, v);
         else         nvs_config_set_u16(NVS_CONFIG_FAN1_PID_D, v);
     }
+
+    // Fan PID: use max(ASIC, VReg) as input instead of ASIC only
+    inline bool isFanPidUseMax() { return nvs_config_get_u16(NVS_CONFIG_FAN_PID_USE_MAX, 1) != 0; }
+    inline void setFanPidUseMax(bool v) { nvs_config_set_u16(NVS_CONFIG_FAN_PID_USE_MAX, v ? 1 : 0); }
 
     // ---- uint64_t Getters ----
     inline uint64_t getBestDiff() { return nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0); }

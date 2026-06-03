@@ -443,7 +443,8 @@
     "FAN_SETTINGS_PORTS_HINT": "<strong>Note:</strong> When switching away from Linked mode, check which fan ports each fan is connected to before saving.",
     "FAN1_CONNECTOR_HINT": "Connect the <strong>ASIC fan</strong> to connector <strong>{{connector}}</strong>.",
     "FAN2_CONNECTOR_HINT": "Connect the <strong>Voltage Regulator fan</strong> to connector <strong>{{connector}}</strong>.",
-    "FAN_LINKED_HINT": "The VReg fan follows the ASIC fan output. In PID mode, the controller uses the highest of ASIC and VReg temperatures."
+    "FAN_LINKED_HINT": "The VReg fan follows the ASIC fan output. In PID mode, the controller uses the highest of ASIC and VReg temperatures.",
+    "PID_USE_MAX_TEMP": "PID uses highest of ASIC and VReg temperature"
   },
   "MISC": {
     "TITLE": "Misc Settings",

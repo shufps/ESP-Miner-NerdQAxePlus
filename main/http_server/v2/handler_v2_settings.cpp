@@ -145,6 +145,9 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
         }
     }
     doc["invertFanPolarity"] = board->isInvertFanPolarityEnabled() ? 1 : 0;
+#if defined(NERDAXE) || defined(NERDAXEGAMMA)
+    doc["pidUseMax"]         = Config::isFanPidUseMax();
+#endif
 
     // --- network ---
     {
@@ -239,6 +242,11 @@ esp_err_t PATCH_V2_settings(httpd_req_t *req)
     if (doc["invertFanPolarity"].is<bool>()) {
         Config::setFanPolarity(doc["invertFanPolarity"].as<bool>());
     }
+#if defined(NERDAXE) || defined(NERDAXEGAMMA)
+    if (doc["pidUseMax"].is<bool>()) {
+        Config::setFanPidUseMax(doc["pidUseMax"].as<bool>());
+    }
+#endif
 
     // --- misc ---
     if (doc["stratumKeep"].is<bool>() || doc["stratumKeep"].is<int>()) {

@@ -63,6 +63,7 @@ export interface ISettingsV2 {
     // Fan / thermal
     fans: ISettingsV2Fan[];
     invertFanPolarity: number;
+    pidUseMax: boolean;
 
     // Network
     hostname: string;

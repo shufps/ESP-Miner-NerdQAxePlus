@@ -488,6 +488,10 @@
                             </div>
                         </div>
 
+                        <div class="form-row" *ngIf="fanCount === 1">
+                            <nb-checkbox formControlName="pidUseMax">{{ 'FAN.PID_USE_MAX_TEMP' | translate }}</nb-checkbox>
+                        </div>
+
                         <div class="form-row" *ngIf="supportLevel >= 2">
                             <nb-checkbox formControlName="invertFanPolarity">{{ 'FAN.INVERT_POLARITY' | translate }}</nb-checkbox>
                         </div>

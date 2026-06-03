@@ -23,8 +23,8 @@ static const char *TAG = "bm1373Module";
 
 static const uint8_t chip_id[6] = {0xaa, 0x55, 0x13, 0x72, 0x00, 0x00};
 
-static const uint64_t BM1373_CORE_COUNT = 128;
-static const uint64_t BM1373_SMALL_CORE_COUNT = 2040;
+static const uint64_t BM1373_CORE_COUNT = 128; // TODO
+static const uint64_t BM1373_SMALL_CORE_COUNT = 7000; // TODO
 
 #define REG_NONCE_TOTAL_CNT 0x8c
 

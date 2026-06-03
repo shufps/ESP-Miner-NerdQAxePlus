@@ -69,6 +69,9 @@ public:
     /** Configured overheat threshold in °C for the given channel (0 = disabled). */
     uint16_t getOverheatTemp(int ch) const;
 
+    /** Whether PID uses max(ASIC, VReg) temperature (single-fan boards). */
+    bool isPidUseMax() const { return m_pidUseMax; }
+
 private:
     Board* m_board        = nullptr;
     int    m_numChannels  = 0;
@@ -85,6 +88,7 @@ private:
     uint16_t m_fanRPM[MAX_FANS]    = {};
     uint16_t m_fanPerc[MAX_FANS]   = {};
     bool     m_overheated[MAX_FANS] = {};
+    bool     m_pidUseMax = true;  // single-fan boards: use max(ASIC, VReg) as PID input
 
     /** Push current config tunings and target into the PID instance for channel ch. */
     void applyConfig(int ch);

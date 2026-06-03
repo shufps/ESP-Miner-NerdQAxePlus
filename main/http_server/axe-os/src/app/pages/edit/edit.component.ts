@@ -237,6 +237,7 @@ export class EditComponent implements OnInit {
             Validators.required
           ]],
           invertFanPolarity: [info.invertFanPolarity == 1, [Validators.required]],
+          pidUseMax: [info.pidUseMax ?? true],
           manualFanSpeed: [info.fans[0]?.manualSpeed ?? 100, [Validators.required]],
           overheat_temp: [info.fans[0]?.overheatTemp ?? 70, [
             Validators.min(40),
@@ -427,6 +428,7 @@ export class EditComponent implements OnInit {
       // Fans
       fans,
       invertFanPolarity: !!f.invertFanPolarity,
+      pidUseMax: !!f.pidUseMax,
       // Display
       flipScreen: !!f.flipScreen,
       invertScreen: !!f.invertScreen,

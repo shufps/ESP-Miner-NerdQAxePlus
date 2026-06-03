@@ -68,6 +68,8 @@ void FanController::init(Board* board, int sampleTimeMs)
 
 void FanController::loadSettings()
 {
+    m_pidUseMax = Config::isFanPidUseMax();
+
     // Always load config for both channels — ch1 overheat monitoring is needed
     // even on single-fan boards to detect VReg overtemperature.
     for (int ch = 0; ch < MAX_FANS; ch++) {
@@ -90,9 +92,11 @@ void FanController::update(float chipTempMax, float vrTemp)
     // Temperature input per channel: ch0=chip, ch1=VR
     float tempInput[MAX_FANS] = { chipTempMax, vrTemp };
 
-    // When 2nd channel is linked, ch0 PID uses the higher of both temps
-    // (only applies to boards with 2 fan channels)
+    // When 2nd channel is linked (2-fan boards) or pidUseMax is enabled
+    // (single-fan boards), ch0 PID uses the higher of both temps.
     if (m_numChannels > 1 && m_config[1].mode == Mode::LINKED) {
+        tempInput[0] = fmaxf(chipTempMax, vrTemp);
+    } else if (m_numChannels == 1 && m_pidUseMax) {
         tempInput[0] = fmaxf(chipTempMax, vrTemp);
     }
 
