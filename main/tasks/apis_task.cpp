@@ -10,7 +10,7 @@
 //#include "mbedtls/platform.h"
 #include <cstring>
 #include "nvs_config.h"
-#include "macros.h
+#include "macros.h"
 
 static const char *TAG = "APIsFetcher";
 
