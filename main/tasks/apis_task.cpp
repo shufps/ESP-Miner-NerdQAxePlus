@@ -259,7 +259,7 @@ static char* buildUrl(const char* base, const char* path)
 
 void APIsFetcher::fetchAll()
 {
-    char* baseUrl = Config::getMempoolUrl();
+    char* baseUrl = Config::isMempoolCustom() ? Config::getMempoolUrl() : strdup(CONFIG_MEMPOOL_URL);
     if (!baseUrl || baseUrl[0] == '\0') {
         ESP_LOGI(TAG, "Mempool URL not configured, skipping fetch");
         m_bitcoinPrice = 0;

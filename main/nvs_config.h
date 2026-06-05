@@ -61,6 +61,7 @@
 #define NVS_CONFIG_FAN_PID_USE_MAX "fan_pid_max"
 
 #define NVS_CONFIG_MEMPOOL_URL "mempool_url"
+#define NVS_CONFIG_MEMPOOL_CUSTOM "mempool_cust"
 
 #define NVS_CONFIG_ALERT_DISCORD_WATCHDOG_ENABLE "alrt_disc_en"
 #define NVS_CONFIG_ALERT_DISCORD_URL    "alrt_disc_url"
@@ -157,8 +158,10 @@ namespace Config {
     inline char* getInfluxPrefix() { return cfgGetStrAlloc(NVS_CONFIG_INFLUX_PREFIX, CONFIG_INFLUX_PREFIX); }
     inline char* getSwarmConfig() { return cfgGetStrAlloc(NVS_CONFIG_SWARM, ""); }
     inline char* getDiscordWebhook() { return cfgGetStrAlloc(NVS_CONFIG_ALERT_DISCORD_URL, CONFIG_ALERT_DISCORD_URL); }
-    inline char* getMempoolUrl() { return cfgGetStrAlloc(NVS_CONFIG_MEMPOOL_URL, "https://mempool.space"); }
+    inline char* getMempoolUrl() { return cfgGetStrAlloc(NVS_CONFIG_MEMPOOL_URL, CONFIG_MEMPOOL_URL); }
     inline void setMempoolUrl(const char* value) { cfgSetStr(NVS_CONFIG_MEMPOOL_URL, value); }
+    inline bool isMempoolCustom() { return cfgGetU16(NVS_CONFIG_MEMPOOL_CUSTOM, 0) != 0; }
+    inline void setMempoolCustom(bool v) { cfgSetU16(NVS_CONFIG_MEMPOOL_CUSTOM, v ? 1 : 0); }
 
     // ---- String Setters ----
     inline void setWifiSSID(const char* value) { cfgSetStr(NVS_CONFIG_WIFI_SSID, value); }

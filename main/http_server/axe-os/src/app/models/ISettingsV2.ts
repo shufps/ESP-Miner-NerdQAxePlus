@@ -70,6 +70,7 @@ export interface ISettingsV2 {
     ssid: string;
 
     // Mempool
+    mempoolCustom: boolean;
     mempoolUrl: string;
 
     // Display

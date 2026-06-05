@@ -54,6 +54,14 @@ menu "Miner Configuration"
         help
             Fan speed in percentage. Only used if auto fan speed is disabled.
 
+    config MEMPOOL_URL
+        string "Mempool API base URL"
+        default "https://mempool.space"
+        help
+            Base URL for the Mempool API used to fetch Bitcoin price,
+            block height, network hashrate, and fee estimates.
+            Set to an empty string to disable API fetching.
+
 endmenu
 
 menu "Stratum Configuration"
