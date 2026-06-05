@@ -451,7 +451,9 @@
     "SETTINGS": "Paramètres Divers",
     "FLIP_SCREEN": "Retourner l'Écran",
     "AUTO_SCREEN_OFF": "Extinction Automatique de l'Écran",
-    "STRATUM_KEEPALIVE": "Activer Stratum TCP Keepalive"
+    "STRATUM_KEEPALIVE": "Activer Stratum TCP Keepalive",
+    "CUSTOM_MEMPOOL": "Endpoint Mempool personnalisé",
+    "MEMPOOL_URL": "URL Mempool"
   },
   "WARNINGS": {
     "UNSAFE_SETTINGS": "⚠️ Attention: Sauvegarde de Paramètres Dangereux ⚠️",

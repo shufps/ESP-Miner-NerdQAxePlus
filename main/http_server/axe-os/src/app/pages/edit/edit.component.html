@@ -602,6 +602,16 @@
                     <nb-checkbox formControlName="autoScreenOff">{{ 'MISC.AUTO_SCREEN_OFF' | translate }}</nb-checkbox>
                 </div>
                 <div class="form-row">
+                    <nb-checkbox formControlName="customMempoolEnabled">{{ 'MISC.CUSTOM_MEMPOOL' | translate }}</nb-checkbox>
+                </div>
+                <div class="form-row" *ngIf="form.controls['customMempoolEnabled'].value">
+                    <label for="mempoolUrl" class="form-label">{{ 'MISC.MEMPOOL_URL' | translate }}:</label>
+                    <div class="form-control-wrapper">
+                        <input nbInput id="mempoolUrl" type="text" formControlName="mempoolUrl"
+                               placeholder="https://mempool.mynode.local" />
+                    </div>
+                </div>
+                <div class="form-row">
                     <label class="form-label">{{ 'SETTINGS.TIME_FORMAT' | translate }}:</label>
                     <div class="form-control-wrapper">
                         <nb-select formControlName="timeFormat" placeholder="{{ 'SETTINGS.TIME_FORMAT' | translate }}">

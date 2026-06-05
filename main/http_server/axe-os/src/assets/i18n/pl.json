@@ -451,7 +451,9 @@
     "SETTINGS": "Różne ustawienia",
     "FLIP_SCREEN": "Odwróć ekran",
     "AUTO_SCREEN_OFF": "Automatyczne wyłączenie ekranu",
-    "STRATUM_KEEPALIVE": "Włącz TCP Keepalive Stratum"
+    "STRATUM_KEEPALIVE": "Włącz TCP Keepalive Stratum",
+    "CUSTOM_MEMPOOL": "Własny endpoint Mempool",
+    "MEMPOOL_URL": "URL Mempool"
   },
   "WARNINGS": {
     "UNSAFE_SETTINGS": "⚠️ Ostrzeżenie: Zapisywanie niebezpiecznych ustawień ⚠️",

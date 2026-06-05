@@ -40,6 +40,7 @@ private:
     static esp_err_t http_event_handler(esp_http_client_event_t *evt);
 
     bool fetchData(const char* apiUrl, ApiType type);
+    void fetchAll();
 
     // Parses Json Bitcoin price via HTTP request
     bool parseBitcoinPrice(JsonDocument &doc);

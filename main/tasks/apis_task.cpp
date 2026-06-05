@@ -9,12 +9,16 @@
 #include "mbedtls/error.h"
 //#include "mbedtls/platform.h"
 #include <cstring>
+#include "nvs_config.h"
+#include "macros.h
 
 static const char *TAG = "APIsFetcher";
-#define APIurl_BTCPRICE    "https://mempool.space/api/v1/prices"
-#define APIurl_BLOCKHEIGHT "https://mempool.space/api/blocks/tip/height"
-#define APIurl_GLOBALHASH  "https://mempool.space/api/v1/mining/hashrate/3d"
-#define APIurl_GETFEES     "https://mempool.space/api/v1/fees/recommended"
+
+// API paths (appended to the configurable base URL)
+#define API_PATH_BTCPRICE    "/api/v1/prices"
+#define API_PATH_BLOCKHEIGHT "/api/blocks/tip/height"
+#define API_PATH_GLOBALHASH  "/api/v1/mining/hashrate/3d"
+#define API_PATH_GETFEES     "/api/v1/fees/recommended"
 
 #define MIN(a, b) ((a)<(b))?(a):(b)
 
@@ -238,15 +242,57 @@ void APIsFetcher::taskWrapper(void *pvParameters) {
     instance->task();
 }
 
+// Build full URL from base + path. Caller must free() the result.
+static char* buildUrl(const char* base, const char* path)
+{
+    // Strip trailing slash from base if present
+    size_t baseLen = strlen(base);
+    while (baseLen > 0 && base[baseLen - 1] == '/') baseLen--;
+
+    size_t len = baseLen + strlen(path) + 1;
+    char* url = (char*) MALLOC(len);
+    if (url) {
+        snprintf(url, len, "%.*s%s", (int) baseLen, base, path);
+    }
+    return url;
+}
+
+void APIsFetcher::fetchAll()
+{
+    char* baseUrl = Config::getMempoolUrl();
+    if (!baseUrl || baseUrl[0] == '\0') {
+        ESP_LOGI(TAG, "Mempool URL not configured, skipping fetch");
+        m_bitcoinPrice = 0;
+        m_blockHeigh = 0;
+        m_netHash = 0;
+        m_netDifficulty = 0;
+        m_hourFee = 0;
+        m_halfHourFee = 0;
+        m_fastestFee = 0;
+        free(baseUrl);
+        return;
+    }
+
+    const char* paths[] = { API_PATH_BTCPRICE, API_PATH_BLOCKHEIGHT, API_PATH_GLOBALHASH, API_PATH_GETFEES };
+    const ApiType types[] = { APItype_PRICE, APItype_BLOCK_HEIGHT, APItype_HASHRATE, APItype_FEES };
+
+    for (int i = 0; i < 4; i++) {
+        char* url = buildUrl(baseUrl, paths[i]);
+        if (url) {
+            fetchData(url, types[i]);
+            free(url);
+        }
+    }
+
+    free(baseUrl);
+}
+
 // FreeRTOS task function
 void APIsFetcher::task() {
     ESP_LOGI(TAG, "APIs Fetcher started...");
 
-    // initial price fetching
-    fetchData(APIurl_BTCPRICE, APItype_PRICE);
-    fetchData(APIurl_BLOCKHEIGHT, APItype_BLOCK_HEIGHT);
-    fetchData(APIurl_GLOBALHASH, APItype_HASHRATE);
-    fetchData(APIurl_GETFEES, APItype_FEES);
+    // initial fetching
+    fetchAll();
 
     while (true) {
         pthread_mutex_lock(&m_mutex);
@@ -254,10 +300,7 @@ void APIsFetcher::task() {
         pthread_mutex_unlock(&m_mutex);
 
         do{
-            fetchData(APIurl_BTCPRICE, APItype_PRICE);
-            fetchData(APIurl_BLOCKHEIGHT, APItype_BLOCK_HEIGHT);
-            fetchData(APIurl_GLOBALHASH, APItype_HASHRATE);
-            fetchData(APIurl_GETFEES, APItype_FEES);
+            fetchAll();
 #if 0
             UBaseType_t watermark = uxTaskGetStackHighWaterMark(NULL);
             ESP_LOGI(TAG, "Stack high watermark: %u bytes", watermark);

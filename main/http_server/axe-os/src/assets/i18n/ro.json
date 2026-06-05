@@ -451,7 +451,9 @@
     "SETTINGS": "Setări diverse",
     "FLIP_SCREEN": "Răsturnă ecran",
     "AUTO_SCREEN_OFF": "Oprire ecran automată",
-    "STRATUM_KEEPALIVE": "Activează TCP Keepalive Stratum"
+    "STRATUM_KEEPALIVE": "Activează TCP Keepalive Stratum",
+    "CUSTOM_MEMPOOL": "Endpoint Mempool personalizat",
+    "MEMPOOL_URL": "URL Mempool"
   },
   "WARNINGS": {
     "UNSAFE_SETTINGS": "⚠️ Avertisment: Salvare setări nesigure ⚠️",

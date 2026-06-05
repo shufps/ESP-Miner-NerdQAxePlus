@@ -451,7 +451,9 @@
     "SETTINGS": "Verschiedene Einstellungen",
     "FLIP_SCREEN": "Bildschirm drehen",
     "AUTO_SCREEN_OFF": "Automatische Bildschirmabschaltung",
-    "STRATUM_KEEPALIVE": "Stratum TCP Keepalive aktivieren"
+    "STRATUM_KEEPALIVE": "Stratum TCP Keepalive aktivieren",
+    "CUSTOM_MEMPOOL": "Eigener Mempool-Endpunkt",
+    "MEMPOOL_URL": "Mempool-URL"
   },
   "WARNINGS": {
     "UNSAFE_SETTINGS": "⚠️ Warnung: Speichern unsicherer Einstellungen ⚠️",

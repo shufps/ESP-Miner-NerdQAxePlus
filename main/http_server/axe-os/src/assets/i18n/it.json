@@ -451,7 +451,9 @@
     "SETTINGS": "Impostazioni varie",
     "FLIP_SCREEN": "Capovolgi schermo",
     "AUTO_SCREEN_OFF": "Spegnimento automatico schermo",
-    "STRATUM_KEEPALIVE": "Abilita TCP Keepalive Stratum"
+    "STRATUM_KEEPALIVE": "Abilita TCP Keepalive Stratum",
+    "CUSTOM_MEMPOOL": "Endpoint Mempool personalizzato",
+    "MEMPOOL_URL": "URL Mempool"
   },
   "WARNINGS": {
     "UNSAFE_SETTINGS": "⚠️ Avvertenza: Salvataggio impostazioni non sicure ⚠️",

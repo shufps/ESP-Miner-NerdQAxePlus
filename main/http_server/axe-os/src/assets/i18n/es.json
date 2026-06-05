@@ -451,7 +451,9 @@
     "SETTINGS": "Configuración Miscelánea",
     "FLIP_SCREEN": "Voltear Pantalla",
     "AUTO_SCREEN_OFF": "Apagado Automático de Pantalla",
-    "STRATUM_KEEPALIVE": "Habilitar Stratum TCP Keepalive"
+    "STRATUM_KEEPALIVE": "Habilitar Stratum TCP Keepalive",
+    "CUSTOM_MEMPOOL": "Endpoint Mempool personalizado",
+    "MEMPOOL_URL": "URL de Mempool"
   },
   "WARNINGS": {
     "UNSAFE_SETTINGS": "⚠️ Advertencia: Guardando Configuración Peligrosa ⚠️",
