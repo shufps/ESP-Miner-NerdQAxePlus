@@ -68,6 +68,7 @@ SRCS
     "./stratum/stratum_task_v2.cpp"
     "./network/connect.cpp"
     "./network/network_manager.cpp"
+    "./network/mdns_service.cpp"
     "./network/w5500.cpp"
     "./tasks/create_jobs_task.cpp"
     "./tasks/create_jobs_sv2.cpp"
