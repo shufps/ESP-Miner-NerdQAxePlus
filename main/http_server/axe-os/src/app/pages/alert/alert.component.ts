@@ -65,7 +65,9 @@ export class AlertComponent implements OnInit {
       payload.webhookUrl = form.webhookUrl || '';
     }
     this.savePatch(payload, () => {
-      this.hasWebhook = !!payload.webhookUrl;
+      if ('webhookUrl' in payload) {
+        this.hasWebhook = !!payload.webhookUrl;
+      }
       this.form.controls['webhookUrl'].setValue(this.hasWebhook ? 'WEBHOOK' : '');
     });
   }
