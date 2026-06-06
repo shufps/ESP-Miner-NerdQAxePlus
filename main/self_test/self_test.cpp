@@ -168,5 +168,6 @@ void self_test(void *pvParameters)
     display_msg("           PASS", GLOBAL_STATE);
     display_log_message("Test result: OK PASS");
     Config::setSelfTest(false);
+    Config::flush();
 #endif
 }

@@ -112,6 +112,8 @@ esp_err_t PATCH_update_influx(httpd_req_t *req)
 
     doc.clear();
 
+    Config::flush();
+
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }

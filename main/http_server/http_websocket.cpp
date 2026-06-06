@@ -4,6 +4,7 @@
 #include "http_utils.h"
 #include "http_websocket.h"
 #include "macros.h"
+#include "utils.h"
 
 static const char* TAG = "http_websocket";
 
@@ -148,6 +149,5 @@ void websocket_start() {
     log_queue = xQueueCreate(MESSAGE_QUEUE_SIZE, sizeof(char*));
 
     // Start websocket log handler thread
-    xTaskCreate(&websocket_log_handler, "websocket_log_handler", 4096, NULL, 2, NULL);
+    xTaskCreatePSRAM(&websocket_log_handler, "websocket_log_handler", 4096, NULL, 2, NULL);
 }
-

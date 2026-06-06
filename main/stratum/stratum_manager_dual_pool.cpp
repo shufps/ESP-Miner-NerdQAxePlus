@@ -190,6 +190,7 @@ void StratumManagerDualPool::saveSettings(const JsonDocument &doc) {
         Config::setPoolBalance(doc["poolBalance"].as<uint16_t>());
     }
     StratumManager::saveSettings(doc);
+    Config::flush();
 }
 
 void StratumManagerDualPool::checkForBestDiff(int pool, double diff, uint32_t nbits)

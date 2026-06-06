@@ -353,13 +353,6 @@ export class SystemService {
   }
 
 
-  public getSwarmInfo(uri: string = ''): Observable<{ ip: string }[]> {
-    return this.httpClient.get(`${uri}/api/swarm/info`) as Observable<{ ip: string }[]>;
-  }
-
-  public updateSwarm(uri: string = '', swarmConfig: any) {
-    return this.httpClient.patch(`${uri}/api/swarm`, swarmConfig);
-  }
 
 
   public getAlertInfo(uri: string = ''): Observable<IAlertSettings> {

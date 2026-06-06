@@ -307,8 +307,8 @@ extern "C" void app_main(void)
         SYSTEM_MODULE.init();
         SYSTEM_MODULE.initDisplay();
 
-        xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
-        xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
+        xTaskCreatePSRAM(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
+        xTaskCreatePSRAM(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
         SYSTEM_MODULE.setStartupDone();
 
         can_init(board->getCanTxPin(), board->getCanRxPin());
@@ -319,8 +319,8 @@ extern "C" void app_main(void)
         }
         POWER_MANAGEMENT_MODULE.unlock();
 
-        xTaskCreate(can_slave_task, "can slave", 4096, NULL, 10, NULL);
-        xTaskCreate(can_slave_result_task, "can result", 4096, NULL, 10, NULL);
+        xTaskCreatePSRAM(can_slave_task, "can slave", 4096, NULL, 10, NULL);
+        xTaskCreatePSRAM(can_slave_result_task, "can result", 4096, NULL, 10, NULL);
         xTaskCreatePSRAM(can_slave_telemetry_task, "can telem", 4096, NULL, 5, NULL);
 
         if (board->hasHashrateCounter()) {
@@ -348,15 +348,16 @@ extern "C" void app_main(void)
         // when neither WiFi nor LAN is available, so the SYSTEM_task must be running
         // beforehand — otherwise portalScreen() is never called and the display stays
         // on a blank (white) screen.
-        xTaskCreate(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
-        xTaskCreate(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
+        xTaskCreatePSRAM(SYSTEM_MODULE.taskWrapper, "SYSTEM_task", 4096, &SYSTEM_MODULE, 3, NULL);
+        xTaskCreatePSRAM(POWER_MANAGEMENT_MODULE.taskWrapper, "power mangement", 8192, (void *) &POWER_MANAGEMENT_MODULE, 10, NULL);
         SYSTEM_MODULE.setStartupDone();
 
         setup_network(board->hasEthernet());
 
         // when a username is configured we will continue with startup and start mining
-        const char *username = Config::nvs_config_get_string(NVS_CONFIG_STRATUM_USER, NULL); // TODO
-        if (username) {
+        char *username = Config::cfgGetStrAlloc(NVS_CONFIG_STRATUM_USER, "");
+        MemoryGuard gUsername(username);
+        if (username && username[0] != '\0') {
             // wifi is connected, switch the AP off (no-op if already done by NetworkManager)
             NETWORK.shutdownApOnce();
 
@@ -383,17 +384,17 @@ extern "C" void app_main(void)
             }
             POWER_MANAGEMENT_MODULE.unlock();
 
-            xTaskCreate(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
-            xTaskCreate(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
-            xTaskCreate(influx_task, "influx", 8192, NULL, 1, NULL);
+            xTaskCreatePSRAM(create_jobs_task, "stratum miner", 8192, NULL, 10, NULL);
+            xTaskCreatePSRAM(ASIC_result_task, "asic result", 8192, NULL, 15, NULL);
+            xTaskCreatePSRAM(influx_task, "influx", 8192, NULL, 1, NULL);
             xTaskCreatePSRAM(APIs_FETCHER.taskWrapper, "apis ticker", 8192, (void *) &APIs_FETCHER, 5, NULL);
             xTaskCreatePSRAM(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
             if (Config::isCanEnabled()) {
                 can_init(board->getCanTxPin(), board->getCanRxPin());
                 xTaskCreate(can_master_task, "can master", 4096, NULL, 5, NULL);
             }
-            xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 8192, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
-            xTaskCreate(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, NULL);
+            xTaskCreatePSRAM(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 8192, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
+            xTaskCreatePSRAM(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, NULL);
 
             if (board->hasHashrateCounter()) {
                 HASHRATE_MONITOR.start(board, board->getAsics());

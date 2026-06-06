@@ -456,6 +456,7 @@ bool NerdQaxePlus::selfTest(){
     //Update SelfTest flag
     if(allAsicsDetected) {
         Config::setSelfTest(false);
+        Config::flush();
     }
 
     return true;

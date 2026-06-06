@@ -351,6 +351,7 @@ void OTP::saveSettings()
     Config::setOTPSecret(m_secretBase32.c_str());
     Config::setOTPEnabled(m_isEnabled);
     Config::setOTPReplayState(0, 0);
+    Config::flush();
 }
 
 /*** Minimal URL-encode for label/issuer (space -> %20 etc.) ***/
@@ -456,6 +457,7 @@ bool OTP::validate(const std::string &token)
 
     // 7) Persist updated replay-state (atomic enough for this use-case)
     Config::setOTPReplayState(base_step, (uint8_t) (used_mask & 0x07));
+    Config::flush();
 
     return true;
 }
@@ -516,6 +518,7 @@ bool OTP::createNewQrCode()
 
     // Reset replay-state for fresh secret
     Config::setOTPReplayState(0, 0);
+    Config::flush();
     return true;
 }
 

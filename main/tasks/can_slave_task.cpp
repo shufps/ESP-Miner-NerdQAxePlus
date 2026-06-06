@@ -187,8 +187,11 @@ static void handle_settings_cmd(const uint8_t *p, size_t len)
             break;
     }
 
-    if (send_config && g_can_slave_id != CAN_SLAVE_ID_UNASSIGNED) {
-        send_slave_config(g_can_slave_id);
+    if (send_config) {
+        Config::flush();
+        if (g_can_slave_id != CAN_SLAVE_ID_UNASSIGNED) {
+            send_slave_config(g_can_slave_id);
+        }
     }
 }
 

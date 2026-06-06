@@ -13,7 +13,6 @@
 #include "http_utils.h"
 #include "http_websocket.h"
 #include "handler_influx.h"
-#include "handler_swarm.h"
 #include "handler_can_swarm.h"
 #include "v2/handler_v2_dashboard.h"
 #include "v2/handler_v2_settings.h"
@@ -186,21 +185,6 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_uri_t influx_info_get_uri = {
         .uri = "/api/v2/influx", .method = HTTP_GET, .handler = GET_influx_info, .user_ctx = rest_context};
     httpd_register_uri_handler(http_server, &influx_info_get_uri);
-
-    httpd_uri_t swarm_get_uri = {.uri = "/api/swarm/info", .method = HTTP_GET, .handler = GET_swarm, .user_ctx = rest_context};
-    httpd_register_uri_handler(http_server, &swarm_get_uri);
-
-    httpd_uri_t update_swarm_uri = {
-        .uri = "/api/swarm", .method = HTTP_PATCH, .handler = PATCH_update_swarm, .user_ctx = rest_context};
-    httpd_register_uri_handler(http_server, &update_swarm_uri);
-
-    httpd_uri_t swarm_options_uri = {
-        .uri = "/api/swarm",
-        .method = HTTP_OPTIONS,
-        .handler = handle_options_request,
-        .user_ctx = NULL,
-    };
-    httpd_register_uri_handler(http_server, &swarm_options_uri);
 
     httpd_uri_t can_slaves_get_uri = {
         .uri = "/api/v2/can/nodes", .method = HTTP_GET, .handler = GET_can_nodes, .user_ctx = rest_context};

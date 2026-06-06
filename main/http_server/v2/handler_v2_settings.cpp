@@ -370,6 +370,8 @@ esp_err_t PATCH_V2_settings(httpd_req_t *req)
 
     doc.clear();
 
+    Config::flush();
+
     httpd_resp_send_chunk(req, NULL, 0);
 
     // Reload all subsystems
