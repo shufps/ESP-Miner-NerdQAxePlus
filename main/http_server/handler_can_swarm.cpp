@@ -211,16 +211,12 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
     }
     uint8_t slave_id = (uint8_t) id;
 
-    char body[256];
-    int received = httpd_req_recv(req, body, sizeof(body) - 1);
-    if (received <= 0) {
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "no body");
-    }
-    body[received] = '\0';
+    PSRAMAllocator allocator;
+    JsonDocument doc(&allocator);
 
-    JsonDocument doc;
-    if (deserializeJson(doc, body) != DeserializationError::Ok) {
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid json");
+    esp_err_t err = getJsonData(req, doc);
+    if (err != ESP_OK) {
+        return err;
     }
 
     // field names matching info endpoint PATCH
