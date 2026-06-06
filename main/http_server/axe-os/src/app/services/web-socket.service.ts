@@ -12,11 +12,16 @@ export class WebsocketService implements OnDestroy {
     // Create socket if not present or already closed
     if (!this.socket$ || this.socket$.closed) {
       this.socket$ = webSocket<string>({
-        url: `ws://${window.location.host}/api/ws`,
+        url: this.getWebSocketUrl(),
         deserializer: (e: MessageEvent) => e.data
       });
     }
     return this.socket$;
+  }
+
+  private getWebSocketUrl(location: Pick<Location, 'protocol' | 'host'> = window.location): string {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${location.host}/api/ws`;
   }
 
   public close(): void {
