@@ -1,15 +1,33 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { TranslateService } from '@ngx-translate/core';
+import { Store } from '@ngrx/store';
+import { of } from 'rxjs';
+
 import { AppComponent } from './app.component';
+
+class TranslateServiceMock {
+  addLangs = jasmine.createSpy('addLangs');
+  setDefaultLang = jasmine.createSpy('setDefaultLang');
+  use = jasmine.createSpy('use');
+}
+
+class StoreMock {
+  select = jasmine.createSpy('select').and.returnValue(of('en'));
+}
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [
-        RouterTestingModule
+        RouterTestingModule,
       ],
       declarations: [
-        AppComponent
+        AppComponent,
+      ],
+      providers: [
+        { provide: TranslateService, useClass: TranslateServiceMock },
+        { provide: Store, useClass: StoreMock },
       ],
     }).compileComponents();
   });
@@ -20,16 +38,16 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have as title 'nebular-dashboard'`, () => {
+  it(`should have as title 'axe-os'`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('nebular-dashboard');
+    expect(app.title).toEqual('axe-os');
   });
 
-  it('should render title', () => {
+  it('should render the router outlet', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, nebular-dashboard');
+    expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
 });
