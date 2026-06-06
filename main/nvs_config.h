@@ -114,12 +114,6 @@
 #define CONFIG_AUTO_FAN_SPEED_VALUE 2
 #endif
 
-#ifdef CONFIG_STRATUM_KEEPALIVE_DEFAULT
-#define CONFIG_KEEPALIVE_VALUE 1
-#else
-#define CONFIG_KEEPALIVE_VALUE 0
-#endif
-
 #include <stdint.h>
 
 namespace Config {
@@ -294,7 +288,7 @@ namespace Config {
     inline bool isDiscordBlockFoundAlertEnabled() { return cfgGetU16(NVS_CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE, CONFIG_ALERT_DISCORD_BLOCK_FOUND_ENABLE_VALUE) != 0; }
     inline bool isDiscordBestDiffAlertEnabled() { return cfgGetU16(NVS_CONFIG_ALERT_DISCORD_BEST_DIFF, CONFIG_ALERT_DISCORD_BEST_DIFF_ENABLE_VALUE) != 0; }
     inline bool isDiscordCoinbaseVerifyAlertEnabled() { return cfgGetU16(NVS_CONFIG_ALERT_DISCORD_COINBASE_VERIFY, 0) != 0; }
-    inline bool isStratumKeepaliveEnabled() { return cfgGetU16(NVS_CONFIG_STRATUM_KEEPALIVE, CONFIG_KEEPALIVE_VALUE) != 0; }
+    inline bool isStratumKeepaliveEnabled() { return cfgGetU16(NVS_CONFIG_STRATUM_KEEPALIVE, CONFIG_STRATUM_KEEPALIVE_ENABLE_VALUE) != 0; }
     inline bool isStratumEnonceSubscribe() { return cfgGetU16(NVS_CONFIG_STRATUM_ENONCE_SUB, CONFIG_STRATUM_ENONCE_SUBSCRIBE_VALUE) != 0; }
     inline bool isStratumFallbackEnonceSubscribe() { return cfgGetU16(NVS_CONFIG_STRATUM_FALLBACK_ENONCE_SUB, CONFIG_STRATUM_FALLBACK_ENONCE_SUBSCRIBE_VALUE) != 0; }
     inline bool isStratumTLS() { return cfgGetU16(NVS_CONFIG_STRATUM_TLS, CONFIG_STRATUM_TLS_VALUE) != 0; }
