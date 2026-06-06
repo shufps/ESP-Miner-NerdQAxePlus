@@ -178,7 +178,8 @@ esp_err_t getPostData(httpd_req_t *req)
     }
 
     while (cur_len < total_len) {
-        received = httpd_req_recv(req, buf + cur_len, total_len);
+        int remaining = total_len - cur_len;
+        received = httpd_req_recv(req, buf + cur_len, remaining);
         if (received <= 0) {
             /* Respond with 500 Internal Server Error */
             ESP_LOGE(TAG, "error receiving data");
