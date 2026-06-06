@@ -3,6 +3,8 @@
 #include "esp_ota_ops.h"
 #include "esp_timer.h"
 
+#include <cstdlib>
+
 #include "ArduinoJson.h"
 
 #include "global_state.h"
@@ -158,6 +160,10 @@ static uint32_t clamp_ttl_ms(uint64_t v, uint32_t min_ms, uint32_t max_ms) {
     return (uint32_t)v;
 }
 
+static constexpr uint32_t OTP_SESSION_MIN_TTL_MS = 60 * 1000;
+static constexpr uint32_t OTP_SESSION_DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
+static constexpr uint32_t OTP_SESSION_MAX_TTL_MS = 24 * 60 * 60 * 1000;
+
 esp_err_t POST_create_otp_session(httpd_req_t *req)
 {
     // close connection when out of scope
@@ -188,19 +194,33 @@ esp_err_t POST_create_otp_session(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Invalid TOTP");
     }
 
-    // create session token - default 24h
-    uint32_t ttlSeconds = 24 * 3600;
+    // create session token - default 24h, optionally shortened by the client
+    uint32_t ttlMs = OTP_SESSION_DEFAULT_TTL_MS;
+    char ttlHeader[16] = {0};
+    if (read_header_str(req, "X-OTP-Session-TTL", ttlHeader, sizeof(ttlHeader))) {
+        char *end = nullptr;
+        uint64_t requestedTtlMs = strtoull(ttlHeader, &end, 10);
+        if (end != ttlHeader && *end == '\0') {
+            ttlMs = clamp_ttl_ms(requestedTtlMs, OTP_SESSION_MIN_TTL_MS, OTP_SESSION_MAX_TTL_MS);
+        } else {
+            ESP_LOGW(TAG, "invalid X-OTP-Session-TTL header: %s", ttlHeader);
+        }
+    }
+
+    uint32_t ttlSeconds = ttlMs / 1000;
+    ttlMs = ttlSeconds * 1000;
+
     std::string token = otp.mintSessionToken(ttlSeconds);
     if (token.empty()) {
         ESP_LOGE("http_otp", "createSessionToken failed");
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Session error");
     }
-    uint64_t expires_ms = now_ms() + (uint64_t) ttlSeconds * 1000ull;
+    uint64_t expires_ms = now_ms() + (uint64_t) ttlMs;
 
     PSRAMAllocator allocator;
     JsonDocument doc(&allocator);
     doc["token"]     = token;
-    doc["ttlMs"]     = ttlSeconds * 1000;
+    doc["ttlMs"]     = ttlMs;
     doc["expiresAt"] = (double)expires_ms;
 
     std::string out;
