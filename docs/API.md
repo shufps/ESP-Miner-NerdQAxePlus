@@ -514,19 +514,19 @@ Update node configuration (slaves only, `id >= 1`). Requires OTP.
 
 #### `POST /api/v2/can/nodes/{id}/restart`
 
-Restart a node (slaves only, `id >= 1`).
+Restart a node (slaves only, `id >= 1`). Requires OTP.
 
 **Response**: `{"ok": true}`
 
 #### `POST /api/v2/can/nodes/{id}/shutdown`
 
-Shutdown a node (slaves only, `id >= 1`). Stops mining until restarted.
+Shutdown a node (slaves only, `id >= 1`). Stops mining until restarted. Requires OTP.
 
 **Response**: `{"ok": true}`
 
 #### `POST /api/v2/can/nodes/{id}/identify`
 
-Trigger identification sequence on a node (slaves only, `id >= 1`).
+Trigger identification sequence on a node (slaves only, `id >= 1`). Requires OTP.
 
 **Response**: `{"ok": true}`
 

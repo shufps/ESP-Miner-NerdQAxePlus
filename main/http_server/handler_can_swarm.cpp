@@ -186,8 +186,16 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
 {
     ConGuard g(http_server, req);
 
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
     if (set_cors_headers(req) != ESP_OK) {
         httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    if (validateOTP(req) != ESP_OK) {
         return ESP_FAIL;
     }
 
@@ -213,10 +221,6 @@ esp_err_t PATCH_can_slave(httpd_req_t *req)
     JsonDocument doc;
     if (deserializeJson(doc, body) != DeserializationError::Ok) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid json");
-    }
-
-    if (validateOTP(req) != ESP_OK) {
-        return ESP_FAIL;
     }
 
     // field names matching info endpoint PATCH
@@ -275,6 +279,9 @@ esp_err_t POST_can_slave_action(httpd_req_t *req)
     if (is_network_allowed(req) != ESP_OK)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     if (set_cors_headers(req) != ESP_OK) { httpd_resp_send_500(req); return ESP_FAIL; }
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
+    }
 
     uint8_t slave_id;
     if (parse_slave_id(req, &slave_id) != ESP_OK)
@@ -302,6 +309,10 @@ esp_err_t POST_can_slave_action(httpd_req_t *req)
 esp_err_t DELETE_can_slave(httpd_req_t *req)
 {
     ConGuard g(http_server, req);
+
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
 
     if (set_cors_headers(req) != ESP_OK) {
         httpd_resp_send_500(req);

@@ -211,24 +211,27 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     });
   }
 
-  restartSlave(id: number): void {
-    if (!confirm(`Restart slave ${id}?`)) return;
-    this.http.post(`/api/v2/can/nodes/${id}/restart`, null).pipe(
+  private postSlaveAction(id: number, action: 'restart' | 'shutdown' | 'identify', hint: string): void {
+    this.otpAuth.ensureOtp$('', 'OTP Required', hint).pipe(
+      switchMap(({ totp }: EnsureOtpResult) =>
+        this.http.post(`/api/v2/can/nodes/${id}/${action}`, null, { headers: this.headers(totp) })
+      ),
       catchError(() => of(null))
     ).subscribe();
+  }
+
+  restartSlave(id: number): void {
+    if (!confirm(`Restart slave ${id}?`)) return;
+    this.postSlaveAction(id, 'restart', 'Enter your OTP to restart slave');
   }
 
   shutdownSlave(id: number): void {
     if (!confirm(`Shutdown slave ${id}? It will stop mining until restarted.`)) return;
-    this.http.post(`/api/v2/can/nodes/${id}/shutdown`, null).pipe(
-      catchError(() => of(null))
-    ).subscribe();
+    this.postSlaveAction(id, 'shutdown', 'Enter your OTP to shut down slave');
   }
 
   identifySlave(id: number): void {
-    this.http.post(`/api/v2/can/nodes/${id}/identify`, null).pipe(
-      catchError(() => of(null))
-    ).subscribe();
+    this.postSlaveAction(id, 'identify', 'Enter your OTP to identify slave');
   }
 
   deleteSlave(id: number): void {
