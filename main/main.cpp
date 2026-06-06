@@ -395,7 +395,8 @@ extern "C" void app_main(void)
                 can_init(board->getCanTxPin(), board->getCanRxPin());
                 xTaskCreate(can_master_task, "can master", 4096, NULL, 5, NULL);
             }
-            xTaskCreatePSRAM(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 8192, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
+            // OTA writes SPI flash which disables cache — must NOT run on PSRAM stack
+            xTaskCreate(FACTORY_OTA_UPDATER.taskWrapper, "ota updater", 8192, (void *) &FACTORY_OTA_UPDATER, 1, NULL);
             xTaskCreatePSRAM(StratumManager::taskWrapper, "stratum manager", 8192, (void *) STRATUM_MANAGER, 5, NULL);
 
             if (board->hasHashrateCounter()) {
