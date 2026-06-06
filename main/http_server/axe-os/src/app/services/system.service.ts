@@ -262,8 +262,11 @@ export class SystemService {
     });
   }
 
-  public resetStats(uri: string = '') {
-    return this.httpClient.post(`${uri}/api/system/reset-stats`, null, { responseType: 'text' });
+  public resetStats(uri: string = '', totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) headers = headers.set('X-TOTP', totp);
+
+    return this.httpClient.post(`${uri}/api/system/reset-stats`, null, { headers, responseType: 'text' });
   }
 
   public shutdown(uri: string = '', totp?: string) {

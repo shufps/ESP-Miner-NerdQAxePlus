@@ -485,6 +485,10 @@ esp_err_t POST_reset_stats(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
 
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
     STRATUM_MANAGER->resetSessionStats();
 
     ESP_LOGI(TAG, "Session stats reset by user");

@@ -13,9 +13,13 @@ import {
 import { map,
   Observable,
   Subscription,
-  firstValueFrom } from 'rxjs';
+  firstValueFrom,
+  switchMap,
+  catchError,
+  of } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { SystemService } from '../../services/system.service';
+import { OtpAuthService, EnsureOtpResult } from '../../services/otp-auth.service';
 import { IDashboardV2, IDashboardV2BlockHeader, IDashboardV2Pool } from '../../models/IDashboardV2';
 import { Chart } from 'chart.js';  // Import Chart.js
 import { registerHomeChartPlugins } from './plugins';
@@ -622,7 +626,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
     private dialogService: NbDialogService,
-    private toastrService: NbToastrService
+    private toastrService: NbToastrService,
+    private otpAuth: OtpAuthService
   ) {
     // Local persistence wrapper for chart state/settings
     this.chartStorage = new HomeChartStorage({
@@ -1979,16 +1984,29 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
   public confirmResetStats(ref: any): void {
     ref.close();
-    this.systemService.resetStats().subscribe({
-      next: () => this.toastrService.success(
-        this.translateService.instant('HOME.RESET_STATS_SUCCESS'),
-        this.translateService.instant('COMMON.SUCCESS')
-      ),
-      error: () => this.toastrService.danger(
-        this.translateService.instant('HOME.RESET_STATS_FAILED'),
-        this.translateService.instant('COMMON.ERROR')
+    this.otpAuth.ensureOtp$(
+      '',
+      this.translateService.instant('SECURITY.OTP_TITLE'),
+      this.translateService.instant('SECURITY.OTP_HINT')
+    )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) => this.systemService.resetStats('', totp)),
+        catchError(() => {
+          this.toastrService.danger(
+            this.translateService.instant('HOME.RESET_STATS_FAILED'),
+            this.translateService.instant('COMMON.ERROR')
+          );
+          return of(null);
+        })
       )
-    });
+      .subscribe((res) => {
+        if (res !== null) {
+          this.toastrService.success(
+            this.translateService.instant('HOME.RESET_STATS_SUCCESS'),
+            this.translateService.instant('COMMON.SUCCESS')
+          );
+        }
+      });
   }
 
 private importHistoricalDataChunked(history: any): void {
