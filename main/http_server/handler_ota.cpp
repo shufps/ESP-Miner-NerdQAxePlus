@@ -46,12 +46,21 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
         // lock the power management module
         LockGuard g(POWER_MANAGEMENT_MODULE);
         ESP_LOGI(TAG, "erasing www partition ...");
-        ESP_ERROR_CHECK(esp_partition_erase_range(www_partition, 0, www_partition->size));
+        esp_err_t erase_err = esp_partition_erase_range(www_partition, 0, www_partition->size);
+        if (erase_err != ESP_OK) {
+            ESP_LOGE(TAG, "www partition erase failed: %s", esp_err_to_name(erase_err));
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Erase Error");
+            return ESP_FAIL;
+        }
         ESP_LOGI(TAG, "erasing done");
     }
 
     // don't put it on the stack
     char *buf = (char*) malloc(2048);
+    if (!buf) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
     uint32_t offset = 0;
 
     while (remaining > 0) {
@@ -121,10 +130,25 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
     POWER_MANAGEMENT_MODULE.shutdown();
 
     const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
-    ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
+    if (ota_partition == NULL) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA partition not found");
+        return ESP_FAIL;
+    }
+
+    esp_err_t ota_err = esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle);
+    if (ota_err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_begin failed: %s", esp_err_to_name(ota_err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA Begin Error");
+        return ESP_FAIL;
+    }
 
     // don't put it on the stack
     char *buf = (char*) malloc(2048);
+    if (!buf) {
+        esp_ota_abort(ota_handle);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
     uint32_t offset = 0;
 
     while (remaining > 0) {
@@ -136,6 +160,7 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
 
             // Serious Error: Abort OTA
         } else if (recv_len <= 0) {
+            esp_ota_abort(ota_handle);
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
             free(buf);
             return ESP_FAIL;
@@ -163,8 +188,17 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
     free(buf);
 
     // Validate and switch to new OTA image and reboot
-    if (esp_ota_end(ota_handle) != ESP_OK || esp_ota_set_boot_partition(ota_partition) != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Validation / Activation Error");
+    ota_err = esp_ota_end(ota_handle);
+    if (ota_err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(ota_err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Validation Error");
+        return ESP_FAIL;
+    }
+
+    ota_err = esp_ota_set_boot_partition(ota_partition);
+    if (ota_err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_set_boot_partition failed: %s", esp_err_to_name(ota_err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Activation Error");
         return ESP_FAIL;
     }
 

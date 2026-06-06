@@ -186,7 +186,11 @@ esp_err_t FactoryOTAUpdate::do_www_update(uint8_t *data)
 
     // Erase the entire www partition before writing
     ESP_LOGI(TAG, "erasing www partition ...");
-    ESP_ERROR_CHECK(esp_partition_erase_range(www_partition, 0, www_partition->size));
+    esp_err_t err = esp_partition_erase_range(www_partition, 0, www_partition->size);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "www partition erase failed: %s", esp_err_to_name(err));
+        return err;
+    }
     ESP_LOGI(TAG, "erasing done");
 
     for (uint32_t offset = 0; offset < to_write; offset += CHUNK_SIZE) {
@@ -219,10 +223,19 @@ esp_err_t FactoryOTAUpdate::do_firmware_update(esp_http_client_handle_t client)
 
     esp_ota_handle_t ota_handle;
     const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
-    ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
+    if (ota_partition == NULL) {
+        ESP_LOGE(TAG, "OTA partition not found");
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    esp_err_t err = esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_begin failed: %s", esp_err_to_name(err));
+        return err;
+    }
 
     for (uint32_t offset = 0; offset < FW_LEN_BYTES; offset += CHUNK_SIZE) {
-        esp_err_t err = http_read_chunk(client, buf);
+        err = http_read_chunk(client, buf);
         if (err != ESP_OK) {
             // ensure abort on any read error
             esp_ota_abort(ota_handle);
@@ -234,16 +247,26 @@ esp_err_t FactoryOTAUpdate::do_firmware_update(esp_http_client_handle_t client)
             ESP_LOGI(TAG, "flashing to %08lx", offset);
         }
 
-        if (esp_ota_write(ota_handle, (const void *) buf, CHUNK_SIZE) != ESP_OK) {
+        err = esp_ota_write(ota_handle, (const void *) buf, CHUNK_SIZE);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_ota_write failed: %s", esp_err_to_name(err));
             esp_ota_abort(ota_handle);
-            return ESP_FAIL;
+            return err;
         }
         addFwBytes(CHUNK_SIZE);
     }
 
     // Validate and switch to new OTA image and reboot later
-    if (esp_ota_end(ota_handle) != ESP_OK || esp_ota_set_boot_partition(ota_partition) != ESP_OK) {
-        return ESP_FAIL;
+    err = esp_ota_end(ota_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = esp_ota_set_boot_partition(ota_partition);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_set_boot_partition failed: %s", esp_err_to_name(err));
+        return err;
     }
 
     return ESP_OK;
