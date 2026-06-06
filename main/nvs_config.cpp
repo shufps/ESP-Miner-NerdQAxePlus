@@ -39,9 +39,45 @@ static bool s_initialized = false;
 #define FLUSH_BIT BIT0
 static EventGroupHandle_t s_flush_eg = nullptr;
 
+// Serialize s_doc and write to NVS. Caller must hold s_mutex.
+static bool write_to_nvs()
+{
+    size_t len = measureJson(s_doc) + 1;
+    char *buf = (char *) MALLOC(len);
+    if (!buf) {
+        ESP_LOGE(TAG, "flush: MALLOC failed (%u bytes)", (unsigned) len);
+        return false;
+    }
+    serializeJson(s_doc, buf, len);
+
+    bool ok = false;
+    nvs_handle h;
+    esp_err_t err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READWRITE, &h);
+    if (err == ESP_OK) {
+        err = nvs_set_blob(h, NVS_JSON_KEY, buf, len - 1);
+        if (err == ESP_OK) {
+            err = nvs_commit(h);
+            if (err == ESP_OK) {
+                ok = true;
+                ESP_LOGI(TAG, "Config flushed (%u bytes)", (unsigned)(len - 1));
+            } else {
+                ESP_LOGE(TAG, "nvs_commit failed: %s", esp_err_to_name(err));
+            }
+        } else {
+            ESP_LOGE(TAG, "nvs_set_blob failed: %s", esp_err_to_name(err));
+        }
+        nvs_close(h);
+    } else {
+        ESP_LOGE(TAG, "nvs_open failed: %s", esp_err_to_name(err));
+    }
+
+    free(buf);
+    return ok;
+}
+
 static void flush_task(void *)
 {
-    ESP_LOGI("nvs_config", "Flush task started");
+    ESP_LOGI(TAG, "Flush task started");
     for (;;) {
         xEventGroupWaitBits(s_flush_eg, FLUSH_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
         // Small delay to batch rapid successive sets
@@ -53,37 +89,7 @@ static void flush_task(void *)
 
         if (!s_dirty) continue;
 
-        size_t len = measureJson(s_doc) + 1;
-        char *buf = (char *) MALLOC(len);
-        if (!buf) {
-            ESP_LOGE("nvs_config", "flush: MALLOC failed (%u bytes)", (unsigned) len);
-            continue;
-        }
-        serializeJson(s_doc, buf, len);
-
-        bool flushed = false;
-        nvs_handle h;
-        esp_err_t err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READWRITE, &h);
-        if (err == ESP_OK) {
-            err = nvs_set_blob(h, NVS_JSON_KEY, buf, len - 1);
-            if (err == ESP_OK) {
-                err = nvs_commit(h);
-                if (err == ESP_OK) {
-                    flushed = true;
-                    ESP_LOGI("nvs_config", "Config flushed (%u bytes)", (unsigned)(len - 1));
-                } else {
-                    ESP_LOGE("nvs_config", "nvs_commit failed: %s", esp_err_to_name(err));
-                }
-            } else {
-                ESP_LOGE("nvs_config", "nvs_set_blob failed: %s", esp_err_to_name(err));
-            }
-            nvs_close(h);
-        } else {
-            ESP_LOGE("nvs_config", "nvs_open failed: %s", esp_err_to_name(err));
-        }
-
-        free(buf);
-        if (flushed) {
+        if (write_to_nvs()) {
             s_dirty = false;
         }
     }
@@ -234,6 +240,22 @@ static void migrate_from_legacy(nvs_handle h)
         ESP_LOGW(TAG, "AFC deprecated, set manual 100%%");
     }
 
+    // Migrate VReg overheat temp: if not yet set, inherit ASIC overheat temp.
+    // Single-fan boards (NerdAxe) use a higher default because the PID no longer
+    // regulates VReg temp implicitly via max(asic, vreg).
+    if (s_doc[NVS_CONFIG_FAN1_OVERHEAT].isNull()) {
+#if defined(NERDAXE) || defined(NERDAXEGAMMA)
+        uint16_t vreg_default = 80;
+        ESP_LOGI(TAG, "Setting VReg overheat temp to %u°C (single-fan board)", vreg_default);
+#else
+        uint16_t vreg_default = s_doc[NVS_CONFIG_OVERHEAT_TEMP].isNull()
+                                    ? CONFIG_OVERHEAT_TEMP
+                                    : s_doc[NVS_CONFIG_OVERHEAT_TEMP].as<uint16_t>();
+        ESP_LOGI(TAG, "Migrating VReg overheat temp from ASIC value: %u°C", vreg_default);
+#endif
+        s_doc[NVS_CONFIG_FAN1_OVERHEAT] = vreg_default;
+    }
+
     ESP_LOGI(TAG, "Migration done (%u bytes in doc)", s_doc.memoryUsage());
 }
 
@@ -249,37 +271,7 @@ static void flush_sync()
 
     if (!s_dirty) return;
 
-    size_t len = measureJson(s_doc) + 1;
-    char *buf = (char *) MALLOC(len);
-    if (!buf) {
-        ESP_LOGE(TAG, "flush: MALLOC failed (%u bytes)", (unsigned) len);
-        return;
-    }
-    serializeJson(s_doc, buf, len);
-
-    bool flushed = false;
-    nvs_handle h;
-    esp_err_t err = nvs_open(NVS_CONFIG_NAMESPACE, NVS_READWRITE, &h);
-    if (err == ESP_OK) {
-        err = nvs_set_blob(h, NVS_JSON_KEY, buf, len - 1);
-        if (err == ESP_OK) {
-            err = nvs_commit(h);
-            if (err == ESP_OK) {
-                flushed = true;
-                ESP_LOGI(TAG, "Config flushed (%u bytes)", (unsigned)(len - 1));
-            } else {
-                ESP_LOGE(TAG, "nvs_commit failed: %s", esp_err_to_name(err));
-            }
-        } else {
-            ESP_LOGE(TAG, "nvs_set_blob failed: %s", esp_err_to_name(err));
-        }
-        nvs_close(h);
-    } else {
-        ESP_LOGE(TAG, "nvs_open failed: %s", esp_err_to_name(err));
-    }
-
-    free(buf);
-    if (flushed) {
+    if (write_to_nvs()) {
         s_dirty = false;
     }
 }

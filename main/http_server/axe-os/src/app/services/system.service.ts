@@ -352,9 +352,6 @@ export class SystemService {
     return this.httpClient.get('/api/system/OTA/github') as Observable<IUpdateStatus>;
   }
 
-
-
-
   public getAlertInfo(uri: string = ''): Observable<IAlertSettings> {
     return this.httpClient.get(`${uri}/api/v2/alert`) as Observable<IAlertSettings>;
   }
