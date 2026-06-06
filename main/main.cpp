@@ -45,6 +45,7 @@
 #include "can_master_task.h"
 #include "guards.h"
 #include "utils.h"
+#include "network/mdns_service.h"
 #include "network/network_manager.h"
 
 #define STRATUM_WATCHDOG_TIMEOUT_SECONDS 3600
@@ -138,6 +139,7 @@ static void setup_network(bool hasEth)
                 ESP_LOGI(TAG, "Network up via WiFi");
                 SYSTEM_MODULE.setWifiStatus("WiFi Connected!");
             }
+            mdns_service_start(hostname, SYSTEM_MODULE.getBoard());
             return;
         }
 
