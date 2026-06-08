@@ -128,7 +128,7 @@ export class EditComponent implements OnInit {
 
         this.defaultVrFrequency = info.defaultVrFrequency ?? undefined;
 
-        this.fanCount = info.fans?.filter((f: any) => f.mode !== undefined).length ?? 1;
+        this.fanCount = info.fans?.length ?? 1;
         this.fanLabels = info.fans?.map((f: ISettingsV2Fan, i: number) => f.label || `Fan ${i + 1}`) ?? ['Fan 1', 'Fan 2'];
         const fan1cfg = info.fans?.[1];
 
@@ -408,9 +408,6 @@ export class EditComponent implements OnInit {
         overheatTemp: f.fan1OverheatTemp,
         pid: { targetTemp: f.fan1PidTargetTemp, p: f.fan1PidP, i: f.fan1PidI, d: f.fan1PidD }
       });
-    } else {
-      // Single-fan boards: still send VReg overheat threshold
-      fans.push({ overheatTemp: f.fan1OverheatTemp });
     }
 
     // Build v2 payload

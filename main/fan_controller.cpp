@@ -39,11 +39,10 @@ void FanController::init(Board* board, int sampleTimeMs)
 
     ESP_LOGI(TAG, "initialising for %d fan channel(s)", m_numChannels);
 
-    // Load config from NVS — always for both channels (ch1 overheat monitoring
-    // even on single-fan boards)
+    // Load config from NVS (PID instances don't exist yet, applyConfig is skipped)
     loadSettings();
 
-    // Create PID instances only for actual fan channels
+    // Create PID instances using the loaded config
     for (int ch = 0; ch < m_numChannels; ch++) {
         m_pidTarget[ch] = static_cast<float>(m_config[ch].pid.targetTemp);
 
@@ -70,9 +69,7 @@ void FanController::loadSettings()
 {
     m_pidUseMax = Config::isFanPidUseMax();
 
-    // Always load config for both channels — ch1 overheat monitoring is needed
-    // even on single-fan boards to detect VReg overtemperature.
-    for (int ch = 0; ch < MAX_FANS; ch++) {
+    for (int ch = 0; ch < m_numChannels; ch++) {
         PidSettings* bp = m_board->getPidSettings(ch);
 
         m_config[ch].mode         = static_cast<Mode>(Config::getFanMode(ch));
@@ -100,17 +97,6 @@ void FanController::update(float chipTempMax, float vrTemp)
         tempInput[0] = fmaxf(chipTempMax, vrTemp);
     }
 
-    // Check overheat for both channels (ASIC + VReg), even on single-fan boards.
-    // This ensures VReg overtemperature triggers a shutdown regardless of fan count.
-    for (int ch = 0; ch < MAX_FANS; ch++) {
-        if (m_config[ch].overheatTemp && tempInput[ch] > m_config[ch].overheatTemp) {
-            m_overheated[ch] = true;
-        } else {
-            m_overheated[ch] = false;
-        }
-    }
-
-    // Drive actual fan channels
     for (int ch = 0; ch < m_numChannels; ch++) {
         // Read current RPM
         m_board->getFanSpeedCh(ch, &m_fanRPM[ch]);
@@ -121,12 +107,14 @@ void FanController::update(float chipTempMax, float vrTemp)
             m_pid[ch]->Compute();
         }
 
-        // Overheat on any channel: drive this fan to 100%
-        if (m_overheated[0] || m_overheated[1]) {
-            m_fanPerc[ch] = 100;
+        // Overheat: drive fan to 100% and flag it (checked even in LINKED mode for shutdown purposes)
+        if (m_config[ch].overheatTemp && tempInput[ch] > m_config[ch].overheatTemp) {
+            m_overheated[ch] = true;
+            m_fanPerc[ch]    = 100;
             m_board->setFanSpeedCh(ch, 1.0f);
             continue;
         }
+        m_overheated[ch] = false;
 
         // LINKED: mirror channel-0 output (ch0 must be processed first)
         if (m_config[ch].mode == Mode::LINKED && ch > 0) {
@@ -134,6 +122,7 @@ void FanController::update(float chipTempMax, float vrTemp)
             m_board->setFanSpeedCh(ch, static_cast<float>(m_fanPerc[ch]) / 100.0f);
             continue;
         }
+        m_overheated[ch] = false;
 
         // Normal control
         switch (m_config[ch].mode) {
@@ -167,12 +156,12 @@ uint16_t FanController::getSpeedPerc(int ch) const
 
 bool FanController::isOverheated(int ch) const
 {
-    if (ch < 0 || ch >= MAX_FANS) return false;
+    if (ch < 0 || ch >= m_numChannels) return false;
     return m_overheated[ch];
 }
 
 uint16_t FanController::getOverheatTemp(int ch) const
 {
-    if (ch < 0 || ch >= MAX_FANS) return 0;
+    if (ch < 0 || ch >= m_numChannels) return 0;
     return m_config[ch].overheatTemp;
 }

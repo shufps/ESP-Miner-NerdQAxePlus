@@ -240,21 +240,20 @@ static void migrate_from_legacy(nvs_handle h)
         ESP_LOGW(TAG, "AFC deprecated, set manual 100%%");
     }
 
-    // Migrate VReg overheat temp: if not yet set, inherit ASIC overheat temp.
-    // Single-fan boards (NerdAxe) use a higher default because the PID no longer
-    // regulates VReg temp implicitly via max(asic, vreg).
-    if (s_doc[NVS_CONFIG_FAN1_OVERHEAT].isNull()) {
+    // Migrate VReg overheat temp.
+    // Single-fan boards: always disabled (pidUseMax handles VReg temp via PID).
+    // Dual-fan boards: inherit ASIC overheat temp if not yet set.
 #if defined(NERDAXE) || defined(NERDAXEGAMMA)
-        uint16_t vreg_default = 80;
-        ESP_LOGI(TAG, "Setting VReg overheat temp to %u°C (single-fan board)", vreg_default);
+    s_doc[NVS_CONFIG_FAN1_OVERHEAT] = 0;
 #else
+    if (s_doc[NVS_CONFIG_FAN1_OVERHEAT].isNull()) {
         uint16_t vreg_default = s_doc[NVS_CONFIG_OVERHEAT_TEMP].isNull()
                                     ? CONFIG_OVERHEAT_TEMP
                                     : s_doc[NVS_CONFIG_OVERHEAT_TEMP].as<uint16_t>();
         ESP_LOGI(TAG, "Migrating VReg overheat temp from ASIC value: %u°C", vreg_default);
-#endif
         s_doc[NVS_CONFIG_FAN1_OVERHEAT] = vreg_default;
     }
+#endif
 
     ESP_LOGI(TAG, "Migration done (%u bytes in doc)", s_doc.memoryUsage());
 }

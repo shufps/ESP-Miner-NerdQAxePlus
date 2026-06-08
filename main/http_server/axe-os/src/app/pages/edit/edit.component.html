@@ -451,8 +451,8 @@
                                     <input nbInput type="number" formControlName="pidTargetTemp" />
                                 </div>
                             </div>
-                            <div *ngIf="supportLevel >= 1" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
-                            <div *ngIf="supportLevel >= 1">
+                            <div *ngIf="supportLevel >= 2" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
+                            <div *ngIf="supportLevel >= 2">
                                 <div class="form-row">
                                     <label class="form-label">PID P:</label>
                                     <div class="form-control-wrapper">
@@ -471,6 +471,7 @@
                                         <input nbInput type="number" formControlName="pidD" />
                                     </div>
                                 </div>
+                                <div class="form-row-separator"></div>
                             </div>
                         </div>
 
@@ -478,13 +479,6 @@
                             <label for="overheat_temp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }} ({{ 'FAN.PRIMARY_CONTROLLER' | translate }}):</label>
                             <div class="form-control-wrapper">
                                 <input nbInput id="overheat_temp" formControlName="overheat_temp" type="number" />
-                            </div>
-                        </div>
-
-                        <div class="form-row" *ngIf="fanCount === 1">
-                            <label for="fan1OverheatTemp" class="form-label">{{ 'SETTINGS.SHUTDOWN_TEMP' | translate }} ({{ 'FAN.SECONDARY_CONTROLLER' | translate }}):</label>
-                            <div class="form-control-wrapper">
-                                <input nbInput id="fan1OverheatTemp" formControlName="fan1OverheatTemp" type="number" />
                             </div>
                         </div>
 
@@ -555,8 +549,8 @@
                                     <input nbInput type="number" formControlName="fan1PidTargetTemp" />
                                 </div>
                             </div>
-                            <div *ngIf="supportLevel >= 1" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
-                            <div *ngIf="supportLevel >= 1">
+                            <div *ngIf="supportLevel >= 2" class="form-row-separator" style="font-weight:bold;">PID Parameters:</div>
+                            <div *ngIf="supportLevel >= 2">
                                 <div class="form-row">
                                     <label class="form-label">PID P:</label>
                                     <div class="form-control-wrapper">
@@ -575,6 +569,7 @@
                                         <input nbInput type="number" formControlName="fan1PidD" />
                                     </div>
                                 </div>
+                                <div class="form-row-separator"></div>
                             </div>
                         </div>
 
