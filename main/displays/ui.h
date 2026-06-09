@@ -105,6 +105,13 @@ protected:
     // QR
     void createQRScreen(uint8_t *buf, int size);
     void destroyQRScreen();
+
+    // Generic theme overlays (device name, credits, donation QR)
+    lv_color_t* m_splash_qr_buf = nullptr;
+    bool isGenericTheme() const;
+    void addInitScreenOverlays();
+    void addMiningScreenOverlays();
+    void addSplash2Overlays();
 public:
     UI();
 

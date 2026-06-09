@@ -43,6 +43,8 @@ void UI::splash1ScreenInit(void)
 
     // Liberar memoria de imágenes no utilizadas
     lv_img_cache_invalidate_src(m_theme->getSplashscreen2());
+
+    addInitScreenOverlays();
 }
 
 void UI::splash2ScreenInit(void)
@@ -74,6 +76,122 @@ void UI::splash2ScreenInit(void)
 
     // Liberar memoria de imágenes no utilizadas
     lv_img_cache_invalidate_src(m_theme->getInitscreen2());
+
+    addSplash2Overlays();
+}
+
+bool UI::isGenericTheme() const
+{
+    LV_IMG_DECLARE(ui_img_Generic_splashscreen2_png);
+    return m_theme->getSplashscreen2() == &ui_img_Generic_splashscreen2_png;
+}
+
+void UI::addInitScreenOverlays()
+{
+    if (!isGenericTheme()) return;
+
+    // Device name centered
+    lv_obj_t *lbDevice = lv_label_create(ui_Splash1);
+    lv_label_set_text(lbDevice, m_board->getDeviceModel());
+    lv_obj_set_style_text_color(lbDevice, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbDevice, &ui_font_OpenSansBold45, LV_PART_MAIN);
+    lv_obj_align(lbDevice, LV_ALIGN_CENTER, 0, -30);
+}
+
+void UI::addMiningScreenOverlays()
+{
+    if (!isGenericTheme()) return;
+
+    // Device name top left (small)
+    lv_obj_t *lbDevice = lv_label_create(ui_MiningScreen);
+    lv_label_set_text(lbDevice, m_board->getDeviceModel());
+    lv_obj_set_style_text_color(lbDevice, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbDevice, &ui_font_OpenSansBold24, LV_PART_MAIN);
+    lv_obj_align(lbDevice, LV_ALIGN_LEFT_MID, 8, -25);
+}
+
+void UI::addSplash2Overlays()
+{
+    if (!isGenericTheme()) return;
+
+    // --- Device name (top left) ---
+    lv_obj_t *lbDevice = lv_label_create(ui_Splash2);
+    lv_label_set_text(lbDevice, m_board->getDeviceModel());
+    lv_obj_set_style_text_color(lbDevice, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbDevice, &ui_font_OpenSansBold45, LV_PART_MAIN);
+    lv_obj_align(lbDevice, LV_ALIGN_LEFT_MID, 8, -15);
+/*
+    // --- Credits (center) ---
+    lv_obj_t *lbCredits = lv_label_create(ui_Splash2);
+    lv_label_set_text(lbCredits,
+        "Credits to\n");
+    lv_obj_set_style_text_color(lbCredits, lv_color_hex(0xDEDADE), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbCredits, &ui_font_OpenSansBold13, LV_PART_MAIN);
+    lv_obj_set_style_text_align(lbCredits, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align(lbCredits, LV_ALIGN_CENTER, 0, 12);
+*/
+    // --- Donation QR code (right side) ---
+    char *donate_addr = Config::getDonateAddr();
+    if (!donate_addr || donate_addr[0] == '\0') {
+        free(donate_addr);
+        return;
+    }
+    const int maxVer = 6;
+    uint8_t *tmpBuf = (uint8_t *) MALLOC(qrcodegen_BUFFER_LEN_FOR_VERSION(maxVer));
+    uint8_t *qrBuf  = (uint8_t *) MALLOC(qrcodegen_BUFFER_LEN_FOR_VERSION(maxVer));
+    if (!tmpBuf || !qrBuf) {
+        free(donate_addr);
+        free(tmpBuf);
+        free(qrBuf);
+        return;
+    }
+
+    bool ok = qrcodegen_encodeText(donate_addr, tmpBuf, qrBuf,
+        qrcodegen_Ecc_MEDIUM, qrcodegen_VERSION_MIN, maxVer,
+        qrcodegen_Mask_AUTO, true);
+    free(donate_addr);
+    free(tmpBuf);
+
+    if (!ok) {
+        free(qrBuf);
+        return;
+    }
+
+    int n = qrcodegen_getSize(qrBuf);
+    const int quiet = 3;
+    const int max_px = 100;
+    const int scale = std::max(2, max_px / (n + 2 * quiet));
+    const int img = (n + 2 * quiet) * scale;
+
+    m_splash_qr_buf = (lv_color_t *) MALLOC(img * img * sizeof(lv_color_t));
+    if (!m_splash_qr_buf) {
+        free(qrBuf);
+        return;
+    }
+
+    lv_obj_t *canvas = lv_canvas_create(ui_Splash2);
+    lv_canvas_set_buffer(canvas, m_splash_qr_buf, img, img, LV_IMG_CF_TRUE_COLOR);
+    lv_obj_align(canvas, LV_ALIGN_RIGHT_MID, -24, 30);
+
+    // White background
+    lv_draw_rect_dsc_t bg;
+    lv_draw_rect_dsc_init(&bg);
+    bg.bg_color = lv_color_white();
+    lv_canvas_draw_rect(canvas, 0, 0, img, img, &bg);
+
+    // Black modules
+    lv_draw_rect_dsc_t blk;
+    lv_draw_rect_dsc_init(&blk);
+    blk.bg_color = lv_color_black();
+    blk.border_opa = LV_OPA_TRANSP;
+
+    for (int y = 0; y < n; ++y) {
+        for (int x = 0; x < n; ++x) {
+            if (!qrcodegen_getModule(qrBuf, x, y)) continue;
+            lv_canvas_draw_rect(canvas, (quiet + x) * scale, (quiet + y) * scale, scale, scale, &blk);
+        }
+    }
+    free(qrBuf);
 }
 
 void UI::portalScreenInit(void)
@@ -279,6 +397,8 @@ void UI::miningScreenInit(void)
     lv_obj_clear_flag(ui_imgNet, LV_OBJ_FLAG_SCROLLABLE);
 
     // lv_obj_add_event_cb(ui_MiningScreen, ui_event_MiningScreen, LV_EVENT_ALL, NULL);
+
+    addMiningScreenOverlays();
 }
 
 void UI::settingsScreenInit(void)
@@ -300,7 +420,7 @@ void UI::settingsScreenInit(void)
     lv_obj_set_x(ui_lbIPSet, -16);
     lv_obj_set_y(ui_lbIPSet, -77);
     lv_obj_set_align(ui_lbIPSet, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_lbIPSet, "192.168.1.200");
+    lv_label_set_text(ui_lbIPSet, "--");
     lv_obj_set_style_text_color(ui_lbIPSet, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbIPSet, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbIPSet, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -312,7 +432,7 @@ void UI::settingsScreenInit(void)
     lv_obj_set_x(ui_lbBestDifficultySet, 34);
     lv_obj_set_y(ui_lbBestDifficultySet, 21);
     lv_obj_set_align(ui_lbBestDifficultySet, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbBestDifficultySet, "22M");
+    lv_label_set_text(ui_lbBestDifficultySet, "--");
     lv_obj_set_style_text_color(ui_lbBestDifficultySet, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbBestDifficultySet, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbBestDifficultySet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -336,7 +456,7 @@ void UI::settingsScreenInit(void)
     lv_obj_set_x(ui_lbVcoreSet, 43);
     lv_obj_set_y(ui_lbVcoreSet, -45);
     lv_obj_set_align(ui_lbVcoreSet, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbVcoreSet, "1200mV");
+    lv_label_set_text(ui_lbVcoreSet, "--");
     lv_obj_set_style_text_color(ui_lbVcoreSet, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbVcoreSet, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbVcoreSet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -348,7 +468,7 @@ void UI::settingsScreenInit(void)
     lv_obj_set_x(ui_lbFreqSet, 43);
     lv_obj_set_y(ui_lbFreqSet, -25);
     lv_obj_set_align(ui_lbFreqSet, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbFreqSet, "485");
+    lv_label_set_text(ui_lbFreqSet, "--");
     lv_obj_set_style_text_color(ui_lbFreqSet, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbFreqSet, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbFreqSet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -372,7 +492,7 @@ void UI::settingsScreenInit(void)
     lv_obj_set_x(ui_lbPoolSet, 169);
     lv_obj_set_y(ui_lbPoolSet, -9);
     lv_obj_set_align(ui_lbPoolSet, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbPoolSet, "public-pool.io");
+    lv_label_set_text(ui_lbPoolSet, "--");
     lv_obj_set_style_text_color(ui_lbPoolSet, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbPoolSet, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbPoolSet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -384,7 +504,7 @@ void UI::settingsScreenInit(void)
     lv_obj_set_x(ui_lbHashrateSet, -208);
     lv_obj_set_y(ui_lbHashrateSet, 59);
     lv_obj_set_align(ui_lbHashrateSet, LV_ALIGN_RIGHT_MID);
-    lv_label_set_text(ui_lbHashrateSet, "500,0");
+    lv_label_set_text(ui_lbHashrateSet, "--");
     lv_obj_set_style_text_color(ui_lbHashrateSet, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbHashrateSet, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbHashrateSet, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -408,7 +528,7 @@ void UI::settingsScreenInit(void)
     lv_obj_set_x(ui_lbPortSet, 211);
     lv_obj_set_y(ui_lbPortSet, 13);
     lv_obj_set_align(ui_lbPortSet, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lbPortSet, "3333");
+    lv_label_set_text(ui_lbPortSet, "--");
     lv_obj_set_style_text_color(ui_lbPortSet, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbPortSet, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbPortSet, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -468,7 +588,7 @@ void UI::bTCScreenInit(void)
     lv_obj_set_x(ui_lblPriceInc, 193);
     lv_obj_set_y(ui_lblPriceInc, 49);
     lv_obj_set_align(ui_lblPriceInc, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_lblPriceInc, "2%");
+    lv_label_set_text(ui_lblPriceInc, "--");
     lv_obj_set_style_text_color(ui_lblPriceInc, lv_color_hex(0x07FF2A), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lblPriceInc, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_lblPriceInc, &ui_font_OpenSansBold14, LV_PART_MAIN | LV_STATE_DEFAULT);*/

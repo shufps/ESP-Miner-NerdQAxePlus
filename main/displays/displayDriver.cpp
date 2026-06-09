@@ -32,6 +32,9 @@ static const char *TAG = "TDisplayS3";
 #ifdef NERDQX
 #define SPLASH1_TIMEOUT_MS 3000
 #define SPLASH2_TIMEOUT_MS 5000
+#elif defined(Q1370) || defined(Q1373)
+#define SPLASH1_TIMEOUT_MS 3000
+#define SPLASH2_TIMEOUT_MS 5000
 #else
 #define SPLASH1_TIMEOUT_MS 3000
 #define SPLASH2_TIMEOUT_MS 3000
