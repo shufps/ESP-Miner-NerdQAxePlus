@@ -95,7 +95,7 @@ void UI::addInitScreenOverlays()
     lv_label_set_text(lbDevice, m_board->getDeviceModel());
     lv_obj_set_style_text_color(lbDevice, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbDevice, &ui_font_OpenSansBold45, LV_PART_MAIN);
-    lv_obj_align(lbDevice, LV_ALIGN_CENTER, 0, -30);
+    lv_obj_align(lbDevice, LV_ALIGN_CENTER, 0, 0);
 }
 
 void UI::addMiningScreenOverlays()
