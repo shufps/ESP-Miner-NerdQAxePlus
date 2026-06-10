@@ -58,6 +58,10 @@ public:
 
     void storeJob(bm_job *next_job, uint8_t asic_job_id) {
         PThreadGuard g(m_validJobsLock);
+        if (asic_job_id >= MAX_ASIC_JOBS) {
+            free_bm_job(next_job);
+            return;
+        }
         // if a slot was used before free it
         if (m_activeJobs[asic_job_id]) {
             free_bm_job(m_activeJobs[asic_job_id]);
@@ -68,6 +72,9 @@ public:
 
     bm_job *getClone(uint8_t asic_job_id) {
         PThreadGuard g(m_validJobsLock);
+        if (asic_job_id >= MAX_ASIC_JOBS) {
+            return NULL;
+        }
         // check if we have a job with this job id
         if (!m_activeJobs[asic_job_id]) {
             return NULL;

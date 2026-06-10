@@ -286,6 +286,11 @@ static void handle_nonce(Board *board, uint8_t slave_id, const uint8_t *buf, siz
 
     ESP_LOGI(TAG, "slave %d nonce=%08lX job_id=%02X", slave_id, nonce, job_id);
 
+    if (job_id >= MAX_ASIC_JOBS) {
+        ESP_LOGW(TAG, "slave %d out-of-range job_id 0x%02X", slave_id, job_id);
+        return;
+    }
+
     bm_job *job = slaveAsicJobs[slave_id].getClone(job_id);
     if (!job) {
         ESP_LOGW(TAG, "slave %d unknown job_id 0x%02X", slave_id, job_id);
