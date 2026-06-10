@@ -367,6 +367,8 @@ esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count)
     if (s_is_scanning) {
         ESP_LOGE(TAG, "WiFi scan timeout");
         s_is_scanning = false;
+        s_scan_suppress_reconnect = false;
+        if (s_has_ssid) esp_wifi_connect();
         return ESP_ERR_TIMEOUT;
     }
 
