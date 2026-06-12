@@ -86,7 +86,10 @@ void FanController::loadSettings()
 
 void FanController::update(float chipTempMax, float vrTemp)
 {
-    // Temperature input per channel: ch0=chip, ch1=VR
+    // Overheat thresholds use original per-channel temps (ch0=chip, ch1=VR)
+    float overheatInput[MAX_FANS] = { chipTempMax, vrTemp };
+
+    // PID temperature input per channel: ch0=chip, ch1=VR
     float tempInput[MAX_FANS] = { chipTempMax, vrTemp };
 
     // When 2nd channel is linked (2-fan boards) or pidUseMax is enabled
@@ -107,8 +110,8 @@ void FanController::update(float chipTempMax, float vrTemp)
             m_pid[ch]->Compute();
         }
 
-        // Overheat: drive fan to 100% and flag it (checked even in LINKED mode for shutdown purposes)
-        if (m_config[ch].overheatTemp && tempInput[ch] > m_config[ch].overheatTemp) {
+        // Overheat: use original temps, not PID-mixed temps
+        if (m_config[ch].overheatTemp && overheatInput[ch] > m_config[ch].overheatTemp) {
             m_overheated[ch] = true;
             m_fanPerc[ch]    = 100;
             m_board->setFanSpeedCh(ch, 1.0f);
