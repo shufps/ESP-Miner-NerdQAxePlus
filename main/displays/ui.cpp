@@ -44,7 +44,6 @@ static void tint_screen_bg(lv_obj_t *screen, lv_color_t color, lv_opa_t opa)
         }
     }
 }
-#endif
 
 ///////////////////// SCREENS ////////////////////
 
