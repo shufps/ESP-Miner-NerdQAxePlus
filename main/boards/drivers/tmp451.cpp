@@ -2,13 +2,6 @@
 #include "i2c_master.h"
 #include <esp_check.h>
 
-struct TempCal {
-    float scale;
-    float off[4];
-};
-
-static TempCal gCal{1.09f, {-29.5f, -29.5f, -29.5f, -29.5f}};
-
 Tmp451::Tmp451(uint8_t i2c_addr)
     : m_addr(i2c_addr)
 {}
@@ -57,7 +50,17 @@ float Tmp451::get_temperature(int channel)
 
     vTaskDelay(pdMS_TO_TICKS(m_wait_before_read_ms));
 
-    return temp_correct(channel, read_remote_celsius());
+    float raw = read_remote_celsius();
+    m_last_raw[channel] = raw;
+    return temp_correct(channel, raw);
+}
+
+float Tmp451::get_raw_temperature(int channel)
+{
+    if (channel < 0 || channel > 3) {
+        return NAN;
+    }
+    return m_last_raw[channel];
 }
 
 esp_err_t Tmp451::select_channel(int channel)
@@ -158,5 +161,5 @@ float Tmp451::temp_correct(int ch, float t_meas)
         return NAN;
     }
 
-    return ((t_meas - 30.0f) * gCal.scale + 30.0f) + gCal.off[ch];
+    return ((t_meas - 30.0f) * m_cal_scale + 30.0f) + m_cal_off[ch];
 }

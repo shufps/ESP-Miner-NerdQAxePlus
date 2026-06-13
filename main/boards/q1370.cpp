@@ -66,7 +66,7 @@ float Q1370B::getTemperature(int index)
         return 0.0;
     }
     // we can't read the real chip temps but this should be about right
-    return temp + 10.0f; // offset of 10°C
+    return temp + 3.0f;
 }
 
 bool Q1370B::initBoard()
@@ -182,9 +182,20 @@ void Q1370B::requestChipTemps() {
 
     for (int i=0;i<m_asicCount;i++) {
         float temp = m_tmp451->get_temperature(i);
-        // ESP_LOGI(TAG, "temperature of chip %d: %.3f", i, temp);
         if (!isnan(temp)) {
             setChipTemp(i, temp);
         }
     }
+//#define TEMP_CAL_LOG
+#ifdef TEMP_CAL_LOG
+    {
+        float ref = NerdQaxePlus::getTemperature(0);
+        ESP_LOGI(TAG, "TEMPCAL: ref=%.2f raw=%.2f/%.2f/%.2f/%.2f",
+                 ref,
+                 m_tmp451->get_raw_temperature(0),
+                 m_tmp451->get_raw_temperature(1),
+                 m_tmp451->get_raw_temperature(2),
+                 m_tmp451->get_raw_temperature(3));
+    }
+#endif
 }

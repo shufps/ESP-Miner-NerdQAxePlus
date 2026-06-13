@@ -17,3 +17,16 @@ Q1373B::Q1373B() : Q1370B()
 #endif
     m_asics = new BM1373();
 }
+
+bool Q1373B::initBoard()
+{
+    if (!Q1370B::initBoard()) {
+        return false;
+    }
+
+    if (m_tmp451) {
+        m_tmp451->set_temp_cal(1.06f, -25.4f, -25.4f, -25.4f, -25.4f);
+    }
+
+    return true;
+}
