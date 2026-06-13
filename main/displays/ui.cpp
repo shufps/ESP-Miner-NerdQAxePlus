@@ -24,6 +24,28 @@ void on_screen_loaded(lv_event_t * e)
     driver->setScreenAnimationRunning(false);
 }
 
+static void apply_img_tint(lv_obj_t *img, lv_color_t color, lv_opa_t opa)
+{
+    if (img) {
+        lv_obj_set_style_img_recolor(img, color, 0);
+        lv_obj_set_style_img_recolor_opa(img, opa, 0);
+    }
+}
+
+// Tint all image children of a screen
+static void tint_screen_bg(lv_obj_t *screen, lv_color_t color, lv_opa_t opa)
+{
+    if (!screen) return;
+    uint32_t cnt = lv_obj_get_child_cnt(screen);
+    for (uint32_t i = 0; i < cnt; i++) {
+        lv_obj_t *child = lv_obj_get_child(screen, i);
+        if (lv_obj_check_type(child, &lv_img_class)) {
+            apply_img_tint(child, color, opa);
+        }
+    }
+}
+#endif
+
 ///////////////////// SCREENS ////////////////////
 
 void UI::splash1ScreenInit(void)
@@ -935,4 +957,16 @@ void UI::init(Board* board, DisplayDriver *display)
     // ui_LogScreen_init();
 
     lv_disp_load_scr(ui_Splash1);
+
+    if (isGenericTheme()) {
+        lv_color_t tint = lv_color_make(255, 255, 255);
+        lv_opa_t opa = 100;
+        tint_screen_bg(ui_Splash1, tint, opa);
+        tint_screen_bg(ui_Splash2, tint, opa);
+        tint_screen_bg(ui_PortalScreen, tint, opa);
+        tint_screen_bg(ui_MiningScreen, tint, opa);
+        tint_screen_bg(ui_SettingsScreen, tint, opa);
+        tint_screen_bg(ui_BTCScreen, tint, opa);
+        tint_screen_bg(ui_GlobalStats, tint, opa);
+    }
 }
