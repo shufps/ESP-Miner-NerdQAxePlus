@@ -110,16 +110,6 @@ jobs:
         0xf10000 build/ota_data_initial.bin \
         -o esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
 
-    - name: Generate SHA-256 Sum of factory file
-      run: |
-        sha256sum esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin > esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
-
-    - name: Upload SHA-256 Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
-        path: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.sha256
-
     - name: Rename Build Artifacts
       run: |
         sudo mv build/esp-miner.bin build/esp-miner-${{ matrix.label }}.bin
@@ -195,57 +185,3 @@ jobs:
         echo "$r2_files" | tr ',' '\n' | grep -v '^$' | while read file; do
           rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
         done
-
-    outputs:
-      release_exists: ${{ env.RELEASE_EXISTS }}
-
-
-  update-release-body:
-    runs-on: ubuntu-latest
-    needs: build-and-release
-    if: needs.build-and-release.outputs.release_exists == 'true'
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        submodules: recursive
-
-    - name: Get Version Tag
-      id: version_tag
-      run: |
-        git fetch --tags  # Ensure all tags are fetched
-        version=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
-        echo "VERSION_TAG=${version}" >> $GITHUB_ENV
-        echo "${version}" > version.txt
-        echo "VERSION_TAG=${version}"
-
-    - name: Download SHA-256 Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: ./artifacts
-
-    - name: Combine SHA-256 Sums
-      run: |
-        files="$( find ./artifacts -name "*.sha256" | xargs )"
-        cat $files | sort -k2 > sha256-summary.txt
-
-    - name: Install GitHub CLI
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y gh
-
-    - name: Append to Release Body
-      run: |
-        # Fetch the current release body
-        existing_notes="$(gh release view ${{ env.VERSION_TAG }} --json body -q '.body')"
-
-        # Append the new content
-        new_notes="$existing_notes\n"
-        new_notes+='<!--\n'
-        new_notes+="$(cat sha256-summary.txt)\n"
-        new_notes+='-->\n'
-
-        # Update the release body
-        gh release edit ${{ env.VERSION_TAG }} --notes "$(echo -e "$new_notes")"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
