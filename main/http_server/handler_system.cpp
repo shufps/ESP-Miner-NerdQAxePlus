@@ -452,6 +452,7 @@ esp_err_t GET_system_asic(httpd_req_t *req)
     doc["defaultFrequency"] = board->getDefaultAsicFrequency();
     doc["defaultVoltage"]   = board->getDefaultAsicVoltageMillis();
     doc["absMaxFrequency"]  = board->getAbsMaxAsicFrequency();
+    doc["absMinVoltage"]    = board->getAbsMinAsicVoltageMillis();
     doc["absMaxVoltage"]    = board->getAbsMaxAsicVoltageMillis();
     doc["ecoFrequency"]     = board->getEcoAsicFrequency();
     doc["ecoVoltage"]       = board->getEcoAsicVoltageMillis();

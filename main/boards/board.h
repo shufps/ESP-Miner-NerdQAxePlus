@@ -59,6 +59,7 @@ public:
     int m_asicFrequency;
     int m_asicVoltageMillis;
     int m_absMaxAsicFrequency;
+    int m_absMinAsicVoltageMillis;
     int m_absMaxAsicVoltageMillis;
 
     // frequency and voltage options
@@ -219,6 +220,10 @@ public:
 
     int getAbsMaxAsicFrequency() {
         return m_absMaxAsicFrequency;
+    }
+
+    int getAbsMinAsicVoltageMillis() {
+        return m_absMinAsicVoltageMillis;
     }
 
     int getAbsMaxAsicVoltageMillis() {

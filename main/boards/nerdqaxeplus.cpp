@@ -36,6 +36,7 @@ NerdQaxePlus::NerdQaxePlus() : Board() {
     m_defaultAsicFrequency = m_asicFrequency = 490;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1250; // default voltage
     m_absMaxAsicFrequency = 800;
+    m_absMinAsicVoltageMillis = 1050;
     m_absMaxAsicVoltageMillis = 1400;
     m_initVoltageMillis = 1250;
     m_fanInvertPolarity = false;

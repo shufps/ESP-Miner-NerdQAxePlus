@@ -34,7 +34,7 @@ TPS53647::TPS53647()
 {
     m_i2cAddr = 0x71;
     m_hwMinVoltage = 0.25f;
-    m_initVOutMin = 1.005f;
+    m_initVOutMin = 0.8f;
     m_initVOutMax = 1.4f;
     m_initOnOffConfig = 0b00010111;
     m_initOtWarnLimit = 95.0f;
@@ -473,8 +473,12 @@ bool TPS53647::set_vout(float volts)
         return false;
     }
 
-    // set output voltage
-    write_word(PMBUS_VOUT_COMMAND, (uint16_t) volt_to_vid(volts));
+    // set output voltage — skip VID 0x97 (factory default 1.000V) to preserve reset detection
+    uint8_t vid = volt_to_vid(volts);
+    if (vid == 0x97) {
+        vid = 0x96;
+    }
+    write_word(PMBUS_VOUT_COMMAND, (uint16_t) vid);
 
     // turn on output
     // write_byte(PMBUS_OPERATION, OPERATION_ON);
