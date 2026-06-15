@@ -51,6 +51,8 @@ export interface ISettingsV2 {
     ecoCoreVoltage?: number;
     frequencyOptions: number[];
     voltageOptions: number[];
+    absMinCoreVoltage: number;
+    absMaxCoreVoltage: number;
 
     // Stratum / pools
     poolMode: number;

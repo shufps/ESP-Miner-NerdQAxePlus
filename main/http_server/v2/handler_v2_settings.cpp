@@ -58,6 +58,8 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
     doc["defaultVrFrequency"] = board->getDefaultVrFrequency();
     doc["ecoFrequency"]     = board->getEcoAsicFrequency();
     doc["ecoCoreVoltage"]   = board->getEcoAsicVoltageMillis();
+    doc["absMinCoreVoltage"] = board->getAbsMinAsicVoltageMillis();
+    doc["absMaxCoreVoltage"] = board->getAbsMaxAsicVoltageMillis();
     {
         JsonArray arr = doc["frequencyOptions"].to<JsonArray>();
         for (uint32_t f : board->getFrequencyOptions()) arr.add(f);

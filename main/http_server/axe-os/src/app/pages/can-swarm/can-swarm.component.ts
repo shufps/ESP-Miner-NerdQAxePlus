@@ -162,7 +162,7 @@ export class CanSwarmComponent implements OnInit, OnDestroy {
     const fan1 = s.fans?.[1];
     this.editForm = this.fb.group({
       frequency:      [s.frequency ?? 500,  [Validators.required, Validators.min(100), Validators.max(1200)]],
-      coreVoltage:    [s.coreVoltage ?? 1150, [Validators.required, Validators.min(1000), Validators.max(1400)]],
+      coreVoltage:    [s.coreVoltage ?? 1150, [Validators.required, Validators.min(900), Validators.max(1400)]],
       fan0Mode:       [fan0?.mode ?? 1],
       fan0Speed:      [fan0?.manualSpeed ?? 75,    [Validators.min(0), Validators.max(100)]],
       fan0TargetTemp: [fan0?.targetTemp ?? 55,     [Validators.min(30), Validators.max(90)]],
