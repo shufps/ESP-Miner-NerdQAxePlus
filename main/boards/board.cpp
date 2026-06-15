@@ -157,6 +157,9 @@ void Board::setVrFrequency(uint32_t freq) {
 }
 
 bool Board::validateVoltage(float core_voltage) {
+    if (core_voltage == 0.0f) {
+        return true;  // 0V = disable output
+    }
     int millis = (int) (core_voltage * 1000.0f);
     // we allow m_absMaxAsicVoltageMillis = 0 for no limit to not break what was
     // working before on nerdaxe and nerdaxegamma
