@@ -266,6 +266,14 @@ const POOLS: PoolMeta[] = [
     faviconPath: '/favicon.ico',
   },
   {
+    id: 'sololuck',
+    name: 'sololuck.io',
+    match: (h) => h.includes('sololuck.io'),
+    quickLink: (a) => `https://sololuck.io/users/${a}`,
+    faviconHost: 'sololuck.io',
+    faviconPath: '/favicon.svg',
+  },
+  {
     id: 'powermining',
     name: 'powermining.io',
     match: (h) => h.includes('powermining.io'),
