@@ -3,7 +3,10 @@
     <a (click)="toggleSidebar()" href="#" class="sidebar-toggle">
       <nb-icon icon="menu-2-outline"></nb-icon>
     </a>
-    <a class="logo" href="#" (click)="navigateHome()"><img [src]="logoPath" alt="Logo"></a>
+    <a class="logo" href="#" (click)="navigateHome()">
+      <img *ngIf="!logoFailed" [src]="logoPath" alt="Logo" (error)="onLogoError()">
+      <span *ngIf="logoFailed" class="logo-text">{{ logoBaseName }}</span>
+    </a>
   </div>
 </div>
 

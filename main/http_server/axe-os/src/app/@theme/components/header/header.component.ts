@@ -30,9 +30,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   currentTheme = 'cosmic';  // Default theme if none is found in localStorage
   logoPath: string = '';    // Resolved logo path for the template
+  logoFailed: boolean = false;
   deviceModel: string = 'default'; // Fallback device model
 
-  private logoBaseName: string | null = null;
+  logoBaseName: string | null = null;
 
   // Transparent 16x16 placeholder (must exist in /assets)
   private static readonly PLACEHOLDER_LOGO = '/assets/default_dark.png';
@@ -174,6 +175,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.logoPath = HeaderComponent.PLACEHOLDER_LOGO;
   }
 
+  onLogoError() {
+    this.logoFailed = true;
+  }
+
   private updateLogo() {
     // While bootstrapping, force the placeholder
     if (this.bootstrapping) {
@@ -181,6 +186,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.logoFailed = false;
     // Choose logo variant based on theme ("default" is the light theme in Nebular).
     const logoVariant = this.currentTheme === 'default' ? 'light' : 'dark';
     this.logoPath = `/assets/${this.deviceModel}_${logoVariant}.png`;

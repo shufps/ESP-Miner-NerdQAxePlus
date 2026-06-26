@@ -55,6 +55,13 @@
         max-height: 40px;
         max-width: 100%;
       }
+
+      .logo-text {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: nb-theme(text-basic-color);
+        white-space: nowrap;
+      }
     }
   }
 /*
