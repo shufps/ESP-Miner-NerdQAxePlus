@@ -116,6 +116,10 @@ class StratumManager {
 
     virtual int getPoolMode() = 0;
 
+    // reset stats for a single pool (called from loadSettings with mutex held)
+    virtual void resetPoolSessionStats(int pool) {
+    }
+
   public:
     virtual void resetSessionStats() {
         PThreadGuard lock(m_mutex);

@@ -307,6 +307,9 @@ void StratumManager::loadSettings(bool reconnect)
             m_stratumTasks[i]->triggerReconnect();
         }
 
+        // reset session stats for this pool
+        resetPoolSessionStats(i);
+
         // reset verification stats and unblock pool on reconnect
         // NOTE: do NOT call resetVerificationStats() here — loadSettings() is always
         // called while m_mutex is already held (by the Fallback/DualPool overrides),
