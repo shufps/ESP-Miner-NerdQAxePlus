@@ -211,6 +211,8 @@ export class EditComponent implements OnInit {
           fallbackSv2AuthorityPubkey: [info.pools[1].sv2AuthorityPubkey ?? ''],
           sv2ChannelType: [info.pools[0].sv2ChannelType ?? 0],                      // 0 = Extended, 1 = Standard
           fallbackSv2ChannelType: [info.pools[1].sv2ChannelType ?? 0],
+          sv2RequireAuth: [info.pools[0].sv2RequireAuth ?? false],
+          fallbackSv2RequireAuth: [info.pools[1].sv2RequireAuth ?? false],
 
           poolMode: [info.poolMode ?? 0, [Validators.required]],                   // 0 = Failover, 1 = Dual
           poolBalance: [info.poolBalance ?? 50, [                                   // Anteil PRIMARY in %
@@ -371,6 +373,7 @@ export class EditComponent implements OnInit {
       protocol: f.stratumProtocol,
       sv2AuthorityPubkey: f.sv2AuthorityPubkey,
       sv2ChannelType: f.sv2ChannelType,
+      sv2RequireAuth: !!f.sv2RequireAuth,
       coinbaseVerifyMode: f.coinbaseVerifyMode,
       coinbaseMaxFee: f.coinbaseMaxFee,
       coinbaseVerifyForce: !!f.coinbaseVerifyForce,
@@ -386,6 +389,7 @@ export class EditComponent implements OnInit {
       protocol: f.fallbackStratumProtocol,
       sv2AuthorityPubkey: f.fallbackSv2AuthorityPubkey,
       sv2ChannelType: f.fallbackSv2ChannelType,
+      sv2RequireAuth: !!f.fallbackSv2RequireAuth,
       coinbaseVerifyMode: f.fallbackCoinbaseVerifyMode,
       coinbaseMaxFee: f.fallbackCoinbaseMaxFee,
       coinbaseVerifyForce: !!f.fallbackCoinbaseVerifyForce,
@@ -671,6 +675,7 @@ export class EditComponent implements OnInit {
       ['stratumProtocol',         'fallbackStratumProtocol'],
       ['sv2AuthorityPubkey',      'fallbackSv2AuthorityPubkey'],
       ['sv2ChannelType',          'fallbackSv2ChannelType'],
+      ['sv2RequireAuth',          'fallbackSv2RequireAuth'],
       ['coinbaseVerifyMode',      'fallbackCoinbaseVerifyMode'],
       ['coinbaseMaxFee',          'fallbackCoinbaseMaxFee'],
       ['coinbaseVerifyForce',     'fallbackCoinbaseVerifyForce'],

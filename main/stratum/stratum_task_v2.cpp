@@ -51,6 +51,13 @@ StratumTransport *StratumTaskV2::selectTransport()
         ESP_LOGW(m_tag, "No authority pubkey configured, server identity will not be verified");
     }
 
+    // Whether this pool requires the server certificate to be verified. Defaults to
+    // false so existing configs keep today's connect-unauthenticated behavior.
+    bool require_auth = m_config->isPrimary()
+        ? Config::isSV2RequireAuth()
+        : Config::isFallbackSV2RequireAuth();
+    m_noiseTransport.setRequireAuth(require_auth);
+
     return &m_noiseTransport;
 }
 

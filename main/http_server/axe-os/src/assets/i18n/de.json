@@ -174,6 +174,8 @@
     "STRATUM_V2": "Stratum V2",
     "SV2_AUTHORITY_PUBKEY": "SV2 Authority Public Key",
     "SV2_AUTHORITY_PUBKEY_HINT": "Optionaler Base58-Schluessel zur Verifizierung des Pool-Zertifikats.",
+    "SV2_REQUIRE_AUTH": "Authentifizierung erforderlich",
+    "SV2_REQUIRE_AUTH_HINT": "Nur verbinden, wenn das Server-Zertifikat gegen den oben angegebenen Authority Public Key verifiziert wird. Ist dies aktiviert und kein Schluessel gesetzt, verbindet der Miner nicht.",
     "SV2_CHANNEL_TYPE": "SV2 Kanal-Typ",
     "SV2_CHANNEL_EXTENDED": "Extended Channel",
     "SV2_CHANNEL_STANDARD": "Standard Channel (experimentell)",

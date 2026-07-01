@@ -33,6 +33,13 @@ void NoiseStratumTransport::clearAuthorityPubkey()
 
 bool NoiseStratumTransport::connect(const char *host, const char *ip, uint16_t port)
 {
+    // When authentication is required but no authority pubkey is configured, refuse
+    // rather than fall through to an encrypted-but-unverified connection.
+    if (m_require_auth && !m_has_authority_pubkey) {
+        ESP_LOGE(TAG, "SV2 authentication required but no authority pubkey configured; refusing to connect");
+        return false;
+    }
+
     // First establish plain TCP connection via base class
     if (!StratumTransport::connect(host, ip, port)) {
         return false;

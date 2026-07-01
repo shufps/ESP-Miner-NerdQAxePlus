@@ -174,6 +174,8 @@
     "STRATUM_V2": "Stratum V2",
     "SV2_AUTHORITY_PUBKEY": "Publiczny klucz SV2 Authority",
     "SV2_AUTHORITY_PUBKEY_HINT": "Opcjonalny klucz zakodowany w Base58 do weryfikacji certyfikatu serwera.",
+    "SV2_REQUIRE_AUTH": "Wymagaj uwierzytelniania",
+    "SV2_REQUIRE_AUTH_HINT": "Nie łącz, jeśli certyfikat serwera nie zostanie zweryfikowany za pomocą powyższego klucza publicznego urzędu. Po włączeniu bez ustawionego klucza koparka się nie połączy.",
     "SV2_CHANNEL_TYPE": "Typ kanału SV2",
     "SV2_CHANNEL_EXTENDED": "Kanał rozszerzony",
     "SV2_CHANNEL_STANDARD": "Kanał standardowy (eksperymentalny)",

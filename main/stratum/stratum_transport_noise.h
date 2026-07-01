@@ -26,6 +26,9 @@ class NoiseStratumTransport : public StratumTransport {
     void setAuthorityPubkey(const uint8_t pubkey[32]);
     void clearAuthorityPubkey();
 
+    /// When set, refuse to connect unless an authority pubkey is configured.
+    void setRequireAuth(bool require) { m_require_auth = require; }
+
     /// Get the underlying esp_transport handle (needed for Noise I/O).
     esp_transport_handle_t getTransportHandle() { return m_t; }
 
@@ -36,4 +39,5 @@ class NoiseStratumTransport : public StratumTransport {
     sv2_noise_ctx_t *m_noise_ctx = nullptr;
     uint8_t m_authority_pubkey[32];
     bool m_has_authority_pubkey = false;
+    bool m_require_auth = false;
 };

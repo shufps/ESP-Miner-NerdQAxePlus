@@ -93,6 +93,7 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
             pool["sv2AuthorityPubkey"] = sv2 ? sv2 : "";
             safe_free(sv2);
             pool["sv2ChannelType"]   = Config::getSV2ChannelType();
+            pool["sv2RequireAuth"]   = Config::isSV2RequireAuth();
             pool["coinbaseVerifyMode"]  = Config::getCoinbaseVerifyMode(0);
             pool["coinbaseMaxFee"]      = Config::getCoinbaseMaxFee(0) / 10.0f;
             pool["coinbaseVerifyForce"] = Config::getCoinbaseVerifyForce(0);
@@ -115,6 +116,7 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
             pool["sv2AuthorityPubkey"] = sv2 ? sv2 : "";
             safe_free(sv2);
             pool["sv2ChannelType"]   = Config::getFallbackSV2ChannelType();
+            pool["sv2RequireAuth"]   = Config::isFallbackSV2RequireAuth();
             pool["coinbaseVerifyMode"]  = Config::getCoinbaseVerifyMode(1);
             pool["coinbaseMaxFee"]      = Config::getCoinbaseMaxFee(1) / 10.0f;
             pool["coinbaseVerifyForce"] = Config::getCoinbaseVerifyForce(1);
@@ -347,6 +349,10 @@ esp_err_t PATCH_V2_settings(httpd_req_t *req)
             if (pool["sv2ChannelType"].is<uint16_t>()) {
                 if (i == 0) Config::setSV2ChannelType(pool["sv2ChannelType"].as<uint16_t>());
                 else        Config::setFallbackSV2ChannelType(pool["sv2ChannelType"].as<uint16_t>());
+            }
+            if (pool["sv2RequireAuth"].is<bool>()) {
+                if (i == 0) Config::setSV2RequireAuth(pool["sv2RequireAuth"].as<bool>());
+                else        Config::setFallbackSV2RequireAuth(pool["sv2RequireAuth"].as<bool>());
             }
 
             // Coinbase verification

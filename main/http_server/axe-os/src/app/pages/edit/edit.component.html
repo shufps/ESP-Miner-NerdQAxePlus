@@ -163,6 +163,10 @@
                                     <small>{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY_HINT' | translate }}</small>
                                 </div>
                             </div>
+                            <div class="form-row">
+                                <nb-checkbox formControlName="sv2RequireAuth">{{ 'SETTINGS.SV2_REQUIRE_AUTH' | translate }}</nb-checkbox><br />
+                                <small>{{ 'SETTINGS.SV2_REQUIRE_AUTH_HINT' | translate }}</small>
+                            </div>
                         </ng-container>
                         <div class="form-row" *ngIf="form.controls['stratumProtocol'].value === 0">
                             <nb-checkbox formControlName="stratumTLS">{{ 'MINING.STRATUM_TLS' | translate}}</nb-checkbox>
@@ -274,6 +278,10 @@
                                     <input nbInput id="fallbackSv2AuthorityPubkey" type="text" formControlName="fallbackSv2AuthorityPubkey" /><br />
                                     <small>{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY_HINT' | translate }}</small>
                                 </div>
+                            </div>
+                            <div class="form-row">
+                                <nb-checkbox formControlName="fallbackSv2RequireAuth">{{ 'SETTINGS.SV2_REQUIRE_AUTH' | translate }}</nb-checkbox><br />
+                                <small>{{ 'SETTINGS.SV2_REQUIRE_AUTH_HINT' | translate }}</small>
                             </div>
                         </ng-container>
                         <div class="form-row" *ngIf="form.controls['fallbackStratumProtocol'].value === 0">

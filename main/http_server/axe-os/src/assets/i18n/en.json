@@ -174,6 +174,8 @@
     "STRATUM_V2": "Stratum V2",
     "SV2_AUTHORITY_PUBKEY": "SV2 Authority Public Key",
     "SV2_AUTHORITY_PUBKEY_HINT": "Optional Base58-encoded key for server certificate verification.",
+    "SV2_REQUIRE_AUTH": "Require Authentication",
+    "SV2_REQUIRE_AUTH_HINT": "Refuse to connect unless the server certificate is verified against the authority public key above. When enabled without a key set, the miner will not connect.",
     "SV2_CHANNEL_TYPE": "SV2 Channel Type",
     "SV2_CHANNEL_EXTENDED": "Extended Channel",
     "SV2_CHANNEL_STANDARD": "Standard Channel (experimental)",
