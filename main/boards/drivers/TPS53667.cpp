@@ -30,10 +30,9 @@ bool TPS53667::init(int num_phases, int imax, float ifault)
     ESP_LOGI(TAG, "Initializing TPS53667 regulator");
 
     // Establish communication with regulator
-    uint16_t device_code = 0;
-    read_word(PMBUS_MFR_SPECIFIC_44, &device_code);
+    uint16_t device_code = get_device_code();
 
-    if (device_code != 0x01F8) {
+    if (device_code != DEVICE_CODE) {
         ESP_LOGE(TAG, "TPS53667 not found. Device code: 0x%04X", device_code);
         return false;
     }
@@ -56,11 +55,11 @@ bool TPS53667::init(int num_phases, int imax, float ifault)
     write_byte(PMBUS_MFR_SPECIFIC_10, (uint8_t) imax);
 
     // operation mode VR12 Mode - Phase shedding configuration
-#ifdef NERDOCTAXEGAMMA
-    // NERDOCTAXEGAMMA: Disable phase shedding to force all 6 phases active at all times
+#if defined(NERDOCTAXEGAMMA) || defined(Q1373)
+    // NERDOCTAXEGAMMA / Q1373: Disable phase shedding to force all 6 phases active at all times
     // Phase shedding disabled to ensure consistent power delivery across all phases
     write_byte(PMBUS_MFR_SPECIFIC_13, 0x89); // DISABLE dynamic phase shedding
-    ESP_LOGI(TAG, "Phase shedding DISABLED (0x89) - forcing all 6 phases ON (NerdOctaxeGamma)");
+    ESP_LOGI(TAG, "Phase shedding DISABLED (0x89) - forcing all 6 phases ON");
 #else
     // Other boards (NerdEKO, etc.): Enable dynamic phase shedding for efficiency
     write_byte(PMBUS_MFR_SPECIFIC_13, 0x99); // ENABLE dynamic phase shedding

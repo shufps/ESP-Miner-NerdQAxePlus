@@ -11,6 +11,13 @@
  */
 esp_err_t i2c_master_init(void)
 {
+    // called from both board constructors (strap detection) and
+    // initBoard(); only install the driver once
+    static bool s_installed = false;
+    if (s_installed) {
+        return ESP_OK;
+    }
+
     i2c_port_t i2c_master_port = (i2c_port_t) I2C_MASTER_NUM;
 
     i2c_config_t conf = {
@@ -26,7 +33,11 @@ esp_err_t i2c_master_init(void)
 
     i2c_param_config(i2c_master_port, &conf);
 
-    return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+    esp_err_t err = i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+    if (err == ESP_OK) {
+        s_installed = true;
+    }
+    return err;
 }
 
 /**

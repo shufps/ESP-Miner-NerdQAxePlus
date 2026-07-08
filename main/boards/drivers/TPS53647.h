@@ -33,9 +33,15 @@ protected:
     void power_disable();
 
 public:
+    static constexpr uint16_t DEVICE_CODE = 0x01f0;
+
     TPS53647();
 
     bool init(int num_phases, int imax, float ifault) override;
+
+    // reads the PMBus device code; returns 0 on error. Used for VR chip
+    // detection before the driver is initialized.
+    uint16_t get_device_code();
 
     void clear_faults() override;
 
