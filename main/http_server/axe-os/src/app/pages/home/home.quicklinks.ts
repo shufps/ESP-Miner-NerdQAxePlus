@@ -292,6 +292,15 @@ const POOLS: PoolMeta[] = [
     quickLink: (a) => `https://solo.braiins.com/stats/${a}`,
     faviconHost: 'solo.braiins.com',
     faviconPath: '/icon.png'
+  },
+  {
+    id: 'mining-dutch',
+    name: 'mining-dutch.nl',
+    // stratum host is a regional subdomain (e.g. europe.mining-dutch.nl);
+    // account-based pool, so link to the main site instead of the wallet
+    match: (h) => h.includes('mining-dutch.nl'),
+    quickLink: () => `https://www.mining-dutch.nl`,
+    faviconHost: 'www.mining-dutch.nl',
   }
 ];
 
