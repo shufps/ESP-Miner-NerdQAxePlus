@@ -162,19 +162,30 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
 
     JsonArray arr = obj["pools"].to<JsonArray>();
 
-    JsonObject pool = arr.add<JsonObject>();
+    // always report both pool configs, array order matches the config
+    // (0 = primary, 1 = fallback); "active" marks the one currently mining
+    for (int i = 0; i < 2; i++) {
+        JsonObject pool = arr.add<JsonObject>();
+        bool active = (i == (int) m_selected);
 
-    pool["connected"] = m_stratumTasks[m_selected] ? m_stratumTasks[m_selected]->m_isConnected : false;
-    pool["verifyBlocked"] = getVerifyBlockedReason(m_selected) ? getVerifyBlockedReason(m_selected) : "";
-    pool["poolDifficulty"] = m_poolDifficulty;
-    pool["networkDifficulty"] = m_networkDifficulty;
-    pool["poolDiffErr"] = false;
-    pool["accepted"] = m_accepted;
-    pool["rejected"] = m_rejected;
-    pool["pingRtt"]  = m_pingTasks[m_selected] ? m_pingTasks[m_selected]->get_last_ping_rtt() : 0;
-    pool["pingLoss"] = m_pingTasks[m_selected] ? m_pingTasks[m_selected]->get_recent_ping_loss() : 0;
-    pool["bestDiff"] = m_bestSessionDiff;
-    pool["activeProtocol"] = m_stratumConfig[m_selected] ? (int)m_stratumConfig[m_selected]->getProtocol() : 0;
-    pool["encrypted"] = m_stratumConfig[m_selected] ? (m_stratumConfig[m_selected]->isSV2() || m_stratumConfig[m_selected]->isTLS()) : false;
+        pool["active"] = active;
+        pool["connected"] = m_stratumTasks[i] ? m_stratumTasks[i]->m_isConnected : false;
+        pool["verifyBlocked"] = getVerifyBlockedReason(i) ? getVerifyBlockedReason(i) : "";
+        pool["pingRtt"]  = m_pingTasks[i] ? m_pingTasks[i]->get_last_ping_rtt() : 0;
+        pool["pingLoss"] = m_pingTasks[i] ? m_pingTasks[i]->get_recent_ping_loss() : 0;
+        pool["activeProtocol"] = m_stratumConfig[i] ? (int)m_stratumConfig[i]->getProtocol() : 0;
+        pool["encrypted"] = m_stratumConfig[i] ? (m_stratumConfig[i]->isSV2() || m_stratumConfig[i]->isTLS()) : false;
+
+        // session stats are shared between both pools in failover mode,
+        // report them on the active entry
+        if (active) {
+            pool["poolDifficulty"] = m_poolDifficulty;
+            pool["networkDifficulty"] = m_networkDifficulty;
+            pool["poolDiffErr"] = false;
+            pool["accepted"] = m_accepted;
+            pool["rejected"] = m_rejected;
+            pool["bestDiff"] = m_bestSessionDiff;
+        }
+    }
 }
 

@@ -139,6 +139,8 @@ esp_err_t GET_V2_dashboard(httpd_req_t *req)
         char *users[2] = { Config::getStratumUser(), Config::getStratumFallbackUser() };
         int   ports[2] = { (int) Config::getStratumPortNumber(), (int) Config::getStratumFallbackPortNumber() };
 
+        // the managers report both pools in config order (0 = primary,
+        // 1 = fallback/secondary), so the array index is the config index
         JsonArray pools = stratum["pools"].as<JsonArray>();
         for (int i = 0; i < (int) pools.size() && i < 2; i++) {
             JsonObject pool = pools[i].as<JsonObject>();

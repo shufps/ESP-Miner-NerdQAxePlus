@@ -220,6 +220,8 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
     for (int i = 0; i < 2; i++) {
         JsonObject pool = arr.add<JsonObject>();
 
+        pool["active"] = true; // dual pool mode: both pools mine
+
         pool["connected"] = m_stratumTasks[i] ? m_stratumTasks[i]->m_isConnected : false;
         pool["verifyBlocked"] = getVerifyBlockedReason(i) ? getVerifyBlockedReason(i) : "";
         pool["poolDifficulty"] = m_poolDifficulty[i];
