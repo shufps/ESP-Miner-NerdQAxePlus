@@ -16,7 +16,7 @@ export class AppComponent {
     private store: Store<fromI18n.State>
   ) {
     // Set available languages
-    translate.addLangs(['en', 'fr', 'es', 'de', 'it', 'ro', 'pl']);
+    translate.addLangs(['en', 'fr', 'es', 'de', 'it', 'ro', 'pl', 'da']);
 
     translate.setDefaultLang('en');
 
