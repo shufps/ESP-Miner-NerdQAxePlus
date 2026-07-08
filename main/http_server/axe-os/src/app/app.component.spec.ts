@@ -44,6 +44,12 @@ describe('AppComponent', () => {
     expect(app.title).toEqual('axe-os');
   });
 
+  it('should register simplified Chinese as an available language', () => {
+    TestBed.createComponent(AppComponent);
+    const translate = TestBed.inject(TranslateService) as unknown as TranslateServiceMock;
+    expect(translate.addLangs).toHaveBeenCalledWith(['en', 'fr', 'es', 'de', 'it', 'ro', 'pl', 'zh-CN']);
+  });
+
   it('should render the router outlet', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
