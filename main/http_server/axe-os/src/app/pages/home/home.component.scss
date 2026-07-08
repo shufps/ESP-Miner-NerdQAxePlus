@@ -673,6 +673,30 @@ nb-card-header{
   line-height: 1;
 }
 
+/* Reset-session-stats button: pinned into the tile's top-right corner.
+   Strip the nbButton padding so the icon sits right in the corner and
+   clears the dual-pool allocation % that is rendered on the same row. */
+.pool-reset-btn.pool-reset-btn{
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 2;
+  opacity: 0.5;
+  padding: 0 !important;
+  min-width: 0 !important;
+  width: 16px;
+  height: 16px;
+  line-height: 1;
+
+  nb-icon{
+    font-size: 14px;
+  }
+
+  &:hover{
+    opacity: 0.9;
+  }
+}
+
 /* Host/Port/Ping/Loss block should be visually smaller (same size as labels) */
 .pool-tile-info__bottom{
   /* Keep Host/Port/Ping/Loss within the same vertical band as the grey box */
