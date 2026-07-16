@@ -198,27 +198,13 @@ const POOLS: PoolMeta[] = [
     match: (h) => h.includes('ocean.xyz'),
     quickLink: (a) => `https://ocean.xyz/stats/${a}`,
   },
-  // CKPool variants
+  // CKPool have now a global stats site
   {
-    id: 'ckpool-eusolo',
-    name: 'eusolo*.ckpool.org',
-    match: (h) => /^eusolo[46]?\.(ckpool\.org)$/.test(h),
-    quickLink: (a) => `https://eusolostats.ckpool.org/users/${a}`,
-    iconUrl: '/assets/pools/ck-eupool.svg',
-  },
-  {
-    id: 'ckpool-solo',
-    name: 'solo*.ckpool.org',
-    match: (h) => /^solo[46]?\.(ckpool\.org)$/.test(h),
-    quickLink: (a) => `https://solostats.ckpool.org/users/${a}`,
+    id: 'ckpool',
+    name: 'ckpool.org',
+    match: (h) => h.includes('ckpool.org'),
+    quickLink: (a) => `https://stats.ckpool.org/users/${a}`,
     iconUrl: '/assets/pools/ck-pool.svg',
-  },
-  {
-    id: 'ckpool-ausolo',
-    name: 'ausolo*.ckpool.org',
-    match: (h) => /^ausolo[46]?\.(ckpool\.org)$/.test(h),
-    quickLink: (a) => `https://ausolostats.ckpool.org/users/${a}`,
-    iconUrl: '/assets/pools/ck-aupool.svg',
   },
   {
     id: 'noderunners',
