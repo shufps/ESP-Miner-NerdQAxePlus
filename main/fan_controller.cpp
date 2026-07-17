@@ -72,7 +72,7 @@ void FanController::loadSettings()
     for (int ch = 0; ch < m_numChannels; ch++) {
         PidSettings* bp = m_board->getPidSettings(ch);
 
-        m_config[ch].mode         = static_cast<Mode>(Config::getFanMode(ch));
+        m_config[ch].mode         = static_cast<Mode>(m_board->getFanMode(ch));
         m_config[ch].manualSpeed  = Config::getFanManualSpeed(ch);
         m_config[ch].overheatTemp = Config::getFanOverheatTemp(ch);
         m_config[ch].pid.targetTemp = Config::getFanPidTargetTemp(ch, bp->targetTemp);

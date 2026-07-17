@@ -51,6 +51,11 @@ public:
     // ch1 base defaults (overridden in subclass ctors where needed): 65°C, p=6, i=0.1, d=10.
     PidSettings m_pidSettings[2] = {{}, {65, 600, 10, 1000}};
 
+    // Fan control mode per channel (0=manual, 2=PID, 3=linked). Initialized to
+    // the default here and overwritten from NVS in loadSettings() — same
+    // handling as m_pidSettings. ch0 = global Kconfig default, ch1 = linked.
+    int m_fanMode[2] = {CONFIG_AUTO_FAN_SPEED_VALUE, 3};
+
     // Human-readable connector labels shown in the web UI
     const char* m_fanLabels[2] = {"Fan 1", "Fan 2"};
 
@@ -312,6 +317,10 @@ public:
 
     PidSettings *getPidSettings(int ch = 0) {
         return &m_pidSettings[ch];
+    }
+
+    int getFanMode(int ch) {
+        return m_fanMode[ch];
     }
 
     const char* getFanLabel(int ch) const {

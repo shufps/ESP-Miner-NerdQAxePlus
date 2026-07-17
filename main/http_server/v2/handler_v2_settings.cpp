@@ -131,7 +131,7 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
             PidSettings* fanPid = board->getPidSettings(ch);
             JsonObject fan = fans.add<JsonObject>();
             fan["label"]       = board->getFanLabel(ch);
-            fan["mode"]        = Config::getFanMode(ch);
+            fan["mode"]        = board->getFanMode(ch);
             fan["manualSpeed"] = Config::getFanManualSpeed(ch);
             fan["overheatTemp"] = Config::getFanOverheatTemp(ch);
             JsonObject pid_obj = fan["pid"].to<JsonObject>();

@@ -99,7 +99,7 @@ esp_err_t GET_can_nodes(httpd_req_t *req)
             JsonArray fans = master["fans"].to<JsonArray>();
             for (int ch = 0; ch < numFans; ch++) {
                 JsonObject fan   = fans.add<JsonObject>();
-                fan["mode"]        = Config::getFanMode(ch);
+                fan["mode"]        = board->getFanMode(ch);
                 fan["manualSpeed"] = Config::getFanManualSpeed(ch);
                 fan["overheatTemp"]= Config::getFanOverheatTemp(ch);
                 fan["targetTemp"]  = board->getPidSettings(ch)->targetTemp;

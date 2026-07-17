@@ -45,6 +45,7 @@ void Board::loadSettings()
     m_vrFrequency = Config::getVrFrequency(m_defaultVrFrequency);
 
     for (int ch = 0; ch < 2; ch++) {
+        m_fanMode[ch] = Config::getFanMode(ch, m_fanMode[ch]);
         m_pidSettings[ch].targetTemp = Config::getFanPidTargetTemp(ch, m_pidSettings[ch].targetTemp);
         m_pidSettings[ch].p = Config::getFanPidP(ch, m_pidSettings[ch].p);
         m_pidSettings[ch].i = Config::getFanPidI(ch, m_pidSettings[ch].i);

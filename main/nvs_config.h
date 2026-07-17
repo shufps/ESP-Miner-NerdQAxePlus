@@ -189,7 +189,6 @@ namespace Config {
     inline uint16_t getFanSpeed() { return cfgGetU16(NVS_CONFIG_FAN_SPEED, CONFIG_FAN_SPEED); }
     inline uint16_t getOverheatTemp() { return cfgGetU16(NVS_CONFIG_OVERHEAT_TEMP, CONFIG_OVERHEAT_TEMP); }
     inline uint16_t getInfluxPort() { return cfgGetU16(NVS_CONFIG_INFLUX_PORT, CONFIG_INFLUX_PORT); }
-    inline uint16_t getTempControlMode() { return cfgGetU16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE); }
     inline uint16_t getPoolMode() { return cfgGetU16(NVS_CONFIG_POOL_MODE, 0); }
     inline uint16_t getPoolBalance() { return cfgGetU16(NVS_CONFIG_POOL_MODE_BALANCE, 50); }
 
@@ -214,9 +213,9 @@ namespace Config {
     // Indexed fan-channel getters (ch=0 → ch0 NVS keys, ch=1 → fan1 NVS keys)
     // ch0 defaults: mode=CONFIG_AUTO_FAN_SPEED_VALUE, speed=CONFIG_FAN_SPEED, overheat=CONFIG_OVERHEAT_TEMP
     // ch1 defaults: mode=3 (linked), speed=100%, overheat=80°C
-    inline uint16_t getFanMode(int ch) {
-        return ch == 0 ? cfgGetU16(NVS_CONFIG_AUTO_FAN_SPEED, CONFIG_AUTO_FAN_SPEED_VALUE)
-                       : cfgGetU16(NVS_CONFIG_FAN1_MODE, 3);
+    inline uint16_t getFanMode(int ch, uint16_t def) {
+        return ch == 0 ? cfgGetU16(NVS_CONFIG_AUTO_FAN_SPEED, def)
+                       : cfgGetU16(NVS_CONFIG_FAN1_MODE, def);
     }
     inline uint16_t getFanManualSpeed(int ch) {
         return ch == 0 ? cfgGetU16(NVS_CONFIG_FAN_SPEED, CONFIG_FAN_SPEED)

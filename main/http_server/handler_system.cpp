@@ -187,7 +187,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
             PidSettings* fanPid = board->getPidSettings(ch);
             JsonObject fan = fans.add<JsonObject>();
             fan["label"]        = board->getFanLabel(ch);
-            fan["mode"]         = Config::getFanMode(ch);
+            fan["mode"]         = board->getFanMode(ch);
             fan["manualSpeed"]  = Config::getFanManualSpeed(ch);
             fan["overheatTemp"] = Config::getFanOverheatTemp(ch);
             fan["rpm"]          = POWER_MANAGEMENT_MODULE.getFanRPM(ch);
@@ -228,7 +228,7 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["invertscreen"]       = Config::isInvertScreenEnabled() ? 1 : 0; // unused?
     doc["autoscreenoff"]      = Config::isAutoScreenOffEnabled() ? 1 : 0;
     doc["invertfanpolarity"]  = board->isInvertFanPolarityEnabled() ? 1 : 0;
-    doc["autofanspeed"]       = Config::getTempControlMode();
+    doc["autofanspeed"]       = board->getFanMode(0);
     doc["stratum_keep"]       = Config::isStratumKeepaliveEnabled() ? 1 : 0;
 #ifdef VR_FREQUENCY_ENABLED
     doc["vrFrequency"]        = board->getVrFrequency();

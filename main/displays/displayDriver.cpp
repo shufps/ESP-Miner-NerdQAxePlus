@@ -76,7 +76,7 @@ DisplayDriver::DisplayDriver() {
 void DisplayDriver::loadSettings() {
     PThreadGuard lock(m_lvglMutex);
     m_isAutoScreenOffEnabled = Config::isAutoScreenOffEnabled();
-    m_tempControlMode = Config::getTempControlMode();
+    m_tempControlMode = SYSTEM_MODULE.getBoard()->getFanMode(0);
     m_fanSpeed = Config::getFanSpeed();
     m_showFoundBlockEnabled = Config::isShowBlockFoundEnabled();
 

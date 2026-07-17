@@ -106,11 +106,11 @@ static void send_slave_config(uint8_t slave_id)
     strncpy(c.fwVersion,   app->version,            sizeof(c.fwVersion)   - 1);
     c.freqMhz        = (uint16_t) Config::getAsicFrequency(board->getDefaultAsicFrequency());
     c.voltageMv       = (uint16_t) Config::getAsicVoltage(board->getDefaultAsicVoltageMillis());
-    c.fan0Mode        = (uint8_t)  Config::getFanMode(0);
+    c.fan0Mode        = (uint8_t)  board->getFanMode(0);
     c.fan0Speed       = (uint8_t)  Config::getFanManualSpeed(0);
     c.fan0TargetTemp  = (uint8_t)  Config::getFanPidTargetTemp(0, board->getPidSettings(0)->targetTemp);
     c.fan0Overheat    = (uint8_t)  Config::getFanOverheatTemp(0);
-    c.fan1Mode        = (uint8_t)  Config::getFanMode(1);
+    c.fan1Mode        = (uint8_t)  board->getFanMode(1);
     c.fan1Speed       = (uint8_t)  Config::getFanManualSpeed(1);
     c.fan1TargetTemp  = (uint8_t)  Config::getFanPidTargetTemp(1, board->getPidSettings(1)->targetTemp);
     c.fan1Overheat    = (uint8_t)  Config::getFanOverheatTemp(1);

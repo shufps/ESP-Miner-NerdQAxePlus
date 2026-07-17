@@ -34,14 +34,14 @@ Q1373B::Q1373B() : Q1370B()
 
     m_asicFrequencies = {250, 275, 300, 325, 350, 375, 400, 425, 475, 500, 550};
     m_asicVoltages = {980, 990, 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080};
-    m_defaultAsicFrequency = m_asicFrequency = 350;
+    m_defaultAsicFrequency = m_asicFrequency = 425;
     m_defaultAsicVoltageMillis = m_asicVoltageMillis = 1010;
     m_absMaxAsicFrequency = 730;
     m_absMinAsicVoltageMillis = 900;
     m_absMaxAsicVoltageMillis = 1200;
     m_initVoltageMillis = 1050;
 
-    m_pidSettings[0].targetTemp = 55;
+    m_pidSettings[0].targetTemp = 60;
     m_pidSettings[0].p = 600;  //   6.00
     m_pidSettings[0].i = 10;   //   0.10
     m_pidSettings[0].d = 1000; // 10.00
@@ -50,6 +50,10 @@ Q1373B::Q1373B() : Q1370B()
     m_pidSettings[1].p = 600;         //   6.00
     m_pidSettings[1].i = 10;          //   0.10
     m_pidSettings[1].d = 1000;        // 10.00
+
+    // ship with PID fan control by default (ch1 stays linked); with target 60°C
+    // the fan holds max(ASIC, VReg) for good out-of-the-box efficiency
+    m_fanMode[0] = 2; // PID
 
     m_asicMaxDifficulty = 4096;
     m_asicMinDifficulty = 1024;
