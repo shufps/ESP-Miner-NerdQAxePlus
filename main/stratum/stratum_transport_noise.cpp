@@ -2,6 +2,8 @@
 
 #include "esp_log.h"
 
+#include "macros.h"
+
 extern "C" {
 #include "sv2_noise.h"
 #include "sv2_protocol.h"
@@ -38,9 +40,10 @@ bool NoiseStratumTransport::connect(const char *host, const char *ip, uint16_t p
         return false;
     }
 
-    // Create Noise context
-    m_noise_ctx = sv2_noise_create();
-    if (!m_noise_ctx) {
+    // Create Noise context; publish it to m_noise_ctx only after the
+    // handshake succeeded so a concurrent send() can't use it mid-handshake
+    sv2_noise_ctx_t *ctx = sv2_noise_create();
+    if (!ctx) {
         ESP_LOGE(TAG, "Failed to create Noise context");
         StratumTransport::close();
         return false;
@@ -48,14 +51,18 @@ bool NoiseStratumTransport::connect(const char *host, const char *ip, uint16_t p
 
     // Perform Noise_NX handshake
     ESP_LOGI(TAG, "Starting Noise handshake");
-    int ret = sv2_noise_handshake(m_noise_ctx, m_t,
+    int ret = sv2_noise_handshake(ctx, m_t,
                                   m_has_authority_pubkey ? m_authority_pubkey : nullptr);
     if (ret != 0) {
         ESP_LOGE(TAG, "Noise handshake failed");
-        sv2_noise_destroy(m_noise_ctx);
-        m_noise_ctx = nullptr;
+        sv2_noise_destroy(ctx);
         StratumTransport::close();
         return false;
+    }
+
+    {
+        PThreadGuard g(m_lock);
+        m_noise_ctx = ctx;
     }
 
     ESP_LOGI(TAG, "Encrypted channel established (ChaCha20-Poly1305)");
@@ -64,6 +71,8 @@ bool NoiseStratumTransport::connect(const char *host, const char *ip, uint16_t p
 
 int NoiseStratumTransport::send(const void *data, size_t len)
 {
+    PThreadGuard g(m_lock);
+
     if (!m_noise_ctx || !m_t) {
         return -1;
     }
@@ -86,6 +95,11 @@ int NoiseStratumTransport::recv(void *buf, size_t len)
 
 void NoiseStratumTransport::close()
 {
+    // unblock a submit that may be stuck inside sv2_noise_send() so it
+    // releases m_lock before we destroy the noise ctx under it
+    shutdownSocket_();
+
+    PThreadGuard g(m_lock);
     if (m_noise_ctx) {
         sv2_noise_destroy(m_noise_ctx);
         m_noise_ctx = nullptr;

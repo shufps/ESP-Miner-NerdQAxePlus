@@ -198,27 +198,13 @@ const POOLS: PoolMeta[] = [
     match: (h) => h.includes('ocean.xyz'),
     quickLink: (a) => `https://ocean.xyz/stats/${a}`,
   },
-  // CKPool variants
+  // CKPool have now a global stats site
   {
-    id: 'ckpool-eusolo',
-    name: 'eusolo*.ckpool.org',
-    match: (h) => /^eusolo[46]?\.(ckpool\.org)$/.test(h),
-    quickLink: (a) => `https://eusolostats.ckpool.org/users/${a}`,
-    iconUrl: '/assets/pools/ck-eupool.svg',
-  },
-  {
-    id: 'ckpool-solo',
-    name: 'solo*.ckpool.org',
-    match: (h) => /^solo[46]?\.(ckpool\.org)$/.test(h),
-    quickLink: (a) => `https://solostats.ckpool.org/users/${a}`,
+    id: 'ckpool',
+    name: 'ckpool.org',
+    match: (h) => h.includes('ckpool.org'),
+    quickLink: (a) => `https://stats.ckpool.org/users/${a}`,
     iconUrl: '/assets/pools/ck-pool.svg',
-  },
-  {
-    id: 'ckpool-ausolo',
-    name: 'ausolo*.ckpool.org',
-    match: (h) => /^ausolo[46]?\.(ckpool\.org)$/.test(h),
-    quickLink: (a) => `https://ausolostats.ckpool.org/users/${a}`,
-    iconUrl: '/assets/pools/ck-aupool.svg',
   },
   {
     id: 'noderunners',
@@ -292,6 +278,15 @@ const POOLS: PoolMeta[] = [
     quickLink: (a) => `https://solo.braiins.com/stats/${a}`,
     faviconHost: 'solo.braiins.com',
     faviconPath: '/icon.png'
+  },
+  {
+    id: 'mining-dutch',
+    name: 'mining-dutch.nl',
+    // stratum host is a regional subdomain (e.g. europe.mining-dutch.nl);
+    // account-based pool, so link to the main site instead of the wallet
+    match: (h) => h.includes('mining-dutch.nl'),
+    quickLink: () => `https://www.mining-dutch.nl`,
+    faviconHost: 'www.mining-dutch.nl',
   }
 ];
 

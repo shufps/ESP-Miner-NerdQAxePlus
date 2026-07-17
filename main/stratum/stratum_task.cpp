@@ -220,12 +220,15 @@ void StratumTaskBase::task()
             m_poolErrors++;
         }
 
+        // gate new submits before tearing the transport down; the
+        // transport's internal lock covers a submit already inside send()
+        m_isConnected = false;
+
         // shutdown and reconnect
         ESP_LOGIE(m_reconnect, m_tag, "Shutdown socket ...");
         m_transport->close();
 
         disconnectedCallback();
-        m_isConnected = false;
 
         // skip reconnect delay
         if (m_reconnect) {

@@ -15,6 +15,7 @@ The web interface uses **Angular i18n** with **ngx-translate** to manage multi-l
 - 🇮🇹 **Italian (it)**
 - 🇷🇴 **Romanian (ro)**
 - 🇵🇱 **Polish (pl)**
+- 🇩🇰 **Danish (da)**
 
 ## File Structure
 
@@ -26,7 +27,8 @@ src/assets/i18n/
 ├── de.json    # German
 ├── it.json    # Italian
 ├── ro.json    # Romanian
-└── pl.json    # Polish
+├── pl.json    # Polish
+└── da.json    # Danish
 ```
 
 ## Translation Key Structure
@@ -127,7 +129,7 @@ The following is an example of adding the Portuguese (pt) language.
 ### 1. Update the Model
 In `src/app/@i18n/models/language.model.ts`:
 ```typescript
-export type Language = 'fr' | 'en' | 'de' | 'es' | 'it' | 'ro' | 'pl' | 'pt';
+export type Language = 'fr' | 'en' | 'de' | 'es' | 'it' | 'ro' | 'pl' | 'da' | 'pt';
 ```
 
 ### 2. Create Translation File
@@ -136,7 +138,7 @@ Create `src/assets/i18n/pt.json` with all translated keys.
 ### 3. Update the Application
 In `src/app/app.component.ts`:
 ```typescript
-translate.addLangs(['en', 'fr', 'es', 'de', 'it', 'ro', 'pl', 'pt']);
+translate.addLangs(['en', 'fr', 'es', 'de', 'it', 'ro', 'pl', 'da', 'pt']);
 ```
 
 ### 4. Add Option to Selector

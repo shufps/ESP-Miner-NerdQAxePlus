@@ -593,10 +593,9 @@ void StratumTaskV2::submitShare(const char *jobid, const char *extranonce_2,
                                 const uint32_t ntime, const uint32_t nonce,
                                 const uint32_t version_rolled, const uint32_t version_base)
 {
-    sv2_noise_ctx_t *noise = m_noiseTransport.getNoiseCtx();
-    esp_transport_handle_t transport = m_noiseTransport.getTransportHandle();
-
-    if (!noise || !transport) {
+    // this runs on the ASIC result task; go through m_noiseTransport.send()
+    // so its lock protects the noise ctx against a concurrent close()
+    if (!m_noiseTransport.getNoiseCtx()) {
         ESP_LOGE(m_tag, "Cannot submit share: no connection");
         return;
     }
@@ -640,7 +639,7 @@ void StratumTaskV2::submitShare(const char *jobid, const char *extranonce_2,
 
     m_lastSubmitTimeUs = esp_timer_get_time();
 
-    if (sv2_noise_send(noise, transport, buf, frame_len) != 0) {
+    if (m_noiseTransport.send(buf, frame_len) != frame_len) {
         ESP_LOGE(m_tag, "Failed to send share");
     }
 }

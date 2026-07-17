@@ -25,7 +25,7 @@ struct PingStats
     uint32_t total_time_ms;
     double min_rtt;
     double max_rtt;
-    const char *hostname;
+    char hostname[64];
     bool header_shown;
     const char* tag;
 };
@@ -40,6 +40,11 @@ class PingTask {
     int m_history_count = 0;
     const char* m_tag = nullptr;
     StratumManager *m_manager = nullptr;
+
+    // callback context for esp_ping; must not live on perform_ping's stack
+    // because the ping thread can still fire callbacks after
+    // esp_ping_stop()/esp_ping_delete_session() returned
+    PingStats m_stats = {};
 
     void record_ping_result(uint16_t sent, uint16_t received);
     int init_ping_history();

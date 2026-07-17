@@ -1875,7 +1875,8 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
     if (!this._info || !stratum) return {} as any;
 
     if (i === undefined) {
-      return stratum.pools[0] ?? {} as any;
+      // failover mode: both pools are reported, show the active one
+      return stratum.pools.find(p => p.active) ?? stratum.pools[0] ?? {} as any;
     }
     return stratum.pools[i] ?? {} as any;
   }
@@ -1959,10 +1960,11 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
   if (!Array.isArray(pools) || pools.length === 0) return 0;
 
   // In some template contexts (e.g. single pool tile) `idx` may be undefined.
-  // For UI consistency we default to the PRIMARY pool (index 0), which also matches the Shares card.
-  const idx = (typeof id === 'number' && Number.isFinite(id)) ? id : 0;
-
-  const pool = pools[idx];
+  // Default to the ACTIVE pool then (failover mode reports both pools and
+  // carries the session stats on the active one), matching the Shares card.
+  const pool = (typeof id === 'number' && Number.isFinite(id))
+    ? pools[id]
+    : (pools.find(p => p.active) ?? pools[0]);
   if (!pool) return 0;
 
   const rejected = Number(pool.rejected ?? 0);

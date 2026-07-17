@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -25,7 +26,21 @@ private:
     void setNoDelay_();
 
 protected:
+    void shutdownSocket_();
+
     esp_transport_handle_t m_t;
+
+    // Guards m_t (and the noise ctx in the derived class) between the task
+    // owning the connection (connect/close) and the ASIC result task
+    // submitting shares (send/isConnected). recv() is only called by the
+    // owner task and stays unlocked so a blocking read can't stall submits.
+    // Recursive because connect() calls close().
+    pthread_mutex_t m_lock;
+
+    // esp_transport_*_set_keep_alive() stores this pointer (no copy) and
+    // dereferences it later inside esp_transport_connect(), so the config
+    // must outlive applyKeepAlive_()
+    esp_transport_keep_alive_t m_keepAlive = {};
 };
 
 class TcpStratumTransport : public StratumTransport {

@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "ping_task.h"
 #include "esp_log.h"
 #include "global_state.h"
@@ -102,10 +104,15 @@ PingResult PingTask::perform_ping(const char *ip_str, const char *hostname_str)
         return result;
     }
 
-    PingStats stats{};
-    stats.hostname = hostname_str;
-    stats.min_rtt = 1e6;
-    stats.tag = m_tag;
+    // esp_ping_stop()/esp_ping_delete_session() only clear flags; the ping
+    // thread re-checks them at the top of its loop and can still run one
+    // callback up to a full receive timeout later. The callback context
+    // therefore lives in the object, not on this stack frame, and the
+    // hostname is copied because the config strings may be replaced by then.
+    m_stats = {};
+    snprintf(m_stats.hostname, sizeof(m_stats.hostname), "%s", hostname_str ? hostname_str : "?");
+    m_stats.min_rtt = 1e6;
+    m_stats.tag = m_tag;
 
     // Configure ping session
     esp_ping_config_t config = ESP_PING_DEFAULT_CONFIG();
@@ -116,7 +123,7 @@ PingResult PingTask::perform_ping(const char *ip_str, const char *hostname_str)
 
     // Set callback to accumulate successful replies
     esp_ping_callbacks_t cbs = {};
-    cbs.cb_args = &stats;
+    cbs.cb_args = &m_stats;
     cbs.on_ping_success = on_ping_task_success;
 
     // Configure and start ping session
@@ -155,6 +162,11 @@ PingResult PingTask::perform_ping(const char *ip_str, const char *hostname_str)
     // Stop session
     esp_ping_stop(ping);
 
+    // the ping thread only sees the stop flag at the top of its loop; let a
+    // possible in-flight receive (up to PING_TIMEOUT_MS) and its callback
+    // finish before reading the stats and deleting the session
+    vTaskDelay(pdMS_TO_TICKS(PING_TIMEOUT_MS + 200));
+
     // Final verification: check if any replies were missing
     esp_ping_get_profile(ping, ESP_PING_PROF_REPLY, &replies, sizeof(replies));
     esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &sent, sizeof(sent));
@@ -163,13 +175,13 @@ PingResult PingTask::perform_ping(const char *ip_str, const char *hostname_str)
     esp_ping_delete_session(ping);
 
     // Store results if valid replies exist
-    if (stats.replies > 0) {
-        double round_avg = (double) stats.total_time_ms / stats.replies;
+    if (m_stats.replies > 0) {
+        double round_avg = (double) m_stats.total_time_ms / m_stats.replies;
         result.success = true;
-        result.replies = stats.replies;
+        result.replies = m_stats.replies;
         result.avg_rtt_ms = round_avg;
-        result.min_rtt_ms = stats.min_rtt;
-        result.max_rtt_ms = stats.max_rtt;
+        result.min_rtt_ms = m_stats.min_rtt;
+        result.max_rtt_ms = m_stats.max_rtt;
         m_last_ping_rtt_ms = result.avg_rtt_ms;
     }
 

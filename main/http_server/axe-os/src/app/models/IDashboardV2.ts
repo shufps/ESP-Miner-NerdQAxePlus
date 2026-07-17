@@ -50,6 +50,7 @@ export interface IDashboardV2Thermal {
 }
 
 export interface IDashboardV2Pool {
+    active?: boolean;       // pool is currently mining (failover: the selected one)
     host: string;
     port: number;
     user: string;
