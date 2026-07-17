@@ -4,6 +4,9 @@
 #include "esp_log.h"
 #include "i2c_master.h"
 #include "serial.h"
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 static const char *TAG = "q1370";
 
@@ -11,6 +14,13 @@ static const char *TAG = "q1370";
 #define VREG_EXP_PIN 1
 #define LDO_EXP_PIN 2
 #define CAN_SLAVE_EXP_PIN 5  // DIP switch: pulled to GND = slave mode, pull-up required
+
+// The FXL6408 IO expander's reset is driven by a BSS138 whose gate hangs on
+// GPIO3 (pulled high by the ESP32 boot-strap resistor). While the ESP32 is in
+// reset GPIO3 is high → BSS138 conducts → the FXL6408 is held in reset. The
+// firmware must drive GPIO3 low to release the expander before any access to
+// it, otherwise the expander is never reset together with the ESP32.
+#define IO_EXP_RESET_GPIO GPIO_NUM_3
 
 Q1370B::Q1370B() : NerdQaxePlus()
 {
@@ -57,6 +67,12 @@ Q1370B::Q1370B() : NerdQaxePlus()
 #endif
     m_asics = new BM1370();
     m_hasHashCounter = true;
+
+    // Release the FXL6408 IO expander from reset (GPIO3 low) as early as
+    // possible. This base-class ctor completes before the Q1373 ctor body,
+    // which reads the strap pins off the expander in detectBoardOptions() —
+    // so a single call here covers both Q1370 and Q1373.
+    releaseIoExpanderReset();
 }
 
 float Q1370B::getTemperature(int index)
@@ -67,6 +83,15 @@ float Q1370B::getTemperature(int index)
     }
     // we can't read the real chip temps but this should be about right
     return temp + 3.0f;
+}
+
+void Q1370B::releaseIoExpanderReset()
+{
+    gpio_pad_select_gpio(IO_EXP_RESET_GPIO);
+    gpio_set_direction(IO_EXP_RESET_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_level(IO_EXP_RESET_GPIO, 0);
+    // give the FXL6408 a moment to come out of reset before the first access
+    vTaskDelay(pdMS_TO_TICKS(2));
 }
 
 bool Q1370B::initBoard()

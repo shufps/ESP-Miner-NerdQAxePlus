@@ -24,6 +24,9 @@ class Q1370B : public NerdQaxePlus {
 
     virtual void setAsicReset(bool state);
 
+    // drive GPIO3 low to release the FXL6408 IO expander from hardware reset
+    void releaseIoExpanderReset();
+
     virtual bool initBoard();
 
   public:
