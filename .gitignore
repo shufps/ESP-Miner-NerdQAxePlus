@@ -35,6 +35,9 @@ nbproject
 # Ignore gitlab ci specific cache folder
 /.cache
 
+# Grafana / InfluxDB volumes created by monitoring/create_data_directories.sh
+monitoring/data/
+
 components/components/*
 config.bin
 config.cvs
