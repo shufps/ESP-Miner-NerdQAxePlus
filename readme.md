@@ -36,7 +36,7 @@ First you need to clone the repository and create a local copy of the config fil
 
 ```bash
 # clone repository
-git clone https://github.com/shufps/ESP-Miner-NerdQAxePlus
+git clone --recursive https://github.com/shufps/ESP-Miner-NerdQAxePlus
 
 # change into the cloned repository
 cd ESP-Miner-NerdQAxePlus
@@ -73,8 +73,11 @@ cd docker
 ./build_docker.sh
 cd ..
 
+# only needed if you cloned without --recursive
+git submodule update --init --recursive
+
 export BOARD="NERDQAXEPLUS2"
-./docker/idf.sh set-target esp32-s3
+./docker/idf.sh set-target esp32s3
 
 # after each change on the source code
 ./docker/idf.sh build
