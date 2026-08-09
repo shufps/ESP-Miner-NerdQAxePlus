@@ -391,7 +391,7 @@ void Influx::write()
             m_stats.accepted, m_stats.not_accepted, m_stats.total_uptime, m_stats.blocks_found,
             m_stats.pwr_vin, m_stats.pwr_iin, m_stats.pwr_pin, m_stats.pwr_vout, m_stats.pwr_iout, m_stats.pwr_pout,
             m_stats.total_blocks_found, m_stats.duplicate_hashes, m_stats.last_ping_rtt, m_stats.recent_ping_loss,
-            m_stats.fan_pwm_0, m_stats.fan_rpm_0, m_stats.fan_rpm_1, m_stats.fan_pwm_1);
+            m_stats.fan_pwm_0, m_stats.fan_rpm_0, m_stats.fan_pwm_1, m_stats.fan_rpm_1);
 
     snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", m_host, m_port, m_bucket,
              m_org);
