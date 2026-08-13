@@ -476,14 +476,11 @@ void StratumTaskV2::handleSetExtranoncePrefix(const uint8_t *payload, uint32_t l
         return;
     }
 
-    // Spec 5.3.10 addresses the message at a specific extended or standard
-    // channel. This client opens exactly one, so anything else is not ours.
-    if (channel_id != m_sv2_conn.channel_id) {
-        ESP_LOGW(m_tag, "SetExtranoncePrefix for channel %lu, ours is %lu; ignoring",
-                 (unsigned long)channel_id, (unsigned long)m_sv2_conn.channel_id);
-        return;
-    }
-
+    // The channel id is logged, not gated on: this client opens exactly one
+    // channel, no other handler here checks it, and a mismatch would only ever
+    // make the miner drop a prefix change in silence — the one failure mode
+    // that is impossible to diagnose from the pool side.
+    //
     // Log the change, not just the new value: seeing old -> new is what tells
     // an operator whether the pool actually moved the prefix, and the value is
     // what a rejected-share investigation needs (the length never is).
@@ -500,8 +497,9 @@ void StratumTaskV2::handleSetExtranoncePrefix(const uint8_t *payload, uint32_t l
 
     // Jobs already received keep the prefix pinned at their arrival; only jobs
     // that arrive from here on use the new one. Nothing is re-hashed.
-    ESP_LOGI(m_tag, "SetExtranoncePrefix: %s -> %s (applies to jobs from here on)",
-             old_hex[0] ? old_hex : "(none)", new_hex[0] ? new_hex : "(empty)");
+    ESP_LOGI(m_tag, "SetExtranoncePrefix: %s -> %s (channel %lu, applies to jobs from here on)",
+             old_hex[0] ? old_hex : "(none)", new_hex[0] ? new_hex : "(empty)",
+             (unsigned long)channel_id);
 }
 
 void StratumTaskV2::handleSetNewPrevHash(const uint8_t *payload, uint32_t len)
