@@ -348,8 +348,11 @@ bool StratumTaskV2::receiveOpenChannelSuccess()
         m_sv2_conn.extranonce_prefix_len = extranonce_prefix_len;
         memcpy(m_sv2_conn.extranonce_prefix, extranonce_prefix, extranonce_prefix_len);
 
-        ESP_LOGI(m_tag, "Extended channel: extranonce_size=%d, prefix_len=%d",
-                 extranonce_size, extranonce_prefix_len);
+        char pfx_hex[65] = {0};
+        bin2hex(m_sv2_conn.extranonce_prefix, m_sv2_conn.extranonce_prefix_len, pfx_hex,
+                sizeof(pfx_hex));
+        ESP_LOGI(m_tag, "Extended channel: extranonce_size=%d, prefix_len=%d, prefix=%s",
+                 extranonce_size, extranonce_prefix_len, pfx_hex);
     } else {
         uint8_t extranonce_prefix[32];
         uint8_t extranonce_prefix_len;
@@ -481,6 +484,15 @@ void StratumTaskV2::handleSetExtranoncePrefix(const uint8_t *payload, uint32_t l
         return;
     }
 
+    // Log the change, not just the new value: seeing old -> new is what tells
+    // an operator whether the pool actually moved the prefix, and the value is
+    // what a rejected-share investigation needs (the length never is).
+    char old_hex[65] = {0};
+    char new_hex[65] = {0};
+    bin2hex(m_sv2_conn.extranonce_prefix, m_sv2_conn.extranonce_prefix_len, old_hex,
+            sizeof(old_hex));
+    bin2hex(prefix, prefix_len, new_hex, sizeof(new_hex));
+
     m_sv2_conn.extranonce_prefix_len = prefix_len;
     if (prefix_len > 0) {
         memcpy(m_sv2_conn.extranonce_prefix, prefix, prefix_len);
@@ -488,7 +500,8 @@ void StratumTaskV2::handleSetExtranoncePrefix(const uint8_t *payload, uint32_t l
 
     // Jobs already received keep the prefix pinned at their arrival; only jobs
     // that arrive from here on use the new one. Nothing is re-hashed.
-    ESP_LOGI(m_tag, "Extranonce prefix updated: len=%d (applies to following jobs)", prefix_len);
+    ESP_LOGI(m_tag, "SetExtranoncePrefix: %s -> %s (applies to jobs from here on)",
+             old_hex[0] ? old_hex : "(none)", new_hex[0] ? new_hex : "(empty)");
 }
 
 void StratumTaskV2::handleSetNewPrevHash(const uint8_t *payload, uint32_t len)
