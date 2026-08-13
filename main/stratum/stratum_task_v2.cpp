@@ -174,6 +174,10 @@ void StratumTaskV2::protocolLoop()
             handleNewExtendedMiningJob(m_recvBuf, hdr.msg_length);
             break;
 
+        case SV2_MSG_SET_EXTRANONCE_PREFIX:
+            handleSetExtranoncePrefix(m_recvBuf, hdr.msg_length);
+            break;
+
         case SV2_MSG_SET_NEW_PREV_HASH:
             handleSetNewPrevHash(m_recvBuf, hdr.msg_length);
             break;
@@ -427,6 +431,13 @@ void StratumTaskV2::handleNewExtendedMiningJob(const uint8_t *payload, uint32_t 
     ESP_LOGI(m_tag, "New extended mining job: id=%lu, version=%08lx, merkle_branches=%d",
              (unsigned long)job->job_id, (unsigned long)job->version, job->merkle_path_count);
 
+    // Spec 5.3.10: a SetExtranoncePrefix applies to jobs sent AFTER it. Pin the
+    // prefix that is in force right now, so a future job parked in the ring
+    // keeps it even if a change arrives before SetNewPrevHash activates it.
+    job->extranonce_prefix_len = m_sv2_conn.extranonce_prefix_len;
+    memcpy(job->extranonce_prefix, m_sv2_conn.extranonce_prefix,
+           m_sv2_conn.extranonce_prefix_len);
+
     int slot = job->job_id % SV2_PENDING_JOBS_SIZE;
 
     if (job->ntime > 0) {
@@ -449,6 +460,35 @@ void StratumTaskV2::handleNewExtendedMiningJob(const uint8_t *payload, uint32_t 
         }
         m_sv2_conn.ext_pending_jobs[slot] = job;
     }
+}
+
+void StratumTaskV2::handleSetExtranoncePrefix(const uint8_t *payload, uint32_t len)
+{
+    uint32_t channel_id;
+    uint8_t prefix[32];
+    uint8_t prefix_len;
+
+    if (sv2_parse_set_extranonce_prefix(payload, len, &channel_id, prefix, &prefix_len) != 0) {
+        ESP_LOGE(m_tag, "Failed to parse SetExtranoncePrefix");
+        return;
+    }
+
+    // Spec 5.3.10 addresses the message at a specific extended or standard
+    // channel. This client opens exactly one, so anything else is not ours.
+    if (channel_id != m_sv2_conn.channel_id) {
+        ESP_LOGW(m_tag, "SetExtranoncePrefix for channel %lu, ours is %lu; ignoring",
+                 (unsigned long)channel_id, (unsigned long)m_sv2_conn.channel_id);
+        return;
+    }
+
+    m_sv2_conn.extranonce_prefix_len = prefix_len;
+    if (prefix_len > 0) {
+        memcpy(m_sv2_conn.extranonce_prefix, prefix, prefix_len);
+    }
+
+    // Jobs already received keep the prefix pinned at their arrival; only jobs
+    // that arrive from here on use the new one. Nothing is re-hashed.
+    ESP_LOGI(m_tag, "Extranonce prefix updated: len=%d (applies to following jobs)", prefix_len);
 }
 
 void StratumTaskV2::handleSetNewPrevHash(const uint8_t *payload, uint32_t len)
@@ -674,7 +714,7 @@ void StratumTaskV2::enqueueExtendedJob(sv2_ext_job_t *job)
         //          extranonce1 = "" (empty), extranonce2_len = extranonce_size (full)
         // This makes coinbase_process calculate coinbase_2_offset=0, so nSequence
         // is correctly found at the start of coinbase_suffix.
-        size_t cb1_bin_len = job->coinbase_prefix_len + m_sv2_conn.extranonce_prefix_len;
+        size_t cb1_bin_len = job->coinbase_prefix_len + job->extranonce_prefix_len;
         size_t pfx_hex_len = cb1_bin_len * 2 + 1;
         size_t sfx_hex_len = job->coinbase_suffix_len * 2 + 1;
 
@@ -684,7 +724,7 @@ void StratumTaskV2::enqueueExtendedJob(sv2_ext_job_t *job)
         if (pfx_hex && sfx_hex) {
             // Build coinbase_1 = coinbase_prefix + extranonce_prefix
             bin2hex(job->coinbase_prefix, job->coinbase_prefix_len, pfx_hex, pfx_hex_len);
-            bin2hex(m_sv2_conn.extranonce_prefix, m_sv2_conn.extranonce_prefix_len,
+            bin2hex(job->extranonce_prefix, job->extranonce_prefix_len,
                     pfx_hex + job->coinbase_prefix_len * 2,
                     pfx_hex_len - job->coinbase_prefix_len * 2);
             bin2hex(job->coinbase_suffix, job->coinbase_suffix_len, sfx_hex, sfx_hex_len);
@@ -699,8 +739,8 @@ void StratumTaskV2::enqueueExtendedJob(sv2_ext_job_t *job)
     }
 
     create_job_sv2_extended(m_index, job,
-                            m_sv2_conn.extranonce_prefix,
-                            m_sv2_conn.extranonce_prefix_len,
+                            job->extranonce_prefix,
+                            job->extranonce_prefix_len,
                             m_sv2_conn.extranonce_size,
                             0x1fffe000, pdiff, job->clean_jobs);
     sv2_ext_job_free(job);
