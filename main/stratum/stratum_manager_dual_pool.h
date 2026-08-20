@@ -108,6 +108,9 @@ class StratumManagerDualPool : public StratumManager {
 
     virtual void resetSessionStats() override {
         PThreadGuard lock(m_mutex);
+        // m_foundBlocks is manager-global (not per-pool), so a full reset
+        // zeroes it here rather than in resetPoolSessionStats()
+        m_foundBlocks = 0;
         for (int i = 0; i < 2; i++) {
             resetPoolSessionStats(i);
         }
