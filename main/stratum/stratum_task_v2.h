@@ -44,6 +44,7 @@ class StratumTaskV2 : public StratumTaskBase {
     // SV2 message handlers
     void handleNewMiningJob(const uint8_t *payload, uint32_t len);
     void handleNewExtendedMiningJob(const uint8_t *payload, uint32_t len);
+    void handleSetExtranoncePrefix(const uint8_t *payload, uint32_t len);
     void handleSetNewPrevHash(const uint8_t *payload, uint32_t len);
     void handleSetTarget(const uint8_t *payload, uint32_t len);
     void handleSubmitSharesSuccess(const uint8_t *payload, uint32_t len);
