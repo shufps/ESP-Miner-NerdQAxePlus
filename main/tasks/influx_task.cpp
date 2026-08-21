@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <string.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -18,6 +19,29 @@ int last_block_found = 0;
 
 uint64_t getDuplicateHWNonces();
 
+// Telemetry accumulators.
+//
+// The power management task samples the buck every POLL_RATE (2s) and the
+// influx task publishes every 15s. Previously each setter overwrote the
+// previous value, so ~7 of every 8 samples were discarded -- decimation with
+// no anti-alias filtering. Accumulate instead and publish the mean.
+typedef struct {
+    double vin, iin, pin, vout, iout, pout;
+    double temp, temp2;
+    double fan_pwm_0, fan_rpm_0, fan_pwm_1, fan_rpm_1;
+    uint32_t pwr_count;
+    uint32_t temp_count;
+    uint32_t fan_count;
+} TelemetryAccum;
+
+static TelemetryAccum s_accum;
+
+// must be called with influxdb->m_lock held
+static void accum_reset(void)
+{
+    memset(&s_accum, 0, sizeof(s_accum));
+}
+
 // Timer callback function to increment uptime counters
 void uptime_timer_callback(TimerHandle_t xTimer)
 {
@@ -34,8 +58,9 @@ void influx_task_set_temperature(float temp, float temp2)
         return;
     }
     pthread_mutex_lock(&influxdb->m_lock);
-    influxdb->m_stats.temp = temp;
-    influxdb->m_stats.temp2 = temp2;
+    s_accum.temp += temp;
+    s_accum.temp2 += temp2;
+    s_accum.temp_count++;
     pthread_mutex_unlock(&influxdb->m_lock);
 }
 
@@ -45,12 +70,13 @@ void influx_task_set_pwr(float vin, float iin, float pin, float vout, float iout
         return;
     }
     pthread_mutex_lock(&influxdb->m_lock);
-    influxdb->m_stats.pwr_vin = vin;
-    influxdb->m_stats.pwr_iin = iin;
-    influxdb->m_stats.pwr_pin = pin;
-    influxdb->m_stats.pwr_vout = vout;
-    influxdb->m_stats.pwr_iout = iout;
-    influxdb->m_stats.pwr_pout = pout;
+    s_accum.vin += vin;
+    s_accum.iin += iin;
+    s_accum.pin += pin;
+    s_accum.vout += vout;
+    s_accum.iout += iout;
+    s_accum.pout += pout;
+    s_accum.pwr_count++;
     pthread_mutex_unlock(&influxdb->m_lock);
 }
 
@@ -59,10 +85,11 @@ void influx_set_fan(float pwm0, float rpm0, float pwm1, float rpm1) {
         return;
     }
     pthread_mutex_lock(&influxdb->m_lock);
-    influxdb->m_stats.fan_pwm_0 = pwm0;
-    influxdb->m_stats.fan_rpm_0 = rpm0;
-    influxdb->m_stats.fan_pwm_1 = pwm1;
-    influxdb->m_stats.fan_rpm_1 = rpm1;
+    s_accum.fan_pwm_0 += pwm0;
+    s_accum.fan_rpm_0 += rpm0;
+    s_accum.fan_pwm_1 += pwm1;
+    s_accum.fan_rpm_1 += rpm1;
+    s_accum.fan_count++;
     pthread_mutex_unlock(&influxdb->m_lock);
 }
 
@@ -98,6 +125,50 @@ static void influx_task_fetch_from_stratum_manager(StratumManager *module) {
         influxdb->m_stats.total_blocks_found++;
     }
     last_block_found = found;
+}
+
+// Averages everything collected since the last write and stores it into
+// m_stats. If no samples arrived (buck not initialised, shutdown) the previous
+// values are left in place.
+//
+// Returns false when nothing at all was collected since the last publish. That
+// happens on the first pass after boot, before the power management task has run
+// once: m_stats still holds its zero-initialised values, so publishing would emit
+// an all-zero record. The caller skips the write in that case.
+// must be called with influxdb->m_lock held
+static bool influx_task_flush_accum(void)
+{
+    const bool have_samples = s_accum.pwr_count || s_accum.temp_count || s_accum.fan_count;
+
+    if (s_accum.pwr_count) {
+        const double n = (double) s_accum.pwr_count;
+        influxdb->m_stats.pwr_vin = (float) (s_accum.vin / n);
+        influxdb->m_stats.pwr_iin = (float) (s_accum.iin / n);
+        influxdb->m_stats.pwr_pin = (float) (s_accum.pin / n);
+        influxdb->m_stats.pwr_vout = (float) (s_accum.vout / n);
+        influxdb->m_stats.pwr_iout = (float) (s_accum.iout / n);
+        influxdb->m_stats.pwr_pout = (float) (s_accum.pout / n);
+    }
+
+    if (s_accum.temp_count) {
+        const double n = (double) s_accum.temp_count;
+        influxdb->m_stats.temp = (float) (s_accum.temp / n);
+        influxdb->m_stats.temp2 = (float) (s_accum.temp2 / n);
+    }
+
+    if (s_accum.fan_count) {
+        const double n = (double) s_accum.fan_count;
+        influxdb->m_stats.fan_pwm_0 = (float) (s_accum.fan_pwm_0 / n);
+        influxdb->m_stats.fan_rpm_0 = (float) (s_accum.fan_rpm_0 / n);
+        influxdb->m_stats.fan_pwm_1 = (float) (s_accum.fan_pwm_1 / n);
+        influxdb->m_stats.fan_rpm_1 = (float) (s_accum.fan_rpm_1 / n);
+    }
+
+    ESP_LOGD(TAG, "flushed telemetry: %lu pwr, %lu temp, %lu fan samples", s_accum.pwr_count, s_accum.temp_count,
+             s_accum.fan_count);
+
+    accum_reset();
+    return have_samples;
 }
 
 static void influx_task_fetch_from_system_module(System *module)
@@ -191,6 +262,8 @@ void influx_task(void *pvParameters)
         forever();
     }
 
+    accum_reset();
+
     while (1) {
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
             ESP_LOGW(TAG, "suspended");
@@ -199,7 +272,11 @@ void influx_task(void *pvParameters)
         pthread_mutex_lock(&influxdb->m_lock);
         influx_task_fetch_from_system_module(module);
         influx_task_fetch_from_stratum_manager(STRATUM_MANAGER);
-        influxdb->write();
+        if (influx_task_flush_accum()) {
+            influxdb->write();
+        } else {
+            ESP_LOGI(TAG, "no telemetry collected yet, skipping write");
+        }
         pthread_mutex_unlock(&influxdb->m_lock);
         vTaskDelay(pdMS_TO_TICKS(15000));
     }
