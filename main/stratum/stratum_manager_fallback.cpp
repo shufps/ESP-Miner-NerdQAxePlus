@@ -152,10 +152,10 @@ void StratumManagerFallback::checkForBestDiff(int pool, double diff, uint32_t nb
     StratumManager::checkForBestDiff(pool, diff, nbits);
 }
 
-void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
+void StratumManagerFallback::getManagerInfoJson(JsonObject &obj, bool verbose) {
     PThreadGuard lock(m_mutex);
 
-    StratumManager::getManagerInfoJson(obj);
+    StratumManager::getManagerInfoJson(obj, verbose);
 
     // fallback specific
     obj["usingFallback"] = isUsingFallback();
@@ -165,16 +165,28 @@ void StratumManagerFallback::getManagerInfoJson(JsonObject &obj) {
     // always report both pool configs, array order matches the config
     // (0 = primary, 1 = fallback); "active" marks the one currently mining
     for (int i = 0; i < 2; i++) {
-        JsonObject pool = arr.add<JsonObject>();
         bool active = (i == (int) m_selected);
 
-        pool["active"] = active;
+        // the legacy v1 /info reports only the active pool (single entry),
+        // matching the pre-v1.1.0 shape external clients (Blocktrainer terminal)
+        // rely on; the v2 dashboard (verbose) still gets both pool configs
+        if (!verbose && !active) {
+            continue;
+        }
+
+        JsonObject pool = arr.add<JsonObject>();
+
         pool["connected"] = m_stratumTasks[i] ? m_stratumTasks[i]->m_isConnected : false;
-        pool["verifyBlocked"] = getVerifyBlockedReason(i) ? getVerifyBlockedReason(i) : "";
         pool["pingRtt"]  = m_pingTasks[i] ? m_pingTasks[i]->get_last_ping_rtt() : 0;
         pool["pingLoss"] = m_pingTasks[i] ? m_pingTasks[i]->get_recent_ping_loss() : 0;
-        pool["activeProtocol"] = m_stratumConfig[i] ? (int)m_stratumConfig[i]->getProtocol() : 0;
-        pool["encrypted"] = m_stratumConfig[i] ? (m_stratumConfig[i]->isSV2() || m_stratumConfig[i]->isTLS()) : false;
+
+        // dashboard-only fields — kept out of the legacy v1 /info (see dual-pool)
+        if (verbose) {
+            pool["active"] = active;
+            pool["verifyBlocked"] = getVerifyBlockedReason(i) ? getVerifyBlockedReason(i) : "";
+            pool["activeProtocol"] = m_stratumConfig[i] ? (int)m_stratumConfig[i]->getProtocol() : 0;
+            pool["encrypted"] = m_stratumConfig[i] ? (m_stratumConfig[i]->isSV2() || m_stratumConfig[i]->isTLS()) : false;
+        }
 
         // session stats are shared between both pools in failover mode,
         // report them on the active entry

@@ -152,7 +152,8 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["bestDiff"]           = STRATUM_MANAGER->getBestDiff();
     doc["bestSessionDiff"]    = STRATUM_MANAGER->getBestSessionDiff();
 
-    STRATUM_MANAGER->getManagerInfoJson(stratum_obj);
+    // v1 /info: slim legacy shape (external clients like the Blocktrainer terminal)
+    STRATUM_MANAGER->getManagerInfoJson(stratum_obj, false);
 
     // asic temps
     {

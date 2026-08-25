@@ -209,21 +209,18 @@ void StratumManagerDualPool::checkForBestDiff(int pool, double diff, uint32_t nb
     StratumManager::checkForBestDiff(pool, diff, nbits);
 }
 
-void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
+void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj, bool verbose)
 {
     PThreadGuard lock(m_mutex);
 
-    StratumManager::getManagerInfoJson(obj);
+    StratumManager::getManagerInfoJson(obj, verbose);
 
     JsonArray arr = obj["pools"].to<JsonArray>();
 
     for (int i = 0; i < 2; i++) {
         JsonObject pool = arr.add<JsonObject>();
 
-        pool["active"] = true; // dual pool mode: both pools mine
-
         pool["connected"] = m_stratumTasks[i] ? m_stratumTasks[i]->m_isConnected : false;
-        pool["verifyBlocked"] = getVerifyBlockedReason(i) ? getVerifyBlockedReason(i) : "";
         pool["poolDifficulty"] = m_poolDifficulty[i];
         pool["networkDifficulty"] = m_networkDifficulty[i];
         pool["poolDiffErr"] = m_poolDiffErr[i];
@@ -232,7 +229,14 @@ void StratumManagerDualPool::getManagerInfoJson(JsonObject &obj)
         pool["pingRtt"]  = m_pingTasks[i] ? m_pingTasks[i]->get_last_ping_rtt() : 0;
         pool["pingLoss"] = m_pingTasks[i] ? m_pingTasks[i]->get_recent_ping_loss() : 0;
         pool["bestDiff"] = m_bestSessionDiff[i];
-        pool["activeProtocol"] = m_stratumConfig[i] ? (int)m_stratumConfig[i]->getProtocol() : 0;
-        pool["encrypted"] = m_stratumConfig[i] ? (m_stratumConfig[i]->isSV2() || m_stratumConfig[i]->isTLS()) : false;
+
+        // dashboard-only fields — kept out of the legacy v1 /info so its
+        // response stays small and shape-compatible with external clients
+        if (verbose) {
+            pool["active"] = true; // dual pool mode: both pools mine
+            pool["verifyBlocked"] = getVerifyBlockedReason(i) ? getVerifyBlockedReason(i) : "";
+            pool["activeProtocol"] = m_stratumConfig[i] ? (int)m_stratumConfig[i]->getProtocol() : 0;
+            pool["encrypted"] = m_stratumConfig[i] ? (m_stratumConfig[i]->isSV2() || m_stratumConfig[i]->isTLS()) : false;
+        }
     }
 }

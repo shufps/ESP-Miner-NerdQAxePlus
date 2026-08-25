@@ -575,7 +575,7 @@ void StratumManager::runVerification(int pool)
     }
 }
 
-void StratumManager::getManagerInfoJson(JsonObject &obj)
+void StratumManager::getManagerInfoJson(JsonObject &obj, bool /*verbose*/)
 {
     obj["poolMode"] = Config::getPoolMode();
     obj["activePoolMode"] = getPoolMode();

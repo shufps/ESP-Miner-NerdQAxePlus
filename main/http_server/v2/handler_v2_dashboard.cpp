@@ -132,7 +132,7 @@ esp_err_t GET_V2_dashboard(httpd_req_t *req)
     // --- stratum ---
     {
         JsonObject stratum = doc["stratum"].to<JsonObject>();
-        STRATUM_MANAGER->getManagerInfoJson(stratum);
+        STRATUM_MANAGER->getManagerInfoJson(stratum, true);
 
         // Enrich each pool entry with host / port / user from NVS config
         char *urls[2]  = { Config::getStratumURL(), Config::getStratumFallbackURL() };
