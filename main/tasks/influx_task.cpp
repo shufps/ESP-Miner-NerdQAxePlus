@@ -269,15 +269,23 @@ void influx_task(void *pvParameters)
             ESP_LOGW(TAG, "suspended");
             vTaskSuspend(NULL);
         }
+        // Averaging + snapshot happen under the lock (fast, in-memory); the
+        // blocking HTTP write() is done AFTER unlocking, on a private copy, so a
+        // slow/unreachable InfluxDB can never stall the power-management task,
+        // which takes the same lock from its telemetry setters.
+        Stats snapshot;
         pthread_mutex_lock(&influxdb->m_lock);
         influx_task_fetch_from_system_module(module);
         influx_task_fetch_from_stratum_manager(STRATUM_MANAGER);
-        if (influx_task_flush_accum()) {
-            influxdb->write();
+        bool have_samples = influx_task_flush_accum();
+        snapshot = influxdb->m_stats;
+        pthread_mutex_unlock(&influxdb->m_lock);
+
+        if (have_samples) {
+            influxdb->write(snapshot);
         } else {
             ESP_LOGI(TAG, "no telemetry collected yet, skipping write");
         }
-        pthread_mutex_unlock(&influxdb->m_lock);
         vTaskDelay(pdMS_TO_TICKS(15000));
     }
 }
