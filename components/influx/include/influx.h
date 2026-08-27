@@ -57,7 +57,7 @@ class Influx {
     Influx();
 
     bool init(const char *host, int port, const char *token, const char *bucket, const char *org, const char *prefix);
-    void write();
+    void write(const Stats &s);
     bool load_last_values();
     bool bucket_exists();
     bool create_bucket();

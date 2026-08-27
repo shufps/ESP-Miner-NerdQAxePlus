@@ -373,7 +373,7 @@ bool Influx::load_last_values()
     return false;
 }
 
-void Influx::write()
+void Influx::write(const Stats &s)
 {
     char url[256];
 
@@ -385,13 +385,13 @@ void Influx::write()
             "pwr_vin=%f,pwr_iin=%f,pwr_pin=%f,pwr_vout=%f,pwr_iout=%f,pwr_pout=%f,"
             "total_blocks_found=%d,duplicate_hashes=%d,last_ping_rtt=%.2f,recent_ping_loss=%.2f,"
             "fan0_pwm=%f,fan0_rpm=%f,fan1_pwm=%f,fan1_rpm=%f",
-            m_prefix, m_stats.temp, m_stats.temp2,
-            m_stats.hashing_speed, m_stats.hashing_speed_1m, m_stats.invalid_shares, m_stats.valid_shares, m_stats.uptime,
-            m_stats.best_difficulty, m_stats.total_best_difficulty, m_stats.pool_errors,
-            m_stats.accepted, m_stats.not_accepted, m_stats.total_uptime, m_stats.blocks_found,
-            m_stats.pwr_vin, m_stats.pwr_iin, m_stats.pwr_pin, m_stats.pwr_vout, m_stats.pwr_iout, m_stats.pwr_pout,
-            m_stats.total_blocks_found, m_stats.duplicate_hashes, m_stats.last_ping_rtt, m_stats.recent_ping_loss,
-            m_stats.fan_pwm_0, m_stats.fan_rpm_0, m_stats.fan_pwm_1, m_stats.fan_rpm_1);
+            m_prefix, s.temp, s.temp2,
+            s.hashing_speed, s.hashing_speed_1m, s.invalid_shares, s.valid_shares, s.uptime,
+            s.best_difficulty, s.total_best_difficulty, s.pool_errors,
+            s.accepted, s.not_accepted, s.total_uptime, s.blocks_found,
+            s.pwr_vin, s.pwr_iin, s.pwr_pin, s.pwr_vout, s.pwr_iout, s.pwr_pout,
+            s.total_blocks_found, s.duplicate_hashes, s.last_ping_rtt, s.recent_ping_loss,
+            s.fan_pwm_0, s.fan_rpm_0, s.fan_pwm_1, s.fan_rpm_1);
 
     snprintf(url, sizeof(url), "%s:%d/api/v2/write?bucket=%s&org=%s&precision=s", m_host, m_port, m_bucket,
              m_org);
