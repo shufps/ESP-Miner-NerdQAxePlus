@@ -29,6 +29,24 @@
           <td>{{ info.lastResetReason | translate }}</td>
         </tr>
         <tr>
+          <td><b>{{ 'SYSTEM.COREDUMP_TITLE' | translate }}:</b></td>
+          <td>
+            <button nbButton
+                    size="small"
+                    status="info"
+                    [disabled]="coreDumpDownloading"
+                    (click)="downloadCoreDump(info.deviceModel, info.version)">
+              <nb-icon icon="download-outline" class="download-icon" aria-hidden="true"></nb-icon>
+              {{ 'SYSTEM.DOWNLOAD_COREDUMP' | translate }}
+            </button>
+            <div class="coredump-description">{{ 'SYSTEM.COREDUMP_DESCRIPTION' | translate }}</div>
+            <div class="coredump-warning">
+              <nb-icon icon="alert-triangle-outline" aria-hidden="true"></nb-icon>
+              {{ 'SYSTEM.COREDUMP_SENSITIVE_WARNING' | translate }}
+            </div>
+          </td>
+        </tr>
+        <tr>
           <td><b>{{ 'SYSTEM.WIFI_STATUS' | translate }}:</b></td>
           <td>
             <span class="wifi-status-combined">

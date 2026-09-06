@@ -13,6 +13,7 @@ import {
   filter as rxFilter,
   interval,
   Observable,
+  finalize,
   of,
   shareReplay,
   startWith,
@@ -66,6 +67,9 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
 
   /** Whether automatic scrolling is paused by user. */
   public stopScroll = false;
+
+  /** True while the stored panic core dump is being downloaded. */
+  public coreDumpDownloading = false;
 
   /** Used to select light/dark logo variants. */
   public logoPrefix = '';
@@ -594,6 +598,76 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
           );
         }
       });
+  }
+
+  public downloadCoreDump(deviceModel: string, version: string): void {
+    if (this.coreDumpDownloading) return;
+
+    this.coreDumpDownloading = true;
+    this.otpAuth
+      .ensureOtp$(
+        '',
+        this.translateService.instant('SECURITY.OTP_TITLE'),
+        this.translateService.instant('SECURITY.OTP_HINT')
+      )
+      .pipe(
+        switchMap(({ totp }: EnsureOtpResult) => this.systemService.downloadCoreDump(totp)),
+        catchError((err: HttpErrorResponse) => {
+          if (err.status === 404) {
+            this.toastrService.warning(
+              this.translateService.instant('SYSTEM.COREDUMP_NOT_FOUND'),
+              this.translateService.instant('COMMON.INFO')
+            );
+          } else if (err.status === 409) {
+            this.toastrService.danger(
+              this.translateService.instant('SYSTEM.COREDUMP_CORRUPT'),
+              this.translateService.instant('COMMON.ERROR')
+            );
+          } else {
+            this.toastrService.danger(
+              this.translateService.instant('SYSTEM.COREDUMP_DOWNLOAD_FAILED'),
+              this.translateService.instant('COMMON.ERROR')
+            );
+          }
+          return of(null);
+        }),
+        finalize(() => {
+          this.coreDumpDownloading = false;
+          this.cdr.markForCheck();
+        })
+      )
+      .subscribe((response) => {
+        if (response === null || response.body === null) return;
+
+        const elfSha256 = response.headers.get('X-ESP-App-ELF-SHA256') ?? 'unknown-elf';
+        const url = window.URL.createObjectURL(response.body);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = [
+          'coredump',
+          this.formatCoredumpFilenamePart(deviceModel),
+          this.formatCoredumpFilenamePart(version),
+          this.formatCoredumpFilenamePart(elfSha256),
+          this.formatFilenameStamp(new Date()),
+        ].join('_') + '.bin';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        this.toastrService.success(
+          this.translateService.instant('SYSTEM.COREDUMP_DOWNLOAD_SUCCESS'),
+          this.translateService.instant('COMMON.SUCCESS')
+        );
+      });
+  }
+
+  private formatCoredumpFilenamePart(value: string): string {
+    const safeValue = String(value ?? '')
+      .replace(/[γΓ]/g, 'Gamma')
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return safeValue || 'unknown';
   }
 
   /**
