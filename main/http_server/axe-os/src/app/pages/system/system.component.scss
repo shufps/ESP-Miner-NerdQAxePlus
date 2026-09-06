@@ -11,6 +11,23 @@
     width: 200px;
 }
 
+.coredump-description,
+.coredump-warning {
+  margin-top: 0.45rem;
+  font-size: 0.8rem;
+}
+
+.coredump-description {
+  color: var(--text-hint-color);
+}
+
+.coredump-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-warning-600);
+}
+
 .logs-viewport {
   height: 70vh;
   width: 100%;

@@ -2,6 +2,10 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_core_dump.h"
+#include "esp_partition.h"
+
+#include <cstring>
 
 #include "ArduinoJson.h"
 
@@ -18,6 +22,170 @@ static const char *TAG = "http_system";
 #define VR_FREQUENCY_ENABLED
 
 uint64_t getDuplicateHWNonces();
+
+static esp_err_t getCoreDumpElfSha256(const esp_partition_t *partition, size_t dump_size,
+                                     char *scratch, size_t scratch_size,
+                                     char *sha256, size_t sha256_size)
+{
+    static const char NOTE_NAME[] = "ESP_CORE_DUMP_INFO";
+    static const uint32_t NOTE_TYPE = 8266;
+
+    struct ElfNoteHeader {
+        uint32_t name_size;
+        uint32_t description_size;
+        uint32_t type;
+    };
+
+    const size_t marker_size = sizeof(NOTE_NAME) - 1;
+    size_t read_offset = 0;
+    size_t marker_offset = SIZE_MAX;
+
+    while (read_offset < dump_size) {
+        const size_t read_size = min(dump_size - read_offset, scratch_size);
+        esp_err_t err = esp_partition_read(partition, read_offset, scratch, read_size);
+        if (err != ESP_OK) {
+            return err;
+        }
+
+        for (size_t i = 0; i + marker_size <= read_size; i++) {
+            if (memcmp(scratch + i, NOTE_NAME, marker_size) == 0) {
+                marker_offset = read_offset + i;
+                break;
+            }
+        }
+        if (marker_offset != SIZE_MAX || read_size < marker_size) {
+            break;
+        }
+
+        read_offset += read_size - (marker_size - 1);
+    }
+
+    if (marker_offset < sizeof(ElfNoteHeader)) {
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    ElfNoteHeader note = {};
+    const size_t note_offset = marker_offset - sizeof(note);
+    esp_err_t err = esp_partition_read(partition, note_offset, &note, sizeof(note));
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    if (note.type != NOTE_TYPE || note.name_size < marker_size + 1 || note.name_size > 32 ||
+        note.description_size < sizeof(uint32_t) + 9) {
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+
+    const size_t description_offset = note_offset + sizeof(note) + ((note.name_size + 3) & ~((size_t) 3));
+    if (description_offset > dump_size || note.description_size > dump_size - description_offset) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    const size_t stored_sha_size = min(note.description_size - sizeof(uint32_t), sha256_size - 1);
+    err = esp_partition_read(partition, description_offset + sizeof(uint32_t), sha256, stored_sha_size);
+    if (err != ESP_OK) {
+        return err;
+    }
+    sha256[stored_sha_size] = '\0';
+
+    size_t sha_length = 0;
+    while (sha_length < stored_sha_size && sha256[sha_length] != '\0') {
+        const char c = sha256[sha_length];
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+            return ESP_ERR_INVALID_RESPONSE;
+        }
+        sha_length++;
+    }
+
+    return sha_length >= 8 ? ESP_OK : ESP_ERR_INVALID_RESPONSE;
+}
+
+esp_err_t GET_system_coredump(httpd_req_t *req)
+{
+    // close connection when out of scope
+    ConGuard g(http_server, req);
+
+    if (is_network_allowed(req) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+    }
+
+    if (set_cors_headers(req) != ESP_OK) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    // Core dumps can contain credentials and other sensitive task RAM.
+    if (validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
+    esp_err_t err = esp_core_dump_image_check();
+    if (err == ESP_ERR_NOT_FOUND || err == ESP_ERR_INVALID_SIZE) {
+        return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "No valid core dump stored");
+    }
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Core dump integrity check failed: %s", esp_err_to_name(err));
+        httpd_resp_set_status(req, "409 Conflict");
+        return httpd_resp_send(req, "Core dump integrity check failed", HTTPD_RESP_USE_STRLEN);
+    }
+
+    size_t dump_address = 0;
+    size_t dump_size = 0;
+    err = esp_core_dump_image_get(&dump_address, &dump_size);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to locate core dump: %s", esp_err_to_name(err));
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to locate core dump");
+    }
+
+    const esp_partition_t *partition = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA,
+        ESP_PARTITION_SUBTYPE_DATA_COREDUMP,
+        NULL
+    );
+    if (partition == NULL || dump_address != partition->address || dump_size > partition->size) {
+        ESP_LOGE(TAG, "Core dump location is outside the coredump partition");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Invalid core dump location");
+    }
+
+    char *chunk = ((rest_server_context_t *) req->user_ctx)->scratch;
+    char elf_sha256[65];
+    err = getCoreDumpElfSha256(partition, dump_size, chunk, SCRATCH_BUFSIZE, elf_sha256, sizeof(elf_sha256));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read core dump ELF identity: %s", esp_err_to_name(err));
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to identify core dump ELF");
+    }
+
+    httpd_resp_set_type(req, "application/octet-stream");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    httpd_resp_set_hdr(req, "X-Content-Type-Options", "nosniff");
+
+    if (httpd_resp_set_hdr(req, "X-ESP-App-ELF-SHA256", elf_sha256) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set core dump ELF identity header");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to identify core dump ELF");
+    }
+
+    size_t offset = 0;
+
+    while (offset < dump_size) {
+        const size_t chunk_size = min(dump_size - offset, (size_t) SCRATCH_BUFSIZE);
+        err = esp_partition_read(partition, offset, chunk, chunk_size);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to read core dump at offset %u: %s", (unsigned int) offset, esp_err_to_name(err));
+            httpd_resp_send_chunk(req, NULL, 0);
+            return ESP_FAIL;
+        }
+
+        if (httpd_resp_send_chunk(req, chunk, chunk_size) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to send core dump at offset %u", (unsigned int) offset);
+            httpd_resp_send_chunk(req, NULL, 0);
+            return ESP_FAIL;
+        }
+        offset += chunk_size;
+    }
+
+    ESP_LOGI(TAG, "Sent %u-byte core dump", (unsigned int) dump_size);
+    return httpd_resp_send_chunk(req, NULL, 0);
+}
 
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
