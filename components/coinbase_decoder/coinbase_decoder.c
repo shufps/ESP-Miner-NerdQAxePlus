@@ -83,7 +83,7 @@ static uint64_t decode_varint(const uint8_t *data, int *offset, int data_len)
 }
 
 /* Decode Bitcoin address from scriptPubKey */
-static void decode_address(const uint8_t *script, size_t script_len,
+static void __attribute__((unused)) decode_address(const uint8_t *script, size_t script_len,
                            char *output, size_t output_len)
 {
     if (script_len == 0 || output_len < 65) {
@@ -168,6 +168,64 @@ static void decode_address(const uint8_t *script, size_t script_len,
     snprintf(output, output_len, "UNKNOWN:");
     size_t hex_len = script_len < 32 ? script_len : 32;
     bin2hex(script, hex_len, output + 8, output_len - 8);
+}
+
+// Build the scriptPubKey that a given address pays to — the inverse of
+// decode_address(). Matching coinbase outputs against these raw bytes is
+// case-correct for all five types, unlike re-encoding each output to a string
+// and comparing it against the (lowercased) configured address, which could
+// never match case-sensitive Base58 P2PKH/P2SH. spk[] must hold >= 34 bytes.
+// Returns true on success.
+static bool address_to_scriptpubkey(const char *addr, uint8_t *spk, size_t *spk_len)
+{
+    if (!addr || !addr[0]) {
+        return false;
+    }
+
+    // SegWit (bech32/bech32m), mainnet HRP "bc": P2WPKH / P2WSH / P2TR.
+    // segwit_addr_decode() also accepts valid all-uppercase input.
+    int witver = -1;
+    uint8_t prog[40];
+    size_t prog_len = 0;
+    if (segwit_addr_decode(&witver, prog, &prog_len, "bc", addr) == 1) {
+        if (witver == 0 && prog_len == 20) {            // P2WPKH
+            spk[0] = OP_0; spk[1] = OP_PUSHDATA_20;
+            memcpy(spk + 2, prog, 20); *spk_len = 22;
+            return true;
+        }
+        if (witver == 0 && prog_len == 32) {            // P2WSH
+            spk[0] = OP_0; spk[1] = OP_PUSHDATA_32;
+            memcpy(spk + 2, prog, 32); *spk_len = 34;
+            return true;
+        }
+        if (witver == 1 && prog_len == 32) {            // P2TR
+            spk[0] = OP_1; spk[1] = OP_PUSHDATA_32;
+            memcpy(spk + 2, prog, 32); *spk_len = 34;
+            return true;
+        }
+        return false;
+    }
+
+    // Base58Check: [version][hash160(20)][checksum(4)] = 25 bytes. Sizing the
+    // buffer to exactly 25 keeps b58tobin's output left-aligned (it right-aligns
+    // into a larger buffer), so buf[0..24] is [ver][hash160][checksum].
+    uint8_t buf[25];
+    size_t bufsz = sizeof(buf);
+    if (b58tobin(buf, &bufsz, addr, strlen(addr)) && bufsz == sizeof(buf)) {
+        if (buf[0] == 0x00) {                           // P2PKH (version 0x00)
+            spk[0] = OP_DUP; spk[1] = OP_HASH160; spk[2] = OP_PUSHDATA_20;
+            memcpy(spk + 3, buf + 1, 20);
+            spk[23] = OP_EQUALVERIFY; spk[24] = OP_CHECKSIG; *spk_len = 25;
+            return true;
+        }
+        if (buf[0] == 0x05) {                           // P2SH (version 0x05)
+            spk[0] = OP_HASH160; spk[1] = OP_PUSHDATA_20;
+            memcpy(spk + 2, buf + 1, 20);
+            spk[22] = OP_EQUAL; *spk_len = 23;
+            return true;
+        }
+    }
+    return false;
 }
 
 esp_err_t coinbase_process(const char *coinbase_1,
@@ -305,6 +363,12 @@ esp_err_t coinbase_process(const char *coinbase_1,
              (unsigned long long)num_outputs, result->network_difficulty);
 #endif
 
+    /* Decode the configured wallet address once into its scriptPubKey; each
+       output below is then matched by raw bytes. */
+    uint8_t user_spk[34];
+    size_t user_spk_len = 0;
+    bool have_user_spk = user_address && address_to_scriptpubkey(user_address, user_spk, &user_spk_len);
+
     /* Parse each output: accumulate total value and match user address */
     for (uint64_t i = 0; i < num_outputs && offset < coinbase_2_len; i++) {
         /* Read value (8 bytes, little-endian) */
@@ -324,22 +388,21 @@ esp_err_t coinbase_process(const char *coinbase_1,
 
         if (offset + script_len > (size_t)coinbase_2_len) break;
 
-        /* Decode address (always needed for matching; log if enabled) */
+#ifdef COINBASE_DECODER_LOG_ADDRESSES
         char output_address[MAX_ADDRESS_STRING_LEN];
         decode_address(coinbase_2_bin + offset, script_len, output_address, MAX_ADDRESS_STRING_LEN);
-
-#ifdef COINBASE_DECODER_LOG_ADDRESSES
         ESP_LOGI(TAG, "  [%llu] %s  %.8f BTC (%llu sat)",
                  (unsigned long long)i, output_address,
                  (double)value_satoshis / 1e8,
                  (unsigned long long)value_satoshis);
 #endif
 
-        /* Match user address for payout share calculation */
-        if (user_address && value_satoshis > 0) {
-            if (strcmp(user_address, output_address) == 0) {
-                result->user_value_satoshis += value_satoshis;
-            }
+        /* Match by exact scriptPubKey bytes for the payout-share calculation —
+           case-correct for every address type (see address_to_scriptpubkey). */
+        if (have_user_spk && value_satoshis > 0 &&
+            (size_t)script_len == user_spk_len &&
+            memcmp(coinbase_2_bin + offset, user_spk, user_spk_len) == 0) {
+            result->user_value_satoshis += value_satoshis;
         }
 
         offset += script_len;

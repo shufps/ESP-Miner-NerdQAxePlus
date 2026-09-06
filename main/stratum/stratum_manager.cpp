@@ -432,8 +432,9 @@ static void extractUserAddress(const char *user, char *out, size_t out_len)
     out[out_len - 1] = '\0';
     char *dot = strchr(out, '.');
     if (dot) *dot = '\0';
-    // Normalize to lowercase so BC1Q... matches bc1q... from segwit_addr_encode
-    for (char *p = out; *p; p++) *p = tolower((unsigned char)*p);
+    // Do NOT lowercase here: coinbase matching is done by raw scriptPubKey bytes
+    // now, and Base58Check (P2PKH/P2SH) addresses are case-sensitive. bech32
+    // case-insensitivity is handled inside the decoder.
 }
 
 void StratumManager::processCoinbase(int pool, const mining_notify *notify)
