@@ -260,6 +260,14 @@ const POOLS: PoolMeta[] = [
     faviconPath: '/favicon.svg',
   },
   {
+    id: 'solo-odds',
+    name: 'Solo-Odds BCH',
+    match: (h) => h.includes('bch.solo-odds.com'),
+    quickLink: (a) => `https://solo-odds.com/pool/miner/?address=${a}`,
+    faviconHost: 'solo-odds.com',
+    faviconPath: '/favicon.ico',
+  },
+  {
     id: 'powermining',
     name: 'powermining.io',
     match: (h) => h.includes('powermining.io'),
