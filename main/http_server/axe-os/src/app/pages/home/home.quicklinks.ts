@@ -244,6 +244,14 @@ const POOLS: PoolMeta[] = [
     quickLink: (a) => `https://pool.solomining.de/#/app/${a}`,
   },
   {
+    id: 'bitaxe-pool',
+    name: 'bitaxe.de',
+    match: (h) => h.includes('bitaxe.de'),
+    quickLink: (a) => `https://pool.bitaxe.de/#${a}`,
+    faviconHost: 'pool.bitaxe.de',
+    faviconPath: '/favicon.ico',
+  },
+  {
     id: 'atlaspool',
     name: 'atlaspool.io',
     match: (h) => h.includes('atlaspool.io'),
