@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_random.h"
 #include "esp_timer.h"
@@ -18,6 +19,14 @@
 #include "secp256k1_extrakeys.h"
 
 static const char *TAG = "sv2_noise";
+
+// Frame scratch buffers go to PSRAM where available: an extended mining job
+// with many coinbase outputs can be tens of KB and must not eat internal DRAM.
+#ifdef CONFIG_SPIRAM
+#define SV2_SCRATCH_MALLOC(sz) heap_caps_malloc((sz), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)
+#else
+#define SV2_SCRATCH_MALLOC(sz) malloc((sz))
+#endif
 
 #define TRANSPORT_TIMEOUT_MS 5000
 #define RECV_TIMEOUT_MS      (60 * 3 * 1000)
@@ -512,7 +521,7 @@ int sv2_noise_send(sv2_noise_ctx_t *ctx, esp_transport_handle_t transport,
     // Encrypt payload if present
     int payload_len = frame_len - SV2_FRAME_HEADER_SIZE;
     if (payload_len > 0) {
-        uint8_t *enc_payload = malloc(payload_len + 16);
+        uint8_t *enc_payload = SV2_SCRATCH_MALLOC(payload_len + 16);
         if (!enc_payload) return -1;
 
         if (noise_encrypt(ctx->send_key, ctx->send_nonce++, NULL, 0,
@@ -567,7 +576,7 @@ int sv2_noise_recv(sv2_noise_ctx_t *ctx, esp_transport_handle_t transport,
 
     // Receive and decrypt payload
     int enc_len = hdr.msg_length + 16;
-    uint8_t *enc_payload = malloc(enc_len);
+    uint8_t *enc_payload = SV2_SCRATCH_MALLOC(enc_len);
     if (!enc_payload) return -1;
 
     if (noise_recv_exact(transport, enc_payload, enc_len) != 0) {
