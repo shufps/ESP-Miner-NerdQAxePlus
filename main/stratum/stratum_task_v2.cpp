@@ -37,6 +37,11 @@ StratumTaskV2::StratumTaskV2(StratumManager *manager, int index)
 {
     memset(&m_sv2_conn, 0, sizeof(m_sv2_conn));
     m_channelType = SV2_CHANNEL_EXTENDED; // default
+
+    m_recvBuf = (uint8_t *) MALLOC(SV2_MAX_RECV_SIZE);
+    if (!m_recvBuf) {
+        ESP_LOGE(TAG, "Failed to allocate %d byte SV2 receive buffer", SV2_MAX_RECV_SIZE);
+    }
 }
 
 StratumTransport *StratumTaskV2::selectTransport()
@@ -126,6 +131,11 @@ void StratumTaskV2::protocolLoop()
     // (SV2 uses the same version mask concept as V1)
     // create_job_set_version_mask(m_index, 0x1fffe000);
 
+    if (!m_recvBuf) {
+        ESP_LOGE(m_tag, "No SV2 receive buffer, cannot run protocol loop");
+        return;
+    }
+
     ESP_LOGI(m_tag, "SV2 protocol loop starting (channel=%s)",
              m_channelType == SV2_CHANNEL_EXTENDED ? "extended" : "standard");
 
@@ -164,7 +174,7 @@ void StratumTaskV2::protocolLoop()
         }
 
         if (sv2_noise_recv(noise, transport, m_hdrBuf, m_recvBuf,
-                           sizeof(m_recvBuf), &payload_len) != 0) {
+                           SV2_MAX_RECV_SIZE, &payload_len) != 0) {
             ESP_LOGE(m_tag, "Failed to receive SV2 frame, reconnecting...");
             return;
         }
@@ -253,7 +263,7 @@ bool StratumTaskV2::receiveSetupConnectionSuccess()
     esp_transport_handle_t transport = m_noiseTransport.getTransportHandle();
 
     if (sv2_noise_recv(noise, transport, m_hdrBuf, m_recvBuf,
-                       sizeof(m_recvBuf), &payload_len) != 0) {
+                       SV2_MAX_RECV_SIZE, &payload_len) != 0) {
         ESP_LOGE(m_tag, "Failed to receive SetupConnectionSuccess");
         return false;
     }
@@ -317,7 +327,7 @@ bool StratumTaskV2::receiveOpenChannelSuccess()
     esp_transport_handle_t transport = m_noiseTransport.getTransportHandle();
 
     if (sv2_noise_recv(noise, transport, m_hdrBuf, m_recvBuf,
-                       sizeof(m_recvBuf), &payload_len) != 0) {
+                       SV2_MAX_RECV_SIZE, &payload_len) != 0) {
         ESP_LOGE(m_tag, "Failed to receive OpenChannelSuccess");
         return false;
     }
