@@ -72,7 +72,7 @@ class HashrateMonitor {
     int64_t *m_prevResponse = nullptr;
     uint32_t *m_prevCounter = nullptr;
 
-    // per-chip hardware error rate (errors/s), same delta mechanism as hashrate
+    // per-chip hardware error hashrate (GH/s), same delta mechanism as hashrate
     float *m_chipErrorRate = nullptr;
     int64_t *m_prevErrorResponse = nullptr;
     uint32_t *m_prevErrorCounter = nullptr;
@@ -89,7 +89,7 @@ class HashrateMonitor {
     Asic *m_asic = nullptr;
 
     void setChipHashrate(int nr, float temp);
-    void setChipErrorRate(int nr, float eps);
+    void setChipErrorRate(int nr, float ghs);
     float getTotalChipHashrate();
 
   public:

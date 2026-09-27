@@ -53,11 +53,11 @@ float HashrateMonitor::getChipHashrate(int nr) {
     return m_chipHashrate[nr];
 }
 
-void HashrateMonitor::setChipErrorRate(int nr, float eps) {
+void HashrateMonitor::setChipErrorRate(int nr, float ghs) {
     if (nr < 0 || nr >= m_asicCount) {
         return;
     }
-    m_chipErrorRate[nr] = eps;
+    m_chipErrorRate[nr] = ghs;
 }
 
 float HashrateMonitor::getChipErrorRate(int nr) {
@@ -92,7 +92,7 @@ void HashrateMonitor::publishTotalIfComplete()
     // Iterate through each ASIC and append its hashrate + hw error rate to the log
     for (int i = 0; i < board->getAsicCount(); i++) {
         offset += snprintf(m_logBuffer + offset, sizeof(m_logBuffer) - offset, "%.2fGH/s / ", getChipHashrate(i));
-        errOffset += snprintf(errBuffer + errOffset, sizeof(errBuffer) - errOffset, "%.1f/s / ", getChipErrorRate(i));
+        errOffset += snprintf(errBuffer + errOffset, sizeof(errBuffer) - errOffset, "%.2fGH/s / ", getChipErrorRate(i));
     }
     if (offset >= 2) {
         m_logBuffer[offset - 2] = 0; // remove trailing slash
@@ -128,11 +128,13 @@ void HashrateMonitor::taskLoop()
             continue;
         }
 
-        // read the counters
+        // Read the counters one at a time. Two READ_ALL bursts must NOT overlap:
+        // a second READ_ALL sent while the first is still streaming truncates the
+        // remaining replies (only chip 0 survives). Give each its own settle window.
         m_asic->readCounter(REG_NONCE_TOTAL_CNT);
-        m_asic->readCounter(REG_HW_ERROR_CNT);
+        vTaskDelay(pdMS_TO_TICKS(500));
 
-        // responses normally take 20-30ms, so this is safe
+        m_asic->readCounter(REG_HW_ERROR_CNT);
         vTaskDelay(pdMS_TO_TICKS(500));
 
         publishTotalIfComplete();
@@ -197,9 +199,14 @@ void HashrateMonitor::onErrorReply(uint8_t asic_idx, uint32_t counterNow)
     int64_t timeDelta = now - m_prevErrorResponse[asic_idx];       // microseconds
     uint32_t counterDelta = counterNow - m_prevErrorCounter[asic_idx]; // wraparound-safe
 
-    // hardware errors per second
-    double eps = (timeDelta > 0) ? ((double) counterDelta * 1e6 / (double) timeDelta) : 0.0;
-    setChipErrorRate(asic_idx, (float) eps);
+    // The 0x4C error counter increments in the same 2^32-hashes-per-count unit
+    // as the 0x90 nonce counter, so we convert it to a hashrate with the exact
+    // same formula used for the valid hashrate. The result is the real "error
+    // hashrate" in GH/s, comparable to getChipHashrate(): total = valid + error.
+    double err_ghs = (timeDelta > 0)
+        ? ((double) counterDelta * (double) 0x100000000uLL / (double) timeDelta / 1000.0)
+        : 0.0;
+    setChipErrorRate(asic_idx, (float) err_ghs);
 
     m_prevErrorCounter[asic_idx] = counterNow;
     m_prevErrorResponse[asic_idx] = now;
