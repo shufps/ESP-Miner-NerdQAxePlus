@@ -306,7 +306,7 @@ void create_jobs_task(void *pvParameters)
 
     uint32_t last_ntime[2]{0};
     uint64_t last_submit_time = 0;
-    uint32_t extranonce_2 = 0;
+    uint32_t extranonce_2 = 0; // Sabit kalır, artırılmaz
 
     // CAN: per-slave rolling counters (upper 7 bits = slave_id, lower 25 = counter)
     uint32_t slave_counters[CAN_SLAVE_MAX] = {0};
@@ -375,7 +375,7 @@ void create_jobs_task(void *pvParameters)
         // save job
         asicJobs.storeJob(next_job, asic_job_id);
 
-        extranonce_2++;
+        // extranonce_2++; satırı kaldırıldı, extranonce2 artık 0'da sabit kalacak.
 
         // --- CAN: send raw job to each slave ---
         for (uint8_t slave = 0; slave < CAN_SLAVE_MAX; slave++) {
@@ -395,10 +395,7 @@ void create_jobs_task(void *pvParameters)
             if (slave_job) {
                 can_send_raw_job(slave, (uint8_t) asic_job_id, slave_job);
                 slaveAsicJobs[slave].storeJob(slave_job, asic_job_id);
-                // slaveAsicJobs owns slave_job now — do not free here
             }
         }
-
     }
-
 }
