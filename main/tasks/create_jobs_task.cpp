@@ -73,6 +73,9 @@ class MiningInfoV1 : public MiningInfoBase {
 
     bm_job* buildBmJob(uint32_t extranonce_2, int pool_id, uint32_t asic_diff) override
     {
+        // extranonce_2 her zaman 0 sabitlenecek
+        extranonce_2 = 0;
+
         // generate extranonce2 hex string
         char extranonce_2_str[extranonce_2_len * 2 + 1]; // +1 zero termination
         snprintf(extranonce_2_str, sizeof(extranonce_2_str), "%0*lx", (int) extranonce_2_len * 2, (unsigned long) extranonce_2);
@@ -224,13 +227,9 @@ void trigger_job_creation()
 }
 
 // Ensure miningInfo[pool] points to the V1 instance.
-// Called by all V1 free functions to handle mixed-protocol fallback
-// (e.g., pool was SV2 and switched to V1 - miningInfo might still
-// point to a V2 instance from create_jobs_sv2.cpp).
 static MiningInfoV1* ensureV1(int pool)
 {
     if (miningInfo[pool] != &s_miningInfoV1[pool]) {
-        // Reset to V1 instance (V2 instances are owned by create_jobs_sv2.cpp)
         s_miningInfoV1[pool].invalidate();
         miningInfo[pool] = &s_miningInfoV1[pool];
     }
@@ -265,7 +264,6 @@ void create_job_mining_notify(int pool, mining_notify *notify, bool abandonWork)
 {
     {
         PThreadGuard g(current_stratum_job_mutex);
-        // clear jobs for pool
         if (abandonWork) {
             asicJobs.cleanJobs(pool);
         }
@@ -290,7 +288,6 @@ void create_jobs_task(void *pvParameters)
     SYSTEM_MODULE.notifyMiningStarted();
     ESP_LOGI(TAG, "ASIC Ready!");
 
-    // Create the timer
     TimerHandle_t job_timer = xTimerCreate(TAG, pdMS_TO_TICKS(board->getAsicJobIntervalMs()), pdTRUE, NULL, create_job_timer);
 
     if (job_timer == NULL) {
@@ -298,7 +295,6 @@ void create_jobs_task(void *pvParameters)
         return;
     }
 
-    // Start the timer
     if (xTimerStart(job_timer, 0) != pdPASS) {
         ESP_LOGE(TAG, "Failed to start timer");
         return;
@@ -306,9 +302,8 @@ void create_jobs_task(void *pvParameters)
 
     uint32_t last_ntime[2]{0};
     uint64_t last_submit_time = 0;
-    uint32_t extranonce_2 = 0; // Sabit kalır, artırılmaz
+    uint32_t extranonce_2 = 0; // Sabit 0
 
-    // CAN: per-slave rolling counters (upper 7 bits = slave_id, lower 25 = counter)
     uint32_t slave_counters[CAN_SLAVE_MAX] = {0};
 
     int lastJobInterval = board->getAsicJobIntervalMs();
@@ -319,10 +314,9 @@ void create_jobs_task(void *pvParameters)
             vTaskSuspend(NULL);
         }
         pthread_mutex_lock(&job_mutex);
-        pthread_cond_wait(&job_cond, &job_mutex); // Wait for the timer or external trigger
+        pthread_cond_wait(&job_cond, &job_mutex);
         pthread_mutex_unlock(&job_mutex);
 
-        // job interval changed via UI
         if (board->getAsicJobIntervalMs() != lastJobInterval) {
             xTimerChangePeriod(job_timer, pdMS_TO_TICKS(board->getAsicJobIntervalMs()), 0);
             lastJobInterval = board->getAsicJobIntervalMs();
@@ -337,14 +331,12 @@ void create_jobs_task(void *pvParameters)
             continue;
         }
 
-        // select pool to mine for
         active_pool = STRATUM_MANAGER->getNextActivePool();
         active_pool_str = active_pool ? "Sec" : "Pri";
 
-        { // scope for mutex
+        { 
             PThreadGuard g(current_stratum_job_mutex);
 
-            // set current pool data
             MiningInfoBase *mi = miningInfo[active_pool];
 
             if (!mi->isValid() || !asics) {
@@ -356,10 +348,10 @@ void create_jobs_task(void *pvParameters)
             }
 
             uint32_t asic_diff = STRATUM_MANAGER->selectAsicDiff(active_pool, mi->getActiveDifficulty());
+            // extranonce_2 burada doğrudan 0 gönderiliyor
             next_job = mi->buildBmJob(extranonce_2, active_pool, asic_diff);
-        } // mutex
+        }
 
-        // set asic difficulty
         asics->setJobDifficultyMask(next_job->asic_diff);
 
         uint64_t current_time = esp_timer_get_time();
@@ -372,15 +364,12 @@ void create_jobs_task(void *pvParameters)
 
         ESP_LOGD(TAG, "(%s) Sent Job (%d): %02X", active_pool_str, active_pool, asic_job_id);
 
-        // save job
         asicJobs.storeJob(next_job, asic_job_id);
 
-        // extranonce_2++; satırı kaldırıldı, extranonce2 artık 0'da sabit kalacak.
-
-        // --- CAN: send raw job to each slave ---
+        // CAN slave tarafında da extranonce2 değerinin artması engellendi, 0 sabitlendi
         for (uint8_t slave = 0; slave < CAN_SLAVE_MAX; slave++) {
             if (!can_master_is_slave_active(slave)) continue;
-            uint32_t e2 = can_make_extranonce2(slave, slave_counters[slave]++);
+            uint32_t e2 = 0; // Sabit 0
 
             bm_job *slave_job = nullptr;
             {
