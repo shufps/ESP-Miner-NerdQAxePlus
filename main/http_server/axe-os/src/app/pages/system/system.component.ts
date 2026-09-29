@@ -71,6 +71,9 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
   /** True while the stored panic core dump is being downloaded. */
   public coreDumpDownloading = false;
 
+  /** Whether this firmware build compiled in the core dump download endpoint. */
+  public coreDumpDownloadSupported = false;
+
   /** Used to select light/dark logo variants. */
   public logoPrefix = '';
 
@@ -151,6 +154,15 @@ export class SystemComponent implements OnDestroy, AfterViewInit {
       this.logoPrefix = themeName.name === 'default' ? '' : '_dark';
       this.cdr.markForCheck();
     });
+
+    // The core dump download endpoint is only compiled into diagnostic builds.
+    this.systemService
+      .getIdentifyV2()
+      .pipe(catchError(() => of(null)))
+      .subscribe((identify) => {
+        this.coreDumpDownloadSupported = identify?.coreDumpDownload ?? false;
+        this.cdr.markForCheck();
+      });
   }
 
   /**

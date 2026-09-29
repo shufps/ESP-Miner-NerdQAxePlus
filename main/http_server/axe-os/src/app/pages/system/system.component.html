@@ -28,7 +28,7 @@
           <td><b>{{ 'SYSTEM.LAST_RESET_REASON' | translate }}:</b></td>
           <td>{{ info.lastResetReason | translate }}</td>
         </tr>
-        <tr>
+        <tr *ngIf="coreDumpDownloadSupported">
           <td><b>{{ 'SYSTEM.COREDUMP_TITLE' | translate }}:</b></td>
           <td>
             <button nbButton

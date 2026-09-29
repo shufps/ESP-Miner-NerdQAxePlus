@@ -2,10 +2,13 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "sdkconfig.h"
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
 #include "esp_core_dump.h"
 #include "esp_partition.h"
 
 #include <cstring>
+#endif
 
 #include "ArduinoJson.h"
 
@@ -23,6 +26,7 @@ static const char *TAG = "http_system";
 
 uint64_t getDuplicateHWNonces();
 
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
 static esp_err_t getCoreDumpElfSha256(const esp_partition_t *partition, size_t dump_size,
                                      char *scratch, size_t scratch_size,
                                      char *sha256, size_t sha256_size)
@@ -186,6 +190,7 @@ esp_err_t GET_system_coredump(httpd_req_t *req)
     ESP_LOGI(TAG, "Sent %u-byte core dump", (unsigned int) dump_size);
     return httpd_resp_send_chunk(req, NULL, 0);
 }
+#endif // CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
 
 /* Simple handler for getting system handler */
 esp_err_t GET_system_info(httpd_req_t *req)
