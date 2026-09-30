@@ -252,6 +252,14 @@ const POOLS: PoolMeta[] = [
     faviconPath: '/favicon.ico',
   },
   {
+    id: 'btc-pow-lab',
+    name: 'BTC PoW Lab Hybrid Solo',
+    match: (h) => h === 'stratum.btcpowlab-pool.com',
+    quickLink: (a) => `https://btcpowlab-pool.com/miner/${a}`,
+    faviconHost: 'btcpowlab-pool.com',
+    faviconPath: '/favicon.svg',
+  },
+  {
     id: 'sololuck',
     name: 'sololuck.io',
     match: (h) => h.includes('sololuck.io'),
