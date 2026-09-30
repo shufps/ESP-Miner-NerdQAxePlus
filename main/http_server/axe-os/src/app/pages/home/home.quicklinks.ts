@@ -244,6 +244,12 @@ const POOLS: PoolMeta[] = [
     quickLink: (a) => `https://pool.solomining.de/#/app/${a}`,
   },
   {
+    id: 'nerdminer-de',
+    name: 'nerdminer.de',
+    match: (h) => h.includes('nerdminer.de'),
+    quickLink: (a) => `https://pool.nerdminer.de/#/app/${a}`,
+  },
+  {
     id: 'atlaspool',
     name: 'atlaspool.io',
     match: (h) => h.includes('atlaspool.io'),
@@ -337,7 +343,17 @@ export function getQuickLink(
     return pool.quickLink(address);
   }
 
-  return safeUrl.startsWith('http') ? safeUrl : toUrlLike(safeUrl);
+  if (/^https?:\/\//i.test(safeUrl)) {
+    return safeUrl;
+  }
+
+  // Unknown pool: link to its website. A stratum+tcp:// URL can't be opened by
+  // the browser and the stratum port doesn't serve HTTP, so keep only the host.
+  const host = extractHost(safeUrl);
+  if (!host) {
+    return undefined;
+  }
+  return isLocalHost(host) ? `http://${host}` : `https://${host}`;
 }
 
 /**
