@@ -7,6 +7,7 @@
 
 static const char *HR_TAG = "hashrate_monitor";
 static constexpr uint8_t REG_NONCE_TOTAL_CNT = 0x90;
+static constexpr uint8_t REG_HW_ERROR_CNT    = 0x4C;
 
 HashrateMonitor::HashrateMonitor()
 {}
@@ -29,6 +30,9 @@ bool HashrateMonitor::start(Board *board, Asic *asic)
     m_prevResponse = new int64_t[m_asicCount]();
     m_prevCounter = new uint32_t[m_asicCount]();
 
+    m_chipErrorRate = new float[m_asicCount]();
+    m_prevErrorResponse = new int64_t[m_asicCount]();
+    m_prevErrorCounter = new uint32_t[m_asicCount]();
 
     xTaskCreatePSRAM(&HashrateMonitor::taskWrapper, "hr_monitor", 4096, (void *) this, 10, NULL);
     ESP_LOGI(HR_TAG, "started (period=%lums)", m_period_ms);
@@ -47,6 +51,20 @@ float HashrateMonitor::getChipHashrate(int nr) {
         return 0.0f;
     }
     return m_chipHashrate[nr];
+}
+
+void HashrateMonitor::setChipErrorRate(int nr, float ghs) {
+    if (nr < 0 || nr >= m_asicCount) {
+        return;
+    }
+    m_chipErrorRate[nr] = ghs;
+}
+
+float HashrateMonitor::getChipErrorRate(int nr) {
+    if (nr < 0 || nr >= m_asicCount) {
+        return 0.0f;
+    }
+    return m_chipErrorRate[nr];
 }
 
 float HashrateMonitor::getTotalChipHashrate() {
@@ -103,10 +121,13 @@ void HashrateMonitor::taskLoop()
             continue;
         }
 
-        // read the counters
+        // Read the counters one at a time. Two READ_ALL bursts must NOT overlap:
+        // a second READ_ALL sent while the first is still streaming truncates the
+        // remaining replies (only chip 0 survives). Give each its own settle window.
         m_asic->readCounter(REG_NONCE_TOTAL_CNT);
+        vTaskDelay(pdMS_TO_TICKS(500));
 
-        // responses normally take 20-30ms, so this is safe
+        m_asic->readCounter(REG_HW_ERROR_CNT);
         vTaskDelay(pdMS_TO_TICKS(500));
 
         publishTotalIfComplete();
@@ -149,4 +170,37 @@ void HashrateMonitor::onRegisterReply(uint8_t asic_idx, uint32_t counterNow)
 
     m_prevCounter[asic_idx] = counterNow;
     m_prevResponse[asic_idx] = now;
+}
+
+void HashrateMonitor::onErrorReply(uint8_t asic_idx, uint32_t counterNow)
+{
+    if (asic_idx >= m_asicCount) {
+        ESP_LOGE(HR_TAG, "error response for invalid asic %d", (int) asic_idx);
+        return;
+    }
+
+    int64_t now = esp_timer_get_time();
+
+    // first response: establish baseline (the 0x4C error counter is cumulative
+    // and not reset, so the first delta is taken from here on)
+    if (!m_prevErrorResponse[asic_idx]) {
+        m_prevErrorResponse[asic_idx] = now;
+        m_prevErrorCounter[asic_idx] = counterNow;
+        return;
+    }
+
+    int64_t timeDelta = now - m_prevErrorResponse[asic_idx];       // microseconds
+    uint32_t counterDelta = counterNow - m_prevErrorCounter[asic_idx]; // wraparound-safe
+
+    // The 0x4C error counter increments in the same 2^32-hashes-per-count unit
+    // as the 0x90 nonce counter, so we convert it to a hashrate with the exact
+    // same formula used for the valid hashrate. The result is the real "error
+    // hashrate" in GH/s, comparable to getChipHashrate(): total = valid + error.
+    double err_ghs = (timeDelta > 0)
+        ? ((double) counterDelta * (double) 0x100000000uLL / (double) timeDelta / 1000.0)
+        : 0.0;
+    setChipErrorRate(asic_idx, (float) err_ghs);
+
+    m_prevErrorCounter[asic_idx] = counterNow;
+    m_prevErrorResponse[asic_idx] = now;
 }

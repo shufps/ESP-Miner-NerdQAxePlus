@@ -69,6 +69,11 @@ void ASIC_result_task(void *pvParameters)
                     HASHRATE_MONITOR.onRegisterReply(asic_result.asic_nr, asic_result.data);
                     break;
                 }
+                case 0x4C: {
+                    // hardware error counter (per chip)
+                    HASHRATE_MONITOR.onErrorReply(asic_result.asic_nr, asic_result.data);
+                    break;
+                }
                 default: {
                     // NOP
                     break;

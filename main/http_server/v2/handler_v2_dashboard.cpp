@@ -90,6 +90,15 @@ esp_err_t GET_V2_dashboard(httpd_req_t *req)
         perf["frequency"]       = board->getAsicFrequency();
         perf["asicCount"]       = board->getAsicCount();
         perf["smallCoreCount"]  = board->getAsics() ? board->getAsics()->getSmallCoreCount() : 0;
+
+        // per-chip valid hashrate + hardware error hashrate (both GH/s) from the
+        // ASIC counters. total = hashRate + errorHashRate.
+        JsonArray chips = perf["chips"].to<JsonArray>();
+        for (int i = 0; i < board->getAsicCount(); i++) {
+            JsonObject chip = chips.add<JsonObject>();
+            chip["hashRate"]      = !shutdown ? HASHRATE_MONITOR.getChipHashrate(i)  : 0.0;
+            chip["errorHashRate"] = !shutdown ? HASHRATE_MONITOR.getChipErrorRate(i) : 0.0;
+        }
     }
 
     // --- power ---
