@@ -84,28 +84,21 @@ void HashrateMonitor::taskWrapper(void *pv)
 void HashrateMonitor::publishTotalIfComplete()
 {
     size_t offset = 0;
-    char errBuffer[256] = {0};
-    size_t errOffset = 0;
 
     Board* board = SYSTEM_MODULE.getBoard();
 
-    // Iterate through each ASIC and append its hashrate + hw error rate to the log
+    // Iterate through each ASIC and append its count to the log message
     for (int i = 0; i < board->getAsicCount(); i++) {
         offset += snprintf(m_logBuffer + offset, sizeof(m_logBuffer) - offset, "%.2fGH/s / ", getChipHashrate(i));
-        errOffset += snprintf(errBuffer + errOffset, sizeof(errBuffer) - errOffset, "%.2fGH/s / ", getChipErrorRate(i));
     }
     if (offset >= 2) {
         m_logBuffer[offset - 2] = 0; // remove trailing slash
-    }
-    if (errOffset >= 2) {
-        errBuffer[errOffset - 2] = 0;
     }
 
     // apply slight 3 tap median filter to remove weird outliers
     m_hashrate = m_median.update(getTotalChipHashrate());
 
     ESP_LOGI(HR_TAG, "chip hashrates: %s (total: %.3fGH/s)", m_logBuffer, m_hashrate);
-    ESP_LOGI(HR_TAG, "chip hw errors: %s", errBuffer);
 }
 
 void HashrateMonitor::taskLoop()
