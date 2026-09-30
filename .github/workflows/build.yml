@@ -2,6 +2,11 @@ name: Build and Release ESP32 Firmware
 
 on:
   workflow_dispatch:  # Manual trigger only
+    inputs:
+      enable_coredump:
+        description: 'Diagnostic build: panic core dump capture + download endpoint. Artifacts only, never published to release/R2. The dump can leak WiFi/pool credentials to anyone on the LAN unless OTP is enabled on the device.'
+        type: boolean
+        default: false
 
 jobs:
   build-and-release:
@@ -87,17 +92,39 @@ jobs:
           mv "./main/http_server/axe-os/src/assets/i18n/${l}.json" "./main/http_server/axe-os/src/assets/i18n/${l}.${COMMIT_HASH}.json"
         done
 
+    # Diagnostic builds layer sdkconfig.coredump on top of the defaults. The firmware
+    # gates the download endpoint on CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH, so this is
+    # the single switch for capture + endpoint. An empty value means "use defaults".
+    - name: Configure core dump build
+      run: |
+        if [ "${{ inputs.enable_coredump }}" == "true" ]; then
+          echo "Diagnostic build: panic core dumps + download endpoint ENABLED (no release/R2 upload)"
+          echo "IDF_SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.coredump" >> $GITHUB_ENV
+          echo "ARTIFACT_SUFFIX=-coredump" >> $GITHUB_ENV
+        else
+          echo "IDF_SDKCONFIG_DEFAULTS=" >> $GITHUB_ENV
+          echo "ARTIFACT_SUFFIX=" >> $GITHUB_ENV
+        fi
+
     - name: Set Target
       run: |
         # Run the Docker container to set ESP32-S3 target
-        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
+        docker run --rm --user root -e BOARD=${{ matrix.board }} -e SDKCONFIG_DEFAULTS="$IDF_SDKCONFIG_DEFAULTS" -v $PWD:/home/builder/project \
         shufps/esp-idf-builder:0.0.1 idf.py set-target esp32s3
 
     - name: Compile Binaries
       run: |
         # Run the Docker container to build the project
-        docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
+        docker run --rm --user root -e BOARD=${{ matrix.board }} -e SDKCONFIG_DEFAULTS="$IDF_SDKCONFIG_DEFAULTS" -v $PWD:/home/builder/project \
         shufps/esp-idf-builder:0.0.1 idf.py build
+
+    - name: Verify core dump configuration
+      run: |
+        if [ "${{ inputs.enable_coredump }}" == "true" ]; then
+          grep -q '^CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y' sdkconfig || { echo "::error::core dump requested but not enabled in sdkconfig"; exit 1; }
+        else
+          if grep -q '^CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y' sdkconfig; then echo "::error::core dump enabled in a normal build"; exit 1; fi
+        fi
 
     - name: Merge Binaries
       run: |
@@ -116,26 +143,34 @@ jobs:
         sudo mv build/esp-miner.elf build/esp-miner-${{ matrix.label }}.elf
 
     - name: Upload factory binary
-      if: env.RELEASE_EXISTS == 'false'
+      if: env.RELEASE_EXISTS == 'false' || inputs.enable_coredump
       uses: actions/upload-artifact@v4
       with:
-        name: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
+        name: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}${{ env.ARTIFACT_SUFFIX }}.bin
         path: esp-miner-factory-${{ matrix.label }}-${{ env.VERSION_TAG }}.bin
         retention-days: 7
 
-    - name: Upload BIN firmware
-      if: env.RELEASE_EXISTS == 'false'
+    - name: Upload ELF for crash analysis
+      if: inputs.enable_coredump
       uses: actions/upload-artifact@v4
       with:
-        name: esp-miner-${{ matrix.label }}.bin
+        name: esp-miner-${{ matrix.label }}${{ env.ARTIFACT_SUFFIX }}.elf
+        path: build/esp-miner-${{ matrix.label }}.elf
+        retention-days: 7
+
+    - name: Upload BIN firmware
+      if: env.RELEASE_EXISTS == 'false' || inputs.enable_coredump
+      uses: actions/upload-artifact@v4
+      with:
+        name: esp-miner-${{ matrix.label }}${{ env.ARTIFACT_SUFFIX }}.bin
         path: build/esp-miner-${{ matrix.label }}.bin
         retention-days: 7
 
     - name: Upload www.bin (only once)
-      if: env.RELEASE_EXISTS == 'false' && matrix.board == 'NERDQAXEPLUS'
+      if: (env.RELEASE_EXISTS == 'false' || inputs.enable_coredump) && matrix.board == 'NERDQAXEPLUS'
       uses: actions/upload-artifact@v4
       with:
-        name: www.bin
+        name: www${{ env.ARTIFACT_SUFFIX }}.bin
         path: build/www.bin
         retention-days: 7
 
@@ -160,8 +195,13 @@ jobs:
       if: env.RELEASE_EXISTS == 'false'
       run: echo "No GitHub release found for '${{ env.VERSION_TAG }}' — skipping release upload."
 
+    # Diagnostic builds must never replace the official release / webflasher binaries
+    - name: Skip publishing for diagnostic build
+      if: inputs.enable_coredump
+      run: echo "Core dump diagnostic build — artifacts only, skipping GitHub release and R2 upload."
+
     - name: Upload to Existing Release
-      if: env.RELEASE_EXISTS == 'true'
+      if: env.RELEASE_EXISTS == 'true' && !inputs.enable_coredump
       uses: softprops/action-gh-release@v1
       with:
         files: ${{ env.files }}
@@ -170,12 +210,12 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install rclone
-      if: env.RCLONE_CONF != ''
+      if: env.RCLONE_CONF != '' && !inputs.enable_coredump
       run: |
         curl -fsSL https://rclone.org/install.sh | sudo bash
 
     - name: Upload to Cloudflare R2 using rclone
-      if: env.RCLONE_CONF != ''
+      if: env.RCLONE_CONF != '' && !inputs.enable_coredump
       run: |
         mkdir -p ~/.config/rclone
         echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf

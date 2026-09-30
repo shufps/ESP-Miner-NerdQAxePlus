@@ -166,7 +166,8 @@ esp_err_t set_cors_headers(httpd_req_t *req)
 {
     return (httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*") == ESP_OK &&
             httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS") == ESP_OK &&
-            httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type, Authorization, X-TOTP, X-OTP-Session") == ESP_OK)
+            httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type, Authorization, X-TOTP, X-OTP-Session") == ESP_OK &&
+            httpd_resp_set_hdr(req, "Access-Control-Expose-Headers", "X-ESP-App-ELF-SHA256") == ESP_OK)
                ? ESP_OK
                : ESP_FAIL;
 }

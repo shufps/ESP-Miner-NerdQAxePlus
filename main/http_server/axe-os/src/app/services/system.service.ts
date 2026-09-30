@@ -1,4 +1,4 @@
-import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { eASICModel } from '../models/enum/eASICModel';
@@ -396,5 +396,14 @@ export class SystemService {
   // only returns enabled flag
   public getOTPStatus(): Observable<{ enabled: boolean }> {
     return this.httpClient.get('/api/v2/otp/status') as Observable<{ enabled: boolean }>;
+  }
+
+  public downloadCoreDump(totp?: string): Observable<HttpResponse<Blob>> {
+    const headers = totp ? new HttpHeaders({ 'X-TOTP': totp }) : undefined;
+    return this.httpClient.get('/api/system/coredump', {
+      headers,
+      observe: 'response',
+      responseType: 'blob',
+    });
   }
 }

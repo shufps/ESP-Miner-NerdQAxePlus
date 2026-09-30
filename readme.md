@@ -177,6 +177,47 @@ esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 \
 
 When done just `exit` the shell.
 
+### Persistent panic core dumps
+
+Panic core dumps are an **opt-in diagnostic feature and are disabled in normal builds**. The raw dump can contain WiFi/pool credentials and other task RAM, and its HTTP download endpoint would expose that on the LAN, so it is only compiled in when explicitly requested. The single switch is `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`: `sdkconfig.coredump` enables it, and the firmware compiles the download endpoint in exactly when it is set.
+
+In CI, tick the **`enable_coredump`** checkbox when dispatching the build workflow. Such a diagnostic build is uploaded only as workflow artifacts with a `-coredump` suffix (including the matching `esp-miner-<board>.elf`); it is never attached to a GitHub release or uploaded to the webflasher. For a local diagnostic build, layer the opt-in config on top of the defaults (`set-target` regenerates `sdkconfig`):
+
+```bash
+export SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.coredump"
+idf.py set-target esp32s3
+idf.py build
+```
+
+Run `unset SDKCONFIG_DEFAULTS` and `idf.py set-target esp32s3` again to return to a normal build.
+
+When enabled, firmware panic core dumps are stored in the existing 64K `coredump` flash partition. The dump uses ESP-IDF's ELF format and includes task registers and stacks, but not a full DRAM/heap capture. Keep the ELF from the exact firmware build that produced the dump.
+
+On coredump-enabled builds the System status page shows a download button (hidden otherwise, driven by the `coreDumpDownload` capability from `/api/v2/identify`) for the last valid dump without erasing it. The download is deliberately user-initiated and uses the normal OTP/session protection when OTP is enabled. The filename includes the board, firmware version, and the crashing application's ELF SHA-256 from the dump itself to identify the matching build, even if firmware has since been updated. Decode the downloaded raw file with the exact matching board ELF:
+
+```bash
+esp-coredump --chip esp32s3 info_corefile --core coredump_<board>_<version>_<elf-sha256>_<timestamp>.bin --core-format raw esp-miner-<board>.elf
+```
+
+From the matching local build directory, ESP-IDF can retrieve and decode the dump directly:
+
+```bash
+idf.py -p <PORT> coredump-info
+```
+
+To retain the raw partition before decoding it with a downloaded release ELF:
+
+```bash
+parttool.py --port <PORT> read_partition --partition-name coredump --output coredump.bin
+esp-coredump --chip esp32s3 info_corefile --core coredump.bin --core-format raw esp-miner-<board>.elf
+```
+
+Use a development device to validate the path. There is no production crash endpoint. For a temporary local test, add `ESP_ERROR_CHECK(ESP_FAIL);` in `app_main()` after normal startup tasks have been created, save that build's ELF, build and flash it, then remove the line. A successful decode identifies the crashed task, program counter, and backtrace.
+
+Five task snapshots is the intended conservative limit for this partition. The ESP-IDF 5.3 revision currently used by CI defines this setting but does not enforce it in the core-dump writer, so a dump taken with many heavily used task stacks can still exceed 64K. Full-load validation is required when the toolchain changes.
+
+Core dumps can contain credentials and other sensitive values present in task RAM. They are not uploaded automatically; do not casually share or attach a raw dump without reviewing how it will be handled.
+
 
 ### Without Docker
 

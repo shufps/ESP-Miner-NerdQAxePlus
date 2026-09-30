@@ -1,0 +1,18 @@
+# Opt-in panic core dump capture for diagnostic builds. Layered on top of the
+# defaults via SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.coredump" (the
+# build workflow does this when the "enable_coredump" checkbox is set).
+# CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH is also the compile-time switch for the
+# /api/system/coredump download endpoint.
+
+# persist panic diagnostics in the existing 64K coredump partition
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+CONFIG_ESP_COREDUMP_CHECKSUM_CRC32=y
+CONFIG_ESP_COREDUMP_CAPTURE_DRAM=n
+CONFIG_ESP_COREDUMP_CHECK_BOOT=y
+CONFIG_ESP_COREDUMP_LOGS=n
+# IDF 5.3 defines this limit but does not enforce it; retain the conservative intent for toolchain updates
+CONFIG_ESP_COREDUMP_MAX_TASKS_NUM=5
+CONFIG_ESP_COREDUMP_STACK_SIZE=2048
+# Store the full crashing application SHA in the ELF dump's version note
+CONFIG_APP_RETRIEVE_LEN_ELF_SHA=64

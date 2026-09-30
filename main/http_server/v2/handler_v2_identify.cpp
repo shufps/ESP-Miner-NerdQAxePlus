@@ -2,6 +2,7 @@
 
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "sdkconfig.h"
 
 #include "ArduinoJson.h"
 #include "psram_allocator.h"
@@ -36,6 +37,13 @@ esp_err_t GET_V2_identify(httpd_req_t *req)
     doc["defaultTheme"] = board->getDefaultTheme();
     doc["otp"]          = Config::isOTPEnabled();
     doc["apActive"]     = NETWORK.isApActive();
+
+    // Whether this build compiled in the panic core dump download endpoint.
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    doc["coreDumpDownload"] = true;
+#else
+    doc["coreDumpDownload"] = false;
+#endif
 
     JsonObject can = doc["can"].to<JsonObject>();
     can["enabled"] = Config::isCanEnabled();

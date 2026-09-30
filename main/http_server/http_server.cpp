@@ -2,6 +2,7 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "sdkconfig.h"
 
 #include "dns_server.h"
 
@@ -244,6 +245,16 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_uri_t v2_system_options = {
         .uri = "/api/v2/system", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
     httpd_register_uri_handler(http_server, &v2_system_options);
+
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    httpd_uri_t system_coredump_get_uri = {
+        .uri = "/api/system/coredump", .method = HTTP_GET, .handler = GET_system_coredump, .user_ctx = rest_context};
+    httpd_register_uri_handler(http_server, &system_coredump_get_uri);
+
+    httpd_uri_t system_coredump_options_uri = {
+        .uri = "/api/system/coredump", .method = HTTP_OPTIONS, .handler = handle_options_request, .user_ctx = NULL};
+    httpd_register_uri_handler(http_server, &system_coredump_options_uri);
+#endif
 
     httpd_uri_t system_restart_uri = {
         .uri = "/api/system/restart", .method = HTTP_POST, .handler = POST_restart, .user_ctx = rest_context};
