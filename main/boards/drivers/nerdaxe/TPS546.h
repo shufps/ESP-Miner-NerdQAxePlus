@@ -36,7 +36,7 @@
 #define TPS546_INIT_VOUT_MARGIN_LOW 0.90 /* %/100 below VOUT */
 #define TPS546_INIT_VOUT_UV_WARN_LIMIT 0.90  /* %/100 below VOUT_COMMAND */
 #define TPS546_INIT_VOUT_UV_FAULT_LIMIT 0.75 /* %/100 below VOUT_COMMAND */
-#define TPS546_INIT_VOUT_MIN 1 /* v */
+#define TPS546_INIT_VOUT_MIN 0.8 /* v */
 
   /* iout current */
 #define TPS546_INIT_IOUT_OC_WARN_LIMIT  25.00 /* A */
@@ -72,6 +72,14 @@
 
 
 /* public functions */
+// Optional per-board override of the VIN thresholds (V). Call BEFORE TPS546_init()
+// so they're programmed from the start (e.g. the 12V-fed NerdAxeGaia). Boards that
+// don't call it keep the 5V TPS546_INIT_VIN_* defaults.
+void TPS546_set_vin_config(float vin_on, float vin_off, float uv_warn, float ov_fault);
+// Optional per-board override of the output over-current warn/fault limits (A).
+// Call BEFORE TPS546_init(). Boards that don't call it keep the conservative
+// TPS546_INIT_IOUT_OC_* defaults (25A warn / 30A fault).
+void TPS546_set_iout_config(float oc_warn, float oc_fault);
 int TPS546_init(void);
 void TPS546_read_mfr_info(uint8_t *);
 void TPS546_set_mfr_info(void);

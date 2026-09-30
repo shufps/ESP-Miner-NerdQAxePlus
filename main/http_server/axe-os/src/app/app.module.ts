@@ -90,6 +90,7 @@ function filterInterceptorRequest(req: HttpRequest<any>): boolean {
         StoreRouterConnectingModule.forRoot(),
         NgbModule], providers: [
         { provide: LocationStrategy, useClass: HashLocationStrategy },
+        // Mock de API SOLO en local (puerto 4200). Inerte en el minero (puerto 80).
         { provide: HTTP_INTERCEPTORS, useClass: JWTInterceptor, multi: true },
         { provide: HTTP_INTERCEPTORS, useClass: ResponseInterceptor, multi: true },
         { provide: HTTP_INTERCEPTORS, useClass: WithCredentialsInterceptor, multi: true },

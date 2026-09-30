@@ -81,6 +81,11 @@ typedef struct
     uint32_t data;
     uint8_t reg;
     uint8_t is_reg_resp;
+    // [PROBE] Decoded from nonce/response for core distribution analysis.
+    // core_id_7b   = (nonce >> 25) & 0x7F  → which physical core produced this nonce
+    // small_core_id = asic_result.job_id & 0x0F → which "small core" within the routing
+    uint8_t core_id_7b;
+    uint8_t small_core_id;
 } task_result;
 
 typedef struct __attribute__((__packed__))

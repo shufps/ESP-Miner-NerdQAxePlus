@@ -336,6 +336,14 @@
     }
 }
 
+/* Brief highlight when a config card is reached via a dashboard "edit" pencil
+   (?section=pool|asic). The class is toggled off after ~1.6s so it fades out. */
+.cfg-highlight {
+    border-radius: 0.5rem;
+    box-shadow: 0 0 0 2px rgba(59, 157, 255, 0.7), 0 0 18px rgba(59, 157, 255, 0.35);
+    transition: box-shadow .3s ease;
+}
+
 .wifi-scan-entry {
     display: flex !important;
     justify-content: space-between !important;

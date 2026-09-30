@@ -122,6 +122,103 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   // Track current Nebular theme name so we can apply small light-theme-only overrides.
   private currentThemeName: string = '';
 
+  /**
+   * True only when our custom "Gaia" theme is active. Gates the custom
+   * redesign (top summary cards + modern gauges) so every OTHER theme keeps the
+   * original NerdQAxe layout untouched. Updated reactively via the getJsTheme()
+   * subscription (which calls markForCheck()).
+   */
+  public get isGaia(): boolean {
+    return this.currentThemeName === 'gaia';
+  }
+
+  /**
+   * stroke-dasharray for a circular gauge ring (r=42 => circumference ~263.9).
+   * Returns "<filled> <circumference>" so the colored arc fills `pct` of the ring.
+   */
+  public gaugeArc(value: number, min: number, max: number): string {
+    const C = 263.9;
+    const SPAN = C * 0.75; // 270° arc (a quarter is left open at the bottom)
+    const pct = Math.max(0, Math.min(100, toPct(value, min, max)));
+    return `${((pct / 100) * SPAN).toFixed(1)} ${C}`;
+  }
+
+  /**
+   * Color level for a gauge based on how FULL it is (its fill %):
+   *   < 70%  -> 'ok'   (green)
+   *   70-90% -> 'warn' (yellow)
+   *   >= 90% -> 'crit' (red)
+   */
+  public gaugeLevel(value: number, min: number, max: number): 'ok' | 'warn' | 'crit' {
+    const pct = Math.max(0, Math.min(100, toPct(value, min, max)));
+    if (pct >= 90) return 'crit';
+    if (pct >= 70) return 'warn';
+    return 'ok';
+  }
+
+  // ── NEROQ+ dashboard helpers (gaia) ────────────────────────────────────────
+  public clamp100(n: number): number { return Math.max(0, Math.min(100, Number(n) || 0)); }
+  public pctOf(a: number, b: number): number { const d = Number(b) || 0; return d ? (Number(a) / d) * 100 : 0; }
+  public effLabel(j: number): string { const v = Number(j) || 0; if (v <= 0) return '—'; if (v < 25) return 'Good'; if (v < 40) return 'Fair'; return 'High'; }
+
+  // SVG sparklines: deterministic gentle waves (no jitter on change-detection).
+  // `seed` varies the shape per metric; width/height match the SVG viewBox.
+  private static readonly SPARK_W = 90;
+  private static readonly SPARK_H = 28;
+  public get sparkW(): number { return HomeComponent.SPARK_W; }
+  public get sparkH(): number { return HomeComponent.SPARK_H; }
+
+  private sparkSeries(seed: number): number[] {
+    const N = 26;
+    const out: number[] = [];
+    for (let i = 0; i < N; i++) {
+      const v = 0.5 + 0.30 * Math.sin(i * 0.72 + seed) + 0.12 * Math.sin(i * 1.9 + seed * 1.7);
+      out.push(Math.max(0.08, Math.min(0.92, v)));
+    }
+    return out;
+  }
+
+  /** Polyline points for a sparkline. */
+  public sparkPoints(seed: number): string {
+    const w = HomeComponent.SPARK_W, h = HomeComponent.SPARK_H, pad = 2;
+    const s = this.sparkSeries(seed);
+    return s.map((v, i) => {
+      const x = (i / (s.length - 1)) * w;
+      const y = h - (v * (h - pad * 2) + pad);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
+
+  /** Closed polygon points for the soft area fill under a sparkline. */
+  public sparkArea(seed: number): string {
+    const w = HomeComponent.SPARK_W, h = HomeComponent.SPARK_H;
+    return `0,${h} ${this.sparkPoints(seed)} ${w},${h}`;
+  }
+
+  /**
+   * stroke-dasharray for a SEMICIRCULAR mini gauge (180° arc, r=43 in the SVG).
+   * Fills the arc from the min end up to the value's position in [min,max].
+   */
+  public halfGaugeArc(value: number, min: number, max: number): string {
+    const C = Math.PI * 43; // semicircle arc length (≈ 135.09)
+    const pct = Math.max(0, Math.min(100, toPct(value, min, max)));
+    return `${((pct / 100) * C).toFixed(1)} ${C.toFixed(1)}`;
+  }
+
+  // Chart time-range buttons (NEROQ+ header). Best-effort: sets the zoom window;
+  // ranges beyond the configured max clamp. Active state is visual feedback.
+  public chartRanges: string[] = ['1H', '3H', '12H', '1D', '3D', '7D', '30D'];
+  public chartRange: string = '1H';
+  private static readonly RANGE_MS: Record<string, number> = {
+    '1H': 3_600_000, '3H': 10_800_000, '12H': 43_200_000, '1D': 86_400_000,
+    '3D': 259_200_000, '7D': 604_800_000, '30D': 2_592_000_000,
+  };
+  public setChartRange(label: string): void {
+    this.chartRange = label;
+    const ms = HomeComponent.RANGE_MS[label];
+    if (ms) { try { this.setChartWindowMs(ms); } catch { /* clamp / ignore */ } }
+  }
+
   private applyXWindowToChart(xMinMs: number, xMaxMs: number): void {
     // Update shared chart options (used on theme refresh etc.)
     try {
@@ -480,6 +577,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   public quickLink$: Observable<string | undefined>;
   public fallbackQuickLink$!: Observable<string | undefined>;
   public expectedHashRate$: Observable<number | undefined>;
+  // Device model + firmware version for the Gaia footer (not part of the
+  // dashboard-v2 model; sourced from the classic /api/system/info endpoint).
+  public sysInfo$ = this.systemService.getInfo();
 
   public chartOptions: any;
   private chartState: HomeChartState = new HomeChartState();
@@ -572,8 +672,50 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.barDomSync.syncVrTempBarCritFill(!!this.vrTempBarCritWanted, this.currentThemeName);
   }
 
+  private legendClickHandler: ((e: MouseEvent) => void) | null = null;
+
+  /**
+   * Robust legend toggle: handle legend clicks ourselves on the canvas. Chart.js's
+   * built-in legend onClick can fail to fire in some embeddings; this guarantees
+   * clicking a legend item shows/hides its series (and persists the choice).
+   */
+  private installLegendClickToggle(): void {
+    const chart: any = this.chart;
+    if (!chart || !chart.canvas) return;
+    if (this.legendClickHandler) {
+      try { chart.canvas.removeEventListener('click', this.legendClickHandler); } catch {}
+    }
+    this.legendClickHandler = (e: MouseEvent) => {
+      try {
+        const ch: any = this.chart;
+        const legend: any = ch && ch.legend;
+        if (!legend || !Array.isArray(legend.legendHitBoxes)) return;
+        const rect = ch.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const boxes = legend.legendHitBoxes;
+        for (let i = 0; i < boxes.length; i++) {
+          const b = boxes[i];
+          if (!b) continue;
+          if (x >= b.left && x <= b.left + b.width && y >= b.top && y <= b.top + b.height) {
+            const item = legend.legendItems && legend.legendItems[i];
+            const idx = (item && item.datasetIndex != null) ? item.datasetIndex : i;
+            const meta = ch.getDatasetMeta(idx);
+            meta.hidden = meta.hidden === null ? !ch.data.datasets[idx].hidden : null;
+            ch.update();
+            const vis = ch.data.datasets.map((_d: any, j: number) => (ch.getDatasetMeta(j).hidden ? true : false));
+            try { this.chartStorage.saveLegendVisibility(vis); } catch {}
+            break;
+          }
+        }
+      } catch { /* ignore */ }
+    };
+    chart.canvas.addEventListener('click', this.legendClickHandler);
+  }
+
   private initChart(): void {
     this.chart = createHomeChart(this.ctx.nativeElement, this.chartData, this.chartOptions);
+    this.installLegendClickToggle();
     // Restore legend visibility
     const storedVisibility = this.chartStorage.loadLegendVisibility();
     const visibility = storedVisibility ?? [

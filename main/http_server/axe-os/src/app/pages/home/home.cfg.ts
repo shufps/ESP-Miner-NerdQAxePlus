@@ -347,7 +347,7 @@ export interface HomeCfg {
     textFallback: '#e5e7eb',
 
     /** Dataset base colors (centralized so visuals can be tweaked in one place). */
-    hashrateBase: '#a564f6',
+    hashrateBase: '#E8B23C',
     vregTemp: '#2DA8B7',
     asicTemp: '#C84847',
 
@@ -590,7 +590,7 @@ export const HOME_CFG: HomeCfg = {
   colors: {
     chartGridColor: '#80808040',
     textFallback: '#e5e7eb',
-    hashrateBase: '#a564f6',
+    hashrateBase: '#E8B23C',
     vregTemp: '#2DA8B7',
     asicTemp: '#C84847',
     pillsText: '#ffffff',

@@ -269,8 +269,12 @@ bool NerdAxe::selfTest(){
     temp_display = new DisplayDriver();
     temp_display->init(this);
 
-    temp_display->logMessage("\nSelfTest initiated, wait...\r\n\n\n\n\n\n"
-                             "[Warning] This test only ensures Asic is properly soldered\nHashrate is not checked");
+    snprintf(logString, sizeof(logString),
+             "\nSelfTest initiated, wait...\r\n"
+             "Testing chip: %s\n\n\n\n\n"
+             "[Warning] Only checks soldering\nHashrate not checked",
+             m_asicModel);
+    temp_display->logMessage(logString);
 
     //Init Asics
     initAsics();
@@ -280,12 +284,12 @@ bool NerdAxe::selfTest(){
     bool VrOK = (Vout > CORE_VOLTAGE_TARGET_MIN) && (Vout < CORE_VOLTAGE_TARGET_MAX);
     bool allAsicsDetected = (m_chipsDetected == m_asicCount); // Verifica que todos los ASICs se han detectado
 
-    //Warning! This test only ensures Asic is properly soldered
-    snprintf(logString, sizeof(logString),  "\nTest result:\r\n"
+    snprintf(logString, sizeof(logString),  "\nTest result [%s]:\r\n"
                                             "- Asics detected [%d/%d]\n"
                                             "- Power status: %s (%.2f W)\n"
                                             "- Asic voltage: %s (%.2f V)\r\n\n"
-                                            "%s", // Final result
+                                            "%s",
+                                            m_asicModel,
                                             m_chipsDetected, m_asicCount,
                                             powerOK ? "OK" : "Warning", power,
                                             VrOK ? "OK" : "Warning", Vout,

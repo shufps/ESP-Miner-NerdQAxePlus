@@ -62,7 +62,34 @@
         color: nb-theme(text-basic-color);
         white-space: nowrap;
       }
+
+      .gaia-wordmark {
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: 0.4px;
+        color: #f4f4f6;
+        white-space: nowrap;
+
+        &__os { color: #e8a23c; }
+      }
     }
+  }
+
+  .header-online {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: nb-theme(text-hint-color);
+    white-space: nowrap;
+  }
+  .header-online__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: nb-theme(color-success-500);
+    box-shadow: 0 0 8px nb-theme(color-success-500);
   }
 /*
   @include media-breakpoint-down(sm) {
@@ -81,4 +108,128 @@
     }
   }
 */
+}
+
+/* ── GAIA: cabecera "partida" ────────────────────────────────────────────────
+   El bloque del logo ocupa el ancho de la barra lateral (16rem), con el logo
+   CENTRADO y el botón de plegar el menú a la DERECHA. Una línea vertical separa
+   ese bloque (sobre el sidebar) del resto de la cabecera (controles a la dcha).
+   Logo un 20% más pequeño (40px -> 32px). Solo se aplica con el tema Gaia.
+   ──────────────────────────────────────────────────────────────────────────── */
+:host-context(.nb-theme-gaia) {
+  /* Fill the header and vertically centre EVERYTHING (logo, hamburger and the
+     right-side controls) on the header's real centre line. Without this the host
+     only grows to the tallest control (the select), leaving the logo aligned to
+     the top instead of the middle. */
+  align-items: center;
+  height: 100%;
+  position: relative;
+
+  .header-container {
+    align-items: center;
+  }
+
+  /* "Gaia Series" — elegant centred badge in the header (absolute so it doesn't
+     disturb the logo/controls layout). Gradient text + thin flanking rules. */
+  .header-series {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    pointer-events: none;
+    user-select: none;
+  }
+  .header-series__text {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4em;
+    padding-left: 0.4em; /* balance the trailing letter-spacing for true centring */
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: linear-gradient(90deg, #e8a23c 0%, #f0b352 42%, #f0b352 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .header-series__brand {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #f4f4f6;
+    white-space: nowrap;
+  }
+  .header-series__brand .header-series__os { color: #e8a23c; }
+  .header-series__line {
+    width: 1.6rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22));
+  }
+  .header-series__line:last-child {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.22), transparent);
+  }
+
+  /* hide it on narrow screens so it never collides with the controls */
+  @media (max-width: 820px) {
+    .header-series { display: none; }
+  }
+
+  .header-container:first-child {
+    width: 16rem;
+    min-width: 16rem;
+    height: 100%;
+    position: relative;
+    justify-content: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .header-container:first-child .logo-container {
+    width: 100%;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* logo centrado, sin la línea divisoria izquierda original. Un pelín más
+     pequeño y bajado 2px para que quede ópticamente centrado. */
+  .header-container:first-child .logo {
+    border-left: none;
+    padding: 0;
+    transform: translateY(2px);
+  }
+  .header-container:first-child .logo img {
+    max-height: 36px;
+  }
+
+  /* botón de plegar el menú: anclado a la IZQUIERDA del bloque del sidebar,
+     con el logo centrado de forma independiente (posición absoluta).
+     Hamburguesa custom (3 líneas redondeadas, la del medio más corta) dentro de
+     un botón redondeado con hover azul. */
+  .header-container:first-child .sidebar-toggle {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.6rem;
+    color: var(--text-hint-color);
+    transition: color .15s ease, background .15s ease;
+  }
+  .header-container:first-child .sidebar-toggle .gaia-burger {
+    display: block;
+    width: 22px;
+    height: 22px;
+  }
+  .header-container:first-child .sidebar-toggle:hover {
+    color: #f0b352;
+    background: rgba(232, 162, 60, 0.12);
+  }
 }
