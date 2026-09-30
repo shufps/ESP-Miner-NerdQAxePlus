@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # Manual trigger only
     inputs:
       enable_coredump:
-        description: 'Diagnostic build: panic core dump capture + download endpoint. Artifacts only, never published to release/R2. The dump can leak WiFi/pool credentials to anyone on the LAN unless OTP is enabled on the device.'
+        description: 'Diagnostic build: panic core dump capture + download endpoint. Only published to pre-releases (fails for a stable release); otherwise artifacts only. The dump can leak WiFi/pool credentials to anyone on the LAN unless OTP is enabled on the device.'
         type: boolean
         default: false
 
@@ -74,9 +74,28 @@ jobs:
       id: check_release
       run: |
         if gh release view "${{ env.VERSION_TAG }}" >/dev/null 2>&1; then
-          echo "RELEASE_EXISTS=true" >> $GITHUB_ENV
+          RELEASE_EXISTS=true
+          RELEASE_PRERELEASE=$(gh release view "${{ env.VERSION_TAG }}" --json isPrerelease --jq .isPrerelease)
         else
-          echo "RELEASE_EXISTS=false" >> $GITHUB_ENV
+          RELEASE_EXISTS=false
+          RELEASE_PRERELEASE=false
+        fi
+        echo "RELEASE_EXISTS=$RELEASE_EXISTS" >> $GITHUB_ENV
+
+        # Decide whether this build may be published (GitHub release + R2 webflasher).
+        # Diagnostic (core dump) builds are only published to pre-releases, so a
+        # stable release can never ship the dump download endpoint.
+        if [ "${{ inputs.enable_coredump }}" != "true" ]; then
+          echo "PUBLISH=true" >> $GITHUB_ENV
+        elif [ "$RELEASE_PRERELEASE" == "true" ]; then
+          echo "Diagnostic build for pre-release '${{ env.VERSION_TAG }}' — will be published"
+          echo "PUBLISH=true" >> $GITHUB_ENV
+        elif [ "$RELEASE_EXISTS" == "true" ]; then
+          echo "::error::'${{ env.VERSION_TAG }}' is a stable release — core dump diagnostic builds may only be published to pre-releases"
+          exit 1
+        else
+          echo "Diagnostic build without a release — artifacts only"
+          echo "PUBLISH=false" >> $GITHUB_ENV
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,7 +117,7 @@ jobs:
     - name: Configure core dump build
       run: |
         if [ "${{ inputs.enable_coredump }}" == "true" ]; then
-          echo "Diagnostic build: panic core dumps + download endpoint ENABLED (no release/R2 upload)"
+          echo "Diagnostic build: panic core dumps + download endpoint ENABLED"
           echo "IDF_SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.coredump" >> $GITHUB_ENV
           echo "ARTIFACT_SUFFIX=-coredump" >> $GITHUB_ENV
         else
@@ -187,7 +206,12 @@ jobs:
     - name: Set files variable
       id: set_files_var
       run: |
-        echo "files=$(grep -v '\.elf$' file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
+        # Diagnostic builds attach the ELF so dumps can be decoded; normal releases keep it out.
+        if [ "${{ inputs.enable_coredump }}" == "true" ]; then
+          echo "files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
+        else
+          echo "files=$(grep -v '\.elf$' file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
+        fi
         echo "r2_files=$(cat file_list.txt | tr '\n' ',')" >> $GITHUB_ENV
 
     # Skip release upload if no release exists
@@ -195,13 +219,13 @@ jobs:
       if: env.RELEASE_EXISTS == 'false'
       run: echo "No GitHub release found for '${{ env.VERSION_TAG }}' — skipping release upload."
 
-    # Diagnostic builds must never replace the official release / webflasher binaries
+    # Diagnostic builds are only published to pre-releases (see "Check if release exists")
     - name: Skip publishing for diagnostic build
-      if: inputs.enable_coredump
-      run: echo "Core dump diagnostic build — artifacts only, skipping GitHub release and R2 upload."
+      if: env.PUBLISH != 'true'
+      run: echo "Core dump diagnostic build without a pre-release — artifacts only, skipping GitHub release and R2 upload."
 
     - name: Upload to Existing Release
-      if: env.RELEASE_EXISTS == 'true' && !inputs.enable_coredump
+      if: env.RELEASE_EXISTS == 'true' && env.PUBLISH == 'true'
       uses: softprops/action-gh-release@v1
       with:
         files: ${{ env.files }}
@@ -210,12 +234,12 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install rclone
-      if: env.RCLONE_CONF != '' && !inputs.enable_coredump
+      if: env.RCLONE_CONF != '' && env.PUBLISH == 'true'
       run: |
         curl -fsSL https://rclone.org/install.sh | sudo bash
 
     - name: Upload to Cloudflare R2 using rclone
-      if: env.RCLONE_CONF != '' && !inputs.enable_coredump
+      if: env.RCLONE_CONF != '' && env.PUBLISH == 'true'
       run: |
         mkdir -p ~/.config/rclone
         echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf

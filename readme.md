@@ -181,7 +181,7 @@ When done just `exit` the shell.
 
 Panic core dumps are an **opt-in diagnostic feature and are disabled in normal builds**. The raw dump can contain WiFi/pool credentials and other task RAM, and its HTTP download endpoint would expose that on the LAN, so it is only compiled in when explicitly requested. The single switch is `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`: `sdkconfig.coredump` enables it, and the firmware compiles the download endpoint in exactly when it is set.
 
-In CI, tick the **`enable_coredump`** checkbox when dispatching the build workflow. Such a diagnostic build is uploaded only as workflow artifacts with a `-coredump` suffix (including the matching `esp-miner-<board>.elf`); it is never attached to a GitHub release or uploaded to the webflasher. For a local diagnostic build, layer the opt-in config on top of the defaults (`set-target` regenerates `sdkconfig`):
+In CI, tick the **`enable_coredump`** checkbox when dispatching the build workflow. If the tag belongs to a **pre-release**, the diagnostic build is published like any other pre-release (GitHub release and webflasher) and additionally attaches the matching `esp-miner-<board>.elf`. If the tag belongs to a stable release, the workflow fails, so a stable release never ships the download endpoint. Without a release, the build is only uploaded as workflow artifacts with a `-coredump` suffix (ELF included). For a local diagnostic build, layer the opt-in config on top of the defaults (`set-target` regenerates `sdkconfig`):
 
 ```bash
 export SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.coredump"
