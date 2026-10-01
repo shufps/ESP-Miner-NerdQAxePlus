@@ -38,6 +38,7 @@ class StratumTaskBase {
     bool m_stopFlag = true;    ///< Stop flag for the task
     bool m_firstJob = true;
     bool m_validNotify = false; // flag if the mining notify is valid
+    bool m_setupFailed = false; // a setup response (mining.subscribe) was unusable, drop the connection
     int m_poolErrors = 0;
 
     volatile bool m_isConnected = false; ///< Connection state flag
