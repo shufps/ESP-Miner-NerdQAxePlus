@@ -167,6 +167,10 @@ void StratumManager::dispatch(int pool, JsonDocument &doc)
 
     if (!StratumApi::parse(&m_stratum_api_v1_message, doc)) {
         ESP_LOGE(m_tag, "error in stratum");
+        if (m_stratum_api_v1_message.method == STRATUM_RESULT_SUBSCRIBE) {
+            ESP_LOGE(tag, "invalid mining.subscribe response, reconnecting ...");
+            selected->m_setupFailed = true;
+        }
         // free memory
         freeStratumV1Message(&m_stratum_api_v1_message);
         return;

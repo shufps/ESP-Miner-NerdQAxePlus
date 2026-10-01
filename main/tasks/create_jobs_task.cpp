@@ -104,7 +104,11 @@ class MiningInfoV1 : public MiningInfoBase {
 
     bool isValid() const override
     {
-        return current_job->ntime != 0;
+        // a job needs both the notify and the extranonce1 from the subscribe result.
+        // After invalidate() a mining.notify can arrive without a usable subscribe
+        // result (e.g. malformed response), which would crash buildBmJob().
+        return current_job->ntime != 0 && extranonce_str && current_job->job_id && current_job->coinbase_1 &&
+               current_job->coinbase_2;
     }
 
     bool isNewWork(uint32_t &last_ntime) const override

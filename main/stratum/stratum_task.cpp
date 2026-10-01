@@ -262,6 +262,7 @@ void StratumTaskV1::protocolLoop()
 
     m_stratumAPI.resetUid();
     m_stratumAPI.clearBuffer();
+    m_setupFailed = false;
 
     ///// Start Stratum Action
     // mining.subscribe - ID: 1
@@ -344,6 +345,12 @@ void StratumTaskV1::protocolLoop()
 
         // parse the line
         m_manager->dispatch(m_index, doc);
+
+        // without a valid subscribe result there is no extranonce to build jobs with;
+        // treat it as a pool error (normal reconnect delay) instead of mining on
+        if (m_setupFailed) {
+            return;
+        }
     }
 }
 
