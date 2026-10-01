@@ -9,6 +9,8 @@ import { NbToastrService, NbDialogService, NbDialogRef } from '@nebular/theme';
 import { LocalStorageService } from 'src/app/services/local-storage.service';
 import { OtpAuthService, EnsureOtpResult, EnsureOtpOptions } from '../../services/otp-auth.service';
 import { TranslateService } from '@ngx-translate/core';
+import { ActivatedRoute } from '@angular/router';
+import { IStratum } from 'src/app/models/IStratum';
 import { ISettingsV2, ISettingsV2Fan } from '../../models/ISettingsV2';
 
 enum SupportLevel { Safe = 0, Advanced = 1, Pro = 2 }
@@ -98,10 +100,53 @@ export class EditComponent implements OnInit {
     private dialogService: NbDialogService,
     private otpAuth: OtpAuthService,
     private translate: TranslateService,
+    private route: ActivatedRoute,
   ) { }
 
+  /**
+   * Scroll to a config card by id once it exists AND its position has settled.
+   * The form loads async and the nb-tabset / fields render in later ticks, which
+   * shifts the target down; scrolling before that settles lands short. So we wait
+   * until the card's viewport offset is unchanged between two checks, then scroll.
+   */
+  private scrollToSectionWhenReady(elementId: string, attempts = 0, lastTop: number | null = null): void {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      if (attempts < 60) {
+        setTimeout(() => this.scrollToSectionWhenReady(elementId, attempts + 1, null), 150);
+      }
+      return;
+    }
+    const top = Math.round(el.getBoundingClientRect().top);
+    if (lastTop === null || top !== lastTop) {
+      // layout still shifting — wait for it to stabilise before scrolling
+      if (attempts < 60) {
+        setTimeout(() => this.scrollToSectionWhenReady(elementId, attempts + 1, top), 150);
+      }
+      return;
+    }
+    // Position stable -> scroll, then re-assert once after the smooth scroll.
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => {
+      const e = document.getElementById(elementId);
+      if (e) e.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }, 500);
+    el.classList.add('cfg-highlight');
+    setTimeout(() => el.classList.remove('cfg-highlight'), 2400);
+  }
+
   ngOnInit(): void {
+
+    // Deep-link from the home dashboard pencils: ?section=pool|asic scrolls to
+    // the matching config card once the (async-loaded) form has rendered.
+    this.route.queryParams.subscribe(params => {
+      const section = params['section'];
+      const id = section === 'pool' ? 'cfg-pool' : section === 'asic' ? 'cfg-asic' : null;
+      if (id) this.scrollToSectionWhenReady(id);
+    });
+
     this.systemService.getSettingsV2(this.uri)
+
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe((info: ISettingsV2) => {
         this.originalSettings = structuredClone(info);

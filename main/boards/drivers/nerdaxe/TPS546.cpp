@@ -518,6 +518,37 @@ void TPS546_set_mfr_info(void)
 	smb_write_block(PMBUS_MFR_REVISION, MFR_REVISION, 3);
 }
 
+/* VIN thresholds default to the header macros (5V boards). A board can override
+ * them (e.g. the 12V-fed NerdAxeGaia) by calling TPS546_set_vin_config() BEFORE
+ * TPS546_init(), so write_entire_config() programs the correct limits from the
+ * start and the input over-voltage fault doesn't trip during init at 12V.
+ * Shared driver -> the NerdAxeGamma keeps the 5V defaults. */
+static float s_vin_on       = TPS546_INIT_VIN_ON;
+static float s_vin_off      = TPS546_INIT_VIN_OFF;
+static float s_vin_uv_warn  = TPS546_INIT_VIN_UV_WARN_LIMIT;
+static float s_vin_ov_fault = TPS546_INIT_VIN_OV_FAULT_LIMIT;
+
+void TPS546_set_vin_config(float vin_on, float vin_off, float uv_warn, float ov_fault)
+{
+    s_vin_on = vin_on;
+    s_vin_off = vin_off;
+    s_vin_uv_warn = uv_warn;
+    s_vin_ov_fault = ov_fault;
+}
+
+/* IOUT over-current warn/fault default to the header macros (25A/30A). A board
+ * can raise them (e.g. the NerdAxeGaia, whose TPS546D24A is rated 40A) by
+ * calling TPS546_set_iout_config() BEFORE TPS546_init(). Shared driver ->
+ * NerdAxe / NerdAxeGamma keep the conservative defaults. */
+static float s_iout_oc_warn  = TPS546_INIT_IOUT_OC_WARN_LIMIT;
+static float s_iout_oc_fault = TPS546_INIT_IOUT_OC_FAULT_LIMIT;
+
+void TPS546_set_iout_config(float oc_warn, float oc_fault)
+{
+    s_iout_oc_warn = oc_warn;
+    s_iout_oc_fault = oc_fault;
+}
+
 /**
  * @brief Set all the relevant config registers for normal operation
 */
@@ -536,14 +567,14 @@ void TPS546_write_entire_config(void)
     smb_write_word(PMBUS_FREQUENCY_SWITCH, int_2_slinear11(TPS546_INIT_FREQUENCY));
 
     /* vin voltage */
-    ESP_LOGI(TAG, "Setting VIN_ON: %.2f", TPS546_INIT_VIN_ON);
-    smb_write_word(PMBUS_VIN_ON, float_2_slinear11(TPS546_INIT_VIN_ON));
-    ESP_LOGI(TAG, "Setting VIN_OFF: %.2f", TPS546_INIT_VIN_OFF);
-    smb_write_word(PMBUS_VIN_OFF, float_2_slinear11(TPS546_INIT_VIN_OFF));
-    ESP_LOGI(TAG, "Setting VIN_UV_WARN_LIMIT: %.2f", TPS546_INIT_VIN_UV_WARN_LIMIT);
-    smb_write_word(PMBUS_VIN_UV_WARN_LIMIT, float_2_slinear11(TPS546_INIT_VIN_UV_WARN_LIMIT));
-    ESP_LOGI(TAG, "Setting VIN_OV_FAULT_LIMIT: %.2f", TPS546_INIT_VIN_OV_FAULT_LIMIT);
-    smb_write_word(PMBUS_VIN_OV_FAULT_LIMIT, float_2_slinear11(TPS546_INIT_VIN_OV_FAULT_LIMIT));
+    ESP_LOGI(TAG, "Setting VIN_ON: %.2f", s_vin_on);
+    smb_write_word(PMBUS_VIN_ON, float_2_slinear11(s_vin_on));
+    ESP_LOGI(TAG, "Setting VIN_OFF: %.2f", s_vin_off);
+    smb_write_word(PMBUS_VIN_OFF, float_2_slinear11(s_vin_off));
+    ESP_LOGI(TAG, "Setting VIN_UV_WARN_LIMIT: %.2f", s_vin_uv_warn);
+    smb_write_word(PMBUS_VIN_UV_WARN_LIMIT, float_2_slinear11(s_vin_uv_warn));
+    ESP_LOGI(TAG, "Setting VIN_OV_FAULT_LIMIT: %.2f", s_vin_ov_fault);
+    smb_write_word(PMBUS_VIN_OV_FAULT_LIMIT, float_2_slinear11(s_vin_ov_fault));
     ESP_LOGI(TAG, "Setting VIN_OV_FAULT_RESPONSE: %02X", TPS546_INIT_VIN_OV_FAULT_RESPONSE);
     smb_write_byte(PMBUS_VIN_OV_FAULT_RESPONSE, TPS546_INIT_VIN_OV_FAULT_RESPONSE);
 
@@ -566,13 +597,13 @@ void TPS546_write_entire_config(void)
     smb_write_word(PMBUS_VOUT_UV_WARN_LIMIT, float_2_ulinear16(TPS546_INIT_VOUT_UV_WARN_LIMIT));
     ESP_LOGI(TAG, "VOUT_UV_FAULT_LIMIT: %.2f", TPS546_INIT_VOUT_UV_FAULT_LIMIT);
     smb_write_word(PMBUS_VOUT_UV_FAULT_LIMIT, float_2_ulinear16(TPS546_INIT_VOUT_UV_FAULT_LIMIT));
-    ESP_LOGI(TAG, "VOUT_MIN: %d", TPS546_INIT_VOUT_MIN);
+    ESP_LOGI(TAG, "VOUT_MIN: %.2f", TPS546_INIT_VOUT_MIN);
     smb_write_word(PMBUS_VOUT_MIN, float_2_ulinear16(TPS546_INIT_VOUT_MIN));
 
     /* iout current */
     ESP_LOGI(TAG, "Setting IOUT");
-    smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11(TPS546_INIT_IOUT_OC_WARN_LIMIT));
-    smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11(TPS546_INIT_IOUT_OC_FAULT_LIMIT));
+    smb_write_word(PMBUS_IOUT_OC_WARN_LIMIT, float_2_slinear11(s_iout_oc_warn));
+    smb_write_word(PMBUS_IOUT_OC_FAULT_LIMIT, float_2_slinear11(s_iout_oc_fault));
     smb_write_byte(PMBUS_IOUT_OC_FAULT_RESPONSE, TPS546_INIT_IOUT_OC_FAULT_RESPONSE);
 
     /* temperature */

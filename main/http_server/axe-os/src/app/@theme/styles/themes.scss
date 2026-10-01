@@ -114,3 +114,116 @@ $nb-themes: nb-register-theme((
   gauge-value-color: #64B5F6,
 
 ), dark, dark);
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  GAIA — tema personalizado (EDITA AQUÍ: colores / fuentes / controles)
+//  Basado en 'cosmic'. En la web: selector de la cabecera -> "Gaia".
+//  Con `npm start` corriendo, guardas este fichero y se refresca solo.
+// ─────────────────────────────────────────────────────────────────────────────
+$nb-themes: nb-register-theme((
+  // — layout (igual que los demás temas; no hace falta tocarlo) —
+  layout-padding: 1rem,
+  layout-medium-padding: 1rem,
+  layout-small-padding: 1rem,
+  header-height: 3.5rem,
+  menu-item-icon-margin: 0 0.5rem 0 0,
+  card-height-tiny: 13.5rem,
+  card-height-small: 21.1875rem,
+  card-height-medium: 28.875rem,
+  card-height-large: 36.5625rem,
+  card-height-giant: 44.25rem,
+  card-margin-bottom: 1rem,
+  card-header-with-select-padding-top: 0.5rem,
+  card-header-with-select-padding-bottom: 0.5rem,
+  select-min-width: 6rem,
+  slide-out-background: #16161a,
+  slide-out-shadow-color: 2px 0 10px rgba(0, 0, 0, 0.6),
+  slide-out-shadow-color-rtl: -2px 0 10px rgba(0, 0, 0, 0.6),
+  gauge-bg: #26262b,
+  gauge-value-color: #e8a23c,
+
+  // ───── 1) TIPOGRAFÍA ─────────────────────────────────────────────────────
+  //  Descomenta para cambiar la fuente (la UI usa Inter; los números, JetBrains
+  //  Mono — ver styles.scss / home.component.scss).
+  //  font-family-primary: 'Inter', system-ui, sans-serif,
+
+  // ───── 2) PALETA: NEGROS NEUTROS ELEGANTES (mata el azul/morado cosmic) ────
+  //  Ramp de grises neutro (claro → oscuro): quita cualquier tinte de color.
+  color-basic-100: #ffffff,
+  color-basic-200: #ececef,
+  color-basic-300: #cfcfd5,
+  color-basic-400: #a0a0a8,
+  color-basic-500: #7c7c84,
+  color-basic-600: #5e5e66,
+  color-basic-700: #3c3c42,
+  color-basic-800: #2a2a2f,
+  color-basic-900: #1d1d21,
+  color-basic-1000: #151518,
+  color-basic-1100: #0c0c0e,
+
+  //  Superficies, bordes y texto — neutros, con profundidad por capas
+  background-basic-color-1: #17171b,
+  background-basic-color-2: #1f1f24,
+  background-basic-color-3: #27272d,
+  background-basic-color-4: #313138,
+
+  border-basic-color-1: #1f1f24,
+  border-basic-color-2: #27272d,
+  border-basic-color-3: #313138,
+  border-basic-color-4: #3d3d45,
+  border-basic-color-5: #4b4b54,
+
+  text-basic-color: #ececef,
+  text-alternate-color: #ffffff,
+  text-hint-color: #7e7e87,
+  text-disabled-color: #55555c,
+
+  layout-background-color: #0c0c0e,
+  card-background-color: #17171b,
+  card-border-color: #2a2a30,
+  card-text-color: #ececef,
+  header-background-color: #0f0f12,
+  header-text-color: #ececef,
+  sidebar-background-color: #0a0a0d,
+  select-background-color: #1f1f24,
+  shadow: 0 2px 12px rgba(0, 0, 0, 0.45),
+
+  // ───── 3) ACENTO (primary) — ámbar/oro cálido, elegante sobre negro ───────
+  //  Botones, links, el <nb-select>, icono de Hash Rate, hover del pool...
+  color-primary-100: #fdf1da,
+  color-primary-200: #fbdfae,
+  color-primary-300: #f6c97c,
+  color-primary-400: #f0b352,
+  color-primary-500: #e8a23c,   // ← base (ámbar/oro)
+  color-primary-600: #c9842b,   // ← focus
+  color-primary-700: #a3691f,
+  color-primary-800: #7d4f16,
+  color-primary-900: #5a380f,
+
+  // ───── 3) ESTILO DE CONTROLES ─────────────────────────────────────────────
+  //  Redondez global de botones, inputs, selects y tarjetas. Prueba 0 / 0.25rem
+  //  / 0.75rem para ver el efecto al instante.
+  border-radius: 0.5rem,
+
+  // ───── 4) MENÚ LATERAL (navegación) ───────────────────────────────────────
+  //  Sin líneas separadoras, botones redondeados tipo "pill", hover suave y
+  //  resaltado ámbar del item activo. (Variables nativas de Nebular -> se
+  //  compilan ya con el scope .nb-theme-gaia, sin pelear especificidad.)
+  menu-text-color: #b6b6bf,
+  menu-text-font-weight: 500,
+  menu-item-icon-color: #82828c,
+  menu-item-padding: 0.72rem 1rem,
+  menu-item-border-radius: 0.7rem,
+  menu-item-divider-width: 0,
+  menu-item-divider-style: none,
+  menu-item-divider-color: transparent,
+  menu-item-hover-background-color: rgba(232, 162, 60, 0.10),
+  menu-item-hover-text-color: #ffffff,
+  menu-item-icon-hover-color: #ffffff,
+  menu-item-active-background-color: rgba(232, 162, 60, 0.16),
+  menu-item-active-text-color: #f0b352,
+  menu-item-icon-active-color: #e8a23c,
+  // indicador del item activo cuando el menú está compactado (Nebular lo pinta
+  // con el primary por defecto -> ámbar; lo forzamos a azul para que combine)
+  sidebar-menu-item-highlight-color: #e8a23c,
+), gaia, cosmic);

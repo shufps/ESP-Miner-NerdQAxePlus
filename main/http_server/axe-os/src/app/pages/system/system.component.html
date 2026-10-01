@@ -268,4 +268,15 @@
     </nb-card-body>
   </nb-card>
 
+  <!-- Bitronics credit — only for NerdAxeGaia / NerdAxe -->
+  <nb-card class="mt-4 bitronics-card"
+           *ngIf="info.deviceModel === 'NerdAxeGaia' || info.deviceModel === 'NerdAxe'">
+    <nb-card-body class="bitronics-body">
+      <a class="bitronics-logo-link" href="https://bitronics.com" target="_blank" rel="noopener" title="Bitronics">
+        <img class="bitronics-logo" src="/assets/Bitronics{{ logoPrefix }}.png" alt="Bitronics" />
+      </a>
+      <p class="bitronics-credit-text">{{ info.deviceModel }} has been developed by <strong>Bitronics</strong></p>
+    </nb-card-body>
+  </nb-card>
+
 </ng-container>

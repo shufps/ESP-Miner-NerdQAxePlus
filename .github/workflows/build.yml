@@ -34,6 +34,9 @@ jobs:
           - board: NERDAXEGAMMA
             upload_www: false
             label: NerdAxeGamma
+          - board: NERDAXEGAIA
+            upload_www: false
+            label: NerdAxeGaia
           - board: NERDHAXEGAMMA
             upload_www: false
             label: NerdHaxe-Gamma

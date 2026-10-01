@@ -183,6 +183,12 @@ const POOLS: PoolMeta[] = [
     match: (h) => isLocalHost(h),
     iconUrl: DEFAULT_POOL_ICON_URL,
   },
+  {
+    id: 'bitronics',
+    name: 'Bitronics',
+    match: (h) => h.includes('bitronics.'),
+    iconUrl: 'assets/pools/bitronics.svg',
+  },
 
   {
     id: 'public-pool',
