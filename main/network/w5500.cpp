@@ -19,12 +19,18 @@
 
 static const char *TAG_ETH = "w5500";
 
-#ifndef W5500_USE_INT
-#define W5500_USE_INT 1
-#endif
-
 W5500::W5500()
 {}
+
+void W5500::setPins(gpio_num_t sclk, gpio_num_t mosi, gpio_num_t miso, gpio_num_t cs, gpio_num_t rst, gpio_num_t irq)
+{
+    m_pinSclk = sclk;
+    m_pinMosi = mosi;
+    m_pinMiso = miso;
+    m_pinCs = cs;
+    m_pinRst = rst;
+    m_pinInt = irq;
+}
 
 void W5500::makeEthMacFromEfuse(uint8_t out_mac[6])
 {
@@ -67,6 +73,36 @@ void W5500::hwResetGpio(gpio_num_t rst)
     vTaskDelay(pdMS_TO_TICKS(50));
     gpio_set_level(rst, 1);
     vTaskDelay(pdMS_TO_TICKS(200));
+}
+
+void W5500::swReset()
+{
+    // Write RST (0x80) to MR (addr 0x0000); control 0x04 = common block, write, VDM.
+    spi_device_interface_config_t devcfg = {};
+    devcfg.command_bits = 16;
+    devcfg.address_bits = 8;
+    devcfg.mode = 0;
+    devcfg.clock_speed_hz = 2 * 1000 * 1000;
+    devcfg.spics_io_num = m_pinCs;
+    devcfg.queue_size = 1;
+
+    spi_device_handle_t dev = nullptr;
+    if (spi_bus_add_device(spi_host, &devcfg, &dev) != ESP_OK) {
+        ESP_LOGW(TAG_ETH, "swReset: spi_bus_add_device failed");
+        return;
+    }
+
+    spi_transaction_t t = {};
+    t.cmd = 0x0000;            // MR address
+    t.addr = 0x04;             // common block, write, VDM
+    t.length = 8;
+    t.flags = SPI_TRANS_USE_TXDATA;
+    t.tx_data[0] = 0x80;       // RST
+    esp_err_t r = spi_device_polling_transmit(dev, &t);
+    spi_bus_remove_device(dev);
+    vTaskDelay(pdMS_TO_TICKS(2));   // reset completes in ~1 ms
+
+    ESP_LOGI(TAG_ETH, "W5500 software reset (MR RST) %s", (r == ESP_OK) ? "sent" : "failed");
 }
 
 void W5500::onLinkUp()
@@ -155,9 +191,8 @@ esp_err_t W5500::earlySpiInit()
         return ESP_OK;
     }
 
-    ESP_LOGW(TAG_ETH, "W5500::init start");
-
-    hwResetGpio(m_pinRst);
+    ESP_LOGW(TAG_ETH, "W5500::init start (sclk=%d mosi=%d miso=%d cs=%d rst=%d int=%d)",
+             (int) m_pinSclk, (int) m_pinMosi, (int) m_pinMiso, (int) m_pinCs, (int) m_pinRst, (int) m_pinInt);
 
     /* Create netif */
     esp_netif_config_t netif_cfg = ESP_NETIF_DEFAULT_ETH();
@@ -183,6 +218,13 @@ esp_err_t W5500::earlySpiInit()
         return err;
     }
 
+    // Reset the W5500: dedicated RST GPIO if wired, else software reset over SPI.
+    if (m_pinRst != GPIO_NUM_NC) {
+        hwResetGpio(m_pinRst);
+    } else {
+        swReset();
+    }
+
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
 
@@ -196,12 +238,10 @@ esp_err_t W5500::earlySpiInit()
 
     eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(spi_host, &spi_devcfg);
 
-#if W5500_USE_INT
-    w5500_config.int_gpio_num = m_pinInt;
-#else
-    w5500_config.int_gpio_num = -1;
-    w5500_config.poll_period_ms = 1;
-#endif
+    w5500_config.int_gpio_num = m_pinInt;      // GPIO_NUM_NC => no interrupt line
+    if (m_pinInt == GPIO_NUM_NC) {
+        w5500_config.poll_period_ms = 1;       // poll the chip instead (16 KB RX buffer, safe)
+    }
 
     esp_eth_mac_t *mac = esp_eth_mac_new_w5500(&w5500_config, &mac_config);
     if (!mac) {

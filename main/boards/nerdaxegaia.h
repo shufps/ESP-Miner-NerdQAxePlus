@@ -9,6 +9,9 @@ class NerdaxeGaia : public NerdAxe {
   protected:
     int m_initVoltageMillis;
 
+    // W5500 interposer present (auto-detected in the ctor).
+    bool m_hasEth = false;
+
     // LDO enable line (GPIO12) — power sequencing helpers
     void LDO_enable();
     void LDO_disable();
@@ -33,4 +36,7 @@ class NerdaxeGaia : public NerdAxe {
     virtual float getVout();
     virtual float getIout();
     virtual float getPout();
+
+    virtual bool hasEthernet() override { return m_hasEth; }
+    virtual const EthPins *getEthPins() override;
 };
