@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 
 import { ISystemV2 } from '../../models/ISystemV2';
 import { SystemService } from '../../services/system.service';
+import { HOME_CFG } from './home.cfg';
 import { HomeComponent } from './home.component';
 import { toPct } from './tiles/utils';
 
@@ -104,14 +105,17 @@ export class HomeGaiaComponent extends HomeComponent {
     return `${((pct / 100) * C).toFixed(1)} ${C.toFixed(1)}`;
   }
 
-  // Chart time-range buttons (NEROQ+ header). Best-effort: sets the zoom window;
-  // ranges beyond the configured max clamp. Active state is visual feedback.
-  public chartRanges: string[] = ['1H', '3H', '12H', '1D', '3D', '7D', '30D'];
-  public chartRange: string = '1H';
+  // Chart time-range buttons (NEROQ+ header). Only ranges inside the chart zoom
+  // limits are offered: the firmware keeps at most 3 h of dashboard history, and
+  // longer windows would be clamped to that while the button still showed e.g. "1D".
   private static readonly RANGE_MS: Record<string, number> = {
-    '1H': 3_600_000, '3H': 10_800_000, '12H': 43_200_000, '1D': 86_400_000,
-    '3D': 259_200_000, '7D': 604_800_000, '30D': 2_592_000_000,
+    '1H': 3_600_000, '2H': 7_200_000, '3H': 10_800_000,
   };
+  public chartRanges: string[] = Object.keys(HomeGaiaComponent.RANGE_MS).filter((r) => {
+    const ms = HomeGaiaComponent.RANGE_MS[r];
+    return ms >= HOME_CFG.xAxis.minWindowMs && ms <= HOME_CFG.xAxis.maxWindowMs;
+  });
+  public chartRange: string = '1H';
   public setChartRange(label: string): void {
     this.chartRange = label;
     const ms = HomeGaiaComponent.RANGE_MS[label];
