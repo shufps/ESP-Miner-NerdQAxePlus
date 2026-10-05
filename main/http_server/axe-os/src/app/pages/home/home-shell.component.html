@@ -1,0 +1,4 @@
+<ng-container [ngSwitch]="mode$ | async">
+  <app-home-gaia *ngSwitchCase="'gaia'"></app-home-gaia>
+  <app-home *ngSwitchDefault></app-home>
+</ng-container>

@@ -1,3 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 
-
+/* NOTE: this file is the stylesheet entry for the Karma TEST target only
+   (see angular.json -> projects.axe-os.architect.test.options.styles).
+   The REAL global stylesheet used by `npm start` / build is
+   src/app/@theme/styles/styles.scss. Put global styles THERE, not here. */

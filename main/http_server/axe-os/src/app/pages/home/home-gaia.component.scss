@@ -1,0 +1,734 @@
+// Gaia dashboard styles (NerdAxeGaia / "Gaia" theme).
+// Loaded only by HomeGaiaComponent, together with home.component.scss, so the
+// default dashboard is not affected.
+
+/* ── Top summary cards — NEROQ+ style (icon-left, colored, progress) ──────── */
+.nerd-summary-grid {
+  display: grid;
+  /* mobile: two columns (was a single stacked column) */
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.6rem;
+}
+@media (min-width: 1200px) { .nerd-summary-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.nerd-stat {
+  --accent: var(--color-primary-500);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  height: 100%;
+  min-width: 0;
+  min-height: 4.25rem;
+  padding: 0.7rem 1.1rem;
+  border-radius: var(--card-border-radius, 0.85rem);
+  background: var(--card-background-color, #17171b);
+  background:
+    radial-gradient(130% 120% at 0% 0%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 55%),
+    var(--card-background-color, #17171b);
+  border: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.07));
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.nerd-stat:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.42);
+}
+
+.nerd-stat__top {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.nerd-stat__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: 0 0 auto;
+  border-radius: 0.65rem;
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  nb-icon { font-size: 1.3rem; width: 1.3rem; height: 1.3rem; }
+}
+.nerd-stat__head {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-hint-color);
+}
+.nerd-stat__value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.45rem;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.0;
+  color: var(--text-basic-color);
+  font-variant-numeric: tabular-nums;
+}
+.nerd-stat__unit {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-hint-color);
+}
+/* Best Difficulty: the "G" unit matches the value (same size + white) */
+.nerd-stat--best .nerd-stat__unit {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--text-basic-color);
+  margin-left: 0.18rem;
+}
+.nerd-stat__value-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-hint-color);
+}
+.nerd-stat__sub {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-hint-color);
+}
+.nerd-stat__sub--accent { color: var(--accent); }
+.nerd-stat__sub--bad    { color: var(--color-danger-500); }
+
+/* two secondary bits on one line (e.g. Shares: "Rejected" left, "Diff" right),
+   keeping the card to a single secondary row instead of two stacked rows. */
+.nerd-stat__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.nerd-stat__foot {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-hint-color);
+}
+.nerd-stat__foot--right { margin-top: auto; text-align: right; }
+
+/* per-card accent colors (match the mockup) */
+.nerd-stat--hash   { --accent: #e8a23c; }
+.nerd-stat--shares { --accent: #21c7c7; }
+.nerd-stat--eff    { --accent: #34d399; }
+.nerd-stat--best   { --accent: #e8a23c; }
+
+/* ── NEROQ+ bottom dashboard row (gaia) ─────────────────────────────────── */
+.nerd-dash-grid {
+  display: grid;
+  /* mobile + tablet: two columns (was a single stacked column) */
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+@media (min-width: 1200px) { .nerd-dash-grid { grid-template-columns: repeat(3, 1fr); } }
+/* 5 panels in a single row from 1400px (was 1600px) so the row fits on common
+   ~1440–1600px screens instead of wrapping to 3 + 2.
+   Column widths track each panel's content: POOL (tile) widest; PERFORMANCE
+   gets extra room for its long labels ("Current ASIC Voltage"); UPTIME (short
+   text) is the narrowest. */
+@media (min-width: 1400px) { .nerd-dash-grid { grid-template-columns: 1.3fr 1fr 1fr 1.15fr 1.05fr; } }
+
+.nerd-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 9rem;
+  /* allow the grid columns to shrink below their content's intrinsic width so
+     the 5-panel row fits the viewport instead of overflowing on the right. */
+  min-width: 0;
+  padding: 1.05rem 1.2rem;
+  border-radius: var(--card-border-radius, 0.85rem);
+  background: var(--card-background-color, #17171b);
+  border: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.07));
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+}
+.nerd-panel__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-hint-color);
+}
+/* pencil "edit" link in a panel header -> jumps to the config section */
+.nerd-panel__edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--text-hint-color);
+  opacity: 0.65;
+  text-decoration: none;
+  transition: color .15s ease, opacity .15s ease, background .15s ease;
+  border-radius: 0.4rem;
+  padding: 0.15rem;
+  nb-icon { font-size: 0.95rem; width: 0.95rem; height: 0.95rem; }
+}
+.nerd-panel__edit:hover {
+  opacity: 1;
+  color: #f0b352;
+  background: rgba(232, 162, 60, 0.12);
+}
+
+/* metric row: icon + label/value + sparkline */
+.metric-row {
+  --m: var(--color-primary-500);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.metric-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  border-radius: 0.6rem;
+  color: var(--m);
+  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--m) 16%, transparent);
+  nb-icon { font-size: 1.15rem; width: 1.15rem; height: 1.15rem; }
+}
+.metric-row__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.metric-row__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-hint-color);
+  /* Wrap instead of truncating, so labels like "Current ASIC Voltage" stay
+     fully readable when panels get narrow (5-in-a-row on desktop, or the
+     2-column layout on mobile). Up to 3 lines covers the longest label even in
+     a ~180px mobile column; on wide screens they still fit on a single line. */
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.metric-row__value {
+  font-family: 'JetBrains Mono', ui-monospace, 'Consolas', monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-basic-color);
+  font-variant-numeric: tabular-nums;
+}
+.metric-row__unit {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-hint-color);
+  margin-left: 2px;
+}
+.fan-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--m);
+}
+/* semicircular min/max mini-gauge on the right of each metric row */
+.metric-gauge {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 58px;
+}
+.metric-gauge__svg {
+  width: 58px;
+  height: 33px;
+  overflow: visible;
+}
+.metric-gauge__track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.10);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.metric-gauge__fill {
+  fill: none;
+  stroke: var(--m);
+  stroke-width: 8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--m) 75%, transparent));
+  transition: stroke-dasharray .5s ease;
+}
+.metric-gauge__minmax {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: -1px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-hint-color);
+  font-variant-numeric: tabular-nums;
+}
+
+/* per-metric accent colors */
+.metric-row.m-purple { --m: #7b6ef6; }
+.metric-row.m-blue   { --m: #e8a23c; }
+.metric-row.m-amber  { --m: #e8a23c; }
+.metric-row.m-red    { --m: #f0584b; }
+.metric-row.m-cyan   { --m: #21c7c7; }
+.metric-row.m-green  { --m: #34d399; }
+
+/* uptime / connection panel */
+.nerd-uptime {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  margin-top: 0.2rem;
+}
+.nerd-uptime__item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.nerd-uptime__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  nb-icon { font-size: 1.2rem; width: 1.2rem; height: 1.2rem; }
+}
+.nerd-uptime__icon.is-ok   { color: var(--color-success-500); background: color-mix(in srgb, var(--color-success-500) 16%, transparent); }
+.nerd-uptime__icon.is-info { color: #21c7c7; background: color-mix(in srgb, #21c7c7 16%, transparent); }
+.nerd-uptime__body { display: flex; flex-direction: column; min-width: 0; }
+.nerd-uptime__value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-basic-color);
+}
+.nerd-uptime__label {
+  font-size: 0.72rem;
+  color: var(--text-hint-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Modern circular gauges (gaia-only bottom section) ──────────────────── */
+/* 3 equal columns (guaranteed) on desktop; stacked on narrow screens */
+.nerd-gauges-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+@media (min-width: 768px) {
+  .nerd-gauges-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.nerd-gauge-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.1rem 1.25rem 1.4rem;
+  border-radius: var(--card-border-radius, 0.75rem);
+  background: var(--card-background-color, var(--background-basic-color-1));
+  border: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.06));
+  box-shadow: var(--card-shadow, 0 2px 10px rgba(0, 0, 0, 0.22));
+}
+.nerd-gauge-card__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-hint-color);
+  margin-bottom: 1rem;
+}
+.nerd-gauge-card__grid {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  align-content: center;
+  gap: 1rem 0.4rem;
+}
+
+.nerd-gauge {
+  --g-accent: var(--color-success-500);
+  flex: 0 1 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.nerd-gauge.is-ok   { --g-accent: var(--color-success-500); }
+.nerd-gauge.is-warn { --g-accent: var(--color-warning-500); }
+.nerd-gauge.is-crit { --g-accent: var(--color-danger-500); }
+
+.nerd-gauge__ring {
+  position: relative;
+  width: 100%;
+  max-width: 104px;
+  aspect-ratio: 1 / 1;
+}
+.nerd-gauge__svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(135deg); /* start bottom-left; 270° arc with a gap at the bottom */
+}
+.nerd-gauge__track {
+  fill: none;
+  stroke: var(--border-basic-color-3, rgba(255, 255, 255, 0.10));
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 197.9 263.9; /* draw only 270° (3/4 of the ring) */
+}
+.nerd-gauge__bar {
+  fill: none;
+  stroke: var(--g-accent);
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition: stroke-dasharray .5s ease, stroke .2s ease;
+  filter: drop-shadow(0 0 5px var(--g-accent));
+}
+.nerd-gauge__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.nerd-gauge__value {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-basic-color);
+  font-variant-numeric: tabular-nums;
+}
+.nerd-gauge__unit {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-hint-color);
+  margin-top: 1px;
+}
+.nerd-gauge__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-hint-color);
+  letter-spacing: 0.02em;
+}
+
+/* ── Chart card — GAIA-only restyle (matches the top cards) ──────────────── */
+:host-context(.nb-theme-gaia) .nerd-chart-card {
+  border-radius: var(--card-border-radius, 0.75rem);
+  border: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.06));
+  box-shadow: var(--card-shadow, 0 2px 10px rgba(0, 0, 0, 0.22));
+  overflow: hidden;
+}
+/* breathing room around the plot, so the frame isn't flush to the card edge */
+:host-context(.nb-theme-gaia) .nerd-chart-card .chart-card-body {
+  padding: 1rem 1.1rem 0.85rem;
+}
+/* no frame around the plot — keeps axis values off the edge */
+:host-context(.nb-theme-gaia) .nerd-chart-card .chart-canvas__wrap {
+  position: relative;
+  padding: 0.4rem 0.2rem 0.2rem;
+}
+
+/* GAIA chart header (title + range buttons + auto-refresh + hide) */
+.nerd-chart-header2 {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  /* symmetric top/bottom padding so the title + controls sit vertically
+     centred in the header strip (was bottom-heavy with 0.9 / 0.5). */
+  padding: 0.7rem 1.1rem;
+}
+.nerd-chart-header2__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-hint-color);
+}
+.nerd-chart-ranges {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.06));
+}
+.nerd-chart-range {
+  border: none;
+  background: transparent;
+  color: var(--text-hint-color);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.28rem 0.62rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.nerd-chart-range:hover { color: var(--text-basic-color); }
+.nerd-chart-range.is-active {
+  background: rgba(232, 162, 60, 0.18);
+  color: #f0b352;
+}
+.nerd-chart-header2__right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+}
+.nerd-chart-autorefresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-hint-color);
+}
+.nerd-chart-autorefresh .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success-500);
+  box-shadow: 0 0 7px var(--color-success-500);
+}
+.nerd-chart-hide {
+  border: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.08));
+  background: transparent;
+  color: var(--text-hint-color);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.28rem 0.7rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.nerd-chart-hide:hover { color: var(--text-basic-color); border-color: var(--color-primary-500); }
+
+/* ── GAIA chart header on mobile ─────────────────────────────────────────────
+   On phones the title / range pills / controls stack cleanly and use the full
+   width, instead of wrapping with "Auto-refresh + Hide" pushed to a lonely
+   far-right corner. */
+@media (max-width: 600px) {
+  .nerd-chart-header2 {
+    row-gap: 0.7rem;
+  }
+  .nerd-chart-header2__title {
+    width: 100%;
+  }
+  .nerd-chart-ranges {
+    /* keep the 7 pills on one line; scroll horizontally if the screen is tiny */
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .nerd-chart-header2__right {
+    margin-left: 0;
+    width: 100%;
+    /* status on the left, the Hide/Show action on the right */
+    justify-content: space-between;
+  }
+}
+
+/* axis labels: a clean row above the plot (no overlap with the axis values) */
+.nerd-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.5rem 0.45rem;
+  pointer-events: none;
+}
+.nerd-chart-axis__left  { font-size: 0.72rem; font-weight: 600; color: #f0b352; }
+.nerd-chart-axis__right { font-size: 0.72rem; font-weight: 600; color: #41c9d6; }
+/* controls at the bottom, well distributed */
+:host-context(.nb-theme-gaia) .nerd-chart-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border-top: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.06));
+}
+:host-context(.nb-theme-gaia) .nerd-chart-footer .chart-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+  width: 100%;
+}
+
+/* ── Pool card — GAIA reorganized (host/status top, mini-stats row) ──────── */
+.nerd-pool-card {
+  border-radius: var(--card-border-radius, 0.75rem);
+  border: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.06));
+  box-shadow: var(--card-shadow, 0 2px 10px rgba(0, 0, 0, 0.22));
+  overflow: hidden;
+}
+.nerd-pool-card__body {
+  position: relative;
+  padding: 1.1rem 1.3rem;
+}
+.nerd-pool-card__reset {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0.5;
+  &:hover { opacity: 1; }
+}
+
+.nerd-pool {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.nerd-pool--down { opacity: 0.85; }
+
+.nerd-pool__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.nerd-pool__iconlink { flex: 0 0 auto; display: inline-flex; }
+.nerd-pool__icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 7px;
+  object-fit: cover;
+  background: var(--background-basic-color-2, rgba(255, 255, 255, 0.05));
+}
+.nerd-pool__id {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.nerd-pool__host {
+  font-weight: 700;
+  color: var(--text-basic-color);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  &:hover { color: var(--color-primary-500); }
+}
+.nerd-pool__port { color: var(--text-hint-color); font-weight: 600; }
+.nerd-pool__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--text-hint-color);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  nb-icon { width: 0.85rem; height: 0.85rem; }
+}
+.nerd-pool__dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-danger-500);
+  &.is-on {
+    background: var(--color-success-500);
+    box-shadow: 0 0 6px var(--color-success-500);
+  }
+}
+
+.nerd-pool__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+}
+.nerd-pool__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.nerd-pool__stat-value {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-basic-color);
+  font-variant-numeric: tabular-nums;
+  .u { font-size: 0.7rem; font-weight: 600; color: var(--text-hint-color); margin-left: 1px; }
+  &.is-bad { color: var(--color-danger-500); }
+}
+.nerd-pool__stat-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-hint-color);
+}
+.nerd-pool__down-msg {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-danger-500);
+}
+.nerd-pool-sep {
+  height: 1px;
+  background: var(--border-basic-color-3, rgba(255, 255, 255, 0.08));
+  margin: 0.25rem 0;
+}
+
+/* Nerd*OS logo parked at the bottom-right of the dashboard (gaia) */
+.nerdos-corner {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+  padding-right: 0.25rem;
+  opacity: 0.55;
+}
+/* 30% smaller, anchored to the bottom-right corner */
+.nerdos-corner .nerdos-logo-wrap__inner {
+  transform: scale(0.7);
+  transform-origin: bottom right;
+}
+
+/* GAIA footer bar: version text (left) + Nerd*OS logo (right, 30% smaller) */
+.nerd-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.05));
+}
+.nerd-footer__text {
+  font-size: 0.72rem;
+  color: var(--text-hint-color);
+}
+.nerd-footer__logo {
+  transform: scale(0.7);
+  transform-origin: right center;
+  opacity: 0.55;
+}
+
+/* GAIA only: chart ~30% shorter on desktop (570px -> 400px) so the bottom
+   dashboard panels fit with less scrolling. Only >1200px is touched; the
+   smaller breakpoints above already use shorter heights and stay as-is. */
+@media (min-width: 1201px) {
+  :host-context(.nb-theme-gaia) .chart-canvas__wrap--tall{
+    height: 400px;
+  }
+}

@@ -101,5 +101,36 @@ mat-icon{
   }
 }
 
+/* ── GAIA: separación entre botones del menú lateral ─────────────────────────
+   Nebular no expone una variable de margen entre items; el resto del estilo
+   (sin separadores, redondeo, hover, item activo) va por variables de tema en
+   themes.scss. Aquí solo el "aire" vertical entre botones. Solo tema Gaia.
+   ──────────────────────────────────────────────────────────────────────────── */
+.nb-theme-gaia {
+  nb-menu .menu-items {
+    padding: 0.6rem 0.6rem;
+  }
+  nb-menu .menu-item + .menu-item {
+    margin-top: 0.35rem;
+  }
+
+  /* Sidebar COMPACTADO (solo iconos): el padding horizontal del botón no deja
+     sitio al icono en los ~56px -> lo quitamos y centramos el icono. */
+  nb-sidebar.compacted {
+    nb-menu .menu-items {
+      padding-left: 0.35rem;
+      padding-right: 0.35rem;
+    }
+    nb-menu .menu-item > a {
+      padding-left: 0;
+      padding-right: 0;
+      justify-content: center;
+    }
+    nb-menu .menu-item .menu-icon {
+      margin: 0;
+    }
+  }
+}
+
 /* Importing Bootstrap SCSS file. */
 @import 'bootstrap/scss/bootstrap';

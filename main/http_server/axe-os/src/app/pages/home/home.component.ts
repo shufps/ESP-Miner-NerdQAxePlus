@@ -109,8 +109,17 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     zoomStepMs: HOME_CFG.xAxis.zoomStepMs,
   };
 
+  /**
+   * Hashrate accent colour (chart line, bar fill, logo tint). A getter so a
+   * themed dashboard subclass can override it: the chart is built in the
+   * constructor, before subclass fields would be initialised.
+   */
+  protected get hashrateColor(): string {
+    return HOME_CFG.colors.hashrateBase;
+  }
+
   // CSS vars for meter bars (kept in sync with HOME_CFG)
-  @HostBinding('style.--bar-fill') barFill: string = HOME_CFG.colors.hashrateBase;
+  @HostBinding('style.--bar-fill') barFill: string = this.hashrateColor;
   @HostBinding('style.--bar-track') barTrack: string = HOME_CFG.colors.chartGridColor;
   @HostBinding('style.--asic-temp-pill') asicTempPill: string = HOME_CFG.colors.asicTemp;
 
@@ -142,7 +151,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     } catch {}
   }
 
-  private setChartWindowMs(nextMs: number): void {
+  protected setChartWindowMs(nextMs: number): void {
     const next = clampWindowMs(nextMs, this.zoomCfg);
     if (next === this.chartWindowMs) return;
     const prev = this.chartWindowMs;
@@ -556,7 +565,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private debugAxisPadding: boolean = false;
   private readonly axisPadOverrideEnabledKey: string = '__nerdCharts_axisPaddingOverrideEnabled';
   private readonly axisPadStorageKey: string = '__nerdCharts_axisPadding';
-  public nerdOsLogoColor: string = hexToRgba(HOME_CFG.colors.hashrateBase, 0.6);
+  public nerdOsLogoColor: string = hexToRgba(this.hashrateColor, 0.6);
 
   ngAfterViewChecked(): void {
     // Ensure chart is initialized only once when the canvas becomes available
@@ -572,8 +581,50 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.barDomSync.syncVrTempBarCritFill(!!this.vrTempBarCritWanted, this.currentThemeName);
   }
 
+  private legendClickHandler: ((e: MouseEvent) => void) | null = null;
+
+  /**
+   * Robust legend toggle: handle legend clicks ourselves on the canvas. Chart.js's
+   * built-in legend onClick can fail to fire in some embeddings; this guarantees
+   * clicking a legend item shows/hides its series (and persists the choice).
+   */
+  private installLegendClickToggle(): void {
+    const chart: any = this.chart;
+    if (!chart || !chart.canvas) return;
+    if (this.legendClickHandler) {
+      try { chart.canvas.removeEventListener('click', this.legendClickHandler); } catch {}
+    }
+    this.legendClickHandler = (e: MouseEvent) => {
+      try {
+        const ch: any = this.chart;
+        const legend: any = ch && ch.legend;
+        if (!legend || !Array.isArray(legend.legendHitBoxes)) return;
+        const rect = ch.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const boxes = legend.legendHitBoxes;
+        for (let i = 0; i < boxes.length; i++) {
+          const b = boxes[i];
+          if (!b) continue;
+          if (x >= b.left && x <= b.left + b.width && y >= b.top && y <= b.top + b.height) {
+            const item = legend.legendItems && legend.legendItems[i];
+            const idx = (item && item.datasetIndex != null) ? item.datasetIndex : i;
+            const meta = ch.getDatasetMeta(idx);
+            meta.hidden = meta.hidden === null ? !ch.data.datasets[idx].hidden : null;
+            ch.update();
+            const vis = ch.data.datasets.map((_d: any, j: number) => (ch.getDatasetMeta(j).hidden ? true : false));
+            try { this.chartStorage.saveLegendVisibility(vis); } catch {}
+            break;
+          }
+        }
+      } catch { /* ignore */ }
+    };
+    chart.canvas.addEventListener('click', this.legendClickHandler);
+  }
+
   private initChart(): void {
     this.chart = createHomeChart(this.ctx.nativeElement, this.chartData, this.chartOptions);
+    this.installLegendClickToggle();
     // Restore legend visibility
     const storedVisibility = this.chartStorage.loadLegendVisibility();
     const visibility = storedVisibility ?? [
@@ -673,6 +724,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     } catch {}
 
     const cfg = createHomeChartConfig({
+      hashrateColor: this.hashrateColor,
       series: {
         labels: this.dataLabel,
         hr1m: this.dataData1m,

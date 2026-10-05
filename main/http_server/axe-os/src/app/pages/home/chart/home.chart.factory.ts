@@ -10,6 +10,8 @@ export interface HomeChartFactoryDeps {
   formatHashrate: (v: number) => string;
   persistLegendVisibility: (visibility: boolean[]) => void;
   debugPillsLayout?: boolean;
+  /** Hashrate dataset colour; defaults to HOME_CFG.colors.hashrateBase. */
+  hashrateColor?: string;
 }
 
 export interface HomeChartConfig {
@@ -20,7 +22,7 @@ export interface HomeChartConfig {
 export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConfig {
   const chartData = {
     labels: deps.series.labels,
-    datasets: createHomeDatasets({ t: deps.translate, series: deps.series }),
+    datasets: createHomeDatasets({ t: deps.translate, series: deps.series, hashrateColor: deps.hashrateColor }),
   };
 
   applyHomeDatasetRenderOrder(chartData.datasets as any[]);
@@ -42,6 +44,7 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
     },
     plugins: {
       legend: {
+        position: 'bottom',
         labels: {
           // color set by theme helper
           sort: (a: any, b: any) => a.datasetIndex - b.datasetIndex,
@@ -50,19 +53,10 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
             return !ds?.excludeFromLegend;
           },
         },
-        onClick: (_evt: any, legendItem: any, legend: any) => {
-          const chart = legend.chart;
-          const index = legendItem.datasetIndex;
-          const meta = chart.getDatasetMeta(index);
-
-          // Toggle
-          meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
-          chart.update();
-
-          // Persist visibility
-          const visibility = chart.data.datasets.map((_ds: any, i: number) => (chart.getDatasetMeta(i).hidden ? true : false));
-          deps.persistLegendVisibility(visibility);
-        },
+        // Toggling is handled by a custom canvas click listener in the component
+        // (installLegendClickToggle) — more reliable than Chart.js's built-in
+        // dispatch. This no-op overrides the default so clicks don't double-toggle.
+        onClick: () => { /* handled in component */ },
       },
       tooltip: {
         mode: 'index',
@@ -164,7 +158,19 @@ export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConf
           maxTicksLimit: deps.maxTicksLimit,
           autoSkip: false,
           includeBounds: true,
-          callback: (value: number) => deps.formatHashrate(value),
+          callback: (value: number) => {
+            // Use the real hashrate formatter (it knows the H/s scale), then tidy:
+            //   "833.33 GH/s" -> "833 GH" ; "1.10 TH/s" -> "1.1 TH" ; 0 -> "0"
+            const v = Number(value);
+            if (!isFinite(v) || v <= 0) return '0';
+            const raw = String(deps.formatHashrate(v)).replace(/,/g, '').replace('/s', '').trim();
+            const m = raw.match(/^([\d.]+)\s*(\S*)$/);
+            if (!m) return raw;
+            const num = parseFloat(m[1]);
+            const unit = m[2] || '';
+            const clean = num >= 100 ? Math.round(num) : Math.round(num * 10) / 10;
+            return unit ? `${clean} ${unit}` : `${clean}`;
+          },
         },
         grid: {
           display: false,

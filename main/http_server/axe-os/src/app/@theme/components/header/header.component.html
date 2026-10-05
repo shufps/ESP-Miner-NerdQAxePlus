@@ -1,13 +1,24 @@
 <div class="header-container">
   <div class="logo-container">
-    <a (click)="toggleSidebar()" href="#" class="sidebar-toggle">
-      <nb-icon icon="menu-2-outline"></nb-icon>
+    <a (click)="toggleSidebar()" href="#" class="sidebar-toggle" aria-label="Toggle menu">
+      <nb-icon icon="menu-2-outline" *ngIf="currentTheme !== 'gaia'"></nb-icon>
+      <svg *ngIf="currentTheme === 'gaia'" class="gaia-burger" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <line x1="3.5" y1="7"  x2="20.5" y2="7"  stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="3.5" y1="12" x2="16"   y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="3.5" y1="17" x2="20.5" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
     </a>
     <a class="logo" href="#" (click)="navigateHome()">
       <img *ngIf="!logoFailed" [src]="logoPath" alt="Logo" (error)="onLogoError()">
       <span *ngIf="logoFailed" class="logo-text">{{ logoBaseName }}</span>
     </a>
   </div>
+</div>
+
+<div class="header-series" *ngIf="currentTheme === 'gaia'" aria-hidden="true">
+  <span class="header-series__line"></span>
+  <span class="header-series__brand">Nerd<span class="header-series__os">OS</span></span>
+  <span class="header-series__line"></span>
 </div>
 
 <div class="header-container">
@@ -27,7 +38,30 @@
     </nb-action>
     -->
   </nb-actions>
+  <span class="header-online" *ngIf="currentTheme === 'gaia'">
+    <span class="header-online__dot"></span> Online
+  </span>
+  <button nbButton ghost status="basic" size="small"
+          *ngIf="currentTheme === 'gaia'"
+          class="reset-stats-btn"
+          [title]="'HOME.RESET_STATS' | translate"
+          (click)="openResetStats(resetStatsDialog)">
+    <nb-icon icon="trash-2-outline"></nb-icon>
+  </button>
   <nb-select [selected]="currentTheme" (selectedChange)="changeTheme($event)" status="primary">
     <nb-option *ngFor="let theme of themes" [value]="theme.value"> {{ theme.name }}</nb-option>
   </nb-select>
 </div>
+
+<ng-template #resetStatsDialog let-ref="dialogRef">
+  <nb-card accent="warning" style="width: 340px">
+    <nb-card-header>{{ 'HOME.RESET_STATS' | translate }}</nb-card-header>
+    <nb-card-body>
+      <p>{{ 'HOME.RESET_STATS_CONFIRM' | translate }}</p>
+      <div class="d-flex justify-content-between">
+        <button nbButton status="warning" (click)="confirmResetStats(ref)">{{ 'COMMON.RESET' | translate }}</button>
+        <button nbButton status="basic" (click)="ref.close()">{{ 'COMMON.CANCEL' | translate }}</button>
+      </div>
+    </nb-card-body>
+  </nb-card>
+</ng-template>
