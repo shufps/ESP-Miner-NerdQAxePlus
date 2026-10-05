@@ -10,6 +10,8 @@ export interface HomeChartFactoryDeps {
   formatHashrate: (v: number) => string;
   persistLegendVisibility: (visibility: boolean[]) => void;
   debugPillsLayout?: boolean;
+  /** Hashrate dataset colour; defaults to HOME_CFG.colors.hashrateBase. */
+  hashrateColor?: string;
 }
 
 export interface HomeChartConfig {
@@ -20,7 +22,7 @@ export interface HomeChartConfig {
 export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConfig {
   const chartData = {
     labels: deps.series.labels,
-    datasets: createHomeDatasets({ t: deps.translate, series: deps.series }),
+    datasets: createHomeDatasets({ t: deps.translate, series: deps.series, hashrateColor: deps.hashrateColor }),
   };
 
   applyHomeDatasetRenderOrder(chartData.datasets as any[]);

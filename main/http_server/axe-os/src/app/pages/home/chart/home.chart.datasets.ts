@@ -13,9 +13,9 @@ export interface HomeChartSeriesRefs {
   asicTemp: number[];
 }
 
-export function createHomeDatasets(opts: { t: (key: string) => string; series: HomeChartSeriesRefs }): any[] {
+export function createHomeDatasets(opts: { t: (key: string) => string; series: HomeChartSeriesRefs; hashrateColor?: string }): any[] {
   const { t, series } = opts;
-  const HR_BASE_COLOR = HOME_CFG.colors.hashrateBase;
+  const HR_BASE_COLOR = opts.hashrateColor ?? HOME_CFG.colors.hashrateBase;
 
   function hrColor(alpha: number = 1): string {
     if (alpha >= 1) return HR_BASE_COLOR;

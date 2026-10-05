@@ -1,0 +1,360 @@
+<ng-template #loading>
+  <h4>{{ 'COMMON.LOADING' | translate }}</h4>
+</ng-template>
+
+<ng-template #shutdown>
+  <h4>{{ 'COMMON.SHUTDOWN' | translate }}</h4>
+</ng-template>
+
+<div class="fill-colors">
+  <!-- Global pool-verify tooltips (position:fixed, must be outside scrolling containers) -->
+  <span class="power-bar-tooltip pool-verify-tooltip"
+        [class.power-bar-tooltip--active]="activeHoverTooltipId === 'pool-verify-0'"
+        [style.left.px]="poolVerifyTooltipX" [style.top.px]="poolVerifyTooltipY"
+        aria-hidden="true">{{ getPoolVerificationTooltip(0) }}</span>
+  <span class="power-bar-tooltip pool-verify-tooltip"
+        [class.power-bar-tooltip--active]="activeHoverTooltipId === 'pool-verify-1'"
+        [style.left.px]="poolVerifyTooltipX" [style.top.px]="poolVerifyTooltipY"
+        aria-hidden="true">{{ getPoolVerificationTooltip(1) }}</span>
+  <div *ngIf="info$ | async as info; else loading">
+  <div *ngIf="!info.system.shutdown; else shutdown">
+      <!-- GAIA-ONLY top summary cards (NEROQ+ style: icon-left, colored, progress) -->
+      <div class="nerd-summary-grid">
+
+        <!-- 1) Hash Rate -->
+        <div class="nerd-stat nerd-stat--hash">
+          <div class="nerd-stat__top">
+            <span class="nerd-stat__icon"><nb-icon icon="flash-outline"></nb-icon></span>
+            <span class="nerd-stat__head">{{ 'HOME.HASH_RATE' | translate }}</span>
+          </div>
+          <span class="nerd-stat__value">{{ info.performance.hashRate | number:'1.2-2' }}<span class="nerd-stat__unit">{{ 'UNITS.HASHRATE' | translate }}</span></span>
+          <ng-container *ngIf="expectedHashRate$ | async as exp">
+            <span class="nerd-stat__sub nerd-stat__sub--accent">{{ exp | number:'1.0-0' }} {{ 'UNITS.HASHRATE' | translate }} {{ 'HOME.EXPECTED' | translate }}</span>
+          </ng-container>
+        </div>
+
+        <!-- 2) Shares -->
+        <div class="nerd-stat nerd-stat--shares">
+          <div class="nerd-stat__top">
+            <span class="nerd-stat__icon"><nb-icon icon="paper-plane-outline"></nb-icon></span>
+            <span class="nerd-stat__head">{{ 'HOME.SHARES' | translate }}</span>
+          </div>
+          <span class="nerd-stat__value">{{ (info.performance.sharesAccepted ?? 0) | number:'1.0-0' }}</span>
+          <div class="nerd-stat__row">
+            <span class="nerd-stat__sub nerd-stat__sub--bad">{{ (info.performance.sharesRejected ?? 0) | number:'1.0-0' }} {{ 'HOME.REJECTED' | translate }} ({{ pctOf(info.performance.sharesRejected ?? 0, (info.performance.sharesAccepted ?? 0) + (info.performance.sharesRejected ?? 0)) | number:'1.2-2' }}%)</span>
+            <span class="nerd-stat__foot">{{ 'POOL_INFO.DIFF' | translate }}: {{ getPoolInfo().poolDifficulty | number:'1.0-0' }}</span>
+          </div>
+        </div>
+
+        <!-- 3) Efficiency -->
+        <div class="nerd-stat nerd-stat--eff">
+          <div class="nerd-stat__top">
+            <span class="nerd-stat__icon"><nb-icon icon="trending-up-outline"></nb-icon></span>
+            <span class="nerd-stat__head">{{ 'HOME.EFFICIENCY' | translate }}</span>
+          </div>
+          <span class="nerd-stat__value">{{ info.power.watts / (info.performance.hashRate / 1000) | number:'1.2-2' }}<span class="nerd-stat__unit">J/Th</span></span>
+          <span class="nerd-stat__sub nerd-stat__sub--accent">{{ effLabel(info.power.watts / (info.performance.hashRate / 1000)) }}</span>
+        </div>
+
+        <!-- 4) Best Difficulty -->
+        <div class="nerd-stat nerd-stat--best">
+          <div class="nerd-stat__top">
+            <span class="nerd-stat__icon"><nb-icon icon="star-outline"></nb-icon></span>
+            <span class="nerd-stat__head">{{ 'PERFORMANCE.BEST_DIFFICULTY' | translate }}</span>
+          </div>
+          <span class="nerd-stat__value">
+            <ng-container *ngIf="splitHumanReadable(info.performance.bestDiff | humanReadable) as bd">{{ bd.value }}<span class="nerd-stat__unit" *ngIf="bd.unit">{{ bd.unit }}</span></ng-container>
+            <span class="nerd-stat__value-tag">{{ 'HOME.ALL_TIME_BEST' | translate }}</span>
+          </span>
+          <span class="nerd-stat__sub">
+            <ng-container *ngIf="splitHumanReadable(info.performance.bestSessionDiff | humanReadable) as sd">{{ sd.value }}<span *ngIf="sd.unit">&nbsp;{{ sd.unit }}</span></ng-container>
+            {{ 'HOME.BEST_DIFF_BOOT' | translate }}
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Chart (full width, top) -->
+      <div class="row d-flex align-items-stretch">
+        <div class="col-12">
+          <!-- Note: do NOT force h-100 here; it creates excess whitespace when the chart is collapsed. -->
+          <!-- Chart controls defined once; rendered in the header (default) or footer (Gaia) -->
+          <ng-template #chartActions>
+                <div class="chart-header-actions">
+                  <div class="chart-zoom-controls" *ngIf="!isChartCollapsed">
+                    <span class="chart-zoom-label" *ngIf="showZoomWindowLabel" aria-live="polite">
+                      <span class="chart-zoom-label__value">−{{ zoomWindowLabel }}</span>
+                      <span class="chart-zoom-label__title">{{ 'HOME.CHART_SPAN' | translate }}</span>
+                    </span>
+                    <button
+                      nbButton
+                      ghost
+                      size="tiny"
+                      class="chart-zoom-btn"
+                      type="button"
+                      (click)="zoomOut($event)"
+                      [attr.aria-label]="('HOME.CHART_SPAN' | translate) + ' − 15' + ('UNITS.MINUTE_SHORT' | translate)"
+                    >
+                      <span class="chart-zoom-btn__icon">−</span>
+                      <span class="chart-zoom-btn__text">{{ 'HOME.CHART_SPAN' | translate }}</span>
+                    </button>
+                    <button
+                      nbButton
+                      ghost
+                      size="tiny"
+                      class="chart-zoom-btn"
+                      type="button"
+                      (click)="zoomIn($event)"
+                      [attr.aria-label]="('HOME.CHART_SPAN' | translate) + ' + 15' + ('UNITS.MINUTE_SHORT' | translate)"
+                    >
+                      <span class="chart-zoom-btn__icon">+</span>
+                      <span class="chart-zoom-btn__text">{{ 'HOME.CHART_SPAN' | translate }}</span>
+                    </button>
+                    <button
+                      nbButton
+                      ghost
+                      size="tiny"
+                      class="chart-zoom-btn chart-zoom-btn--toggle"
+                      type="button"
+                      (click)="toggleZoomWindow($event)"
+                      aria-label="Toggle zoom range 1 hour to 3 hours"
+                    >
+                      <span class="chart-zoom-btn__text">1{{ 'UNITS.HOUR_SHORT' | translate }}</span>
+                      <span class="chart-zoom-btn__icon">⇄</span>
+                      <span class="chart-zoom-btn__text">3{{ 'UNITS.HOUR_SHORT' | translate }}</span>
+                    </button>
+                  </div>
+
+                  <button
+                    nbButton
+                    ghost
+                    size="tiny"
+                    class="chart-toggle"
+                    type="button"
+                    (click)="toggleChartCollapsed($event)"
+                    [attr.aria-expanded]="!isChartCollapsed"
+                  >
+                    <span class="chart-toggle__label">
+                      {{ (isChartCollapsed ? 'HOME.SHOW_CHART' : 'HOME.HIDE_CHART') | translate }}
+                    </span>
+
+                    <!-- Thick, high-contrast chevron (SVG) for better visibility than nb-icon. -->
+                    <span
+                      class="chart-toggle__icon"
+                      [class.chart-toggle__icon--up]="!isChartCollapsed"
+                      aria-hidden="true"
+                    >
+                      <svg viewBox="0 0 16 16" focusable="false">
+                        <path d="M3.25 5.75 L8 10.5 L12.75 5.75"/>
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+          </ng-template>
+
+          <nb-card class="nerd-chart-card">
+            <!-- non-Gaia header (original controls) -->
+
+            <!-- GAIA header: title + time-range buttons + auto-refresh + hide -->
+            <nb-card-header class="nerd-chart-header2">
+              <span class="nerd-chart-header2__title">Performance over time</span>
+              <div class="nerd-chart-ranges" *ngIf="!isChartCollapsed">
+                <button *ngFor="let r of chartRanges" type="button" class="nerd-chart-range"
+                        [class.is-active]="chartRange === r" (click)="setChartRange(r)">{{ r }}</button>
+              </div>
+              <div class="nerd-chart-header2__right">
+                <span class="nerd-chart-autorefresh"><span class="dot"></span> Auto-refresh</span>
+                <button type="button" class="nerd-chart-hide" (click)="toggleChartCollapsed($event)">
+                  {{ (isChartCollapsed ? 'HOME.SHOW_CHART' : 'HOME.HIDE_CHART') | translate }}
+                </button>
+              </div>
+            </nb-card-header>
+
+            <nb-card-body class="chart-card-body" [class.chart-card-body--collapsed]="isChartCollapsed">
+              <div class="nerd-chart-axis" *ngIf="!isChartCollapsed" aria-hidden="true">
+                <span class="nerd-chart-axis__left">Hash Rate (GH/s)</span>
+                <span class="nerd-chart-axis__right">Temperature (°C)</span>
+              </div>
+              <div class="chart-canvas">
+                <div class="chart-canvas__wrap chart-canvas__wrap--tall">
+                  <canvas #myChart></canvas>
+                </div>
+              </div>
+            </nb-card-body>
+          </nb-card>
+        </div>
+      </div>
+
+      <!-- Hashrate summary + Pools — NON-GAIA only (Gaia uses the dashboard grid below) -->
+
+      <!-- GAIA pool render, reused by the dashboard grid below -->
+      <ng-template #gaiaPool let-pool="pool" let-idx="idx" let-fallback="fallback">
+        <div class="nerd-pool" [class.nerd-pool--down]="!pool?.connected">
+          <div class="nerd-pool__head">
+            <a [href]="getQuickLink(pool?.host, pool?.user)" target="_blank" class="nerd-pool__iconlink">
+              <img [src]="poolIconUrl(pool?.host)" class="nerd-pool__icon" alt="pool" (error)="onPoolIconError($event, pool?.host)" />
+            </a>
+            <div class="nerd-pool__id">
+              <a class="nerd-pool__host" [href]="getQuickLink(pool?.host, pool?.user)" target="_blank">{{ pool?.host }}<span class="nerd-pool__port">:{{ pool?.port }}</span></a>
+              <span class="nerd-pool__meta">
+                {{ (fallback ? 'POOL_INFO.FALLBACK' : 'POOL_INFO.PRIMARY') | translate }}
+                · {{ pool?.activeProtocol === 1 ? 'SV2' : 'SV1' }}<nb-icon *ngIf="pool?.encrypted" icon="lock-outline" title="Encrypted"></nb-icon>
+              </span>
+            </div>
+            <span class="nerd-pool__dot" [class.is-on]="pool?.connected" aria-hidden="true"></span>
+          </div>
+
+          <div class="nerd-pool__stats" *ngIf="pool?.connected; else poolDown">
+            <div class="nerd-pool__stat">
+              <span class="nerd-pool__stat-value">{{ poolDiff(pool) | number:'1.0-0' }}</span>
+              <span class="nerd-pool__stat-label">{{ 'POOL_INFO.DIFF' | translate }}</span>
+            </div>
+            <div class="nerd-pool__stat">
+              <span class="nerd-pool__stat-value"><ng-container *ngIf="splitHumanReadable(pool?.bestDiff | humanReadable) as bd">{{ bd.value }}<span class="u" *ngIf="bd.unit">{{ bd.unit }}</span></ng-container></span>
+              <span class="nerd-pool__stat-label">{{ 'HOME.BEST_DIFF_BOOT' | translate }}</span>
+            </div>
+            <div class="nerd-pool__stat">
+              <span class="nerd-pool__stat-value" [class.is-bad]="rejectRate(idx) > 0">{{ rejectRate(idx) | number:'1.2-2' }}<span class="u">%</span></span>
+              <span class="nerd-pool__stat-label">{{ 'HOME.REJECTED' | translate }}</span>
+            </div>
+            <div class="nerd-pool__stat" *ngIf="supportsPing(pool?.host)">
+              <span class="nerd-pool__stat-value">{{ pool?.pingRtt != null ? (pool.pingRtt | number:'1.0-0') : 'n/a' }}<span class="u" *ngIf="pool?.pingRtt != null">ms</span></span>
+              <span class="nerd-pool__stat-label">{{ 'POOL_INFO.PING' | translate }}</span>
+            </div>
+            <div class="nerd-pool__stat" *ngIf="supportsPing(pool?.host)">
+              <span class="nerd-pool__stat-value">{{ pool?.pingLoss != null ? ((pool.pingLoss * 100) | number:'1.0-0') : 'n/a' }}<span class="u" *ngIf="pool?.pingLoss != null">%</span></span>
+              <span class="nerd-pool__stat-label">{{ 'POOL_INFO.LOSS' | translate }}</span>
+            </div>
+            <div class="nerd-pool__stat" *ngIf="isDualPool">
+              <span class="nerd-pool__stat-value">{{ getActiveBalance(idx ?? 0) | number:'1.0-0' }}<span class="u">%</span></span>
+              <span class="nerd-pool__stat-label">Alloc</span>
+            </div>
+          </div>
+          <ng-template #poolDown>
+            <div class="nerd-pool__down-msg">{{ 'HOME.STRATUM_NOT_CONNECTED' | translate }}</div>
+          </ng-template>
+        </div>
+      </ng-template>
+
+      <!-- GAIA-ONLY bottom dashboard row (NEROQ+ style: pool · power · heat · perf · status) -->
+      <!-- One metric row, reused via context: icon + label/value + semicircular min/max gauge -->
+      <ng-template #metricRow let-icon="icon" let-cls="cls" let-fan="fan" let-label="label" let-value="value" let-unit="unit" let-raw="raw" let-min="min" let-max="max" let-dfmt="dfmt">
+        <div class="metric-row" [ngClass]="cls">
+          <span class="metric-row__icon">
+            <svg *ngIf="fan; else iconEl" class="fan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.827 16.379a6.082 6.082 0 0 1-8.618-7.002l5.412 1.45a6.082 6.082 0 0 1 7.002-8.618l-1.45 5.412a6.082 6.082 0 0 1 8.618 7.002l-5.412-1.45a6.082 6.082 0 0 1-7.002 8.618z"/>
+              <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/>
+            </svg>
+            <ng-template #iconEl><nb-icon [icon]="icon"></nb-icon></ng-template>
+          </span>
+          <span class="metric-row__body">
+            <span class="metric-row__label">{{ label }}</span>
+            <span class="metric-row__value">{{ value }}<span class="metric-row__unit">{{ unit }}</span></span>
+          </span>
+          <span class="metric-gauge">
+            <svg class="metric-gauge__svg" viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <path class="metric-gauge__track" d="M 7 50 A 43 43 0 0 1 93 50" />
+              <path class="metric-gauge__fill" d="M 7 50 A 43 43 0 0 1 93 50" [style.stroke-dasharray]="halfGaugeArc(raw, min, max)" />
+            </svg>
+            <span class="metric-gauge__minmax"><span>{{ min | number:dfmt }}</span><span>{{ max | number:dfmt }}</span></span>
+          </span>
+        </div>
+      </ng-template>
+
+      <div class="nerd-dash-grid">
+
+        <!-- Pool Status -->
+        <div class="nerd-panel nerd-panel--wide">
+          <div class="nerd-panel__title">
+            <span>{{ 'POOL_INFO.TITLE' | translate }}</span>
+            <a class="nerd-panel__edit" routerLink="/pages/settings" [queryParams]="{ section: 'pool' }"
+               [attr.title]="'COMMON.EDIT' | translate" [attr.aria-label]="'COMMON.EDIT' | translate">
+              <nb-icon icon="edit-2-outline"></nb-icon>
+            </a>
+          </div>
+          <ng-container [ngTemplateOutlet]="gaiaPool" [ngTemplateOutletContext]="{ pool: (isDualPool ? getPoolInfo(0) : getPoolInfo()), idx: (isDualPool ? 0 : undefined), fallback: info.stratum?.usingFallback }"></ng-container>
+          <ng-container *ngIf="isDualPool">
+            <div class="nerd-pool-sep"></div>
+            <ng-container [ngTemplateOutlet]="gaiaPool" [ngTemplateOutletContext]="{ pool: getPoolInfo(1), idx: 1, fallback: false }"></ng-container>
+          </ng-container>
+        </div>
+
+        <!-- Power -->
+        <div class="nerd-panel">
+          <div class="nerd-panel__title">Power</div>
+          <ng-container *ngTemplateOutlet="metricRow; context: { icon: 'flash-outline', cls: 'm-amber', label: ('PERFORMANCE.INPUT_VOLTAGE' | translate), value: (info.power.voltage | number:'1.1-1'), unit: 'V', raw: info.power.voltage, min: info.power.voltageMin, max: info.power.voltageMax, dfmt: '1.1-1' }"></ng-container>
+          <ng-container *ngTemplateOutlet="metricRow; context: { icon: 'activity-outline', cls: 'm-blue', label: ('PERFORMANCE.INPUT_CURRENT' | translate), value: (info.power.currentA | number:'1.2-2'), unit: 'A', raw: info.power.currentA, min: (info.power.currentAMin ?? 0), max: (info.power.currentAMax ?? 6), dfmt: '1.0-0' }"></ng-container>
+          <ng-container *ngTemplateOutlet="metricRow; context: { icon: 'battery-outline', cls: 'm-amber', label: ('PERFORMANCE.POWER' | translate), value: (info.power.watts | number:'1.1-1'), unit: 'W', raw: info.power.watts, min: (info.power.min ?? 0), max: (info.power.max ?? info.power.watts), dfmt: '1.0-0' }"></ng-container>
+        </div>
+
+        <!-- Heat -->
+        <div class="nerd-panel">
+          <div class="nerd-panel__title">Heat</div>
+          <ng-container *ngTemplateOutlet="metricRow; context: { icon: 'thermometer-outline', cls: 'm-red', label: ('PERFORMANCE.ASIC_TEMP' | translate), value: (maxAsicTemp(info) | number:'1.1-1'), unit: '°C', raw: maxAsicTemp(info), min: 0, max: shutdownTempC(info), dfmt: '1.0-0' }"></ng-container>
+          <ng-container *ngIf="info.thermal.vrTemp > 0" [ngTemplateOutlet]="metricRow" [ngTemplateOutletContext]="{ icon: 'thermometer-outline', cls: 'm-cyan', label: ('PERFORMANCE.VR_TEMP' | translate), value: (info.thermal.vrTemp | number:'1.1-1'), unit: '°C', raw: info.thermal.vrTemp, min: 0, max: 100, dfmt: '1.0-0' }"></ng-container>
+          <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: 'm-amber', label: 'Fan Speed', value: ((info.thermal.fans?.[0]?.speed ?? 0) | number:'1.0-0'), unit: '%', raw: (info.thermal.fans?.[0]?.speed ?? 0), min: 0, max: 100, dfmt: '1.0-0' }"></ng-container>
+        </div>
+
+        <!-- Performance -->
+        <div class="nerd-panel">
+          <div class="nerd-panel__title">
+            <span>Performance</span>
+            <a class="nerd-panel__edit" routerLink="/pages/settings" [queryParams]="{ section: 'asic' }"
+               [attr.title]="'COMMON.EDIT' | translate" [attr.aria-label]="'COMMON.EDIT' | translate">
+              <nb-icon icon="edit-2-outline"></nb-icon>
+            </a>
+          </div>
+          <ng-container *ngTemplateOutlet="metricRow; context: { icon: 'flash-outline', cls: 'm-amber', label: ('PERFORMANCE.ASIC_VOLTAGE_MEASURED' | translate), value: (info.power.coreVoltageActual | number:'1.2-2'), unit: 'V', raw: info.power.coreVoltageActual, min: 0.8, max: asicCoreVoltageMax(info), dfmt: '1.2-2' }"></ng-container>
+          <ng-container *ngTemplateOutlet="metricRow; context: { icon: 'activity-outline', cls: 'm-cyan', label: ('PERFORMANCE.ASIC_FREQUENCY' | translate), value: (info.performance.frequency | number:'1.0-0'), unit: 'MHz', raw: info.performance.frequency, min: 0, max: asicFreqMax(info), dfmt: '1.0-0' }"></ng-container>
+        </div>
+
+        <!-- Uptime / Connection -->
+        <div class="nerd-panel nerd-panel--wide">
+          <div class="nerd-panel__title">{{ 'SYSTEM.UPTIME' | translate }} / {{ 'POOL_INFO.HOST' | translate }}</div>
+          <div class="nerd-uptime">
+            <div class="nerd-uptime__item">
+              <span class="nerd-uptime__icon is-ok"><nb-icon icon="checkmark-circle-2-outline"></nb-icon></span>
+              <span class="nerd-uptime__body">
+                <span class="nerd-uptime__value">{{ formatUptime(info.system.uptime) }}</span>
+                <span class="nerd-uptime__label">{{ 'SYSTEM.UPTIME' | translate }}</span>
+              </span>
+            </div>
+            <div class="nerd-uptime__item" *ngIf="sysInfo$ | async as sys">
+              <span class="nerd-uptime__icon is-info"><nb-icon icon="wifi-outline"></nb-icon></span>
+              <span class="nerd-uptime__body">
+                <span class="nerd-uptime__value">{{ sys.network.wifiStatus || 'Connected' }}</span>
+                <span class="nerd-uptime__label">{{ sys.network.ssid }} · {{ sys.network.wifiRSSI }} dBm</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Power Usage + Heat (new row under pools) -->
+
+
+      <!-- GAIA footer: version text + Nerd*OS logo bottom-right -->
+      <div class="nerd-footer">
+        <span class="nerd-footer__text" *ngIf="sysInfo$ | async as sys">{{ sys.deviceModel }} · MinerOS {{ sys.version }}</span>
+        <div class="nerdos-logo-wrap__inner nerd-footer__logo" [style.--nerdos-logo-color]="nerdOsLogoColor">
+          <div class="nerdos-logo" aria-label="Nerd*OS"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<ng-template #resetStatsDialog let-ref="dialogRef">
+  <nb-card accent="warning" style="width: 340px">
+    <nb-card-header>{{ 'HOME.RESET_STATS' | translate }}</nb-card-header>
+    <nb-card-body>
+      <p>{{ 'HOME.RESET_STATS_CONFIRM' | translate }}</p>
+      <div class="d-flex justify-content-between">
+        <button nbButton status="warning" (click)="confirmResetStats(ref)">{{ 'COMMON.RESET' | translate }}</button>
+        <button nbButton status="basic" (click)="ref.close()">{{ 'COMMON.CANCEL' | translate }}</button>
+      </div>
+    </nb-card-body>
+  </nb-card>
+</ng-template>
