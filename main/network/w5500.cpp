@@ -75,34 +75,92 @@ void W5500::hwResetGpio(gpio_num_t rst)
     vTaskDelay(pdMS_TO_TICKS(200));
 }
 
-void W5500::swReset()
+/* W5500 SPI frame: 16-bit register address, 8-bit control byte, then data.
+   Control byte: block select (bits 7..3), R/W (bit 2), operating mode (bits 1..0, 00 = VDM). */
+static constexpr uint8_t W5500_CTRL_COMMON_READ = 0x00;
+static constexpr uint8_t W5500_CTRL_COMMON_WRITE = 0x04;
+static constexpr uint16_t W5500_REG_MR = 0x0000;       // mode register, bit 7 = RST
+static constexpr uint16_t W5500_REG_VERSIONR = 0x0039; // chip version, reads 0x04
+static constexpr uint8_t W5500_VERSION = 0x04;
+
+esp_err_t W5500::regAccess(gpio_num_t cs, uint16_t reg, uint8_t ctrl, uint8_t *data)
 {
-    // Write RST (0x80) to MR (addr 0x0000); control 0x04 = common block, write, VDM.
+    // Temporary device on the (already initialised) bus, slow clock for robustness.
     spi_device_interface_config_t devcfg = {};
     devcfg.command_bits = 16;
     devcfg.address_bits = 8;
     devcfg.mode = 0;
     devcfg.clock_speed_hz = 2 * 1000 * 1000;
-    devcfg.spics_io_num = m_pinCs;
+    devcfg.spics_io_num = cs;
     devcfg.queue_size = 1;
 
     spi_device_handle_t dev = nullptr;
-    if (spi_bus_add_device(spi_host, &devcfg, &dev) != ESP_OK) {
-        ESP_LOGW(TAG_ETH, "swReset: spi_bus_add_device failed");
-        return;
+    esp_err_t err = spi_bus_add_device(kSpiHost, &devcfg, &dev);
+    if (err != ESP_OK) {
+        return err;
     }
 
+    const bool write = ctrl & 0x04;
     spi_transaction_t t = {};
-    t.cmd = 0x0000;            // MR address
-    t.addr = 0x04;             // common block, write, VDM
+    t.cmd = reg;
+    t.addr = ctrl;
     t.length = 8;
-    t.flags = SPI_TRANS_USE_TXDATA;
-    t.tx_data[0] = 0x80;       // RST
-    esp_err_t r = spi_device_polling_transmit(dev, &t);
+    if (write) {
+        t.flags = SPI_TRANS_USE_TXDATA;
+        t.tx_data[0] = *data;
+    } else {
+        t.rxlength = 8;
+        t.flags = SPI_TRANS_USE_RXDATA;
+    }
+    err = spi_device_polling_transmit(dev, &t);
+    if (err == ESP_OK && !write) {
+        *data = t.rx_data[0];
+    }
     spi_bus_remove_device(dev);
-    vTaskDelay(pdMS_TO_TICKS(2));   // reset completes in ~1 ms
+    return err;
+}
 
-    ESP_LOGI(TAG_ETH, "W5500 software reset (MR RST) %s", (r == ESP_OK) ? "sent" : "failed");
+bool W5500::probe(gpio_num_t sclk, gpio_num_t mosi, gpio_num_t miso, gpio_num_t cs)
+{
+    if (sclk == GPIO_NUM_NC || mosi == GPIO_NUM_NC || miso == GPIO_NUM_NC || cs == GPIO_NUM_NC) {
+        return false;
+    }
+
+    spi_bus_config_t buscfg = {};
+    buscfg.mosi_io_num = mosi;
+    buscfg.miso_io_num = miso;
+    buscfg.sclk_io_num = sclk;
+    buscfg.quadwp_io_num = -1;
+    buscfg.quadhd_io_num = -1;
+
+    esp_err_t err = spi_bus_initialize(kSpiHost, &buscfg, SPI_DMA_CH_AUTO);
+    const bool weInitBus = (err == ESP_OK);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(TAG_ETH, "probe: spi_bus_initialize failed (%s)", esp_err_to_name(err));
+        return false;
+    }
+
+    uint8_t ver = 0;
+    err = regAccess(cs, W5500_REG_VERSIONR, W5500_CTRL_COMMON_READ, &ver);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG_ETH, "probe: VERSIONR read failed (%s)", esp_err_to_name(err));
+    }
+    const bool present = (err == ESP_OK && ver == W5500_VERSION);
+    ESP_LOGI(TAG_ETH, "probe: VERSIONR=0x%02x -> %s", ver, present ? "present" : "absent");
+
+    if (weInitBus) {
+        spi_bus_free(kSpiHost);
+    }
+    return present;
+}
+
+void W5500::swReset()
+{
+    uint8_t mr = 0x80; // MR.RST
+    esp_err_t err = regAccess(m_pinCs, W5500_REG_MR, W5500_CTRL_COMMON_WRITE, &mr);
+    vTaskDelay(pdMS_TO_TICKS(2)); // reset completes in ~1 ms
+
+    ESP_LOGI(TAG_ETH, "W5500 software reset (MR RST) %s", (err == ESP_OK) ? "sent" : "failed");
 }
 
 void W5500::onLinkUp()
@@ -210,9 +268,8 @@ esp_err_t W5500::earlySpiInit()
     buscfg.quadwp_io_num = -1;
     buscfg.quadhd_io_num = -1;
 
-    const spi_host_device_t spi_host = SPI2_HOST;
 
-    esp_err_t err = spi_bus_initialize(spi_host, &buscfg, SPI_DMA_CH_AUTO);
+    esp_err_t err = spi_bus_initialize(kSpiHost, &buscfg, SPI_DMA_CH_AUTO);
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
         ESP_LOGE(TAG_ETH, "spi_bus_initialize failed: %s", esp_err_to_name(err));
         return err;
@@ -236,7 +293,7 @@ esp_err_t W5500::earlySpiInit()
     spi_devcfg.spics_io_num = m_pinCs;
     spi_devcfg.queue_size = 20;
 
-    eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(spi_host, &spi_devcfg);
+    eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(kSpiHost, &spi_devcfg);
 
     w5500_config.int_gpio_num = m_pinInt;      // GPIO_NUM_NC => no interrupt line
     if (m_pinInt == GPIO_NUM_NC) {
