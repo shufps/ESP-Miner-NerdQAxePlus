@@ -528,6 +528,13 @@ void StratumManager::runVerification(int pool)
         return;
     }
 
+    // Without coinbase data (no job yet, or a Standard Channel, which carries
+    // no coinbase) there is nothing to verify.
+    if (cb.block_height == 0) {
+        m_verificationOk[pool] = false;
+        return;
+    }
+
     // Basic (mode >= 1): user address must appear in coinbase
     bool ok = cb.user_value_satoshis > 0;
 
@@ -551,8 +558,7 @@ void StratumManager::runVerification(int pool)
     m_verificationOk[pool] = ok;
 
     // Force mode: block this pool and check if any pool is still usable
-    // Only act if we have actual coinbase data — skip if cache is empty (e.g. after settings save for new pool)
-    if (Config::getCoinbaseVerifyForce(pool) && cb.block_height > 0) {
+    if (Config::getCoinbaseVerifyForce(pool)) {
         if (!ok && !isVerifyBlocked(pool)) {
             const char *reason = (cb.user_value_satoshis == 0) ? "address_not_found" : "fee_exceeded";
             ESP_LOGW("stratum_manager", "Coinbase verification failed for pool %d (%s) - blocking", pool, reason);

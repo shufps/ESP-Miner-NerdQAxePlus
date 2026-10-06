@@ -27,6 +27,7 @@ StratumConfig::StratumConfig(int pool)
         m_enonceSub = Config::isStratumEnonceSubscribe();
         m_tls = Config::isStratumTLS();
         m_protocol = (StratumProtocol) Config::getStratumProtocol();
+        m_sv2Standard = Config::getSV2ChannelType() == 1;
     } else {
         m_primary = false;
         m_host = Config::getStratumFallbackURL();
@@ -36,6 +37,7 @@ StratumConfig::StratumConfig(int pool)
         m_enonceSub = Config::isStratumFallbackEnonceSubscribe();
         m_tls = Config::isStratumFallbackTLS();
         m_protocol = (StratumProtocol) Config::getFallbackStratumProtocol();
+        m_sv2Standard = Config::getFallbackSV2ChannelType() == 1;
     }
 }
 
@@ -49,6 +51,7 @@ bool StratumConfig::reload()
     bool newEnsub = m_primary ? Config::isStratumEnonceSubscribe() : Config::isStratumFallbackEnonceSubscribe();
     bool newTLS   = m_primary ? Config::isStratumTLS() : Config::isStratumFallbackTLS();
     StratumProtocol newProto = (StratumProtocol)(m_primary ? Config::getStratumProtocol() : Config::getFallbackStratumProtocol());
+    bool newSv2Standard = (m_primary ? Config::getSV2ChannelType() : Config::getFallbackSV2ChannelType()) == 1;
     // Compare
     bool same =
         strEq(m_host, newHost) &&
@@ -57,7 +60,8 @@ bool StratumConfig::reload()
         strEq(m_password, newPass) &&
         m_enonceSub == newEnsub &&
         m_tls == newTLS &&
-        m_protocol == newProto;
+        m_protocol == newProto &&
+        m_sv2Standard == newSv2Standard;
 
     if (same) {
         // Free temporary values (they were newly allocated by Config::get)
@@ -79,6 +83,7 @@ bool StratumConfig::reload()
     m_enonceSub  = newEnsub;
     m_tls        = newTLS;
     m_protocol   = newProto;
+    m_sv2Standard = newSv2Standard;
 
     return true;
 }
@@ -97,6 +102,7 @@ void StratumConfig::copyInto(StratumConfig *dst)
     dst->m_enonceSub = m_enonceSub;
     dst->m_tls       = m_tls;
     dst->m_protocol  = m_protocol;
+    dst->m_sv2Standard = m_sv2Standard;
 }
 
 

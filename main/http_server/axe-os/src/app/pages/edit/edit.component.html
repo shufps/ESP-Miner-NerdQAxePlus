@@ -141,21 +141,19 @@
                             </div>
                         </div>
                         <ng-container *ngIf="form.controls['stratumProtocol'].value === 1">
-                            <!-- Channel type selection hidden for now - set to false to re-enable -->
-                            <ng-container *ngIf="false">
-                                <div class="form-row">
-                                    <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 0"
-                                        (checkedChange)="form.controls['sv2ChannelType'].setValue(0)">
-                                        {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
-                                    </nb-checkbox>
-                                </div>
-                                <div class="form-row">
-                                    <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 1"
-                                        (checkedChange)="form.controls['sv2ChannelType'].setValue(1)">
-                                        {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
-                                    </nb-checkbox>
-                                </div>
-                            </ng-container>
+                            <div class="form-row">
+                                <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 0"
+                                    (checkedChange)="form.controls['sv2ChannelType'].setValue(0)">
+                                    {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
+                                </nb-checkbox>
+                            </div>
+                            <div class="form-row">
+                                <nb-checkbox [checked]="form.controls['sv2ChannelType'].value === 1"
+                                    (checkedChange)="form.controls['sv2ChannelType'].setValue(1)">
+                                    {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
+                                </nb-checkbox>
+                                <br /><small>{{ 'SETTINGS.SV2_CHANNEL_STANDARD_HINT' | translate }}</small>
+                            </div>
                             <div class="form-row">
                                 <label for="sv2AuthorityPubkey" class="form-label">{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY' | translate }}:</label>
                                 <div class="form-control-wrapper">
@@ -176,7 +174,8 @@
                                 translate
                                 }}</nb-checkbox>
                         </div>
-                        <div class="form-row" style="align-items: flex-start;">
+                        <div class="form-row" style="align-items: flex-start;"
+                             *ngIf="!(form.controls['stratumProtocol'].value === 1 && form.controls['sv2ChannelType'].value === 1)">
                             <nb-checkbox [checked]="form.controls['coinbaseVerifyMode'].value > 0"
                                          (checkedChange)="toggleCoinbaseVerify($event, 'coinbaseVerifyMode', 'lastCoinbaseVerifyMode')"
                                          style="margin-top: 6px;">
@@ -257,21 +256,19 @@
                             </div>
                         </div>
                         <ng-container *ngIf="form.controls['fallbackStratumProtocol'].value === 1">
-                            <!-- Channel type selection hidden for now - set to false to re-enable -->
-                            <ng-container *ngIf="false">
-                                <div class="form-row">
-                                    <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 0"
-                                        (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(0)">
-                                        {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
-                                    </nb-checkbox>
-                                </div>
-                                <div class="form-row">
-                                    <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 1"
-                                        (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(1)">
-                                        {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
-                                    </nb-checkbox>
-                                </div>
-                            </ng-container>
+                            <div class="form-row">
+                                <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 0"
+                                    (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(0)">
+                                    {{ 'SETTINGS.SV2_CHANNEL_EXTENDED' | translate }}
+                                </nb-checkbox>
+                            </div>
+                            <div class="form-row">
+                                <nb-checkbox [checked]="form.controls['fallbackSv2ChannelType'].value === 1"
+                                    (checkedChange)="form.controls['fallbackSv2ChannelType'].setValue(1)">
+                                    {{ 'SETTINGS.SV2_CHANNEL_STANDARD' | translate }}
+                                </nb-checkbox>
+                                <br /><small>{{ 'SETTINGS.SV2_CHANNEL_STANDARD_HINT' | translate }}</small>
+                            </div>
                             <div class="form-row">
                                 <label for="fallbackSv2AuthorityPubkey" class="form-label">{{ 'SETTINGS.SV2_AUTHORITY_PUBKEY' | translate }}:</label>
                                 <div class="form-control-wrapper">
@@ -292,7 +289,8 @@
                                 |
                                 translate }}</nb-checkbox>
                         </div>
-                        <div class="form-row" style="align-items: flex-start;">
+                        <div class="form-row" style="align-items: flex-start;"
+                             *ngIf="!(form.controls['fallbackStratumProtocol'].value === 1 && form.controls['fallbackSv2ChannelType'].value === 1)">
                             <nb-checkbox [checked]="form.controls['fallbackCoinbaseVerifyMode'].value > 0"
                                          (checkedChange)="toggleCoinbaseVerify($event, 'fallbackCoinbaseVerifyMode', 'lastFallbackCoinbaseVerifyMode')"
                                          style="margin-top: 6px;">

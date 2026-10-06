@@ -13,6 +13,15 @@ extern "C" {
 
 static const char *TAG = "mining_info_v2";
 
+// BIP323 general purpose version bits (5-28). Spec 5.3.15: on a Standard Job the
+// miner may set them freely and must not rely on the values the pool sent.
+static constexpr uint32_t BIP323_VERSION_MASK = 0x1fffffe0;
+
+// The ASICs roll bits 13-28 in hardware. Bits 5-12 are rolled here, one value
+// per built job, so every job sent to the ASICs is a distinct header.
+static constexpr uint32_t SOFT_ROLL_SHIFT = 5;
+static constexpr uint32_t SOFT_ROLL_MASK = 0xff;
+
 // ============================================================================
 // MiningInfoV2Standard
 // ============================================================================
@@ -40,7 +49,6 @@ void MiningInfoV2Standard::updateJob(uint32_t job_id, uint32_t version,
     m_nbits = nbits;
     m_version_mask = version_mask;
     m_difficulty = difficulty;
-    m_jobSent = false;  // new job from pool, ready to send
     snprintf(m_jobid_str, sizeof(m_jobid_str), "%lu", (unsigned long)job_id);
 }
 
@@ -49,7 +57,10 @@ bm_job *MiningInfoV2Standard::buildBmJob(uint32_t extranonce_2, int pool_id, uin
     bm_job *job = (bm_job *)malloc(sizeof(bm_job));
     if (!job) return nullptr;
 
-    job->version = m_version;
+    // All BIP323 bits are cleared before the counter goes into bits 5-12: the
+    // result task ORs the ASIC's rolled bits 13-28 into job->version, which is
+    // only exact when those bits are zero in the job.
+    job->version = (m_version & ~BIP323_VERSION_MASK) | ((extranonce_2 & SOFT_ROLL_MASK) << SOFT_ROLL_SHIFT);
     job->version_mask = m_version_mask;
     job->target = m_nbits;
     job->ntime = m_ntime;
@@ -109,21 +120,12 @@ bm_job *MiningInfoV2Standard::buildBmJob(uint32_t extranonce_2, int pool_id, uin
     job->jobid = strdup(m_jobid_str);
     job->extranonce2 = strdup(""); // unused in SV2 standard channel
 
-    // Standard Channel: mark as sent, don't resend on timer
-    m_jobSent = true;
-
     return job;
 }
 
-void MiningInfoV2Standard::setDifficulty(uint32_t difficulty)
-{
-    m_difficulty = difficulty;
-    // Do NOT reset m_jobSent. Never resend the same Standard Channel job.
-    // ASIC keeps mining with version rolling. New difficulty applies to
-    // the NEXT job from the pool (matches Bitaxe behavior).
-}
+void MiningInfoV2Standard::setDifficulty(uint32_t difficulty) { m_difficulty = difficulty; }
 
-bool MiningInfoV2Standard::isValid() const { return m_ntime != 0 && !m_jobSent; }
+bool MiningInfoV2Standard::isValid() const { return m_ntime != 0; }
 
 bool MiningInfoV2Standard::isNewWork(uint32_t &last_ntime) const
 {

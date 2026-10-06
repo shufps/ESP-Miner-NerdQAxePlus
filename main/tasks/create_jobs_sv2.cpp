@@ -76,19 +76,15 @@ void create_job_sv2_set_difficulty(int pool, uint32_t difficulty)
 {
     PThreadGuard g(current_stratum_job_mutex);
 
+    // Both instances exist once the channel type of a pool has changed, so
+    // every allocated one is updated.
     if (s_v2_standard[pool]) {
         s_v2_standard[pool]->setDifficulty(difficulty);
-        ESP_LOGI(TAG, "(%s) SV2 standard difficulty updated to %lu",
-                 pool ? "Sec" : "Pri", (unsigned long)difficulty);
-        // No trigger - never resend Standard Channel jobs on SetTarget.
-        // ASIC keeps mining, new difficulty applies to next pool job.
-        return;
     }
-
     if (s_v2_extended[pool]) {
         s_v2_extended[pool]->setDifficulty(difficulty);
-        ESP_LOGI(TAG, "(%s) SV2 extended difficulty updated to %lu",
-                 pool ? "Sec" : "Pri", (unsigned long)difficulty);
-        trigger_job_creation();
     }
+    ESP_LOGI(TAG, "(%s) SV2 difficulty updated to %lu", pool ? "Sec" : "Pri", (unsigned long)difficulty);
+
+    trigger_job_creation();
 }

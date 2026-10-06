@@ -11,7 +11,9 @@ extern "C" {
  * @brief MiningInfo for SV2 Standard Channel.
  *
  * Pool provides complete merkle_root and prev_hash - no coinbase computation needed.
- * bm_job is filled directly from pool-provided data.
+ * bm_job is filled directly from pool-provided data. Each built job gets its own
+ * value in version bits 5-12, so jobs are resent on the regular job interval
+ * like V1 and Extended jobs.
  */
 class MiningInfoV2Standard : public MiningInfoBase {
   public:
@@ -45,7 +47,6 @@ class MiningInfoV2Standard : public MiningInfoBase {
     uint32_t m_version_mask = 0x1fffe000;
     uint32_t m_difficulty = 0;
     char m_jobid_str[16];
-    bool m_jobSent = false;  ///< Standard Channel: job already sent to ASIC, don't resend
 };
 
 

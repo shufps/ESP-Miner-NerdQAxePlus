@@ -23,6 +23,7 @@ class StratumConfig {
     bool m_enonceSub = false;
     bool m_tls = false;
     StratumProtocol m_protocol = STRATUM_V1;
+    bool m_sv2Standard = false;
 
   public:
     StratumConfig(int pool);
@@ -77,6 +78,10 @@ class StratumConfig {
 
     bool isSV2() {
         return m_protocol == STRATUM_V2;
+    }
+
+    bool isSV2Standard() {
+        return m_sv2Standard;
     }
 
     //static void toLog(const StratumConfig &cfg, const char* prefix="");
