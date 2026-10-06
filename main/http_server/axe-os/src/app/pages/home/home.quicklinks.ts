@@ -186,7 +186,8 @@ const POOLS: PoolMeta[] = [
   {
     id: 'bitronics',
     name: 'Bitronics',
-    match: (h) => h.includes('bitronics.'),
+    match: (h) => h.includes('pool.bitronics.store'),
+    quickLink: (a) => `https://pool.bitronics.store/stats/${a}`,
     iconUrl: 'assets/pools/bitronics.svg',
   },
 
