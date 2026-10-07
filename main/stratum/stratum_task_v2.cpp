@@ -126,6 +126,7 @@ void StratumTaskV2::protocolLoop()
     memset(&m_sv2_conn, 0, sizeof(m_sv2_conn));
     m_sv2_conn.channel_type = m_channelType;
     m_lastSubmitTimeUs = 0;
+    m_setupFailed = false;
 
     // Set default version mask for version rolling
     // (SV2 uses the same version mask concept as V1)
@@ -215,6 +216,11 @@ void StratumTaskV2::protocolLoop()
             ESP_LOGW(m_tag, "Unknown SV2 message type: 0x%02x (len=%lu)",
                      hdr.msg_type, (unsigned long)hdr.msg_length);
             break;
+        }
+
+        // a handler found the connection unusable (e.g. pool forbids version rolling)
+        if (m_setupFailed) {
+            return;
         }
     }
 }
@@ -468,6 +474,8 @@ void StratumTaskV2::handleNewExtendedMiningJob(const uint8_t *payload, uint32_t 
         ESP_LOGE(m_tag, "Dropping extended job %lu: pool does not allow version rolling",
                  (unsigned long)job->job_id);
         sv2_ext_job_free(job);
+        // drop the connection like a pool error instead of silently mining nothing
+        m_setupFailed = true;
         return;
     }
 
