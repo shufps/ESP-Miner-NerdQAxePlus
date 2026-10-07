@@ -6,6 +6,14 @@
 #include "bm1368.h"
 #include "nvs_config.h"
 #include "../pid/PID_v1_bc.h"
+#include "driver/gpio.h"
+
+// Ethernet (W5500 interposer) pin map, per board. GPIO_NUM_NC = not wired / not used.
+// rst = NC means the board resets the W5500 by RC (no GPIO); irq = NC means polling.
+struct EthPins {
+    gpio_num_t sclk = GPIO_NUM_NC, mosi = GPIO_NUM_NC, miso = GPIO_NUM_NC,
+               cs = GPIO_NUM_NC, rst = GPIO_NUM_NC, irq = GPIO_NUM_NC;
+};
 
 class Board {
 public:
@@ -347,6 +355,14 @@ public:
     virtual bool hasEthernet() {
         return false;
     }
+
+    // W5500 ethernet pin map for this board; nullptr = board has no ethernet wiring.
+    virtual const EthPins *getEthPins() {
+        return nullptr;
+    }
+
+    // True if a W5500 interposer is present on this board's eth pins (via getEthPins()).
+    bool isEthConnected();
 
     virtual bool hasCanExtension() {
         return false;

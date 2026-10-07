@@ -279,6 +279,10 @@ extern "C" void app_main(void)
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
     if (board->hasEthernet()) {
+        const EthPins *ep = board->getEthPins();
+        if (ep) {
+            NETWORK.setEthPins(ep->sclk, ep->mosi, ep->miso, ep->cs, ep->rst, ep->irq);
+        }
         NETWORK.earlyEthSpiInit();
     }
 

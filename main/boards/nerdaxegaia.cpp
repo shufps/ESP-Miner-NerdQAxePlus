@@ -10,6 +10,8 @@
 #include "drivers/nerdaxe/adc.h"
 #include "drivers/nerdaxe/TPS546.h"
 
+#include "esp_log.h"
+
 #define BM1373_RST_PIN GPIO_NUM_1
 #define LDO_EN_PIN GPIO_NUM_12   // LDO enable (active-high) — new Gaia board
 #define GAIA_POWER_OFFSET 5
@@ -19,6 +21,19 @@ bool tempinit_gaia = false;
 static const char* TAG="nerdaxeGaia";
 
 #define MAX(a,b) ((a)>(b)?(a):(b))
+
+// W5500 ethernet interposer pins (see eth-interposer FIRMWARE-GAIA.md):
+// SCLK=GPIO10 (JP2 2-3), MOSI=GPIO3 (JP3 2-3), MISO=GPIO16, CS=GPIO21.
+// RST=-1 (reset is an RC on the interposer, no GPIO) and IRQ=-1 (polling). This
+// deliberately avoids the driver defaults (GPIO2/12/13/11) which on the Gaia are
+// /VDD, LDO_EN, PMB_ALRT and PGOOD — driving any of those would break power-up.
+static const EthPins kEthPins = { .sclk = GPIO_NUM_10, .mosi = GPIO_NUM_3, .miso = GPIO_NUM_16,
+                                  .cs = GPIO_NUM_21, .rst = GPIO_NUM_NC, .irq = GPIO_NUM_NC };
+
+const EthPins *NerdaxeGaia::getEthPins()
+{
+    return &kEthPins;
+}
 
 NerdaxeGaia::NerdaxeGaia() : NerdAxe() {
     m_deviceModel = "NerdAxeGaia";
@@ -72,6 +87,8 @@ NerdaxeGaia::NerdaxeGaia() : NerdAxe() {
     m_asics = new BM1373();
     m_hasHashCounter = true;
     m_vrFrequency = m_defaultVrFrequency = m_asics->getDefaultVrFrequency();
+
+    m_hasEth = isEthConnected();
 }
 
 

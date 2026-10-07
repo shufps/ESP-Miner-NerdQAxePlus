@@ -5,6 +5,7 @@
 #include "board.h"
 #include "nvs_config.h"
 #include "esp_log.h"
+#include "w5500.h"
 #include "../displays/displayDriver.h"
 
 const static char* TAG = "board";
@@ -18,6 +19,16 @@ Board::Board() {
     m_ecoAsicFrequency = 0;
     m_ecoAsicVoltageMillis = 0;
     m_numFans = 1;
+}
+
+// True if a W5500 answers on this board's ethernet pins (false if the board has none).
+bool Board::isEthConnected()
+{
+    const EthPins *pins = getEthPins();
+    if (!pins) {
+        return false;
+    }
+    return W5500::probe(pins->sclk, pins->mosi, pins->miso, pins->cs);
 }
 
 void Board::loadSettings()
