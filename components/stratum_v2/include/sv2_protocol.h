@@ -38,6 +38,13 @@ extern "C" {
 // Extension type flag for channel messages
 #define SV2_CHANNEL_MSG_FLAG 0x8000
 
+// SetupConnection.flags (spec 5.3.1)
+#define SV2_SETUP_FLAGS_REQUIRES_STANDARD_JOBS          (1U << 0)
+#define SV2_SETUP_FLAGS_REQUIRES_VERSION_ROLLING        (1U << 2)
+
+// SetupConnection.Success.flags (spec 5.3.1)
+#define SV2_SETUP_SUCCESS_FLAGS_REQUIRES_FIXED_VERSION  (1U << 0)
+
 // Channel type selection
 typedef enum {
     SV2_CHANNEL_EXTENDED = 0,
