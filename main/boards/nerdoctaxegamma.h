@@ -27,6 +27,9 @@ class NerdOctaxeGamma : public NerdQaxePlus2 {
     virtual void requestChipTemps() override;
     float getVRTemp() override;
 
+    // Interposer on any Gamma (pins free on 3.0-3.2; the temp mux shares them only on 3.4+).
+    const EthPins *getEthPins() override;
+
   private:
     bool m_isTPS53667 = false;
 };

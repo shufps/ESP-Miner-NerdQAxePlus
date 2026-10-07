@@ -1,4 +1,5 @@
 #include <math.h>
+#include <string.h>
 
 #include "nvs_flash.h"
 #include "esp_log.h"
@@ -23,6 +24,35 @@
 static const char* TAG="nerdqaxe+";
 
 #define VR_TEMP1075_ADDR   0x1
+
+const EthPins *NerdQaxePlus::interposerPins()
+{
+    static const EthPins pins = { .sclk = GPIO_NUM_2, .mosi = GPIO_NUM_12, .miso = GPIO_NUM_16,
+                                  .cs = GPIO_NUM_21, .rst = GPIO_NUM_NC, .irq = GPIO_NUM_NC };
+    return &pins;
+}
+
+const EthPins *NerdQaxePlus::getEthPins()
+{
+    return (strcmp(m_deviceModel, "NerdQAxe+") == 0) ? interposerPins() : nullptr;
+}
+
+// If a board declares no eth pins (getEthPins() returns nullptr), ethernet is disabled.
+bool NerdQaxePlus::isEthernetEnabled()
+{
+    if (!getEthPins()) {
+        return false;
+    }
+    if (m_ethDetected < 0) {
+        m_ethDetected = isEthConnected() ? 1 : 0;
+    }
+    return m_ethDetected;
+}
+
+bool NerdQaxePlus::hasEthernet()
+{
+    return isEthernetEnabled();
+}
 
 NerdQaxePlus::NerdQaxePlus() : Board() {
     m_deviceModel = "NerdQAxe+";

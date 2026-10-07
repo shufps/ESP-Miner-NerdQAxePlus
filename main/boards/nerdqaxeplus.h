@@ -30,6 +30,10 @@ class NerdQaxePlus : public Board {
     Fxl6408 m_canIo;
     bool    m_hasCanExtension = false;
 
+    int m_ethDetected = -1;                   // -1 = not checked yet
+    static const EthPins *interposerPins();
+    bool isEthernetEnabled();
+
   public:
     NerdQaxePlus();
 
@@ -65,4 +69,7 @@ class NerdQaxePlus : public Board {
     bool isCanSlave() override;
     int  getCanTxPin() override { return 21; }
     int  getCanRxPin() override { return 16; }
+
+    const EthPins *getEthPins() override;
+    bool hasEthernet() override;
 };

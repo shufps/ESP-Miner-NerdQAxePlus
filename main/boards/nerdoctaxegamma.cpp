@@ -92,10 +92,26 @@ NerdOctaxeGamma::NerdOctaxeGamma()
     }
 }
 
+// GPIO2/12/16/21 are free on every current Gamma (3.0-3.2); they are shared with the
+// temp mux only on rev3.4+, where bringing up ethernet drops the mux (see initBoard).
+// Presence is decided by the VERSIONR probe, like the other boards.
+const EthPins *NerdOctaxeGamma::getEthPins()
+{
+    return interposerPins();
+}
+
 bool NerdOctaxeGamma::initBoard()
 {
     // Call parent initBoard() (VR init, ASIC power-on, etc.)
     bool ret = NerdQaxePlus::initBoard();
+
+    // The W5500 interposer, when present, owns GPIO2/12 (the mux A0/A1 lines), so
+    // don't drive them as the temp mux: read the TMP451s over I2C without channel
+    // switching. On rev3.4+ this means giving up the per-ASIC mux temperatures.
+    if (hasEthernet()) {
+        m_tmp451[0].disableMux();
+        m_tmp451[1].disableMux();
+    }
 
     // Probe both TMP451 mux chips – only present on newer hardware revisions.
     // Note: init() will configure the MUX A0/A1 GPIOs as outputs (repurposing

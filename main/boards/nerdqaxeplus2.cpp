@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <string.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -11,6 +12,11 @@
 
 static const char* TAG="nerdqaxeplus2";
 static constexpr uint16_t FAN_MODE_PID = 2;
+
+const EthPins *NerdQaxePlus2::getEthPins()
+{
+    return (strcmp(m_deviceModel, "NerdQAxe++") == 0) ? interposerPins() : nullptr;
+}
 
 NerdQaxePlus2::NerdQaxePlus2() : NerdQaxePlus() {
     m_deviceModel = "NerdQAxe++";
