@@ -12,10 +12,6 @@ public:
     virtual esp_err_t init() override;
     virtual esp_err_t select_channel(int channel) override;
 
-    // Stop driving the A0/A1 GPIOs (e.g. when the W5500 interposer needs those pins):
-    // init()/select_channel() then behave like a plain Tmp451 (single I2C channel).
-    void disableMux() { m_mux_a0 = GPIO_NUM_NC; m_mux_a1 = GPIO_NUM_NC; }
-
 
 private:
     static constexpr const char* TAG = "Tmp451Mux";

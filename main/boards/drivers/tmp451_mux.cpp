@@ -8,16 +8,14 @@ Tmp451Mux::Tmp451Mux(gpio_num_t mux_a0, gpio_num_t mux_a1, uint8_t i2c_addr, boo
 
 esp_err_t Tmp451Mux::init()
 {
-    // MUX select pins (skipped when disabled -> behaves like a plain Tmp451)
-    if (m_mux_a0 != GPIO_NUM_NC && m_mux_a1 != GPIO_NUM_NC) {
-        gpio_config_t g = {};
-        g.mode = GPIO_MODE_OUTPUT;
-        g.pin_bit_mask = (1ULL << m_mux_a0) | (1ULL << m_mux_a1);
-        g.pull_down_en = GPIO_PULLDOWN_DISABLE;
-        g.pull_up_en = GPIO_PULLUP_DISABLE;
-        g.intr_type = GPIO_INTR_DISABLE;
-        ESP_RETURN_ON_ERROR(gpio_config(&g), TAG, "gpio_config");
-    }
+    // MUX select pins
+    gpio_config_t g = {};
+    g.mode = GPIO_MODE_OUTPUT;
+    g.pin_bit_mask = (1ULL << m_mux_a0) | (1ULL << m_mux_a1);
+    g.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    g.pull_up_en = GPIO_PULLUP_DISABLE;
+    g.intr_type = GPIO_INTR_DISABLE;
+    ESP_RETURN_ON_ERROR(gpio_config(&g), TAG, "gpio_config");
 
     return Tmp451::init();
 }
@@ -26,11 +24,6 @@ esp_err_t Tmp451Mux::select_channel(int channel)
 {
     if (channel < 0 || channel > 3) {
         return ESP_ERR_INVALID_ARG;
-    }
-
-    // No mux wired (or disabled): single physical channel, nothing to switch.
-    if (m_mux_a0 == GPIO_NUM_NC || m_mux_a1 == GPIO_NUM_NC) {
-        return ESP_OK;
     }
 
     int b0 = (channel & 0x1) ? 1 : 0; // A0 = LSB

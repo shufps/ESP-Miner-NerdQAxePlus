@@ -21,6 +21,4 @@ class NerdQaxePlus2 : public NerdQaxePlus {
     bool setVoltage(float core_voltage) override;
     float getTemperature(int index);
     void requestChipTemps() override;
-
-    const EthPins *getEthPins() override;
 };

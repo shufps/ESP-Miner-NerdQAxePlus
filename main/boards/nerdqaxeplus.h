@@ -30,9 +30,7 @@ class NerdQaxePlus : public Board {
     Fxl6408 m_canIo;
     bool    m_hasCanExtension = false;
 
-    int m_ethDetected = -1;                   // -1 = not checked yet
-    static const EthPins *interposerPins();
-    bool isEthernetEnabled();
+    bool m_hatDetected = false;   // W5500 HAT found by detectEthernet()
 
   public:
     NerdQaxePlus();
@@ -71,5 +69,6 @@ class NerdQaxePlus : public Board {
     int  getCanRxPin() override { return 16; }
 
     const EthPins *getEthPins() override;
-    bool hasEthernet() override;
+    void detectEthernet() override;
+    bool hasEthernet() override { return m_hatDetected; }
 };
