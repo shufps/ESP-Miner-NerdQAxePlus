@@ -1,5 +1,6 @@
 #include "ArduinoJson.h"
 #include "psram_allocator.h"
+#include <esp_crt_bundle.h>
 #include <esp_http_client.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
@@ -23,18 +24,32 @@ Influx::Influx() {
     // nop
 }
 
+// HTTP client for the InfluxDB API. https:// URLs are verified against the
+// built-in certificate bundle; for plain http:// the bundle is not used.
+static esp_http_client_handle_t newClient(const char *url, esp_http_client_method_t method)
+{
+    esp_http_client_config_t config = {};
+    config.url = url;
+    config.method = method;
+    config.crt_bundle_attach = esp_crt_bundle_attach;
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (!client) {
+        ESP_LOGE(TAG, "Failed to create HTTP client for %s", url);
+    }
+    return client;
+}
+
 bool Influx::ping()
 {
     char url[256];
     snprintf(url, sizeof(url), "%s:%d/ping", m_host, m_port);
     ESP_LOGI(TAG, "URL: %s", url);
 
-    esp_http_client_config_t config = {
-        .url = url,
-        .method = HTTP_METHOD_GET,
-    };
-
-    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_handle_t client = newClient(url, HTTP_METHOD_GET);
+    if (!client) {
+        return false;
+    }
 
     esp_err_t err = esp_http_client_perform(client);
     int status_code = (err == ESP_OK) ? esp_http_client_get_status_code(client) : -1;
@@ -57,11 +72,10 @@ bool Influx::get_org_id(char *out_org_id, size_t max_len) {
     snprintf(url, sizeof(url), "%s:%d/api/v2/orgs?org=%s", m_host, m_port, m_org);
     ESP_LOGI(TAG, "Looking up orgID via: %s", url);
 
-    esp_http_client_config_t config = {
-        .url = url,
-        .method = HTTP_METHOD_GET,
-    };
-    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_handle_t client = newClient(url, HTTP_METHOD_GET);
+    if (!client) {
+        return false;
+    }
     esp_http_client_set_header(client, "Authorization", m_auth_header);
     esp_http_client_set_header(client, "Accept", "application/json");
 
@@ -139,11 +153,10 @@ bool Influx::create_bucket() {
             "{\"orgID\": \"%s\", \"name\": \"%s\", \"description\": \"Auto-created\", \"retentionRules\": [{\"type\": \"expire\", \"everySeconds\": 2592000}]}",
             org_id, m_bucket);
 
-    esp_http_client_config_t config = {
-        .url = url,
-        .method = HTTP_METHOD_POST,
-    };
-    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_handle_t client = newClient(url, HTTP_METHOD_POST);
+    if (!client) {
+        return false;
+    }
 
     esp_http_client_set_header(client, "Authorization", m_auth_header);
     esp_http_client_set_header(client, "Content-Type", "application/json");
@@ -175,10 +188,10 @@ bool Influx::bucket_exists()
 
     int content_length = 0;
 
-    esp_http_client_config_t config = {
-        .url = url,
-    };
-    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_handle_t client = newClient(url, HTTP_METHOD_GET);
+    if (!client) {
+        return false;
+    }
 
     // Set headers
     esp_http_client_set_header(client, "Authorization", m_auth_header);
@@ -264,8 +277,10 @@ bool Influx::load_last_values()
 
     ESP_LOGI(TAG, "Query JSON: %s", query_json);
 
-    esp_http_client_config_t config = {.url = url, .method = HTTP_METHOD_POST};
-    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_handle_t client = newClient(url, HTTP_METHOD_POST);
+    if (!client) {
+        return false;
+    }
 
     // Set headers
     esp_http_client_set_header(client, "Authorization", m_auth_header);
@@ -399,12 +414,10 @@ void Influx::write(const Stats &s)
     ESP_LOGI(TAG, "URL: %s", url);
     ESP_LOGI(TAG, "POST: %s", m_big_buffer);
 
-    esp_http_client_config_t config = {
-        .url = url,
-        .method = HTTP_METHOD_POST,
-    };
-
-    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_handle_t client = newClient(url, HTTP_METHOD_POST);
+    if (!client) {
+        return;
+    }
 
     esp_http_client_set_header(client, "Authorization", m_auth_header);
     esp_http_client_set_header(client, "Content-Type", "text/plain");
