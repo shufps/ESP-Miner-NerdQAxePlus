@@ -125,6 +125,9 @@ class StratumManager {
         PThreadGuard lock(m_mutex);
         m_foundBlocks = 0;
     }
+
+    // Reset the persisted all-time stats (best difficulty, found blocks)
+    void resetAllTimeStats();
     StratumManager(PoolMode mode);
     static void taskWrapper(void *pvParameters); ///< Wrapper function for task execution
 

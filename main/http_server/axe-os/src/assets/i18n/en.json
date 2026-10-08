@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "Reset all session stats (shares, best diff, errors)?",
     "RESET_STATS_SUCCESS": "Session stats reset.",
     "RESET_STATS_FAILED": "Failed to reset session stats.",
+    "RESET_STATS_ALL_TIME": "Also reset all-time stats (best difficulty, found blocks). This cannot be undone.",
     "BLOCK_HEADER": "Block Header",
     "BLOCK_HEIGHT": "Height",
     "BLOCK_DIFFICULTY": "Difficulty",

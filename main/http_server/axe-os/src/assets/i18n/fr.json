@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "Réinitialiser toutes les stats de session (shares, meilleure diff, erreurs) ?",
     "RESET_STATS_SUCCESS": "Stats de session réinitialisées.",
     "RESET_STATS_FAILED": "Échec de la réinitialisation.",
+    "RESET_STATS_ALL_TIME": "Réinitialiser aussi les statistiques globales (meilleure difficulté, blocs trouvés). Action irréversible.",
     "BLOCK_HEADER": "En-tête de Bloc",
     "BLOCK_HEIGHT": "Hauteur",
     "BLOCK_DIFFICULTY": "Difficulté",

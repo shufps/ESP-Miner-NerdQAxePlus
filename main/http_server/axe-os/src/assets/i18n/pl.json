@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "Zresetować wszystkie statystyki sesji (udziały, najlepszą trudność, błędy)?",
     "RESET_STATS_SUCCESS": "Statystyki sesji zresetowane.",
     "RESET_STATS_FAILED": "Nie udało się zresetować statystyk sesji.",
+    "RESET_STATS_ALL_TIME": "Zresetuj także statystyki z całego okresu (najlepsza trudność, znalezione bloki). Tego nie można cofnąć.",
     "BLOCK_HEADER": "Nagłówek bloku",
     "BLOCK_HEIGHT": "Wysokość",
     "BLOCK_DIFFICULTY": "Trudność",

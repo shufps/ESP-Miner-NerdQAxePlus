@@ -262,8 +262,12 @@ export class SystemService {
     });
   }
 
-  public resetStats(uri: string = '') {
-    return this.httpClient.post(`${uri}/api/system/reset-stats`, null, { responseType: 'text' });
+  /** Reset session stats; with allTime also the persisted all-time stats (needs OTP when enabled). */
+  public resetStats(uri: string = '', allTime: boolean = false, totp?: string) {
+    let headers = new HttpHeaders();
+    if (totp) headers = headers.set('X-TOTP', totp);
+    const query = allTime ? '?allTime=1' : '';
+    return this.httpClient.post(`${uri}/api/system/reset-stats${query}`, null, { headers, responseType: 'text' });
   }
 
   public shutdown(uri: string = '', totp?: string) {

@@ -404,6 +404,16 @@ void StratumManager::saveSettings(const JsonDocument &doc) {
     }
 }
 
+void StratumManager::resetAllTimeStats()
+{
+    PThreadGuard lock(m_mutex);
+    m_totalBestDiff = 0;
+    m_totalFoundBlocks = 0;
+    suffixString(0, m_totalBestDiffString, DIFF_STRING_SIZE, 0);
+    Config::setBestDiff(0);
+    Config::setTotalFoundBlocks(0);
+}
+
 // ---
 
 void StratumManager::checkForBestDiff(int pool, double diff, uint32_t nbits)

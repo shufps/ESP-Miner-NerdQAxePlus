@@ -20,11 +20,15 @@ Lightweight endpoint for device identification (no polling).
   "deviceModel": "NerdQAxe+",
   "defaultTheme": "default",
   "otp": true,
+  "apActive": false,
+  "coreDumpDownload": false,
   "can": {
     "enabled": false
   }
 }
 ```
+
+`coreDumpDownload` is `true` only on diagnostic builds that include panic core dumps and `GET /api/system/coredump`.
 
 ---
 
@@ -94,7 +98,13 @@ Real-time mining telemetry. Used by the Home page (polled every 2s).
     "sharesRejected": 3,
     "frequency": 525,
     "asicCount": 4,
-    "smallCoreCount": 672
+    "smallCoreCount": 672,
+    "chips": [
+      { "hashRate": 300.2, "errorHashRate": 0.8 },
+      { "hashRate": 299.7, "errorHashRate": 1.1 },
+      { "hashRate": 300.4, "errorHashRate": 0.6 },
+      { "hashRate": 300.1, "errorHashRate": 0.9 }
+    ]
   },
   "power": {
     "watts": 15.2,
@@ -182,6 +192,8 @@ Real-time mining telemetry. Used by the Home page (polled every 2s).
 ```
 
 The `history` object is only present when `ts` query parameter is provided. It contains arrays of hashrate and temperature samples for charting.
+
+`performance.chips[]` has one entry per ASIC (`asicCount` entries) with the per-chip valid hashrate (`hashRate`) and the hashrate lost to hardware errors (`errorHashRate`), both in GH/s from the ASIC counters. The chip's total is `hashRate + errorHashRate`. Both are `0` while the device is shut down.
 
 `stratum.pools[]` always contains both pool configs in config order: index 0 = primary, index 1 = fallback (failover mode) or secondary (dual pool mode). `active` marks the pool that is currently mining — in failover mode exactly one entry is active (also reflected by `usingFallback`), in dual pool mode both are. In failover mode the session stats (`accepted`, `rejected`, `bestDiff`, `poolDifficulty`, `networkDifficulty`) are shared between both pools and reported on the active entry only.
 
@@ -562,12 +574,22 @@ These endpoints remain on v1 for backwards compatibility (Swarm discovery across
 | `PATCH` | `/api/system` | Update system settings |
 | `POST` | `/api/system/restart` | Restart device (requires OTP) |
 | `POST` | `/api/system/shutdown` | Shutdown device (requires OTP) |
+| `POST` | `/api/system/reset-stats` | Reset session stats; `?allTime=1` also resets all-time stats (requires OTP), see below |
+| `GET` | `/api/system/coredump` | Download the last panic core dump (diagnostic builds only, requires OTP) |
 | `POST` | `/api/system/OTA` | Upload firmware binary |
 | `POST` | `/api/system/OTAWWW` | Upload web UI binary |
 | `POST` | `/api/system/OTA/github` | One-click GitHub OTA update |
 | `GET` | `/api/system/OTA/github` | Get GitHub OTA update status |
 | `GET` | `/api/swarm/info` | Get swarm device list |
 | `PATCH` | `/api/swarm` | Update swarm configuration |
+
+#### `POST /api/system/reset-stats`
+
+Resets the session stats: shares, session best difficulty, pool errors and blocks found in this session. Returns `204 No Content`.
+
+| Param | Type | Description |
+|---|---|---|
+| `allTime` | `1` / `true` | Optional. Also resets the persisted all-time stats (best difficulty, total found blocks). This cannot be undone and requires OTP when it is enabled. |
 
 ---
 

@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "Alle Sitzungsstatistiken zurücksetzen (Shares, beste Diff, Fehler)?",
     "RESET_STATS_SUCCESS": "Sitzungsstatistiken zurückgesetzt.",
     "RESET_STATS_FAILED": "Zurücksetzen fehlgeschlagen.",
+    "RESET_STATS_ALL_TIME": "Auch Statistiken aller Zeiten zurücksetzen (beste Diff, gefundene Blöcke). Kann nicht rückgängig gemacht werden.",
     "BLOCK_HEADER": "Block Header",
     "BLOCK_HEIGHT": "Höhe",
     "BLOCK_DIFFICULTY": "Schwierigkeit",

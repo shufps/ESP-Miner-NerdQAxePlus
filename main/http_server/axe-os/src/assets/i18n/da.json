@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "Nulstil al sessionsstatistik (shares, bedste sværhedsgrad, fejl)?",
     "RESET_STATS_SUCCESS": "Sessionsstatistikken er nulstillet.",
     "RESET_STATS_FAILED": "Kunne ikke nulstille sessionsstatistikken.",
+    "RESET_STATS_ALL_TIME": "Nulstil også statistik for al tid (bedste difficulty, fundne blokke). Kan ikke fortrydes.",
     "BLOCK_HEADER": "Blokheader",
     "BLOCK_HEIGHT": "Højde",
     "BLOCK_DIFFICULTY": "Sværhedsgrad",

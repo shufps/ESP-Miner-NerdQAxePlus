@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "Resetați toate statisticile sesiunii (acțiuni, dificultate optimă, erori)?",
     "RESET_STATS_SUCCESS": "Statisticile sesiunii au fost resetate.",
     "RESET_STATS_FAILED": "Nu s-a putut reseta statisticile sesiunii.",
+    "RESET_STATS_ALL_TIME": "Resetează și statisticile din toate timpurile (cea mai bună dificultate, blocuri găsite). Acțiunea nu poate fi anulată.",
     "BLOCK_HEADER": "Antet bloc",
     "BLOCK_HEIGHT": "Înălțime",
     "BLOCK_DIFFICULTY": "Dificultate",

@@ -16,6 +16,7 @@ import {
     NbThemeModule,
     NbCardModule,
     NbAlertModule,
+    NbCheckboxModule,
   } from '@nebular/theme';
 import { NbSecurityModule } from "@nebular/security";
 import { NbEvaIconsModule } from "@nebular/eva-icons";
@@ -69,6 +70,7 @@ const NB_MODULES : any= [
     NbSidebarModule,
     NbContextMenuModule,
     NbAlertModule,
+    NbCheckboxModule,
     NbCardModule,
     NbSecurityModule,
     NbButtonModule,

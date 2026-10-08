@@ -95,6 +95,7 @@ class StratumManagerFallback : public StratumManager {
         for (int i = 0; i < 2; i++) {
             resetPoolSessionStats(i);
         }
+        m_foundBlocks = 0;
     }
 
     virtual int getPoolErrors() {

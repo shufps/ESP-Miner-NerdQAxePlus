@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "重置当前会话的所有统计（Share、最佳难度、错误）？",
     "RESET_STATS_SUCCESS": "会话统计已重置。",
     "RESET_STATS_FAILED": "重置会话统计失败。",
+    "RESET_STATS_ALL_TIME": "同时重置历史统计（最佳难度、已找到的区块）。此操作无法撤销。",
     "BLOCK_HEADER": "区块头",
     "BLOCK_HEIGHT": "高度",
     "BLOCK_DIFFICULTY": "难度",

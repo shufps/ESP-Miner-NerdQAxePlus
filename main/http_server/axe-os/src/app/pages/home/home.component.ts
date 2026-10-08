@@ -9,12 +9,15 @@ import {
   ChangeDetectorRef,
   ChangeDetectionStrategy,
   NgZone,
-  Renderer2 } from '@angular/core';
+  Renderer2,
+  inject } from '@angular/core';
 import { map,
   Observable,
   Subscription,
-  firstValueFrom } from 'rxjs';
+  firstValueFrom,
+  switchMap } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
+import { OtpAuthService } from '../../services/otp-auth.service';
 import { SystemService } from '../../services/system.service';
 import { IDashboardV2, IDashboardV2BlockHeader, IDashboardV2Pool } from '../../models/IDashboardV2';
 import { Chart } from 'chart.js';  // Import Chart.js
@@ -2027,13 +2030,25 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
 
   return (rejected / total) * 100;
 }
+  private readonly otpAuth = inject(OtpAuthService);
+
+  /** Reset-stats dialog: also reset the persisted all-time stats. */
+  public resetAllTime = false;
+
   public openResetStatsDialog(template: any): void {
+    this.resetAllTime = false;
     this.dialogService.open(template);
   }
 
   public confirmResetStats(ref: any): void {
     ref.close();
-    this.systemService.resetStats().subscribe({
+    // all-time reset is permanent: the backend requires OTP (when enabled) for it
+    const reset$ = this.resetAllTime
+      ? this.otpAuth
+          .ensureOtp$('', this.translateService.instant('SECURITY.OTP_TITLE'), this.translateService.instant('SECURITY.OTP_HINT'))
+          .pipe(switchMap(({ totp }) => this.systemService.resetStats('', true, totp)))
+      : this.systemService.resetStats();
+    reset$.subscribe({
       next: () => this.toastrService.success(
         this.translateService.instant('HOME.RESET_STATS_SUCCESS'),
         this.translateService.instant('COMMON.SUCCESS')
