@@ -6,9 +6,9 @@
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
 #include "esp_core_dump.h"
 #include "esp_partition.h"
+#endif
 
 #include <cstring>
-#endif
 
 #include "ArduinoJson.h"
 
@@ -661,9 +661,27 @@ esp_err_t POST_reset_stats(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
     }
 
-    STRATUM_MANAGER->resetSessionStats();
+    // ?allTime=1 also clears the persisted all-time stats (best difficulty,
+    // found blocks). That can't be undone, so it needs OTP when it is enabled.
+    bool allTime = false;
+    char query[32];
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
+        char value[8];
+        if (httpd_query_key_value(query, "allTime", value, sizeof(value)) == ESP_OK) {
+            allTime = (strcmp(value, "1") == 0 || strcmp(value, "true") == 0);
+        }
+    }
 
-    ESP_LOGI(TAG, "Session stats reset by user");
+    if (allTime && validateOTP(req) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
+    STRATUM_MANAGER->resetSessionStats();
+    if (allTime) {
+        STRATUM_MANAGER->resetAllTimeStats();
+    }
+
+    ESP_LOGI(TAG, "%s stats reset by user", allTime ? "Session and all-time" : "Session");
     httpd_resp_set_status(req, "204 No Content");
     return httpd_resp_send(req, NULL, 0);
 }

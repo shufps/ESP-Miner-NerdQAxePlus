@@ -698,6 +698,9 @@
     <nb-card-header>{{ 'HOME.RESET_STATS' | translate }}</nb-card-header>
     <nb-card-body>
       <p>{{ 'HOME.RESET_STATS_CONFIRM' | translate }}</p>
+      <nb-checkbox class="d-block mb-3" status="danger" [checked]="resetAllTime" (checkedChange)="resetAllTime = $event">
+        {{ 'HOME.RESET_STATS_ALL_TIME' | translate }}
+      </nb-checkbox>
       <div class="d-flex justify-content-between">
         <button nbButton status="warning" (click)="confirmResetStats(ref)">{{ 'COMMON.RESET' | translate }}</button>
         <button nbButton status="basic" (click)="ref.close()">{{ 'COMMON.CANCEL' | translate }}</button>

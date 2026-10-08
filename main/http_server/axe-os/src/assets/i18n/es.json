@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "¿Restablecer todas las estadísticas de sesión (shares, mejor diff, errores)?",
     "RESET_STATS_SUCCESS": "Estadísticas de sesión restablecidas.",
     "RESET_STATS_FAILED": "Error al restablecer las estadísticas.",
+    "RESET_STATS_ALL_TIME": "Restablecer también las estadísticas históricas (mejor dificultad, bloques encontrados). No se puede deshacer.",
     "BLOCK_HEADER": "Cabecera de Bloque",
     "BLOCK_HEIGHT": "Altura",
     "BLOCK_DIFFICULTY": "Dificultad",

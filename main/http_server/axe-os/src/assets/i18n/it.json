@@ -82,6 +82,7 @@
     "RESET_STATS_CONFIRM": "Ripristinare tutte le statistiche della sessione (azioni, difficoltà migliore, errori)?",
     "RESET_STATS_SUCCESS": "Statistiche sessione ripristinate.",
     "RESET_STATS_FAILED": "Impossibile ripristinare le statistiche della sessione.",
+    "RESET_STATS_ALL_TIME": "Azzera anche le statistiche di sempre (miglior difficoltà, blocchi trovati). Non può essere annullato.",
     "BLOCK_HEADER": "Intestazione blocco",
     "BLOCK_HEIGHT": "Altezza",
     "BLOCK_DIFFICULTY": "Difficoltà",

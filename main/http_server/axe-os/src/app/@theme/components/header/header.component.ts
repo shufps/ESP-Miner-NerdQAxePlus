@@ -1,8 +1,10 @@
-import { Component, OnDestroy, OnInit, TemplateRef } from '@angular/core';
+import { Component, OnDestroy, OnInit, TemplateRef, inject } from '@angular/core';
 import { NbDialogService, NbMediaBreakpointsService, NbMenuService, NbSidebarService, NbThemeService } from '@nebular/theme';
 import { LayoutService } from '../../../@core/utils.ts';
 import { SystemService } from '../../../services/system.service';
-import { map, takeUntil } from 'rxjs/operators';
+import { OtpAuthService } from '../../../services/otp-auth.service';
+import { TranslateService } from '@ngx-translate/core';
+import { map, switchMap, takeUntil } from 'rxjs/operators';
 import { Subject, Observable } from 'rxjs';
 import { IIdentifyV2 } from 'src/app/models/IIdentifyV2';
 
@@ -128,15 +130,28 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.updateLogo();
   }
 
+  private readonly otpAuth = inject(OtpAuthService);
+  private readonly translateService = inject(TranslateService);
+
+  /** Reset-stats dialog: also reset the persisted all-time stats. */
+  resetAllTime = false;
+
   /** Open the reset-stats confirmation dialog (button lives next to the theme selector). */
   openResetStats(dialog: TemplateRef<any>) {
+    this.resetAllTime = false;
     this.dialogService.open(dialog);
   }
 
   /** Confirmed: reset mining statistics on the device, then close the dialog. */
   confirmResetStats(ref: any) {
-    this.infoService.resetStats('').subscribe({ next: () => {}, error: () => {} });
     ref.close();
+    // all-time reset is permanent: the backend requires OTP (when enabled) for it
+    const reset$ = this.resetAllTime
+      ? this.otpAuth
+          .ensureOtp$('', this.translateService.instant('SECURITY.OTP_TITLE'), this.translateService.instant('SECURITY.OTP_HINT'))
+          .pipe(switchMap(({ totp }) => this.infoService.resetStats('', true, totp)))
+      : this.infoService.resetStats('');
+    reset$.subscribe({ next: () => {}, error: () => {} });
   }
 
   ngOnDestroy() {
