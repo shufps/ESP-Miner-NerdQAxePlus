@@ -252,3 +252,47 @@ jobs:
         echo "$r2_files" | tr ',' '\n' | grep -v '^$' | while read file; do
           rclone copyto "$file" "r2:${TARGET_DIR}/$(basename "$file")" --s3-acl public-read
         done
+
+  # Diagnostic pre-releases get a warning at the top of the release notes. Runs once
+  # after all boards were built; the marker comment keeps it from being added twice
+  # when the workflow is re-run.
+  diagnostic-release-notes:
+    needs: build-and-release
+    if: inputs.enable_coredump
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Add diagnostic build warning to release notes
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git fetch --tags
+        TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+        if [ -z "$TAG" ] || ! gh release view "$TAG" >/dev/null 2>&1; then
+          echo "No release for '$TAG' — artifacts only, nothing to update."
+          exit 0
+        fi
+        if [ "$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)" != "true" ]; then
+          echo "'$TAG' is not a pre-release — not touching its notes."
+          exit 0
+        fi
+
+        MARKER='<!-- diagnostic-build-warning -->'
+        gh release view "$TAG" --json body --jq .body > body.md
+        if grep -qF "$MARKER" body.md; then
+          echo "Warning already present in the notes of '$TAG'."
+          exit 0
+        fi
+
+        {
+          echo "$MARKER"
+          cat <<'EOF'
+        ⚠️ **Diagnostic build**: this pre-release has panic core dumps enabled, so the dump can be downloaded via `/api/system/coredump` and the System page. A dump may contain sensitive data such as your WiFi password and pool credentials, and without OTP anyone on your local network can download it. Please enable OTP, and only share dumps with people you trust.
+        EOF
+          echo
+          cat body.md
+        } > notes.md
+        gh release edit "$TAG" --notes-file notes.md
+        echo "Added the diagnostic build warning to the notes of '$TAG'."
