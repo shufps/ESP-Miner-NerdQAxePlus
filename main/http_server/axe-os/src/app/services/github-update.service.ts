@@ -117,13 +117,21 @@ export class GithubUpdateService {
     return selected$.pipe(
       switchMap((releases: GithubRelease[]) =>
         latest$.pipe(
-          map((latest) =>
-            releases.map(r => ({
+          map((latest) => {
+            const list = releases.map(r => ({
               ...r,
               body: r.body || '',
               isLatest: !includePrereleases && r.id === latest.id
-            }))
-          )
+            }));
+            // GitHub lists releases by creation date, so e.g. an LTS release made after
+            // the latest one would come first. "latest" always goes on top (it is also
+            // the default selection in the update dialog).
+            const idx = list.findIndex(r => r.isLatest);
+            if (idx > 0) {
+              list.unshift(...list.splice(idx, 1));
+            }
+            return list;
+          })
         )
       )
     );
