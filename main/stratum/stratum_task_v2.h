@@ -7,7 +7,12 @@ extern "C" {
 #include "sv2_protocol.h"
 }
 
+// Outgoing frames (SetupConnection, OpenChannel, SubmitShares) are tiny.
 #define SV2_MAX_FRAME_SIZE 2048
+
+// Incoming frames: NewExtendedMiningJob carries the full coinbase prefix/suffix.
+// PPLNS pools with many payout outputs exceed 2 KB easily. Kept in PSRAM.
+#define SV2_MAX_RECV_SIZE 16384
 
 class StratumManager;
 
@@ -44,6 +49,7 @@ class StratumTaskV2 : public StratumTaskBase {
     // SV2 message handlers
     void handleNewMiningJob(const uint8_t *payload, uint32_t len);
     void handleNewExtendedMiningJob(const uint8_t *payload, uint32_t len);
+    void handleSetExtranoncePrefix(const uint8_t *payload, uint32_t len);
     void handleSetNewPrevHash(const uint8_t *payload, uint32_t len);
     void handleSetTarget(const uint8_t *payload, uint32_t len);
     void handleSubmitSharesSuccess(const uint8_t *payload, uint32_t len);
@@ -60,7 +66,7 @@ class StratumTaskV2 : public StratumTaskBase {
 
     // Frame buffers
     uint8_t m_frameBuf[SV2_MAX_FRAME_SIZE];
-    uint8_t m_recvBuf[SV2_MAX_FRAME_SIZE];
+    uint8_t *m_recvBuf = nullptr;   ///< SV2_MAX_RECV_SIZE bytes, allocated in ctor
     uint8_t m_hdrBuf[SV2_FRAME_HEADER_SIZE];
 
   public:
