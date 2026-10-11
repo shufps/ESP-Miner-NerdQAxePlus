@@ -361,6 +361,11 @@ public:
         return nullptr;
     }
 
+    // Called once after initBoard(): boards with a pluggable W5500 HAT probe for it
+    // here, once everything that may share its pins is known.
+    virtual void detectEthernet() {
+    }
+
     // True if a W5500 interposer is present on this board's eth pins (via getEthPins()).
     bool isEthConnected();
 

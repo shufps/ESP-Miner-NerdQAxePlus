@@ -92,6 +92,14 @@ NerdOctaxeGamma::NerdOctaxeGamma()
     }
 }
 
+// On rev3.4+ the TMP451 mux selects (A0/A1) are wired to GPIO2/12, the HAT's SCLK/MOSI:
+// SPI traffic would switch the mux channel and scramble the per-ASIC temperatures, so no
+// ethernet HAT on boards with the mux. Valid after initBoard(), when detectEthernet() runs.
+const EthPins *NerdOctaxeGamma::getEthPins()
+{
+    return (m_hasTMux[0] || m_hasTMux[1]) ? nullptr : NerdQaxePlus::getEthPins();
+}
+
 bool NerdOctaxeGamma::initBoard()
 {
     // Call parent initBoard() (VR init, ASIC power-on, etc.)

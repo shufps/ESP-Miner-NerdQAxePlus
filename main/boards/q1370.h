@@ -35,6 +35,8 @@ class Q1370B : public NerdQaxePlus {
     virtual void requestChipTemps();
     bool hasEthernet() override { return true; }
     bool hasCanExtension() override { return true; }
+    // different pinout: on-board W5500 on the driver's default pins, no ethernet HAT
+    const EthPins *getEthPins() override { return nullptr; }
     bool isCanSlave() override;
     int getCanTxPin() override { return 1; }
     int getCanRxPin() override { return 10; }
