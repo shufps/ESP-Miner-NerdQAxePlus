@@ -18,4 +18,7 @@ class NerdQX : public NerdQaxePlus2 {
     NerdQX();
     virtual bool initBoard();
     virtual void requestChipTemps();
+
+    // the TMP451 mux select A0 is GPIO2, the ethernet HAT's SCLK: no HAT when the mux is fitted
+    const EthPins *getEthPins() override { return m_hasTMux ? nullptr : NerdQaxePlus2::getEthPins(); }
 };

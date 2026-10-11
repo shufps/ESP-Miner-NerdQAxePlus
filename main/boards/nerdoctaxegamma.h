@@ -27,6 +27,9 @@ class NerdOctaxeGamma : public NerdQaxePlus2 {
     virtual void requestChipTemps() override;
     float getVRTemp() override;
 
+    // no ethernet HAT when the temp mux (sharing GPIO2/12) is fitted
+    const EthPins *getEthPins() override;
+
   private:
     bool m_isTPS53667 = false;
 };
