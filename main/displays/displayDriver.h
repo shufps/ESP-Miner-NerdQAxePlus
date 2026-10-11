@@ -97,6 +97,7 @@ class DisplayDriver {
     bool m_displayIsOn;         // Flag indicating if the display is currently on
     int m_nextScreen;           // The next screen to display
     bool m_isActiveOverlay;     // flag if we have an overlay. LED light is forced to be on
+    bool m_foundBlockOverlay = false; // found-block image is shown, closed by a button press
     uint32_t m_identifyDuration_ms = 60000;
     char m_portalWifiName[30];  // WiFi name displayed on the portal screen
 

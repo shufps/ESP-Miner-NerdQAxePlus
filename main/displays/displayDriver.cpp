@@ -269,14 +269,17 @@ void DisplayDriver::showFoundBlockOverlay() {
 
     // now show the (new) image overlay
     m_ui->showImageOverlay(&ui_img_found_block_png);
-    m_isActiveOverlay = true;
+    m_foundBlockOverlay = true;
     refreshScreen();
 }
 
 void DisplayDriver::hideFoundBlockOverlay() {
+    // called from the LVGL task (button press) while the system task may show a new
+    // one for another block
+    PThreadGuard lock(m_lvglMutex);
     // hide the overlay and free the memory
     m_ui->hideImageOverlay();
-    m_isActiveOverlay = false;
+    m_foundBlockOverlay = false;
 }
 
 void DisplayDriver::lvglTimerTaskWrapper(void *param) {
@@ -551,8 +554,9 @@ void DisplayDriver::processButtons(Button &btn1, Button &btn2, int64_t tnow,
         return;
     }
 
-    // Hide overlay if active
-    if ((evt1 & BTN_EVENT_SHORTPRESS || evt2 & BTN_EVENT_SHORTPRESS) && m_isActiveOverlay) {
+    // Hide found-block overlay if active (own flag: other overlays such as errors
+    // come and go independently and must not make it undismissable)
+    if ((evt1 & BTN_EVENT_SHORTPRESS || evt2 & BTN_EVENT_SHORTPRESS) && m_foundBlockOverlay) {
         hideFoundBlockOverlay();
         btn1.clearEvent();
         btn2.clearEvent();
@@ -633,7 +637,7 @@ void DisplayDriver::handleUiQueueMessages(ui_msg_t &msg, int64_t tnow)
 
 void DisplayDriver::handleAutoOffAndOverlays()
 {
-    if (m_isActiveOverlay) {
+    if (m_isActiveOverlay || m_foundBlockOverlay) {
         displayTurnOn();
     } else if (m_isAutoScreenOffEnabled) {
         checkAutoTurnOffScreen();

@@ -299,7 +299,10 @@ void System::task() {
         if (m_boardError != Board::Error::NONE) {
             showError(Board::errorToStr(m_boardError), m_errorCode);
         } else {
-            m_display->hideError();
+            // only hides an error overlay that is actually shown (and keeps
+            // m_showsOverlay in sync); calling the display directly every tick reset
+            // the shared overlay state and made the found-block overlay undismissable
+            hideError();
         }
 
         // toggle
