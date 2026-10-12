@@ -11,6 +11,7 @@
 #include "nvs_config.h"
 #include "http_cors.h"
 #include "http_utils.h"
+#include "network_manager.h"
 
 static const char *TAG = "http_v2_system";
 
@@ -53,6 +54,29 @@ esp_err_t GET_V2_system(httpd_req_t *req)
     network["ipAddr"]     = SYSTEM_MODULE.getIPAddress();
     network["wifiStatus"] = SYSTEM_MODULE.getWifiStatus();
     network["wifiRSSI"]   = SYSTEM_MODULE.get_wifi_rssi();
+    network["ethernet"]   = NETWORK.hasEthIp(); // ipAddr is the ethernet IP then
+
+    // Pools currently mining: failover = the selected one, dual pool = both
+    JsonObject stratum = doc["stratum"].to<JsonObject>();
+    JsonArray activePools = stratum["activePools"].to<JsonArray>();
+    if (STRATUM_MANAGER) {
+        PSRAMAllocator infoAllocator;
+        JsonDocument info(&infoAllocator);
+        JsonObject infoObj = info.to<JsonObject>();
+        STRATUM_MANAGER->getManagerInfoJson(infoObj, true); // verbose: both pools + "active"
+
+        // the managers report both pools in config order (0 = primary, 1 = fallback/secondary)
+        char *urls[2] = { Config::getStratumURL(), Config::getStratumFallbackURL() };
+        JsonArray pools = infoObj["pools"].as<JsonArray>();
+        for (int i = 0; i < (int) pools.size() && i < 2; i++) {
+            if (pools[i]["active"].as<bool>() && urls[i] && urls[i][0]) {
+                activePools.add(urls[i]);
+            }
+        }
+        for (int i = 0; i < 2; i++) {
+            free(urls[i]);
+        }
+    }
 
     // Memory
     JsonObject memory = doc["memory"].to<JsonObject>();
