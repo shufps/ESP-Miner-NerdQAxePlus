@@ -90,6 +90,15 @@ void ASIC_result_task(void *pvParameters)
             continue;
         }
 
+        // never submit a version outside the mask the ASIC was told to roll
+        // (e.g. Litecoin Cash rejects blocks with modified POW_TYPE bits 16-23)
+        if (job->version_mask && (asic_result.rolled_version & ~job->version_mask)) {
+            ESP_LOGW(TAG, "result with rolled version %08lx outside mask %08lx dropped",
+                     (unsigned long) asic_result.rolled_version, (unsigned long) job->version_mask);
+            free_bm_job(job);
+            continue;
+        }
+
         // now we have the original job and can `or` the version
         asic_result.rolled_version |= job->version;
 
@@ -114,15 +123,25 @@ void ASIC_result_task(void *pvParameters)
         uint64_t key = make_key(asic_result.nonce, asic_result.rolled_version);
         bool duplicate = !s_seen_keys.insert_if_absent(key);
         if (duplicate) {
-            ESP_LOGW(TAG, "(%s) duplicate share detected!", pool_str);
+            // with a narrow version mask the chip replays results until new
+            // work arrives, so duplicates are expected there; don't spam the log
+            if ((job->version_mask & 0x1fffe000) != 0x1fffe000) {
+                ESP_LOGD(TAG, "(%s) duplicate share detected!", pool_str);
+            } else {
+                ESP_LOGW(TAG, "(%s) duplicate share detected!", pool_str);
+            }
             countDuplicateHWNonces();
+            // don't send duplicates to the pool. With a narrow version mask the
+            // chip can return the same nonce many times, which would otherwise
+            // flood the pool with rejected shares.
+            free_bm_job(job);
+            continue;
         }
 
         if (!duplicate && nonce_diff >= board->getAsicMaxDifficulty()) {
             SYSTEM_MODULE.pushShare(asic_result.asic_nr);
         }
 
-        // send duplicates to the server (they will get rejected and counted as rejected)
         if (nonce_diff >= job->pool_diff) {
             STRATUM_MANAGER->submitShare(job->pool_id, job->jobid, job->extranonce2, job->ntime, asic_result.nonce,
                                     asic_result.rolled_version, job->version);

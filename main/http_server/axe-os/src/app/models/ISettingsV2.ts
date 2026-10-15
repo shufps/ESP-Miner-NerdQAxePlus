@@ -63,6 +63,11 @@ export interface ISettingsV2 {
     stratumDifficulty: number;
     pools: ISettingsV2Pool[];
 
+    // Version rolling (0 = auto/pool mask, 1 = LCC/MZC safe, 2 = custom)
+    versionRollingMode?: number;
+    versionRollingMask?: string;   // hex, custom mask
+    activeVersionMask?: string;    // hex, mask currently programmed into the ASICs
+
     // Fan / thermal
     fans: ISettingsV2Fan[];
     invertFanPolarity: number;

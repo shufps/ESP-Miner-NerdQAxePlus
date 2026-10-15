@@ -100,6 +100,11 @@ protected:
     uint32_t m_asicDifficulty;
     uint8_t m_addressInterval = 2; ///< Chip address spacing (set during init)
 
+    // version rolling state (see setVersionMask)
+    uint16_t m_versionMaskReg = 0xFFFF; ///< mask currently programmed in register 0xA4 (pool mask >> 13)
+    uint32_t m_vrFreqHz = 0;            ///< configured "VR frequency" (register 0x10) in Hz
+    uint16_t m_chipCount = 0;           ///< chips detected on the chain (set during init)
+
     void send(uint8_t header, uint8_t *data, uint8_t data_len);
     void send2(uint8_t header, uint8_t b0, uint8_t b1);
     void send6(uint8_t header, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5);
@@ -125,6 +130,15 @@ protected:
     uint32_t vrFreqToReg(uint32_t freq_hz);
     uint32_t vrRegToFreq(uint32_t reg);
 
+    // version rolling helpers
+    void resetVersionRollingState();
+    void applyNonceSpace();
+    // control byte written to 0xA4 together with the mask (enable + midstate config)
+    virtual uint8_t getVersionRollingCtrl() { return 0x90; }
+    // register 0x10 value that lets every core sweep its full nonce slice per
+    // version batch. Returns 0 if not implemented for this chip.
+    virtual uint32_t calcFullNonceSpaceReg() { return 0; }
+
 public:
     Asic();
     virtual const char* getName() = 0;
@@ -140,6 +154,14 @@ public:
 
     void setVrFrequency(uint32_t freq);
     virtual uint32_t getDefaultVrFrequency() = 0;
+
+    // Program the version rolling mask (stratum format, e.g. 0x1fffe000) into
+    // register 0xA4. Only writes when the value changes. With a narrow mask
+    // (anything other than the full 16 bits) register 0x10 is switched to the
+    // full nonce-space value so the few remaining versions are not re-swept.
+    void setVersionMask(uint32_t mask);
+    uint32_t getVersionMask() { return ((uint32_t) m_versionMaskReg) << 13; }
+    bool isVersionMaskNarrow() { return m_versionMaskReg != 0xFFFF; }
 
     virtual uint8_t init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency) = 0;
     virtual int setMaxBaud(void);

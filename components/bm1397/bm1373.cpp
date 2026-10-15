@@ -43,6 +43,7 @@ uint32_t BM1373::getDefaultVrFrequency() {
 uint8_t BM1373::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency)
 {
     // reset is done externally to not have board dependencies
+    resetVersionRollingState();
 
     // set version rolling mask to 0xFFFF (pre-enumerate, without enable bit)
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x80, 0x00, 0xFF, 0xFF);

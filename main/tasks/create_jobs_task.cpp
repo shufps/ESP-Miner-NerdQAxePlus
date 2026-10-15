@@ -16,6 +16,7 @@
 #include "boards/board.h"
 #include "macros.h"
 #include "system.h"
+#include "nvs_config.h"
 
 #define PRIMARY 0
 #define SECONDARY 1
@@ -213,6 +214,85 @@ MiningInfoBase* miningInfo[2] = {&s_miningInfoV1[0], &s_miningInfoV1[1]};
 #define min(a, b) ((a < b) ? (a) : (b))
 #define max(a, b) ((a > b) ? (a) : (b))
 
+// ============================================================================
+// Version rolling mask handling
+// ============================================================================
+// The pool grants a version rolling mask via mining.configure (BIP310). Some
+// coins use version bits for consensus (e.g. Litecoin Cash uses bits 16-23 as
+// POW_TYPE), so rolling outside the granted mask produces invalid blocks.
+// The effective mask is the intersection of the user setting and the masks of
+// all pools currently providing work (dual pool mode shares one ASIC chain).
+
+#define VERSION_MASK_FULL 0x1fffe000u
+#define VERSION_MASK_LCC  0x0000e000u
+// With a narrow mask a job is exhausted much faster, so feed new work more
+// often. 10ms is one FreeRTOS tick at CONFIG_FREERTOS_HZ=100.
+#define NARROW_MASK_JOB_INTERVAL_MS 10
+
+enum {
+    VERSION_ROLLING_AUTO = 0,
+    VERSION_ROLLING_LCC = 1,
+    VERSION_ROLLING_CUSTOM = 2,
+};
+
+static volatile uint32_t s_activeVersionMask = VERSION_MASK_FULL;
+static uint16_t s_vrMode = VERSION_ROLLING_AUTO;
+static uint32_t s_vrCustomMask = VERSION_MASK_LCC;
+static uint64_t s_vrLastRead = 0;
+
+uint32_t create_jobs_get_active_version_mask()
+{
+    return s_activeVersionMask;
+}
+
+static bool is_narrow_mask(uint32_t mask)
+{
+    return (mask & VERSION_MASK_FULL) != VERSION_MASK_FULL;
+}
+
+// re-read the settings at most once per second so changes apply without reboot
+static void refresh_version_rolling_settings()
+{
+    uint64_t now = esp_timer_get_time();
+    if (s_vrLastRead && (now - s_vrLastRead) < 1000000ULL) {
+        return;
+    }
+    s_vrLastRead = now;
+    s_vrMode = Config::getVersionRollingMode();
+    s_vrCustomMask = Config::getVersionRollingMask();
+}
+
+// caller must hold current_stratum_job_mutex
+static uint32_t compute_effective_version_mask()
+{
+    uint32_t mask;
+    switch (s_vrMode) {
+    case VERSION_ROLLING_LCC:
+        mask = VERSION_MASK_LCC;
+        break;
+    case VERSION_ROLLING_CUSTOM:
+        mask = s_vrCustomMask;
+        break;
+    default:
+        mask = VERSION_MASK_FULL;
+        break;
+    }
+
+    // never roll bits a pool did not grant. A mask of 0 means the pool did not
+    // negotiate version rolling, keep the previous (full mask) behavior there.
+    for (int i = 0; i < 2; i++) {
+        MiningInfoBase *mi = miningInfo[i];
+        if (!mi || !mi->isValid()) {
+            continue;
+        }
+        uint32_t poolMask = mi->getVersionMask();
+        if (poolMask) {
+            mask &= poolMask;
+        }
+    }
+    return mask & VERSION_MASK_FULL;
+}
+
 static void create_job_timer(TimerHandle_t xTimer)
 {
     pthread_mutex_lock(&job_mutex);
@@ -316,6 +396,7 @@ void create_jobs_task(void *pvParameters)
     uint32_t slave_counters[CAN_SLAVE_MAX] = {0};
 
     int lastJobInterval = board->getAsicJobIntervalMs();
+    uint32_t last_logged_mask = 0;
 
     while (1) {
         if (POWER_MANAGEMENT_MODULE.isShutdown()) {
@@ -326,10 +407,17 @@ void create_jobs_task(void *pvParameters)
         pthread_cond_wait(&job_cond, &job_mutex); // Wait for the timer or external trigger
         pthread_mutex_unlock(&job_mutex);
 
-        // job interval changed via UI
-        if (board->getAsicJobIntervalMs() != lastJobInterval) {
-            xTimerChangePeriod(job_timer, pdMS_TO_TICKS(board->getAsicJobIntervalMs()), 0);
-            lastJobInterval = board->getAsicJobIntervalMs();
+        refresh_version_rolling_settings();
+
+        // job interval changed via UI or by a narrow version mask
+        int desiredJobInterval = board->getAsicJobIntervalMs();
+        if (is_narrow_mask(s_activeVersionMask) && desiredJobInterval > NARROW_MASK_JOB_INTERVAL_MS) {
+            desiredJobInterval = NARROW_MASK_JOB_INTERVAL_MS;
+        }
+        if (desiredJobInterval != lastJobInterval) {
+            ESP_LOGI(TAG, "ASIC Job Interval: %d ms", desiredJobInterval);
+            xTimerChangePeriod(job_timer, pdMS_TO_TICKS(desiredJobInterval), 0);
+            lastJobInterval = desiredJobInterval;
             continue;
         }
 
@@ -361,7 +449,20 @@ void create_jobs_task(void *pvParameters)
 
             uint32_t asic_diff = STRATUM_MANAGER->selectAsicDiff(active_pool, mi->getActiveDifficulty());
             next_job = mi->buildBmJob(extranonce_2, active_pool, asic_diff);
+
+            // remember the mask the ASIC rolls for this job, results are
+            // checked against it before submitting
+            next_job->version_mask = compute_effective_version_mask();
         } // mutex
+
+        // set version rolling mask (only written when it changes)
+        asics->setVersionMask(next_job->version_mask);
+        s_activeVersionMask = next_job->version_mask;
+        if (next_job->version_mask != last_logged_mask) {
+            ESP_LOGI(TAG, "(%s) Version rolling mask: %08lx%s", active_pool_str, (unsigned long) next_job->version_mask,
+                     is_narrow_mask(next_job->version_mask) ? " (narrow)" : "");
+            last_logged_mask = next_job->version_mask;
+        }
 
         // set asic difficulty
         asics->setJobDifficultyMask(next_job->asic_diff);

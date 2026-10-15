@@ -43,6 +43,7 @@ uint32_t BM1370::getDefaultVrFrequency() {
 uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency)
 {
     // reset is done externally to not have board dependencies
+    resetVersionRollingState();
 
     // enable and set version rolling mask to 0xFFFF
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
@@ -58,6 +59,7 @@ uint8_t BM1370::init(uint64_t frequency, uint16_t asic_count, uint32_t difficult
 
     int chip_counter = count_asics();
     ESP_LOGIE(chip_counter == asic_count, TAG, "%i chip(s) detected on the chain, expected %i", chip_counter, asic_count);
+    m_chipCount = (chip_counter > 0) ? chip_counter : asic_count;
 
     // enable and set version rolling mask to 0xFFFF (again)
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);
@@ -139,6 +141,25 @@ uint8_t BM1370::jobToAsicId(uint8_t job_id) {
 
 uint8_t BM1370::asicToJobId(uint8_t asic_id) {
     return (asic_id & 0xf0) >> 1;
+}
+
+// Register 0x10 (hash counting number) for a full sweep of each core's nonce
+// slice per version batch. Same formula as upstream ESP-Miner
+// BM1370_set_nonce_space(): the register is a deadline in 25 MHz ticks and each
+// core advances two nonces per hash clock.
+uint32_t BM1370::calcFullNonceSpaceReg() {
+    float freq = (m_current_frequency > 0.0f) ? m_current_frequency : 0.0f;
+    if (freq <= 0.0f || m_chipCount == 0) {
+        return 0;
+    }
+    double slice = 4294967296.0 / (double) next_power_of_two(BM1370_CORE_COUNT) / (double) next_power_of_two(m_chipCount);
+    double hcn = slice * FREQ_MULT / (double) freq * 0.5;
+    // BM1370 errata: ~134 extra clocks, use 2x margin to avoid duplicates
+    hcn -= 2 * 134;
+    if (hcn < 1.0) {
+        return 0;
+    }
+    return (uint32_t) hcn;
 }
 
 uint16_t BM1370::getSmallCoreCount() {

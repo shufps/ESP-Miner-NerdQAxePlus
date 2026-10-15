@@ -1,6 +1,6 @@
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormControl } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { combineLatest, map, Observable, catchError, of, shareReplay, startWith, Subscription, interval } from 'rxjs';
 import { switchMap, tap, take } from 'rxjs/operators';
 import { GithubUpdateService, UpdateStatus, VersionComparison, GithubRelease } from '../../services/github-update.service';
@@ -70,6 +70,18 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   public keepConfigCtrl = new FormControl<boolean>(true);
   public includePrereleasesCtrl = new FormControl<boolean>(false);
+
+  // --- Version rolling (AsicBoost) ---
+  // 0 = auto (use the pool's mask), 1 = LCC/MZC safe (0000e000), 2 = custom mask
+  public vrModeCtrl = new FormControl<number>(0, { nonNullable: true });
+  public vrMaskCtrl = new FormControl<string>('0000e000', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.pattern(/^(0x)?[0-9a-fA-F]{1,8}$/)],
+  });
+  public activeVersionMask: string = '';
+  public vrSaving = false;
+  private savedVrMode = 0;
+  private savedVrMask = '0000e000';
   public releases$!: Observable<GithubRelease[]>;   // list shown in dropdown
   public selectedRelease: GithubRelease | null = null;
   private latestStableRelease: GithubRelease | null = null;
@@ -96,6 +108,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.deviceModel = info.deviceModel;
         this.asicModel = info.asicModel;
         this.otpEnabled = !!info.otp;
+        this.loadVersionRolling(info);
 
         // Replace 'γ' with 'Gamma' if present and remove spaces
         // Keep special characters like + as GitHub releases use them
@@ -503,6 +516,94 @@ export class SettingsComponent implements OnInit, OnDestroy {
   // Helper to build expected factory filename for a given release
   private buildFactoryNameFor(release: GithubRelease): string {
     return `esp-miner-factory-${this.normalizedModel}-${release.tag_name}.bin`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Version rolling
+  // ---------------------------------------------------------------------------
+
+  private loadVersionRolling(info: ISettingsV2) {
+    this.savedVrMode = info.versionRollingMode ?? 0;
+    this.savedVrMask = (info.versionRollingMask ?? '0000e000').toLowerCase();
+    this.activeVersionMask = (info.activeVersionMask ?? '').toLowerCase();
+    this.vrModeCtrl.setValue(this.savedVrMode);
+    this.vrMaskCtrl.setValue(this.savedVrMask);
+  }
+
+  /** normalized 8 digit lowercase hex, or null if invalid / outside bits 13-28 */
+  private normalizeMask(value: string): string | null {
+    const v = (value ?? '').trim().replace(/^0x/i, '');
+    if (!/^[0-9a-fA-F]{1,8}$/.test(v)) return null;
+    const n = parseInt(v, 16);
+    if ((n & ~0x1fffe000) !== 0) return null;
+    return n.toString(16).padStart(8, '0');
+  }
+
+  get vrMaskOutOfRange(): boolean {
+    return this.vrModeCtrl.value === 2 && this.vrMaskCtrl.valid && this.normalizeMask(this.vrMaskCtrl.value) === null;
+  }
+
+  get vrMaskTouchesLccBits(): boolean {
+    const m = this.normalizeMask(this.vrMaskCtrl.value);
+    return this.vrModeCtrl.value === 2 && m !== null && (parseInt(m, 16) & 0x00ff0000) !== 0;
+  }
+
+  get vrMaskIsZero(): boolean {
+    const m = this.normalizeMask(this.vrMaskCtrl.value);
+    return this.vrModeCtrl.value === 2 && m !== null && parseInt(m, 16) === 0;
+  }
+
+  get vrDirty(): boolean {
+    if (this.vrModeCtrl.value !== this.savedVrMode) return true;
+    if (this.vrModeCtrl.value !== 2) return false;
+    return this.normalizeMask(this.vrMaskCtrl.value) !== this.savedVrMask;
+  }
+
+  get vrCanSave(): boolean {
+    if (this.vrSaving || !this.vrDirty) return false;
+    if (this.vrModeCtrl.value === 2) {
+      return this.vrMaskCtrl.valid && this.normalizeMask(this.vrMaskCtrl.value) !== null;
+    }
+    return true;
+  }
+
+  get activeMaskIsNarrow(): boolean {
+    if (!this.activeVersionMask) return false;
+    return (parseInt(this.activeVersionMask, 16) & 0x1fffe000) !== 0x1fffe000;
+  }
+
+  public saveVersionRolling() {
+    if (!this.vrCanSave) return;
+    const payload: any = { versionRollingMode: this.vrModeCtrl.value };
+    if (this.vrModeCtrl.value === 2) {
+      payload.versionRollingMask = this.normalizeMask(this.vrMaskCtrl.value);
+    }
+
+    this.vrSaving = true;
+    this.otpAuth.ensureOtp$(
+      '',
+      this.translate.instant('SECURITY.OTP_TITLE'),
+      this.translate.instant('SECURITY.OTP_HINT')
+    ).pipe(
+      switchMap(({ totp }: EnsureOtpResult) => this.systemService.updateSettingsV2('', payload, totp)),
+      // the firmware applies the new mask with the next job, re-read the active mask
+      switchMap(() => interval(1500).pipe(take(1))),
+      switchMap(() => this.systemService.getSettingsV2()),
+    ).subscribe({
+      next: (info: ISettingsV2) => {
+        this.vrSaving = false;
+        this.loadVersionRolling(info);
+        this.toastrService.success(
+          this.translate.instant('VERSION_ROLLING.SAVED'),
+          this.translate.instant('COMMON.SUCCESS'));
+      },
+      error: (err: HttpErrorResponse) => {
+        this.vrSaving = false;
+        this.toastrService.danger(
+          `${this.translate.instant('VERSION_ROLLING.SAVE_FAILED')} ${err?.error ?? err?.message ?? ''}`,
+          this.translate.instant('COMMON.ERROR'));
+      }
+    });
   }
 
   public getAppVersion() {

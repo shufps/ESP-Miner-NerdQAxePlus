@@ -354,3 +354,35 @@ a {
 
 }
 
+
+/* Version rolling card */
+.version-rolling-card {
+  .vr-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .vr-help,
+  .vr-hint {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    margin-bottom: 0.5rem;
+  }
+  .vr-warning {
+    font-size: 0.85rem;
+    color: var(--color-danger-default, #ff3d71);
+    margin-bottom: 0.25rem;
+  }
+  .vr-mask {
+    font-family: monospace;
+    margin-left: 0.5rem;
+  }
+  .version-info p {
+    position: relative;
+  }
+  .vr-badge {
+    position: static;
+    margin-left: 0.5rem;
+  }
+}

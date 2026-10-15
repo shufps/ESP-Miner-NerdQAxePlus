@@ -602,5 +602,25 @@
     "COINBASE_MAX_FEE": "Max. Pool-Gebühr",
     "COINBASE_MAX_FEE_HINT": "Die Verifizierung schlägt fehl, wenn der Pool-Anteil an der Coinbase-Belohnung diesen Prozentsatz überschreitet (z. B. 3 für ckpools 3 % Gebühr).",
     "COINBASE_RECONNECT_HINT": "Beim Speichern wird die Verbindung zum Pool kurz getrennt und neu aufgebaut, um die neuen Einstellungen zu übernehmen."
+  },
+  "VERSION_ROLLING": {
+    "TITLE": "Version Rolling (AsicBoost)",
+    "DESCRIPTION": "Controls which block version bits the ASICs may change. Some coins use version bits for consensus, e.g. Litecoin Cash (LCC) uses bits 16-23 to select the PoW algorithm. Rolling those bits makes found blocks invalid.",
+    "MODE": "Mode",
+    "MODE_AUTO": "Auto (use pool mask)",
+    "MODE_LCC": "LCC / MZC safe (0000e000)",
+    "MODE_CUSTOM": "Custom mask",
+    "HINT_AUTO": "Uses the mask the pool grants via mining.configure. Normal Bitcoin pools grant the full mask (1fffe000), so behavior is unchanged.",
+    "HINT_LCC": "Only rolls bits 13-15. Safe for Litecoin Cash and MazaCoin even if the pool grants the full mask. Expect roughly half the normal hashrate.",
+    "HINT_CUSTOM": "Hex mask of the version bits that may be rolled (bits 13-28 only). The pool's mask is always applied on top.",
+    "CUSTOM_MASK": "Custom mask (hex)",
+    "WARN_INVALID": "Invalid mask: use hex digits and only bits 13-28 (within 1fffe000).",
+    "WARN_LCC_BITS": "Warning: this mask includes bits 16-23, which invalidates Litecoin Cash blocks.",
+    "WARN_ZERO": "A mask of 0 disables version rolling. These ASICs may return few or no results.",
+    "ACTIVE_MASK": "Active mask",
+    "NARROW": "narrow",
+    "NARROW_INFO": "Narrow mask active: the job interval is limited to 10 ms and the full nonce space is used per version batch. Expect lower hashrate than with the full mask.",
+    "SAVED": "Version rolling settings saved.",
+    "SAVE_FAILED": "Could not save version rolling settings."
   }
 }

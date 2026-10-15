@@ -45,3 +45,6 @@ void set_next_enonce(int pool, char *enonce, int enonce2_len);
 bool create_job_set_difficulty(int pool, uint32_t difficulty);
 void create_job_set_version_mask(int pool, uint32_t mask);
 void create_job_invalidate(int pool);
+
+// version rolling mask currently programmed into the ASICs (stratum format)
+uint32_t create_jobs_get_active_version_mask();

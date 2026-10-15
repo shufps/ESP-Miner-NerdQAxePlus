@@ -79,6 +79,10 @@
 
 #define NVS_CONFIG_VR_FREQUENCY "vr_frequency"
 
+// version rolling mode: 0 = auto (pool mask), 1 = LCC/MZC safe (0x0000e000), 2 = custom mask
+#define NVS_CONFIG_VERSION_ROLLING_MODE "vroll_mode"
+#define NVS_CONFIG_VERSION_ROLLING_MASK "vroll_mask"
+
 // device global stats
 #define NVS_TOTAL_FOUND_BLOCKS "totalblocks"
 #define NVS_CONFIG_BEST_DIFF "bestdiff"
@@ -288,6 +292,8 @@ namespace Config {
     void setTotalFoundBlocks(uint32_t value);
     inline void setStratumDifficulty(uint32_t value) { cfgSetU64(NVS_CONFIG_STRATUM_DIFFICULTY, value); }
     inline void setVrFrequency(uint32_t value) { cfgSetU64(NVS_CONFIG_VR_FREQUENCY, value); }
+    inline void setVersionRollingMode(uint16_t value) { cfgSetU16(NVS_CONFIG_VERSION_ROLLING_MODE, value); }
+    inline void setVersionRollingMask(uint32_t value) { cfgSetU64(NVS_CONFIG_VERSION_ROLLING_MASK, value); }
 
     // ---- Boolean Getters (Stored as uint16_t but used as bool) ----
     inline bool isInvertScreenEnabled() { return cfgGetU16(NVS_CONFIG_INVERT_SCREEN, 0) != 0; } // todo unused?
@@ -354,6 +360,8 @@ namespace Config {
     inline uint16_t getPidI(uint16_t d) { return cfgGetU16(NVS_CONFIG_PID_I, d); }
     inline uint16_t getPidD(uint16_t d) { return cfgGetU16(NVS_CONFIG_PID_D, d); }
     inline uint32_t getVrFrequency(uint32_t d) { return (uint32_t) cfgGetU64(NVS_CONFIG_VR_FREQUENCY, d); }
+    inline uint16_t getVersionRollingMode() { return cfgGetU16(NVS_CONFIG_VERSION_ROLLING_MODE, 0); }
+    inline uint32_t getVersionRollingMask() { return (uint32_t) cfgGetU64(NVS_CONFIG_VERSION_ROLLING_MASK, 0x0000e000); }
 
     // OTP Replay-Protection state (last_step + 3-bit mask)
     inline void getOTPReplayState(int64_t& base_step, uint8_t& mask) {

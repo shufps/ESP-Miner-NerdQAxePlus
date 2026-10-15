@@ -40,6 +40,7 @@ uint32_t BM1366::getDefaultVrFrequency() {
 uint8_t BM1366::init(uint64_t frequency, uint16_t asic_count, uint32_t difficulty, uint32_t vrFrequency)
 {
     // reset is done externally to not have board dependencies
+    resetVersionRollingState();
 
     // enable and set version rolling mask to 0xFFFF
     send6(CMD_WRITE_ALL, 0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF);

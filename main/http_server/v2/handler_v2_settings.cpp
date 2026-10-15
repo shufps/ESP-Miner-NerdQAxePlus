@@ -13,6 +13,11 @@
 #include "http_utils.h"
 #include "macros.h"
 #include "network_manager.h"
+#include <pthread.h>
+#include "tasks/create_jobs_task.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 static const char *TAG = "http_v2_settings";
 
@@ -75,6 +80,16 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
     doc["stratumKeep"]    = Config::isStratumKeepaliveEnabled() ? 1 : 0;
     doc["jobInterval"]     = board->getAsicJobIntervalMs();
     doc["stratumDifficulty"] = Config::getStratumDifficulty();
+
+    // --- version rolling ---
+    {
+        char buf[9];
+        doc["versionRollingMode"] = Config::getVersionRollingMode();
+        snprintf(buf, sizeof(buf), "%08lx", (unsigned long) Config::getVersionRollingMask());
+        doc["versionRollingMask"] = buf;
+        snprintf(buf, sizeof(buf), "%08lx", (unsigned long) create_jobs_get_active_version_mask());
+        doc["activeVersionMask"] = buf;
+    }
     {
         JsonArray pools = doc["pools"].to<JsonArray>();
 
@@ -234,6 +249,24 @@ esp_err_t PATCH_V2_settings(httpd_req_t *req)
     }
     if (doc["vrFrequency"].is<uint32_t>()) {
         Config::setVrFrequency(doc["vrFrequency"].as<uint32_t>());
+    }
+
+    // --- version rolling ---
+    if (doc["versionRollingMode"].is<uint16_t>()) {
+        uint16_t mode = doc["versionRollingMode"].as<uint16_t>();
+        if (mode > 2) {
+            return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid versionRollingMode");
+        }
+        Config::setVersionRollingMode(mode);
+    }
+    if (doc["versionRollingMask"].is<const char*>()) {
+        const char *str = doc["versionRollingMask"].as<const char*>();
+        char *end = nullptr;
+        unsigned long mask = strtoul(str, &end, 16);
+        if (!str[0] || (end && *end) || (mask & ~0x1fffe000UL)) {
+            return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid versionRollingMask (hex, bits 13-28 only)");
+        }
+        Config::setVersionRollingMask((uint32_t) mask);
     }
 
     // --- display ---

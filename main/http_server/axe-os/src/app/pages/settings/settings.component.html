@@ -130,7 +130,58 @@ Web-UI: {{ currentWebVersion }}<br/>
   </nb-card>
 
 
-  <div class="card-item" *ngIf="!isDangerZone"></div>
+  <!-- Version Rolling (AsicBoost) Card -->
+  <nb-card class="card-item version-rolling-card">
+    <nb-card-header>{{ 'VERSION_ROLLING.TITLE' | translate }}</nb-card-header>
+    <nb-card-body>
+      <p class="vr-help">{{ 'VERSION_ROLLING.DESCRIPTION' | translate }}</p>
+
+      <div class="vr-row">
+        <label class="release-label" for="vrMode">
+          <strong>{{ 'VERSION_ROLLING.MODE' | translate }}:</strong>
+        </label>
+        <nb-select id="vrMode" [formControl]="vrModeCtrl" fullWidth>
+          <nb-option [value]="0">{{ 'VERSION_ROLLING.MODE_AUTO' | translate }}</nb-option>
+          <nb-option [value]="1">{{ 'VERSION_ROLLING.MODE_LCC' | translate }}</nb-option>
+          <nb-option [value]="2">{{ 'VERSION_ROLLING.MODE_CUSTOM' | translate }}</nb-option>
+        </nb-select>
+      </div>
+
+      <p class="vr-hint" *ngIf="vrModeCtrl.value === 0">{{ 'VERSION_ROLLING.HINT_AUTO' | translate }}</p>
+      <p class="vr-hint" *ngIf="vrModeCtrl.value === 1">{{ 'VERSION_ROLLING.HINT_LCC' | translate }}</p>
+
+      <div class="vr-row" *ngIf="vrModeCtrl.value === 2">
+        <label class="release-label" for="vrMask">
+          <strong>{{ 'VERSION_ROLLING.CUSTOM_MASK' | translate }}:</strong>
+        </label>
+        <input nbInput fullWidth id="vrMask" type="text" maxlength="10" placeholder="0000e000"
+          [formControl]="vrMaskCtrl" [status]="(vrMaskCtrl.invalid || vrMaskOutOfRange) ? 'danger' : 'basic'" />
+        <p class="vr-hint">{{ 'VERSION_ROLLING.HINT_CUSTOM' | translate }}</p>
+        <p class="vr-warning" *ngIf="vrMaskCtrl.invalid || vrMaskOutOfRange">{{ 'VERSION_ROLLING.WARN_INVALID' | translate }}</p>
+        <p class="vr-warning" *ngIf="vrMaskTouchesLccBits">{{ 'VERSION_ROLLING.WARN_LCC_BITS' | translate }}</p>
+        <p class="vr-warning" *ngIf="vrMaskIsZero">{{ 'VERSION_ROLLING.WARN_ZERO' | translate }}</p>
+      </div>
+
+      <hr style="border-color: var(--card-divider-color); margin: 20px 0; opacity:1.0;" />
+
+      <div class="version-info">
+        <p>
+          <strong>{{ 'VERSION_ROLLING.ACTIVE_MASK' | translate }}:</strong>
+          <span class="vr-mask">{{ activeVersionMask || '-' }}</span>
+          <nb-badge *ngIf="activeMaskIsNarrow" class="vr-badge" status="warning"
+            [text]="'VERSION_ROLLING.NARROW' | translate" position="top right"></nb-badge>
+        </p>
+        <p class="vr-hint" *ngIf="activeMaskIsNarrow">{{ 'VERSION_ROLLING.NARROW_INFO' | translate }}</p>
+      </div>
+
+      <div class="update-section">
+        <button nbButton status="primary" size="small" [disabled]="!vrCanSave" [nbSpinner]="vrSaving"
+          (click)="saveVersionRolling()">
+          {{ 'COMMON.SAVE' | translate }}
+        </button>
+      </div>
+    </nb-card-body>
+  </nb-card>
   <nb-card class="card-item" style="position: relative;" *ngIf="isDangerZone">
     <nb-card-header>
       {{ 'UPDATE.LEGACY' | translate }}

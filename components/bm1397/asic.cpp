@@ -184,7 +184,46 @@ uint32_t Asic::vrRegToFreq(uint32_t reg) {
 }
 
 void Asic::setVrFrequency(uint32_t freq_hz) {
-    setVrFreqReg(vrFreqToReg(freq_hz));
+    m_vrFreqHz = freq_hz;
+    applyNonceSpace();
+}
+
+void Asic::resetVersionRollingState() {
+    // chip init writes the full mask (0xFFFF) to 0xA4
+    m_versionMaskReg = 0xFFFF;
+}
+
+// Write register 0x10. Normally this is the configured VR frequency. When the
+// version mask is narrow (e.g. 0x0000e000 for Litecoin Cash) the chip only has a
+// handful of versions per job; with the stock value each core sweeps only a
+// small part of its nonce slice before moving to the next version batch, and
+// with only one batch available it re-sweeps the same window over and over.
+// In that case use the value that covers the full nonce slice.
+void Asic::applyNonceSpace() {
+    uint32_t full = isVersionMaskNarrow() ? calcFullNonceSpaceReg() : 0;
+    if (full) {
+        ESP_LOGI(TAG, "narrow version mask: using full nonce space for 0x10");
+        setVrFreqReg(full);
+    } else if (m_vrFreqHz) {
+        setVrFreqReg(vrFreqToReg(m_vrFreqHz));
+    }
+}
+
+void Asic::setVersionMask(uint32_t mask) {
+    uint16_t reg = (uint16_t) ((mask >> 13) & 0xFFFF);
+    if (reg == m_versionMaskReg) {
+        return;
+    }
+    bool wasNarrow = isVersionMaskNarrow();
+
+    ESP_LOGI(TAG, "Setting version rolling mask to %08lx (0xA4 = %04x)", (unsigned long) mask, reg);
+    send6(CMD_WRITE_ALL, 0x00, 0xA4, getVersionRollingCtrl(), 0x00, (uint8_t) (reg >> 8), (uint8_t) (reg & 0xFF));
+    m_versionMaskReg = reg;
+
+    // switch register 0x10 between stock and full nonce space when needed
+    if (wasNarrow != isVersionMaskNarrow()) {
+        applyNonceSpace();
+    }
 }
 
 // default calculation using address_interval
@@ -316,7 +355,12 @@ void Asic::setJobDifficultyMask(int difficulty)
 
 // can ramp up and down in 6.25MHz steps
 bool Asic::setAsicFrequency(float target_freq) {
-    return doFrequencyTransition(target_freq);
+    bool ok = doFrequencyTransition(target_freq);
+    // the full nonce space value depends on the frequency
+    if (ok && isVersionMaskNarrow()) {
+        applyNonceSpace();
+    }
+    return ok;
 }
 
 
