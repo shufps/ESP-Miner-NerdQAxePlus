@@ -109,6 +109,23 @@ static void on_preferred_changed()
     request_stratum_reconnect();
 }
 
+// Bring up the W5500 if the board has ethernet. Called before and after initBoard();
+// it is set up (or attempted) only once.
+static void initEthernet(Board *board)
+{
+    static bool s_started = false;
+    if (s_started || !board->hasEthernet()) {
+        return;
+    }
+    s_started = true;
+
+    const EthPins *ep = board->getEthPins();
+    if (ep) {
+        NETWORK.setEthPins(ep->sclk, ep->mosi, ep->miso, ep->cs, ep->rst, ep->irq);
+    }
+    NETWORK.earlyEthSpiInit();
+}
+
 static void setup_network(bool hasEth)
 {
     char *wifi_ssid = Config::getWifiSSID();
@@ -278,16 +295,17 @@ extern "C" void app_main(void)
 
     // initialize everything non-asic-specific like
     // fan and serial and load settings from nvs
-    if (board->hasEthernet()) {
-        const EthPins *ep = board->getEthPins();
-        if (ep) {
-            NETWORK.setEthPins(ep->sclk, ep->mosi, ep->miso, ep->cs, ep->rst, ep->irq);
-        }
-        NETWORK.earlyEthSpiInit();
-    }
+    // on-board W5500 (Q1370/Q1373) or HAT detected in the constructor (NerdAxeGaia)
+    initEthernet(board);
 
     board->loadSettings();
     board->initBoard();
+
+    // pluggable W5500 HATs that can only be detected once the board is up (NerdQAxe
+    // family: I2C and the temp mux on shared pins are known). Still before the display init,
+    // the W5500 has to be set up before the LCD.
+    board->detectEthernet();
+    initEthernet(board);
 
 
     SYSTEM_MODULE.setBoard(board);
@@ -399,7 +417,9 @@ extern "C" void app_main(void)
             xTaskCreatePSRAM(influx_task, "influx", 8192, NULL, 1, NULL);
             xTaskCreatePSRAM(APIs_FETCHER.taskWrapper, "apis ticker", 8192, (void *) &APIs_FETCHER, 5, NULL);
             xTaskCreatePSRAM(wifi_monitor_task, "wifi monitor", 4096, NULL, 1, NULL);
-            if (Config::isCanEnabled()) {
+            // only with CAN hardware: on the NerdQAxe family the CAN pins are shared
+            // with the ethernet HAT
+            if (Config::isCanEnabled() && board->hasCanExtension()) {
                 can_init(board->getCanTxPin(), board->getCanRxPin());
                 xTaskCreate(can_master_task, "can master", 4096, NULL, 5, NULL);
             }
