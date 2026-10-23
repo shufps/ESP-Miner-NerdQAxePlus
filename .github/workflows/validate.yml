@@ -5,7 +5,17 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  ca-bundle-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Check pinned CA bundle and compromised certificate chains
+      run: |
+        python3 tools/test_ca_bundle.py
+
   build-check:
+    needs: ca-bundle-test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -49,4 +59,5 @@ jobs:
     - name: Build firmware for ${{ matrix.label }}
       run: |
         docker run --rm --user root -e BOARD=${{ matrix.board }} -v $PWD:/home/builder/project \
-        shufps/esp-idf-builder:5.3.6 idf.py build
+        shufps/esp-idf-builder:5.3.6 bash -c \
+        'idf.py build && apt-get update && apt-get install -y openssl && python tools/test_ca_bundle.py --build-dir build'
