@@ -9,7 +9,17 @@ on:
         default: false
 
 jobs:
+  ca-bundle-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Check pinned CA bundle and compromised certificate chains
+      run: |
+        python3 tools/test_ca_bundle.py
+
   build-and-release:
+    needs: ca-bundle-test
     runs-on: ubuntu-latest
     env:
       RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
@@ -138,7 +148,8 @@ jobs:
       run: |
         # Run the Docker container to build the project
         docker run --rm --user root -e BOARD=${{ matrix.board }} -e SDKCONFIG_DEFAULTS="$IDF_SDKCONFIG_DEFAULTS" -v $PWD:/home/builder/project \
-        shufps/esp-idf-builder:5.3.6 idf.py build
+        shufps/esp-idf-builder:5.3.6 bash -c \
+        'idf.py build && apt-get update && apt-get install -y openssl && python tools/test_ca_bundle.py --build-dir build'
 
     - name: Verify core dump configuration
       run: |
