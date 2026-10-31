@@ -123,6 +123,12 @@ export class SwarmComponent implements OnInit, OnDestroy {
     return { start: network + 1, end: broadcast - 1 };
   }
 
+  private isMinerInfo(info: any): boolean {
+    return typeof info?.ASICModel === 'string' && info.ASICModel.trim().length > 0
+      && Number.isFinite(info.hashRate) && info.hashRate >= 0
+      && Number.isFinite(info.sharesAccepted) && info.sharesAccepted >= 0;
+  }
+
   // check if  /asic returns the expected fields
   private isValidAsicPayload(asic: any): boolean {
     return !!asic
@@ -149,7 +155,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
           )
         }).pipe(
           map(({ info, asic }) => {
-            if (info && 'hashRate' in info) {
+            if (this.isMinerInfo(info)) {
               const supportsAsicApi = this.isValidAsicPayload(asic);
               const merged = {
                 IP: ipAddr,
@@ -207,7 +213,7 @@ export class SwarmComponent implements OnInit, OnDestroy {
         catchError(() => of(null))
       )
     }).subscribe(({ info, asic }) => {
-      if (info?.ASICModel) {
+      if (this.isMinerInfo(info)) {
         const supportsAsicApi = this.isValidAsicPayload(asic);
         const merged = {
           IP: newIp,
