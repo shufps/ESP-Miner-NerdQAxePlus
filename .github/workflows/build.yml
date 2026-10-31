@@ -21,6 +21,8 @@ jobs:
   build-and-release:
     needs: ca-bundle-test
     runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.version_tag.outputs.version }}
     env:
       RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
     strategy:
@@ -69,11 +71,27 @@ jobs:
       with:
         submodules: recursive
 
+    # Started from a tag ("Use workflow from" -> Tags), the tag is the version and
+    # the release target. Started from a branch, the newest tag reachable from the
+    # built commit is used (with several tags on one commit, git picks one itself).
     - name: Get Version Tag
       id: version_tag
       run: |
         git fetch --tags  # Ensure all tags are fetched
-        version=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
+        if [ "${{ github.ref_type }}" == "tag" ]; then
+          version="${{ github.ref_name }}"
+          if [ "$(git rev-parse "refs/tags/${version}^{commit}")" != "$(git rev-parse HEAD)" ]; then
+            echo "::error::tag '${version}' does not point to the built commit"
+            exit 1
+          fi
+        else
+          version=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
+          if git rev-parse -q --verify "refs/tags/${version}" >/dev/null && \
+             [ "$(git rev-parse "refs/tags/${version}^{commit}")" != "$(git rev-parse HEAD)" ]; then
+            echo "::warning::'${version}' does not point to the built commit, the build contains newer commits"
+          fi
+        fi
+        echo "version=${version}" >> $GITHUB_OUTPUT
         echo "VERSION_TAG=${version}" >> $GITHUB_ENV
         echo "${version}" > version.txt
         echo "VERSION_TAG=${version}"
@@ -278,9 +296,8 @@ jobs:
     - name: Add diagnostic build warning to release notes
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ needs.build-and-release.outputs.version_tag }}
       run: |
-        git fetch --tags
-        TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
         if [ -z "$TAG" ] || ! gh release view "$TAG" >/dev/null 2>&1; then
           echo "No release for '$TAG' — artifacts only, nothing to update."
           exit 0
