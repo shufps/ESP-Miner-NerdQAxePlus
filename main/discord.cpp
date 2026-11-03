@@ -3,7 +3,6 @@
 #include <string>
 
 #include "connect.h"
-#include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "nvs_config.h"
@@ -13,6 +12,11 @@
 #include "utils.h"
 
 static const char *TAG = "discord";
+
+// Full certificates let mbedTLS select a trusted alternate path when a server
+// sends a cross-signed root (e.g. Discord's GTS Root R4). Use the same pinned
+// trust store as the system bundle, without the compressed-bundle callback.
+extern const unsigned char discord_ca_pem_start[] asm("_binary_discord_ca_start");
 
 #define ALERTER_QUEUE_LEN 4
 
@@ -91,7 +95,8 @@ bool DiscordAlerter::httpPost(const char *message)
     config.url = m_webhookUrl;
     config.method = HTTP_METHOD_POST;
     config.timeout_ms = 5000;
-    config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.cert_pem = reinterpret_cast<const char *>(discord_ca_pem_start);
+    config.cert_len = 0; // TEXT embedding provides the terminating NUL for PEM.
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (client == nullptr) {

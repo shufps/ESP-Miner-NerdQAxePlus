@@ -155,6 +155,12 @@ REQUIRES
 
 )
 
+# Keep Discord's full PEM in sync with the pinned system trust store. A stable
+# symbol name avoids coupling the client code to the dated certificate filename.
+target_add_binary_data(${COMPONENT_LIB}
+    "${PROJECT_DIR}/${CONFIG_MBEDTLS_CUSTOM_CERTIFICATE_BUNDLE_PATH}"
+    TEXT RENAME_TO discord_ca)
+
 
 set(WEB_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/http_server/axe-os")
 

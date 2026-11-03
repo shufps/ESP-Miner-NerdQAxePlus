@@ -17,7 +17,17 @@ The [eMudhra incident](https://emudhra.we-have-a-problem.com/) compromised inter
 
 For an existing checkout, edit the seven certificate-bundle entries in `sdkconfig` to match `sdkconfig.defaults`. Alternatively, back up `sdkconfig`, remove it, and let `idf.py reconfigure` regenerate it from `sdkconfig.defaults` (reapply any other local settings). The build guard also runs during configuration, so update the file before running `idf.py menuconfig`. Use a clean build when changing trust stores.
 
-The bundle is embedded in `esp-miner.bin`; deployed miners need a firmware OTA update. Updating the build host's trust store does not update devices. Stratum's **TLS (System certificate)** mode uses this bundle. **TLS (Custom certificate)** continues to use the configured certificate and needs separate review if that certificate trusts an affected chain. NerdQAxe also attaches this system bundle in the factory OTA downloader (`main/http_server/handler_ota_factory.cpp`), external API requests (`main/tasks/apis_task.cpp`), and Discord notifications (`main/discord.cpp`). Those HTTPS consumers inherit the same root removals; check their endpoints before release.
+The bundle is embedded in `esp-miner.bin`; deployed miners need a firmware OTA update. Updating the build host's trust store does not update devices. Stratum's **TLS (System certificate)** mode uses this bundle. **TLS (Custom certificate)** continues to use the configured certificate and needs separate review if that certificate trusts an affected chain. Other HTTPS consumers of this pinned trust store are the factory OTA downloader (`main/http_server/handler_ota_factory.cpp`), external API requests (`main/tasks/apis_task.cpp`), and Discord notifications (`main/discord.cpp`). Those HTTPS consumers inherit the same root removals; check their endpoints before release.
+
+Discord uses the full PEM from `CONFIG_MBEDTLS_CUSTOM_CERTIFICATE_BUNDLE_PATH`
+instead of the compressed bundle callback. This lets mbedTLS select an alternate
+trusted path when the server sends a cross-signed root: for example, Discord's
+GTS Root R4 can terminate at the pinned self-signed GTS Root R4 without following
+its cross-sign to the absent GlobalSign Root CA. The trust anchors and hostname
+verification are unchanged. `main/CMakeLists.txt` embeds this same configured
+PEM as NUL-terminated text with the stable `discord_ca` linker symbol. This adds
+about 196 KiB of flash for the current snapshot and parses the full CA list for
+each webhook connection; other clients continue using the compressed bundle.
 
 ## Verification
 
