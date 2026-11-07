@@ -1,6 +1,6 @@
 #include "ArduinoJson.h"
 #include "psram_allocator.h"
-#include <esp_crt_bundle.h>
+#include "crt_bundle.h"
 #include <esp_http_client.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
@@ -31,7 +31,7 @@ static esp_http_client_handle_t newClient(const char *url, esp_http_client_metho
     esp_http_client_config_t config = {};
     config.url = url;
     config.method = method;
-    config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.crt_bundle_attach = crt_bundle_attach;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (!client) {

@@ -9,7 +9,7 @@ REQUIRES
     "freertos"
     "driver"
     "esp_http_client"
-    "mbedtls"
+    "crt_bundle"
     "json"
 )
 
