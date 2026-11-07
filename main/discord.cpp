@@ -3,7 +3,7 @@
 #include <string>
 
 #include "connect.h"
-#include "esp_crt_bundle.h"
+#include "crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "nvs_config.h"
@@ -91,7 +91,7 @@ bool DiscordAlerter::httpPost(const char *message)
     config.url = m_webhookUrl;
     config.method = HTTP_METHOD_POST;
     config.timeout_ms = 5000;
-    config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.crt_bundle_attach = crt_bundle_attach;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (client == nullptr) {

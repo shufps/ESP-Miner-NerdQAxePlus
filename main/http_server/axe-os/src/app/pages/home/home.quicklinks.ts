@@ -203,6 +203,7 @@ const POOLS: PoolMeta[] = [
     name: 'ocean.xyz',
     match: (h) => h.includes('ocean.xyz'),
     quickLink: (a) => `https://ocean.xyz/stats/${a}`,
+    faviconHost: 'ocean.xyz',
   },
   // CKPool have now a global stats site
   {
