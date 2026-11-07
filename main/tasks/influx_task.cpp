@@ -99,9 +99,8 @@ static void influx_task_fetch_from_stratum_manager(StratumManager *module) {
 
     influxdb->m_stats.best_difficulty = best_diff;
 
-    if (best_diff > influxdb->m_stats.total_best_difficulty) {
-        influxdb->m_stats.total_best_difficulty = best_diff;
-    }
+    // All-time difficulty is owned by StratumManager, including persisted loads and resets.
+    influxdb->m_stats.total_best_difficulty = module->getBestDiff();
 
     // accepted
     influxdb->m_stats.accepted = module->getSharesAccepted();
