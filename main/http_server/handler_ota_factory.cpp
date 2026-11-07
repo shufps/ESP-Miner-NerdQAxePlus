@@ -5,7 +5,7 @@
 #include <string.h>
 #include <strings.h>
 
-#include "esp_crt_bundle.h"
+#include "crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
@@ -297,7 +297,7 @@ esp_err_t FactoryOTAUpdate::ota_update_from_factory(const char *start_url, bool 
     cfg.keep_alive_enable = false;    // avoid keep-alive edge-cases
     cfg.disable_auto_redirect = true; // manual redirect loop
     cfg.user_agent = "ESP32-DemoDownloader/1.0";
-    cfg.crt_bundle_attach = esp_crt_bundle_attach;
+    cfg.crt_bundle_attach = crt_bundle_attach;
     cfg.event_handler = http_evt_capture_location;
     cfg.user_data = redir_ctx; // pass per-client redirect state
 

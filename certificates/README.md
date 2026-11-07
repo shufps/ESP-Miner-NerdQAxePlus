@@ -19,6 +19,8 @@ For an existing checkout, edit the seven certificate-bundle entries in `sdkconfi
 
 The bundle is embedded in `esp-miner.bin`; deployed miners need a firmware OTA update. Updating the build host's trust store does not update devices. Stratum's **TLS (System certificate)** mode uses this bundle. **TLS (Custom certificate)** continues to use the configured certificate and needs separate review if that certificate trusts an affected chain. NerdQAxe also attaches this system bundle in the factory OTA downloader (`main/http_server/handler_ota_factory.cpp`), external API requests (`main/tasks/apis_task.cpp`), and Discord notifications (`main/discord.cpp`). Those HTTPS consumers inherit the same root removals; check their endpoints before release.
 
+All of them attach the bundle through `crt_bundle_attach()` (`components/crt_bundle`), not `esp_crt_bundle_attach()` directly. ESP-IDF 5.3's verify callback only looks up the issuer of the topmost certificate a server sends, so chains ending in a cross-signed root fail when that issuer is not in the bundle, e.g. `GTS Root R4` issued by `GlobalSign Root CA` (discord.com and other hosts on Google Trust Services). The wrapper additionally accepts the topmost certificate if its subject and public key match a root in the bundle: it is the same trust anchor with another issuer. No roots are added, and the incident chains contain no certificate matching a bundle root.
+
 ## Verification
 
 Run the offline regression check with Python 3 and OpenSSL 3:

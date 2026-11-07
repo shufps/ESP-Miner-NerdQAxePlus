@@ -1,7 +1,7 @@
 #include "apis_task.h"
 #include "ArduinoJson.h"
 #include "psram_allocator.h"
-#include "esp_crt_bundle.h"
+#include "crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -142,7 +142,7 @@ bool APIsFetcher::fetchData(const char* apiUrl, ApiType type)
     esp_http_client_config_t config = {};
     config.url = apiUrl;
     config.event_handler = http_event_handler;
-    config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.crt_bundle_attach = crt_bundle_attach;
     config.user_data = this;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
