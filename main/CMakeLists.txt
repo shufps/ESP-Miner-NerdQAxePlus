@@ -152,6 +152,7 @@ REQUIRES
     "libsecp256k1"
     "esp_eth"
     "coinbase_decoder"
+    "crt_bundle"
 
 )
 
