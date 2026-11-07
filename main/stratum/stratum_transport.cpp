@@ -6,7 +6,7 @@
 #include <netinet/tcp.h>
 
 #include "esp_log.h"
-#include "esp_crt_bundle.h"
+#include "crt_bundle.h"
 #include "esp_transport.h"
 #include "esp_transport_tcp.h"
 #include "esp_transport_ssl.h"
@@ -54,7 +54,7 @@ bool StratumTransport::connect(const char* host, const char* ip, uint16_t port)
             return false;
         }
 
-        esp_transport_ssl_crt_bundle_attach(t, esp_crt_bundle_attach);
+        esp_transport_ssl_crt_bundle_attach(t, crt_bundle_attach);
         esp_transport_ssl_set_common_name(t, host);
     } else {
         t = esp_transport_tcp_init();
