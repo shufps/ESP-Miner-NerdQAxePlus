@@ -34,7 +34,7 @@ export class InfluxdbComponent implements OnInit {
         this.form = this.fb.group({
           url: [info.url, [
             Validators.required,
-            Validators.pattern(/^http:\/\/.*[^:]*$/), // http:// without port
+            Validators.pattern(/^https?:\/\/[^:]*$/), // http:// or https://, without port (set separately)
           ]],
           port: [info.port, [
             Validators.required,
