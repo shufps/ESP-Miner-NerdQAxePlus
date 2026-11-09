@@ -32,11 +32,11 @@ export class HomeGaiaComponent extends HomeComponent {
   }
 
   protected override get asicChartColor(): string {
-    return this.isGaiaDark ? '#39c5cf' : HOME_CFG.colors.asicTemp;
+    return this.isGaiaDark ? '#31aab3' : HOME_CFG.colors.asicTemp;
   }
 
   protected override get vregChartColor(): string {
-    return this.isGaiaDark ? '#3fbf9b' : HOME_CFG.colors.vregTemp;
+    return this.isGaiaDark ? '#32997c' : HOME_CFG.colors.vregTemp;
   }
 
   protected override get fillTemperatureAreas(): boolean {
