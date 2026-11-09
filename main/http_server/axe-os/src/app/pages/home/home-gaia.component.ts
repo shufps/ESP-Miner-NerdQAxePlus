@@ -24,7 +24,7 @@ import { toPct } from './tiles/utils';
 export class HomeGaiaComponent extends HomeComponent {
   // Gaia gold instead of the default purple for the hashrate chart and bars
   protected override get hashrateColor(): string {
-    return '#E8B23C';
+    return localStorage.getItem('gaiaAccentPreset') === 'blue' ? '#398bd0' : '#e8a23c';
   }
 
   private readonly sysService = inject(SystemService);
