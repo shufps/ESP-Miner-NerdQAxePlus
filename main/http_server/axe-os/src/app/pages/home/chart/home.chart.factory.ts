@@ -14,6 +14,7 @@ export interface HomeChartFactoryDeps {
   hashrateColor?: string;
   asicTempColor?: string;
   vregTempColor?: string;
+  fillTemperatureAreas?: boolean;
 }
 
 export interface HomeChartConfig {
@@ -24,7 +25,7 @@ export interface HomeChartConfig {
 export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConfig {
   const chartData = {
     labels: deps.series.labels,
-    datasets: createHomeDatasets({ t: deps.translate, series: deps.series, hashrateColor: deps.hashrateColor, asicTempColor: deps.asicTempColor, vregTempColor: deps.vregTempColor }),
+    datasets: createHomeDatasets({ t: deps.translate, series: deps.series, hashrateColor: deps.hashrateColor, asicTempColor: deps.asicTempColor, vregTempColor: deps.vregTempColor, fillTemperatureAreas: deps.fillTemperatureAreas }),
   };
 
   applyHomeDatasetRenderOrder(chartData.datasets as any[]);
