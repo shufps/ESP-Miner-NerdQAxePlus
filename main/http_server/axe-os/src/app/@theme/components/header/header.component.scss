@@ -70,7 +70,7 @@
         color: #f4f4f6;
         white-space: nowrap;
 
-        &__os { color: #e8a23c; }
+        &__os { color: var(--gaia-accent, #e8a23c); }
       }
     }
   }
@@ -162,7 +162,7 @@
     color: #f4f4f6;
     white-space: nowrap;
   }
-  .header-series__brand .header-series__os { color: #e8a23c; }
+  .header-series__brand .header-series__os { color: var(--gaia-accent, #e8a23c); }
   .header-series__line {
     width: 1.6rem;
     height: 1px;
