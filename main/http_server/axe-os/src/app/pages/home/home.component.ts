@@ -15,7 +15,8 @@ import { map,
   Observable,
   Subscription,
   firstValueFrom,
-  switchMap } from 'rxjs';
+  switchMap,
+  startWith } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { OtpAuthService } from '../../services/otp-auth.service';
 import { SystemService } from '../../services/system.service';
@@ -1085,7 +1086,9 @@ ngOnInit() {
     });
     this.graphGuardEngine.configure({ debug: !!this.debugSpikeGuard });
     this.loadAxisPaddingOverrides();
-    this.themeSubscription = this.themeService.getJsTheme().subscribe((t: any) => {
+    this.themeSubscription = this.themeService.onThemeChange().pipe(
+      startWith({ name: this.themeService.currentTheme })
+    ).subscribe((t: any) => {
       // Nebular emits the current theme object here (includes a `name`).
       this.currentThemeName = String(t?.name ?? '').trim();
       this.updateThemeColors();
@@ -1924,6 +1927,7 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
       dataset.borderColor = style.borderColor;
       dataset.backgroundColor = style.backgroundColor;
       dataset.fill = style.fill;
+      if (style.pill) dataset.pill = { ...style.pill };
     });
     this.barFill = this.hashrateColor;
     applyHomeChartTheme(this.chartOptions);
