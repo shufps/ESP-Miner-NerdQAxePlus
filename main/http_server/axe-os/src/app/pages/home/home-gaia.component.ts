@@ -28,9 +28,14 @@ export class HomeGaiaComponent extends HomeComponent {
     return preset === 'dark' || preset === 'blue' ? '#2f81f7' : '#e8a23c';
   }
 
-  // Keep chart temperature colors aligned with the dashboard icons.
-  protected override get asicChartColor(): string { return '#39c5cf'; }
-  protected override get vregChartColor(): string { return '#3fbf9b'; }
+  // Only Gaia-Dark overrides the original Gaia temperature chart colors.
+  // Gaia Gold retains the original red ASIC and turquoise VR chart lines.
+  protected override get asicChartColor(): string {
+    return this.isGaiaDark ? '#39c5cf' : HOME_CFG.colors.asicTemp;
+  }
+  protected override get vregChartColor(): string {
+    return this.isGaiaDark ? '#3fbf9b' : HOME_CFG.colors.vregTemp;
+  }
 
   protected override get fillTemperatureAreas(): boolean {
     const preset = localStorage.getItem('gaiaAccentPreset');
