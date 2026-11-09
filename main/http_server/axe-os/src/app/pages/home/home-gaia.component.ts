@@ -32,6 +32,16 @@ export class HomeGaiaComponent extends HomeComponent {
   protected override get asicChartColor(): string { return '#3fbf9b'; }
   protected override get vregChartColor(): string { return '#39c5cf'; }
 
+  protected override get fillTemperatureAreas(): boolean {
+    const preset = localStorage.getItem('gaiaAccentPreset');
+    return preset !== 'dark' && preset !== 'blue';
+  }
+
+  public get isGaiaDark(): boolean {
+    const preset = localStorage.getItem('gaiaAccentPreset');
+    return preset === 'dark' || preset === 'blue';
+  }
+
   private readonly sysService = inject(SystemService);
 
   // Wi-Fi details, device model and firmware version for the uptime card and footer
