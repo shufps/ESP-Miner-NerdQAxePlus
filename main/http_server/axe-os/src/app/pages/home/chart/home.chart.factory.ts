@@ -12,6 +12,9 @@ export interface HomeChartFactoryDeps {
   debugPillsLayout?: boolean;
   /** Hashrate dataset colour; defaults to HOME_CFG.colors.hashrateBase. */
   hashrateColor?: string;
+  asicTempColor?: string;
+  vregTempColor?: string;
+  fillTemperatureAreas?: boolean;
 }
 
 export interface HomeChartConfig {
@@ -22,7 +25,7 @@ export interface HomeChartConfig {
 export function createHomeChartConfig(deps: HomeChartFactoryDeps): HomeChartConfig {
   const chartData = {
     labels: deps.series.labels,
-    datasets: createHomeDatasets({ t: deps.translate, series: deps.series, hashrateColor: deps.hashrateColor }),
+    datasets: createHomeDatasets({ t: deps.translate, series: deps.series, hashrateColor: deps.hashrateColor, asicTempColor: deps.asicTempColor, vregTempColor: deps.vregTempColor, fillTemperatureAreas: deps.fillTemperatureAreas }),
   };
 
   applyHomeDatasetRenderOrder(chartData.datasets as any[]);
