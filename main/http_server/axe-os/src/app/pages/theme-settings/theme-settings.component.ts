@@ -16,8 +16,8 @@ import { GaiaAccentService, GaiaAccentPreset } from '../../services/gaia-accent.
             (click)="setTheme(item.value)">{{ item.label }}</button>
         </div>
         <ng-container *ngIf="currentTheme === 'gaia'">
-          <h5>Gaia color</h5>
-          <p>Choose the accent color for hashrate, charts and controls.</p>
+          <h5>Gaia appearance</h5>
+          <p>Choose Gaia Gold or Gaia-Dark with GitHub-inspired backgrounds and cards.</p>
           <div class="theme-options">
             <button class="preset" type="button" *ngFor="let preset of accent.presets"
               [class.selected]="accent.selected === preset.id"
