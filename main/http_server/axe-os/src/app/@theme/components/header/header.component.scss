@@ -116,7 +116,8 @@
    ese bloque (sobre el sidebar) del resto de la cabecera (controles a la dcha).
    Logo un 20% más pequeño (40px -> 32px). Solo se aplica con el tema Gaia.
    ──────────────────────────────────────────────────────────────────────────── */
-:host-context(.nb-theme-gaia) {
+:host-context(.nb-theme-gaia),
+:host-context(.nb-theme-gaia-dark) {
   /* Fill the header and vertically centre EVERYTHING (logo, hamburger and the
      right-side controls) on the header's real centre line. Without this the host
      only grows to the tallest control (the select), leaving the logo aligned to
@@ -232,4 +233,8 @@
     color: #f0b352;
     background: rgba(232, 162, 60, 0.12);
   }
+}
+
+:host-context(.nb-theme-gaia-dark) .header-series__brand .header-series__os {
+  color: #2f81f7;
 }
