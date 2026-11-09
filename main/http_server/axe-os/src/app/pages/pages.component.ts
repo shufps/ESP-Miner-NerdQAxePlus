@@ -85,6 +85,11 @@ import { IIdentifyV2 } from '../models/IIdentifyV2';
                 link: '/pages/settings',
             },
             {
+                title: 'Theme',
+                icon: 'color-palette-outline',
+                link: '/pages/theme',
+            },
+            {
                 title: this.translateService.instant('NAVIGATION.INFLUXDB'),
                 icon: 'archive',
                 link: '/pages/influxdb',
