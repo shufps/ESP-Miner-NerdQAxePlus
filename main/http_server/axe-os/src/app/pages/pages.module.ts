@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { NbAlertModule, NbCardModule, NbIconModule, NbMenuModule } from '@nebular/theme';
+import { NbAlertModule, NbButtonModule, NbCardModule, NbIconModule, NbMenuModule } from '@nebular/theme';
 
 import { ThemeModule } from '../@theme/theme.module';
 import { PagesComponent } from './pages.component';
@@ -15,6 +15,7 @@ import { HomeModule } from './home/home.module';
 import { AlertModule } from './alert/alert.module';
 import { SecurityModule } from './security/security.module';
 import { CanSwarmModule } from './can-swarm/can-swarm.module';
+import { ThemeSettingsComponent } from './theme-settings/theme-settings.component';
 
 //import { PipesModule} from '../pipes/pipes.module';
 
@@ -23,6 +24,7 @@ import { CanSwarmModule } from './can-swarm/can-swarm.module';
     PagesRoutingModule,
     ThemeModule,
     NbMenuModule,
+    NbButtonModule,
     TranslateModule,
     NbCardModule,
     NbAlertModule,
@@ -40,6 +42,7 @@ import { CanSwarmModule } from './can-swarm/can-swarm.module';
     ],
   declarations: [
     PagesComponent,
+    ThemeSettingsComponent,
   ],
 })
 export class PagesModule {
