@@ -29,6 +29,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     { value: 'default',   name: 'Light' },
     { value: 'dark',      name: 'Dark' },
     { value: 'gaia', name: 'Gaia' },
+    { value: 'gaia-dark', name: 'Gaia-Dark' },
   ];
 
   currentTheme = 'cosmic';  // Default theme if none is found in localStorage
