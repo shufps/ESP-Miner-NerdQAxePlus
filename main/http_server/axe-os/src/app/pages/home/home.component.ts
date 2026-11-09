@@ -121,6 +121,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return HOME_CFG.colors.hashrateBase;
   }
 
+  protected get asicChartColor(): string { return HOME_CFG.colors.asicTemp; }
+  protected get vregChartColor(): string { return HOME_CFG.colors.vregTemp; }
+
   // CSS vars for meter bars (kept in sync with HOME_CFG)
   @HostBinding('style.--bar-fill') barFill: string = this.hashrateColor;
   @HostBinding('style.--bar-track') barTrack: string = HOME_CFG.colors.chartGridColor;
@@ -728,6 +731,8 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     const cfg = createHomeChartConfig({
       hashrateColor: this.hashrateColor,
+      asicTempColor: this.asicChartColor,
+      vregTempColor: this.vregChartColor,
       series: {
         labels: this.dataLabel,
         hr1m: this.dataData1m,
