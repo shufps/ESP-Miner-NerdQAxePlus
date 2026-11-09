@@ -13,11 +13,12 @@ export interface HomeChartSeriesRefs {
   asicTemp: number[];
 }
 
-export function createHomeDatasets(opts: { t: (key: string) => string; series: HomeChartSeriesRefs; hashrateColor?: string; asicTempColor?: string; vregTempColor?: string }): any[] {
+export function createHomeDatasets(opts: { t: (key: string) => string; series: HomeChartSeriesRefs; hashrateColor?: string; asicTempColor?: string; vregTempColor?: string; fillTemperatureAreas?: boolean }): any[] {
   const { t, series } = opts;
   const HR_BASE_COLOR = opts.hashrateColor ?? HOME_CFG.colors.hashrateBase;
   const ASIC_COLOR = opts.asicTempColor ?? HOME_CFG.colors.asicTemp;
   const VREG_COLOR = opts.vregTempColor ?? HOME_CFG.colors.vregTemp;
+  const TEMP_FILL = opts.fillTemperatureAreas !== false;
 
   function hrColor(alpha: number = 1): string {
     if (alpha >= 1) return HR_BASE_COLOR;
@@ -156,7 +157,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     tooltipOrderKey: 'temp_vreg',
     data: series.vregTemp,
     yAxisID: 'y_temp',
-    fill: true,
+    fill: TEMP_FILL,
     borderColor: VREG_COLOR,
     backgroundColor: (context: any) => vrTempAreaGradient(context),
     tension: .4,
@@ -170,7 +171,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     tooltipOrderKey: 'temp_asic',
     data: series.asicTemp,
     yAxisID: 'y_temp',
-    fill: true,
+    fill: TEMP_FILL,
     borderColor: ASIC_COLOR,
     backgroundColor: (context: any) => asicTempAreaGradient(context),
     tension: .4,
