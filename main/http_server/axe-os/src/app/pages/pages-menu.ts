@@ -23,6 +23,11 @@ export const MENU_ITEMS: NbMenuItem[] = [
     link: '/pages/settings',
   },
   {
+    title: 'Theme',
+    icon: 'color-palette-outline',
+    link: '/pages/theme',
+  },
+  {
     title: 'InfluxDB',
     icon: 'archive',
     link: '/pages/influxdb',
