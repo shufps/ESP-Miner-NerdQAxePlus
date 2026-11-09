@@ -24,7 +24,7 @@ import { toPct } from './tiles/utils';
 export class HomeGaiaComponent extends HomeComponent {
   // Theme colors are selected through Nebular, not a separate localStorage key.
   public get isGaiaDark(): boolean {
-    return document.body.classList.contains('nb-theme-gaia-dark');
+    return this.currentThemeName === 'gaia-dark' || (!this.currentThemeName && document.body.classList.contains('nb-theme-gaia-dark'));
   }
 
   protected override get hashrateColor(): string {
