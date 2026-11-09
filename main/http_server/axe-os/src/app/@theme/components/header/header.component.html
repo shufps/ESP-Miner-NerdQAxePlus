@@ -48,9 +48,6 @@
           (click)="openResetStats(resetStatsDialog)">
     <nb-icon icon="trash-2-outline"></nb-icon>
   </button>
-  <nb-select [selected]="currentTheme" (selectedChange)="changeTheme($event)" status="primary">
-    <nb-option *ngFor="let theme of themes" [value]="theme.value"> {{ theme.name }}</nb-option>
-  </nb-select>
 </div>
 
 <ng-template #resetStatsDialog let-ref="dialogRef">
