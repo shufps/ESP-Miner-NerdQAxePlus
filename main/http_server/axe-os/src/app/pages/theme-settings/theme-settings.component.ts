@@ -17,7 +17,7 @@ import { GaiaAccentService, GaiaAccentPreset } from '../../services/gaia-accent.
         </div>
         <ng-container *ngIf="currentTheme === 'gaia'">
           <h5>Gaia appearance</h5>
-          <p>Choose Gaia Gold or Gaia-Dark with GitHub-inspired backgrounds and cards.</p>
+          <p>Choose between Gaia Gold and Gaia-Dark.</p>
           <div class="theme-options">
             <button class="preset" type="button" *ngFor="let preset of accent.presets"
               [class.selected]="accent.selected === preset.id"
