@@ -249,7 +249,7 @@
           </span>
           <span class="metric-row__body">
             <span class="metric-row__label">{{ label }}</span>
-            <span class="metric-row__value"><ng-container *ngIf="rpm != null && rpm > 0">{{ rpm | number:'1.0-0' }}<span class="metric-row__unit"> RPM</span> <span class="metric-row__unit">({{ value }}%)</span></ng-container><ng-container *ngIf="rpm == null || rpm <= 0">{{ value }}<span class="metric-row__unit">{{ unit }}</span></ng-container></span>
+            <span class="metric-row__value"><ng-container *ngIf="rpm != null && rpm > 0">{{ rpm | number:'1.0-0' }}<span class="metric-row__unit"> RPM</span> <span class="metric-row__unit">({{ value }}%)</span></ng-container><ng-container *ngIf="rpm == null || rpm <= 0"><ng-container *ngIf="fan; else regularMetric">– <span class="metric-row__unit">({{ value }}%)</span></ng-container><ng-template #regularMetric>{{ value }}<span class="metric-row__unit">{{ unit }}</span></ng-template></ng-container></span>
           </span>
           <span class="metric-gauge">
             <svg class="metric-gauge__svg" viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
