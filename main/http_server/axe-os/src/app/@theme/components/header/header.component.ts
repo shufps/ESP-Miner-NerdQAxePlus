@@ -7,6 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { map, switchMap, takeUntil } from 'rxjs/operators';
 import { Subject, Observable } from 'rxjs';
 import { IIdentifyV2 } from 'src/app/models/IIdentifyV2';
+import { GaiaAccentService } from '../../../services/gaia-accent.service';
 
 @Component({
   selector: 'ngx-header',
@@ -51,13 +52,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private layoutService: LayoutService,
     private breakpointService: NbMediaBreakpointsService,
     private infoService: SystemService,
-    private dialogService: NbDialogService
+    private dialogService: NbDialogService,
+    private gaiaAccent: GaiaAccentService
   ) {
     this.setPlaceholderLogo();
   }
 
   ngOnInit() {
     this.loadSidebarStateFromLocalStorage();
+    this.gaiaAccent.apply();
 
     // Responsive behavior
     const { xl } = this.breakpointService.getBreakpointsMap();
@@ -76,6 +79,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       )
       .subscribe(themeName => {
         this.currentTheme = themeName;
+        setTimeout(() => this.gaiaAccent.apply(), 0);
 
         if (!this.bootstrapping) {
           this.updateLogo();
