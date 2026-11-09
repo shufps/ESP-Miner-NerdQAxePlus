@@ -1,9 +1,7 @@
 name: Build and Release ESP32 Firmware
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:  # Manual trigger remains available
+  workflow_dispatch:  # Manual trigger only
     inputs:
       enable_coredump:
         description: 'Diagnostic build: panic core dump capture + download endpoint. Only published to pre-releases (fails for a stable release); otherwise artifacts only. The dump can leak WiFi/pool credentials to anyone on the LAN unless OTP is enabled on the device.'
