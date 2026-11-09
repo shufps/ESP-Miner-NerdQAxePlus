@@ -36,7 +36,7 @@ Lightweight endpoint for device identification (no polling).
 
 #### `GET /api/v2/system`
 
-Device info, network status and memory. Used by the System page (polled every 5s).
+Device info, network status, active pools and memory. Used by the System page (polled every 5s) and the top bar of the web UI (every 15s).
 
 ```json
 {
@@ -51,7 +51,11 @@ Device info, network status and memory. Used by the System page (polled every 5s
     "macAddr": "AA:BB:CC:DD:EE:FF",
     "ipAddr": "192.168.1.42",
     "wifiStatus": "SYSTEM.WIFI_CONNECTED",
-    "wifiRSSI": -55
+    "wifiRSSI": -55,
+    "ethernet": false
+  },
+  "stratum": {
+    "activePools": ["solo.ckpool.org"]
   },
   "memory": {
     "freeHeap": 4000000,
@@ -59,6 +63,8 @@ Device info, network status and memory. Used by the System page (polled every 5s
   }
 }
 ```
+
+`network.ethernet` is `true` when the device uses ethernet; `ipAddr` is then the ethernet address. `stratum.activePools` lists the hosts of the pools currently mining: one entry in failover mode (primary or fallback), both in dual pool mode.
 
 ---
 

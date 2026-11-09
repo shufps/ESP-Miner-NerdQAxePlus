@@ -108,6 +108,65 @@
     }
   }
 */
+
+  /* device identity in the top bar (issue #691): sits in the flow between logo and
+     controls (the host spreads them with space-between) and shrinks when space runs
+     out, the pool name is cut with an ellipsis first */
+  .header-device {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    color: nb-theme(text-hint-color);
+  }
+  .header-device__host {
+    color: nb-theme(text-basic-color);
+    font-weight: 600;
+  }
+  .header-device > * {
+    flex-shrink: 0;
+  }
+  .header-device > .header-device__pool {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .header-device__eth {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0 0.3rem;
+    border: 1px solid currentColor;
+    border-radius: 0.25rem;
+  }
+  .header-device__wifi {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 0.9rem;
+    flex-shrink: 0;
+
+    .bar {
+      width: 4px;
+      background-color: #ccc;
+      opacity: 0.4;
+    }
+    .bar:nth-child(1) { height: 25%; }
+    .bar:nth-child(2) { height: 50%; }
+    .bar:nth-child(3) { height: 75%; }
+    .bar:nth-child(4) { height: 100%; }
+    .bar.active {
+      background-color: #4caf50;
+      opacity: 1;
+    }
+  }
+  @media (max-width: 900px) {
+    .header-device { display: none; }
+  }
 }
 
 /* ── GAIA: cabecera "partida" ────────────────────────────────────────────────

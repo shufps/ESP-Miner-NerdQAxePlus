@@ -4,9 +4,10 @@ import { LayoutService } from '../../../@core/utils.ts';
 import { SystemService } from '../../../services/system.service';
 import { OtpAuthService } from '../../../services/otp-auth.service';
 import { TranslateService } from '@ngx-translate/core';
-import { map, switchMap, takeUntil } from 'rxjs/operators';
-import { Subject, Observable } from 'rxjs';
+import { catchError, map, shareReplay, startWith, switchMap, takeUntil } from 'rxjs/operators';
+import { Subject, Observable, interval, of } from 'rxjs';
 import { IIdentifyV2 } from 'src/app/models/IIdentifyV2';
+import { ISystemV2 } from 'src/app/models/ISystemV2';
 
 @Component({
   selector: 'ngx-header',
@@ -43,6 +44,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   userMenu = [{ title: 'Profile' }, { title: 'Log out' }];
   info$: Observable<IIdentifyV2>;
+
+  /** IP, hostname, active pool(s) and link quality shown in the top bar (issue #691) */
+  device$: Observable<ISystemV2 | null> = interval(15000).pipe(
+    startWith(0),
+    switchMap(() => this.infoService.getSystemV2().pipe(catchError(() => of(null)))),
+    shareReplay({ refCount: true, bufferSize: 1 })
+  );
 
   constructor(
     private sidebarService: NbSidebarService,
@@ -152,6 +160,16 @@ export class HeaderComponent implements OnInit, OnDestroy {
           .pipe(switchMap(({ totp }) => this.infoService.resetStats('', true, totp)))
       : this.infoService.resetStats('');
     reset$.subscribe({ next: () => {}, error: () => {} });
+  }
+
+  /** Tooltip for the WiFi signal bars, same levels as on the System page. */
+  rssiTooltip(rssi: number): string {
+    let key = 'SYSTEM.SIGNAL_EXCELLENT';
+    if (rssi <= -85) key = 'SYSTEM.SIGNAL_VERY_WEAK';
+    else if (rssi <= -75) key = 'SYSTEM.SIGNAL_WEAK';
+    else if (rssi <= -65) key = 'SYSTEM.SIGNAL_MODERATE';
+    else if (rssi <= -55) key = 'SYSTEM.SIGNAL_STRONG';
+    return `${this.translateService.instant(key)} (${rssi} dBm)`;
   }
 
   ngOnDestroy() {

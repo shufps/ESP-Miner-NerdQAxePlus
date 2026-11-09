@@ -15,6 +15,24 @@
   </div>
 </div>
 
+<!-- which device is this: IP, hostname, active pool(s), link (issue #691); not on Gaia -->
+<div class="header-device" *ngIf="currentTheme !== 'gaia' && (device$ | async) as d">
+  <span class="header-device__ip">{{ d.network?.ipAddr }}</span>
+  <span class="header-device__sep">·</span>
+  <span class="header-device__host">{{ d.network?.hostname }}</span>
+  <ng-container *ngIf="d.stratum?.activePools?.length">
+    <span class="header-device__sep">·</span>
+    <span class="header-device__pool" [title]="d.stratum.activePools.join(' + ')">{{ d.stratum.activePools.join(' + ') }}</span>
+  </ng-container>
+  <span *ngIf="d.network?.ethernet" class="header-device__eth" title="Ethernet">ETH</span>
+  <div *ngIf="!d.network?.ethernet" class="header-device__wifi" [title]="rssiTooltip(d.network.wifiRSSI)">
+    <div class="bar" [class.active]="d.network.wifiRSSI > -85"></div>
+    <div class="bar" [class.active]="d.network.wifiRSSI > -75"></div>
+    <div class="bar" [class.active]="d.network.wifiRSSI > -65"></div>
+    <div class="bar" [class.active]="d.network.wifiRSSI > -55"></div>
+  </div>
+</div>
+
 <div class="header-series" *ngIf="currentTheme === 'gaia'" aria-hidden="true">
   <span class="header-series__line"></span>
   <span class="header-series__brand">Nerd<span class="header-series__os">OS</span></span>
