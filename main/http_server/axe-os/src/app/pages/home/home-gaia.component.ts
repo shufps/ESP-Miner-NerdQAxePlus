@@ -29,8 +29,8 @@ export class HomeGaiaComponent extends HomeComponent {
   }
 
   // Keep chart temperature colors aligned with the dashboard icons.
-  protected override get asicChartColor(): string { return '#3fbf9b'; }
-  protected override get vregChartColor(): string { return '#39c5cf'; }
+  protected override get asicChartColor(): string { return '#39c5cf'; }
+  protected override get vregChartColor(): string { return '#3fbf9b'; }
 
   protected override get fillTemperatureAreas(): boolean {
     const preset = localStorage.getItem('gaiaAccentPreset');
