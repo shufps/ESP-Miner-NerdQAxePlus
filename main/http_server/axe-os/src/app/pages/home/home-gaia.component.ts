@@ -22,10 +22,15 @@ import { toPct } from './tiles/utils';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeGaiaComponent extends HomeComponent {
-  // Gaia gold instead of the default purple for the hashrate chart and bars
+  // Gaia-Dark uses the same blue as the hashrate icon/expected value.
   protected override get hashrateColor(): string {
-    return localStorage.getItem('gaiaAccentPreset') === 'blue' ? '#398bd0' : '#e8a23c';
+    const preset = localStorage.getItem('gaiaAccentPreset');
+    return preset === 'dark' || preset === 'blue' ? '#2f81f7' : '#e8a23c';
   }
+
+  // Keep chart temperature colors aligned with the dashboard icons.
+  protected override get asicChartColor(): string { return '#3fbf9b'; }
+  protected override get vregChartColor(): string { return '#39c5cf'; }
 
   private readonly sysService = inject(SystemService);
 
