@@ -291,7 +291,7 @@
         <div class="nerd-panel">
           <div class="nerd-panel__title">Heat</div>
           <ng-container *ngTemplateOutlet="metricRow; context: { icon: 'thermometer-outline', cls: (isGaiaDark && maxAsicTemp(info) < 60 ? 'm-asic' : 'm-red'), label: ('PERFORMANCE.ASIC_TEMP' | translate), value: (maxAsicTemp(info) | number:'1.1-1'), unit: '°C', raw: maxAsicTemp(info), min: 0, max: shutdownTempC(info), dfmt: '1.0-0' }"></ng-container>
-          <ng-container *ngIf="info.thermal.vrTemp > 0" [ngTemplateOutlet]="metricRow" [ngTemplateOutletContext]="{ icon: 'thermometer-outline', cls: 'm-cyan', label: ('PERFORMANCE.VR_TEMP' | translate), value: (info.thermal.vrTemp | number:'1.1-1'), unit: '°C', raw: info.thermal.vrTemp, min: 0, max: 100, dfmt: '1.0-0' }"></ng-container>
+          <ng-container *ngIf="info.thermal.vrTemp > 0" [ngTemplateOutlet]="metricRow" [ngTemplateOutletContext]="{ icon: 'thermometer-outline', cls: (isGaiaDark ? 'm-vr' : 'm-cyan'), label: ('PERFORMANCE.VR_TEMP' | translate), value: (info.thermal.vrTemp | number:'1.1-1'), unit: '°C', raw: info.thermal.vrTemp, min: 0, max: 100, dfmt: '1.0-0' }"></ng-container>
           <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: 'm-amber', label: 'Fan Speed', value: ((info.thermal.fans?.[0]?.speed ?? 0) | number:'1.0-0'), unit: '%', raw: (info.thermal.fans?.[0]?.speed ?? 0), min: 0, max: 100, dfmt: '1.0-0' }"></ng-container>
         </div>
 
