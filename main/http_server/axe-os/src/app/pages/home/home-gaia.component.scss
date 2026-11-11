@@ -435,7 +435,7 @@
 }
 
 /* ── Chart card — GAIA-only restyle (matches the top cards) ──────────────── */
-:host-context(.nb-theme-gaia),
+:host-context(.nb-theme-gaia) .nerd-chart-card ,
 :host-context(.nb-theme-gaia-dark) .nerd-chart-card {
   border-radius: var(--card-border-radius, 0.75rem);
   border: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.06));
@@ -443,12 +443,12 @@
   overflow: hidden;
 }
 /* breathing room around the plot, so the frame isn't flush to the card edge */
-:host-context(.nb-theme-gaia),
+:host-context(.nb-theme-gaia) .nerd-chart-card .chart-card-body ,
 :host-context(.nb-theme-gaia-dark) .nerd-chart-card .chart-card-body {
   padding: 1rem 1.1rem 0.85rem;
 }
 /* no frame around the plot — keeps axis values off the edge */
-:host-context(.nb-theme-gaia),
+:host-context(.nb-theme-gaia) .nerd-chart-card .chart-canvas__wrap ,
 :host-context(.nb-theme-gaia-dark) .nerd-chart-card .chart-canvas__wrap {
   position: relative;
   padding: 0.4rem 0.2rem 0.2rem;
@@ -563,7 +563,7 @@
 .nerd-chart-axis__left  { font-size: 0.72rem; font-weight: 600; color: #f0b352; }
 .nerd-chart-axis__right { font-size: 0.72rem; font-weight: 600; color: #41c9d6; }
 /* controls at the bottom, well distributed */
-:host-context(.nb-theme-gaia),
+:host-context(.nb-theme-gaia) .nerd-chart-footer ,
 :host-context(.nb-theme-gaia-dark) .nerd-chart-footer {
   display: flex;
   justify-content: center;
@@ -571,7 +571,7 @@
   padding: 0.45rem 0.6rem;
   border-top: 1px solid var(--border-basic-color-3, rgba(255, 255, 255, 0.06));
 }
-:host-context(.nb-theme-gaia),
+:host-context(.nb-theme-gaia) .nerd-chart-footer .chart-header-actions ,
 :host-context(.nb-theme-gaia-dark) .nerd-chart-footer .chart-header-actions {
   display: flex;
   flex-wrap: wrap;
@@ -733,7 +733,7 @@
    dashboard panels fit with less scrolling. Only >1200px is touched; the
    smaller breakpoints above already use shorter heights and stay as-is. */
 @media (min-width: 1201px) {
-  :host-context(.nb-theme-gaia),
+  :host-context(.nb-theme-gaia) .chart-canvas__wrap--tall,
 :host-context(.nb-theme-gaia-dark) .chart-canvas__wrap--tall{
     height: 400px;
   }
