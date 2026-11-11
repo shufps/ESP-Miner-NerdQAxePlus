@@ -238,3 +238,9 @@
 :host-context(.nb-theme-gaia-dark) .header-series__brand .header-series__os {
   color: #2f81f7;
 }
+
+/* Keep the theme selector wide enough for "Gaia-Dark" in every theme. */
+nb-select {
+  min-width: 125px;
+  white-space: nowrap;
+}
