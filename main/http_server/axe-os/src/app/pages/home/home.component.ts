@@ -15,7 +15,8 @@ import { map,
   Observable,
   Subscription,
   firstValueFrom,
-  switchMap } from 'rxjs';
+  switchMap,
+  startWith } from 'rxjs';
 import { HashSuffixPipe } from '../../pipes/hash-suffix.pipe';
 import { OtpAuthService } from '../../services/otp-auth.service';
 import { SystemService } from '../../services/system.service';
@@ -30,6 +31,7 @@ import {
   HomeChartStorage,
   HomeHistoryDrainer,
   createHomeChartConfig,
+  createHomeDatasets,
   createHomeChart,
   applyHomeChartTheme,
   createSystemInfoPolling$,
@@ -121,6 +123,10 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
     return HOME_CFG.colors.hashrateBase;
   }
 
+  protected get asicChartColor(): string { return HOME_CFG.colors.asicTemp; }
+  protected get vregChartColor(): string { return HOME_CFG.colors.vregTemp; }
+  protected get fillTemperatureAreas(): boolean { return true; }
+
   // CSS vars for meter bars (kept in sync with HOME_CFG)
   @HostBinding('style.--bar-fill') barFill: string = this.hashrateColor;
   @HostBinding('style.--bar-track') barTrack: string = HOME_CFG.colors.chartGridColor;
@@ -132,7 +138,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
   private barDomSync: HomeBarDomSync;
 
   // Track current Nebular theme name so we can apply small light-theme-only overrides.
-  private currentThemeName: string = '';
+  protected currentThemeName: string = '';
 
   private applyXWindowToChart(xMinMs: number, xMaxMs: number): void {
     // Update shared chart options (used on theme refresh etc.)
@@ -728,6 +734,9 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     const cfg = createHomeChartConfig({
       hashrateColor: this.hashrateColor,
+      asicTempColor: this.asicChartColor,
+      vregTempColor: this.vregChartColor,
+      fillTemperatureAreas: this.fillTemperatureAreas,
       series: {
         labels: this.dataLabel,
         hr1m: this.dataData1m,
@@ -1077,7 +1086,9 @@ ngOnInit() {
     });
     this.graphGuardEngine.configure({ debug: !!this.debugSpikeGuard });
     this.loadAxisPaddingOverrides();
-    this.themeSubscription = this.themeService.getJsTheme().subscribe((t: any) => {
+    this.themeSubscription = this.themeService.onThemeChange().pipe(
+      startWith({ name: this.themeService.currentTheme })
+    ).subscribe((t: any) => {
       // Nebular emits the current theme object here (includes a `name`).
       this.currentThemeName = String(t?.name ?? '').trim();
       this.updateThemeColors();
@@ -1890,6 +1901,35 @@ private setAxisPadding(cfg: any, persist: boolean = false): void {
   }
 
   private updateThemeColors(): void {
+    // Chart.js canvas styles are not CSS-driven. Refresh only the visual
+    // dataset properties when Nebular changes theme, preserving live data,
+    // chart instance, zoom, history and legend visibility.
+    const palette = createHomeDatasets({
+      t: (key: string) => this.translateService.instant(key),
+      series: {
+        labels: this.dataLabel,
+        hr1m: this.dataData1m,
+        hr10m: this.dataData10m,
+        hr1h: this.dataData1h,
+        hr1d: this.dataData1d,
+        vregTemp: this.dataVregTemp,
+        asicTemp: this.dataAsicTemp,
+      },
+      hashrateColor: this.hashrateColor,
+      asicTempColor: this.asicChartColor,
+      vregTempColor: this.vregChartColor,
+      fillTemperatureAreas: this.fillTemperatureAreas,
+    });
+    const datasets: any[] = this.chartData?.datasets ?? [];
+    datasets.forEach((dataset: any, i: number) => {
+      const style = palette[i];
+      if (!style) return;
+      dataset.borderColor = style.borderColor;
+      dataset.backgroundColor = style.backgroundColor;
+      dataset.fill = style.fill;
+      if (style.pill) dataset.pill = { ...style.pill };
+    });
+    this.barFill = this.hashrateColor;
     applyHomeChartTheme(this.chartOptions);
 
     if (this.chart) {

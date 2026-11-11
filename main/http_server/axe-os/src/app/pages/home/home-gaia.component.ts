@@ -22,9 +22,25 @@ import { toPct } from './tiles/utils';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeGaiaComponent extends HomeComponent {
-  // Gaia gold instead of the default purple for the hashrate chart and bars
+  // Theme colors are selected through Nebular, not a separate localStorage key.
+  public get isGaiaDark(): boolean {
+    return this.currentThemeName === 'gaia-dark' || (!this.currentThemeName && document.body.classList.contains('nb-theme-gaia-dark'));
+  }
+
   protected override get hashrateColor(): string {
-    return '#E8B23C';
+    return this.isGaiaDark ? '#2f81f7' : '#E8B23C';
+  }
+
+  protected override get asicChartColor(): string {
+    return this.isGaiaDark ? '#55d0d8' : HOME_CFG.colors.asicTemp;
+  }
+
+  protected override get vregChartColor(): string {
+    return this.isGaiaDark ? '#59caa9' : HOME_CFG.colors.vregTemp;
+  }
+
+  protected override get fillTemperatureAreas(): boolean {
+    return !this.isGaiaDark;
   }
 
   private readonly sysService = inject(SystemService);
