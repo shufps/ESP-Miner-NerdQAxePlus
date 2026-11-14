@@ -20,6 +20,7 @@ const WEBHOOK_URL_PATTERN = /^https?:\/\/.+$/i;
 export class AlertComponent implements OnInit {
 
   public form!: FormGroup;
+  public readonly heartbeatOptions = [0, 1, 6, 12, 24];
   public hasWebhook = false;
   @Input() uri = '';
 
@@ -43,6 +44,7 @@ export class AlertComponent implements OnInit {
           blockFoundEnable: [data?.blockFoundEnable === 1],
           bestDiffEnable: [data?.bestDiffEnable === 1],
           coinbaseVerifyEnable: [data?.coinbaseVerifyEnable === 1],
+          heartbeatHours: [Number(data?.heartbeatHours ?? 0)],
           showBlockFoundScreen: [data?.showBlockFoundScreen === 1],
 
           webhookUrl: [data?.hasWebhook ? 'WEBHOOK' : '', [
@@ -60,6 +62,7 @@ export class AlertComponent implements OnInit {
       blockFoundEnable: !!form.blockFoundEnable,
       bestDiffEnable: !!form.bestDiffEnable,
       coinbaseVerifyEnable: !!form.coinbaseVerifyEnable,
+      heartbeatHours: Number(form.heartbeatHours) || 0,
     };
     if (form.webhookUrl !== 'WEBHOOK') {
       payload.webhookUrl = form.webhookUrl || '';

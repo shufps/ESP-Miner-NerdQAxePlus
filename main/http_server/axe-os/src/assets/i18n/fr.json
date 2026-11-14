@@ -493,7 +493,11 @@
     "BEST_DIFF_FOUND": "Meilleure difficulté trouvée",
     "BEST_DIFF_FOUND_DESC": "se déclenche lorsque l’appareil trouve une nouvelle meilleure difficulté",
     "COINBASE_VERIFY_FAILED": "Vérification coinbase échouée",
-    "COINBASE_VERIFY_FAILED_DESC": "se déclenche lorsque la coinbase du pool ne contient pas votre adresse ou dépasse la limite de frais configurée"
+    "COINBASE_VERIFY_FAILED_DESC": "se déclenche lorsque la coinbase du pool ne contient pas votre adresse ou dépasse la limite de frais configurée",
+    "HEARTBEAT": "Heartbeat de minage",
+    "HEARTBEAT_DESC": "envoie un résumé du hashrate, des températures, des ventilateurs, des shares et du temps de fonctionnement à intervalle fixe",
+    "HEARTBEAT_OFF": "Désactivé",
+    "HEARTBEAT_EVERY": "toutes les {{hours}} h"
   },
   "LANGUAGE": {
     "TITLE": "Langue / Language",

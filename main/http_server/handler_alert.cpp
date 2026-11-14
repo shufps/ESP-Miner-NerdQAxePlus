@@ -37,6 +37,7 @@ esp_err_t GET_alert_info(httpd_req_t *req)
     doc["blockFoundEnable"] = Config::isDiscordBlockFoundAlertEnabled() ? 1 : 0;
     doc["bestDiffEnable"] = Config::isDiscordBestDiffAlertEnabled() ? 1 : 0;
     doc["coinbaseVerifyEnable"] = Config::isDiscordCoinbaseVerifyAlertEnabled() ? 1 : 0;
+    doc["heartbeatHours"] = Config::getAlertHeartbeatHours();
     doc["showBlockFoundScreen"] = Config::isShowBlockFoundEnabled() ? 1 : 0;
 
     esp_err_t ret = sendJsonResponse(req, doc);
@@ -88,6 +89,13 @@ esp_err_t POST_update_alert(httpd_req_t *req)
     }
     if (doc["coinbaseVerifyEnable"].is<bool>()) {
         Config::setDiscordCoinbaseVerifyAlertEnabled(doc["coinbaseVerifyEnable"].as<bool>());
+    }
+    if (doc["heartbeatHours"].is<uint16_t>()) {
+        uint16_t hours = doc["heartbeatHours"].as<uint16_t>();
+        if (hours > 168) {
+            return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid heartbeatHours (0-168)");
+        }
+        Config::setAlertHeartbeatHours(hours);
     }
     if (doc["showBlockFoundScreen"].is<bool>()) {
         Config::setShowBlockFoundEnabled(doc["showBlockFoundScreen"].as<bool>());

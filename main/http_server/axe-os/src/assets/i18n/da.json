@@ -491,7 +491,11 @@
     "BEST_DIFF_FOUND": "Bedste sværhedsgrad fundet",
     "BEST_DIFF_FOUND_DESC": "udløses, når enheden finder en ny bedste sværhedsgrad",
     "COINBASE_VERIFY_FAILED": "Coinbase-verifikation mislykkedes",
-    "COINBASE_VERIFY_FAILED_DESC": "udløses, når poolens coinbase ikke indeholder din adresse eller overskrider den konfigurerede gebyrgrænse"
+    "COINBASE_VERIFY_FAILED_DESC": "udløses, når poolens coinbase ikke indeholder din adresse eller overskrider den konfigurerede gebyrgrænse",
+    "HEARTBEAT": "Mining-heartbeat",
+    "HEARTBEAT_DESC": "sender med et fast interval en oversigt over hashrate, temperaturer, blæsere, shares og oppetid",
+    "HEARTBEAT_OFF": "Fra",
+    "HEARTBEAT_EVERY": "hver {{hours}}. time"
   },
   "LANGUAGE": {
     "TITLE": "Sprog / Language",

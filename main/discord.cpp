@@ -6,6 +6,8 @@
 #include "crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
+#include "esp_timer.h"
+#include <cinttypes>
 #include "nvs_config.h"
 
 #include "global_state.h"
@@ -56,6 +58,7 @@ void Alerter::loadConfig()
     m_blockFoundAlertEnabled = Config::isDiscordBlockFoundAlertEnabled();
     m_bestDiffAlertEnabled = Config::isDiscordBestDiffAlertEnabled();
     m_coinbaseVerifyAlertEnabled = Config::isDiscordCoinbaseVerifyAlertEnabled();
+    m_heartbeatHours = Config::getAlertHeartbeatHours();
 }
 
 DiscordAlerter::DiscordAlerter() : Alerter()
@@ -128,14 +131,21 @@ bool DiscordAlerter::enqueueMessage(const char *message)
     NETWORK.getPreferredIpAddr(ip, sizeof(ip), nullptr);
     const char *mac = SYSTEM_MODULE.getMacAddress();
 
-    alerter_msg_t msg = {};
+    // on the heap: alerts are also sent from tasks with small stacks
+    alerter_msg_t *msg = (alerter_msg_t *) MALLOC(sizeof(alerter_msg_t));
+    if (!msg) {
+        ESP_LOGE(TAG, "no memory for alert message");
+        return false;
+    }
 
-    snprintf(msg.message, sizeof(msg.message) - 1, "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```", message,
+    snprintf(msg->message, sizeof(msg->message) - 1, "%s\\n```\\nHostname: %s\\nIP:       %s\\nMAC:      %s\\n```", message,
              m_host ? m_host : "unknown", ip, mac ? mac : "unknown");
 
-    ESP_LOGW(TAG, "enqueued: %s", msg.message);
+    ESP_LOGW(TAG, "enqueued: %s", msg->message);
 
-    return xQueueSend(m_msgQueue, &msg, 0) == pdTRUE;
+    bool ok = xQueueSend(m_msgQueue, msg, 0) == pdTRUE;
+    free(msg);
+    return ok;
 }
 
 bool DiscordAlerter::sendWatchdogAlert()
@@ -221,6 +231,85 @@ bool DiscordAlerter::sendCoinbaseVerifyFailed(int pool, const coinbase_result_t 
     return enqueueMessage(base);
 }
 
+static void formatHashrate(double ghs, char *buf, size_t len)
+{
+    if (ghs >= 1000.0) {
+        snprintf(buf, len, "%.2f TH/s", ghs / 1000.0);
+    } else {
+        snprintf(buf, len, "%.1f GH/s", ghs);
+    }
+}
+
+bool DiscordAlerter::sendHeartbeat()
+{
+    Board *board = SYSTEM_MODULE.getBoard();
+    History *history = SYSTEM_MODULE.getHistory();
+    bool shutdown = POWER_MANAGEMENT_MODULE.isShutdown();
+
+    char hr[16];
+    char hr1h[16];
+    formatHashrate(shutdown ? 0.0 : SYSTEM_MODULE.getCurrentHashrate(), hr, sizeof(hr));
+    formatHashrate((shutdown || !history) ? 0.0 : history->getCurrentHashrate1h(), hr1h, sizeof(hr1h));
+
+    uint32_t uptime = (esp_timer_get_time() - SYSTEM_MODULE.getStartTime()) / 1000000;
+
+    char base[ALERTER_MESSAGE_LEN - 128];
+    int n = snprintf(base, sizeof(base),
+                     ":heartbeat: Mining heartbeat%s\\n```\\n"
+                     "Hashrate: %s (1h: %s)\\n"
+                     "Power:    %.1f W\\n"
+                     "ASIC:     %.1f °C\\n",
+                     shutdown ? " - **shut down**" : "", hr, hr1h,
+                     POWER_MANAGEMENT_MODULE.getPower(), POWER_MANAGEMENT_MODULE.getChipTempMax());
+
+    float vrTemp = POWER_MANAGEMENT_MODULE.getVRTemp();
+    if (vrTemp > 0 && n < (int) sizeof(base)) {
+        n += snprintf(base + n, sizeof(base) - n, "VR:       %.1f °C\\n", vrTemp);
+    }
+
+    int numFans = board ? board->getNumFans() : 1;
+    for (int ch = 0; ch < numFans && n < (int) sizeof(base); ch++) {
+        const char *label = numFans > 1 ? (ch ? "Fan 2:" : "Fan 1:") : "Fan:";
+        n += snprintf(base + n, sizeof(base) - n, "%-9s %d %% (%d RPM)\\n", label,
+                      (int) POWER_MANAGEMENT_MODULE.getFanPerc(ch), (int) POWER_MANAGEMENT_MODULE.getFanRPM(ch));
+    }
+
+    if (n < (int) sizeof(base)) {
+        snprintf(base + n, sizeof(base) - n,
+                 "Shares:   %" PRIu64 " accepted, %" PRIu64 " rejected\\n"
+                 "Best:     %s (session: %s)\\n"
+                 "Uptime:   %" PRIu32 "d %" PRIu32 "h %" PRIu32 "m\\n```",
+                 STRATUM_MANAGER->getSharesAccepted(), STRATUM_MANAGER->getSharesRejected(),
+                 STRATUM_MANAGER->getBestDiffString(), STRATUM_MANAGER->getBestSessionDiffString(),
+                 uptime / 86400, (uptime % 86400) / 3600, (uptime % 3600) / 60);
+    }
+
+    return enqueueMessage(base);
+}
+
+// Sends the heartbeat every m_heartbeatHours. The interval starts when it
+// is enabled or changed (and at boot), so the first one comes one interval later.
+void DiscordAlerter::checkHeartbeat()
+{
+    uint16_t hours = m_heartbeatHours;
+    int64_t now = esp_timer_get_time();
+
+    if (hours != m_activeHeartbeatHours) {
+        m_activeHeartbeatHours = hours;
+        m_lastHeartbeatUs = now;
+        return;
+    }
+
+    if (!hours || now - m_lastHeartbeatUs < (int64_t) hours * 3600LL * 1000000LL) {
+        return;
+    }
+
+    m_lastHeartbeatUs = now;
+    if (!sendHeartbeat()) {
+        ESP_LOGW(TAG, "heartbeat could not be queued");
+    }
+}
+
 void DiscordAlerter::taskWrapper(void *pv) {
     DiscordAlerter *alerter = static_cast<DiscordAlerter*>(pv);
     alerter->task();
@@ -231,9 +320,11 @@ void DiscordAlerter::task() {
 
     alerter_msg_t msg;
     while (1) {
-        if (xQueueReceive(m_msgQueue, &msg, portMAX_DELAY) == pdTRUE) {
+        // wake up at least once a minute to check the heartbeat interval
+        if (xQueueReceive(m_msgQueue, &msg, pdMS_TO_TICKS(60000)) == pdTRUE) {
             httpPost(msg.message);
         }
+        checkHeartbeat();
     }
 }
 

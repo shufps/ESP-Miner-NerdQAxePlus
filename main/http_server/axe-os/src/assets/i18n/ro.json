@@ -493,7 +493,11 @@
     "BEST_DIFF_FOUND": "Dificultate optimă găsită",
     "BEST_DIFF_FOUND_DESC": "se declanșează când dispozitivul găsește o nouă dificultate optimă",
     "COINBASE_VERIFY_FAILED": "Verificare coinbase eșuată",
-    "COINBASE_VERIFY_FAILED_DESC": "se declanșează când coinbase-ul pool-ului nu conține adresa dvs. sau depășește limita de taxe configurată"
+    "COINBASE_VERIFY_FAILED_DESC": "se declanșează când coinbase-ul pool-ului nu conține adresa dvs. sau depășește limita de taxe configurată",
+    "HEARTBEAT": "Heartbeat minare",
+    "HEARTBEAT_DESC": "trimite la un interval fix un rezumat cu hashrate, temperaturi, ventilatoare, share-uri și timpul de funcționare",
+    "HEARTBEAT_OFF": "Dezactivat",
+    "HEARTBEAT_EVERY": "la fiecare {{hours}} h"
   },
   "LANGUAGE": {
     "TITLE": "Limbă / Langue",

@@ -59,3 +59,14 @@ button {
   align-items: baseline;
   flex-wrap: wrap; /* allows wrapping on very narrow viewports */
 }
+
+/* heartbeat: title + description like the checkboxes, interval select on the right */
+.heartbeat-row {
+  flex-wrap: wrap;
+  gap: .4rem;
+  align-items: baseline;
+  margin: .25rem 0 12px;
+}
+.heartbeat-row .cb-title { font-weight: 600; }
+.heartbeat-row .cb-desc { opacity: 0.78; font-size: 0.95rem; }
+.heartbeat-select { min-width: 140px; }

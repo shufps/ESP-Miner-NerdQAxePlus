@@ -493,7 +493,11 @@
     "BEST_DIFF_FOUND": "Best difficulty found",
     "BEST_DIFF_FOUND_DESC": "triggers when the device finds a new best difficulty",
     "COINBASE_VERIFY_FAILED": "Coinbase verification failed",
-    "COINBASE_VERIFY_FAILED_DESC": "triggers when the pool's coinbase does not contain your address or exceeds the configured fee limit"
+    "COINBASE_VERIFY_FAILED_DESC": "triggers when the pool's coinbase does not contain your address or exceeds the configured fee limit",
+    "HEARTBEAT": "Mining heartbeat",
+    "HEARTBEAT_DESC": "sends a summary of hashrate, temperatures, fans, shares and uptime at a fixed interval",
+    "HEARTBEAT_OFF": "Off",
+    "HEARTBEAT_EVERY": "every {{hours}} h"
   },
   "LANGUAGE": {
     "TITLE": "Language / Langue",

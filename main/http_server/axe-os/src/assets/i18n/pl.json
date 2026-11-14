@@ -493,7 +493,11 @@
     "BEST_DIFF_FOUND": "Znaleziono najlepszą trudność",
     "BEST_DIFF_FOUND_DESC": "wyzwala się, gdy urządzenie znajdzie nową najlepszą trudność",
     "COINBASE_VERIFY_FAILED": "Weryfikacja coinbase nie powiodła się",
-    "COINBASE_VERIFY_FAILED_DESC": "wyzwala się, gdy coinbase poola nie zawiera twojego adresu lub przekracza skonfigurowany limit opłat"
+    "COINBASE_VERIFY_FAILED_DESC": "wyzwala się, gdy coinbase poola nie zawiera twojego adresu lub przekracza skonfigurowany limit opłat",
+    "HEARTBEAT": "Heartbeat kopania",
+    "HEARTBEAT_DESC": "wysyła w stałych odstępach podsumowanie hashrate, temperatur, wentylatorów, share'ów i czasu pracy",
+    "HEARTBEAT_OFF": "Wyłączony",
+    "HEARTBEAT_EVERY": "co {{hours}} h"
   },
   "LANGUAGE": {
     "TITLE": "Język / Langue",

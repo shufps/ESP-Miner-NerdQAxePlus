@@ -337,6 +337,7 @@ Returns webhook alert configuration. The webhook URL is **not** returned for sec
   "blockFoundEnable": 1,
   "bestDiffEnable": 0,
   "coinbaseVerifyEnable": 0,
+  "heartbeatHours": 6,
   "showBlockFoundScreen": 1
 }
 ```
@@ -354,9 +355,12 @@ Update alert configuration. Requires OTP.
   "blockFoundEnable": true,
   "bestDiffEnable": false,
   "coinbaseVerifyEnable": false,
+  "heartbeatHours": 6,
   "showBlockFoundScreen": true
 }
 ```
+
+`heartbeatHours`: interval of the mining heartbeat (summary of hashrate, power, temperatures, fans, shares, best difficulty and uptime) in hours, `0` = disabled, max `168`. The first heartbeat is sent one interval after enabling it or after boot.
 
 **Response**: `200 OK` (empty body)
 
