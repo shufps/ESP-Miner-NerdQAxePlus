@@ -5,6 +5,7 @@ export interface IDashboardV2System {
     shutdown: boolean;
     boardError: number;
     overheatTemp: number;
+    vrOverheatTemp?: number;   // 0 = no VR shutdown on this board
 }
 
 export interface IDashboardV2Performance {
