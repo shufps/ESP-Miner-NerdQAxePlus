@@ -420,6 +420,18 @@ export function shutdownTempC(info: any, fallback: number = 70): number {
 }
 
 /**
+ * VR shutdown temperature in °C (fan channel 1 overheat setting).
+ *
+ * Boards with a single fan channel have no VR shutdown (`vrOverheatTemp == 0`),
+ * and older firmwares don't send it: fall back to a fixed scale then.
+ */
+export function vrShutdownTempC(info: any, fallback: number = 100): number {
+  let v = Number(info?.system?.vrOverheatTemp);
+  if (!Number.isFinite(v) || v <= 0) v = fallback;
+  return Math.max(10, v);
+}
+
+/**
  * Frequency bounds for the current device.
  *
  * IMPORTANT: Use the same source as the Settings screen:

@@ -83,7 +83,8 @@ Real-time mining telemetry. Used by the Home page (polled every 2s).
     "uptime": 86400,
     "shutdown": false,
     "boardError": 0,
-    "overheatTemp": 75
+    "overheatTemp": 75,
+    "vrOverheatTemp": 80
   },
   "performance": {
     "hashRateTimestamp": 1716700000000,

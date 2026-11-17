@@ -81,6 +81,7 @@ import { maxAsicTemp,
   getAsicCoreVoltageBoundsFromAsic,
   VoltBounds,
 	shutdownTempC,
+	vrShutdownTempC,
 	isAsicTempWarn,
 	isAsicTempCrit,
   isBarOver,
@@ -377,6 +378,7 @@ export class HomeComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   // ASIC temperature scaling + warn/crit thresholds (used by ASIC °C + A1/A2… squares)
   public shutdownTempC = shutdownTempC;
+  public vrShutdownTempC = vrShutdownTempC;
   public isAsicTempWarn = isAsicTempWarn;
   public isAsicTempCrit = isAsicTempCrit;
 
