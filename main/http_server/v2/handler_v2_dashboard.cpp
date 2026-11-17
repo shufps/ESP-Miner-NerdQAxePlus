@@ -72,6 +72,8 @@ esp_err_t GET_V2_dashboard(httpd_req_t *req)
         sys["shutdown"]     = shutdown;
         sys["boardError"]   = (int) SYSTEM_MODULE.getBoardError();
         sys["overheatTemp"] = Config::getOverheatTemp();
+        // VR shutdown runs on fan channel 1, so it only exists on boards with two channels
+        sys["vrOverheatTemp"] = (board->getNumFans() > 1) ? Config::getFanOverheatTemp(1) : 0;
     }
 
     // --- performance ---

@@ -13,9 +13,12 @@ export interface HomeChartSeriesRefs {
   asicTemp: number[];
 }
 
-export function createHomeDatasets(opts: { t: (key: string) => string; series: HomeChartSeriesRefs; hashrateColor?: string }): any[] {
+export function createHomeDatasets(opts: { t: (key: string) => string; series: HomeChartSeriesRefs; hashrateColor?: string; asicTempColor?: string; vregTempColor?: string; fillTemperatureAreas?: boolean }): any[] {
   const { t, series } = opts;
   const HR_BASE_COLOR = opts.hashrateColor ?? HOME_CFG.colors.hashrateBase;
+  const ASIC_COLOR = opts.asicTempColor ?? HOME_CFG.colors.asicTemp;
+  const VREG_COLOR = opts.vregTempColor ?? HOME_CFG.colors.vregTemp;
+  const TEMP_FILL = opts.fillTemperatureAreas !== false;
 
   function hrColor(alpha: number = 1): string {
     if (alpha >= 1) return HR_BASE_COLOR;
@@ -42,7 +45,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     const ctx = chart?.ctx;
     const chartArea = chart?.chartArea;
 
-    const baseHex = HOME_CFG.colors.vregTemp;
+    const baseHex = VREG_COLOR;
     const topAlpha = 0.01;
     const bottomAlpha = 0.12;
 
@@ -65,7 +68,7 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     const ctx = chart?.ctx;
     const chartArea = chart?.chartArea;
 
-    const baseHex = HOME_CFG.colors.asicTemp;
+    const baseHex = ASIC_COLOR;
     const topAlpha = 0.01;
     const bottomAlpha = 0.21;
 
@@ -154,8 +157,8 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     tooltipOrderKey: 'temp_vreg',
     data: series.vregTemp,
     yAxisID: 'y_temp',
-    fill: true,
-    borderColor: HOME_CFG.colors.vregTemp,
+    fill: TEMP_FILL,
+    borderColor: VREG_COLOR,
     backgroundColor: (context: any) => vrTempAreaGradient(context),
     tension: .4,
     cubicInterpolationMode: 'monotone',
@@ -168,8 +171,8 @@ export function createHomeDatasets(opts: { t: (key: string) => string; series: H
     tooltipOrderKey: 'temp_asic',
     data: series.asicTemp,
     yAxisID: 'y_temp',
-    fill: true,
-    borderColor: HOME_CFG.colors.asicTemp,
+    fill: TEMP_FILL,
+    borderColor: ASIC_COLOR,
     backgroundColor: (context: any) => asicTempAreaGradient(context),
     tension: .4,
     cubicInterpolationMode: 'monotone',
