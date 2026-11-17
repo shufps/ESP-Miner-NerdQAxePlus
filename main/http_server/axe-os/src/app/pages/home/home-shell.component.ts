@@ -18,7 +18,7 @@ export class HomeShellComponent {
   readonly mode$ = this.themeService.onThemeChange().pipe(
     map((theme): string => theme?.name),
     startWith(this.themeService.currentTheme),
-    map((name): HomeShellMode => (name === 'gaia' ? 'gaia' : 'normal')),
+    map((name): HomeShellMode => ((name === 'gaia' || name === 'gaia-dark') ? 'gaia' : 'normal')),
     distinctUntilChanged(),
   );
 

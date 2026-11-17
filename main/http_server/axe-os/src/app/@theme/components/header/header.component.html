@@ -1,8 +1,8 @@
 <div class="header-container">
   <div class="logo-container">
     <a (click)="toggleSidebar()" href="#" class="sidebar-toggle" aria-label="Toggle menu">
-      <nb-icon icon="menu-2-outline" *ngIf="currentTheme !== 'gaia'"></nb-icon>
-      <svg *ngIf="currentTheme === 'gaia'" class="gaia-burger" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <nb-icon icon="menu-2-outline" *ngIf="currentTheme !== 'gaia' && currentTheme !== 'gaia-dark'"></nb-icon>
+      <svg *ngIf="(currentTheme === 'gaia' || currentTheme === 'gaia-dark')" class="gaia-burger" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <line x1="3.5" y1="7"  x2="20.5" y2="7"  stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         <line x1="3.5" y1="12" x2="16"   y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         <line x1="3.5" y1="17" x2="20.5" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -15,7 +15,7 @@
   </div>
 </div>
 
-<div class="header-series" *ngIf="currentTheme === 'gaia'" aria-hidden="true">
+<div class="header-series" *ngIf="(currentTheme === 'gaia' || currentTheme === 'gaia-dark')" aria-hidden="true">
   <span class="header-series__line"></span>
   <span class="header-series__brand">Nerd<span class="header-series__os">OS</span></span>
   <span class="header-series__line"></span>
@@ -38,11 +38,11 @@
     </nb-action>
     -->
   </nb-actions>
-  <span class="header-online" *ngIf="currentTheme === 'gaia'">
+  <span class="header-online" *ngIf="(currentTheme === 'gaia' || currentTheme === 'gaia-dark')">
     <span class="header-online__dot"></span> Online
   </span>
   <button nbButton ghost status="basic" size="small"
-          *ngIf="currentTheme === 'gaia'"
+          *ngIf="(currentTheme === 'gaia' || currentTheme === 'gaia-dark')"
           class="reset-stats-btn"
           [title]="'HOME.RESET_STATS' | translate"
           (click)="openResetStats(resetStatsDialog)">
