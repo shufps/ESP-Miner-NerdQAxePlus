@@ -106,6 +106,11 @@ static void request_stratum_reconnect()
 static void on_preferred_changed()
 {
     ESP_LOGW(TAG, "Network preferred route changed -> request stratum reconnect");
+    if (NETWORK.hasEthIp()) {
+        SYSTEM_MODULE.setWifiStatus("LAN Connected!");
+    } else if (NETWORK.hasWifiIp()) {
+        SYSTEM_MODULE.setWifiStatus("WiFi Connected!");
+    }
     request_stratum_reconnect();
 }
 
@@ -455,6 +460,10 @@ extern "C" void app_main(void)
 
 void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
 {
+    if (NETWORK.hasEthIp()) {
+        return;
+    }
+
     switch (status) {
     case WIFI_CONNECTED: {
         SYSTEM_MODULE.setWifiStatus("Connected!");
