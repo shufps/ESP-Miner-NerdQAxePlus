@@ -284,6 +284,11 @@ esp_err_t W5500::earlySpiInit()
 
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
+    // ETH_PHY_DEFAULT_CONFIG() defaults reset_gpio_num to GPIO5, which is
+    // TDISPLAYS3_PIN_NUM_RST (LCD reset) on T-Display S3 boards. Reset is
+    // already handled above, so disable PHY-managed GPIO reset to avoid
+    // pulsing GPIO5 and freezing the display.
+    phy_config.reset_gpio_num = -1;
 
     spi_device_interface_config_t spi_devcfg = {};
     spi_devcfg.command_bits = 16;
