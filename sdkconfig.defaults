@@ -93,3 +93,6 @@ CONFIG_FREERTOS_WATCHPOINT_END_OF_STACK=y
 # Panic core dump capture is opt-in and lives in sdkconfig.coredump (layered on
 # via SDKCONFIG_DEFAULTS, see readme). Normal builds neither capture dumps to
 # flash nor compile in the download endpoint.
+
+# IPv6 address autoconfiguration (SLAAC) for IPv6 pool connections
+CONFIG_LWIP_IPV6_AUTOCONFIG=y

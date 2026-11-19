@@ -237,6 +237,11 @@ void W5500::handleIpEvent(int32_t id, void *data)
     snprintf(m_ipAddr, sizeof(m_ipAddr), IPSTR, IP2STR(&event->ip_info.ip));
     m_hasIp = true;
 
+    // Start IPv6: a link-local address enables router discovery and SLAAC.
+    if (m_ethNetif) {
+        esp_netif_create_ip6_linklocal(m_ethNetif);
+    }
+
     ESP_LOGW(TAG_ETH, "ETH GOT IP: " IPSTR "  MASK: " IPSTR "  GW: " IPSTR, IP2STR(&event->ip_info.ip),
              IP2STR(&event->ip_info.netmask), IP2STR(&event->ip_info.gw));
 

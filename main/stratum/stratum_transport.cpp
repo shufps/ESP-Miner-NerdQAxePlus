@@ -67,7 +67,9 @@ bool StratumTransport::connect(const char* host, const char* ip, uint16_t port)
     m_t = t;
     applyKeepAlive_();
 
-    const char* connect_host = (m_use_tls ? host : (ip ? ip : host));
+    // Connect to the resolved address. TLS still checks the certificate
+    // against host (set as the common name above).
+    const char* connect_host = (ip ? ip : host);
 
     ESP_LOGI(TAG, "Connecting (%s) to %s:%u",
              m_use_tls ? "TLS" : "TCP", connect_host, (unsigned)port);

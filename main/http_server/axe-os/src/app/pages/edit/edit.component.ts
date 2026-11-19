@@ -13,6 +13,10 @@ import { ActivatedRoute } from '@angular/router';
 import { IStratum } from 'src/app/models/IStratum';
 import { ISettingsV2, ISettingsV2Fan } from '../../models/ISettingsV2';
 
+// A pool host without a port: a hostname, an IPv4 address, or an IPv6
+// address (optionally in brackets). A single colon means host:port.
+const POOL_HOST_PATTERN = /^(?:[^:]*|\[[0-9a-fA-F:.]+\]|[0-9a-fA-F.]*:[0-9a-fA-F.]*:[0-9a-fA-F:.]*)$/;
+
 enum SupportLevel { Safe = 0, Advanced = 1, Pro = 2 }
 
 @Component({
@@ -208,7 +212,7 @@ export class EditComponent implements OnInit {
           stratumURL: [info.pools[0].url, [
             Validators.required,
             Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
-            Validators.pattern(/^[^:]*$/),
+            Validators.pattern(POOL_HOST_PATTERN),
           ]],
           stratumPort: [info.pools[0].port, [
             Validators.required,
@@ -226,7 +230,7 @@ export class EditComponent implements OnInit {
 
           fallbackStratumURL: [info.pools[1].url, [
             Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
-            Validators.pattern(/^[^:]*$/),
+            Validators.pattern(POOL_HOST_PATTERN),
           ]],
           fallbackStratumPort: [info.pools[1].port, [
             Validators.pattern(/^[^:]*$/),

@@ -46,8 +46,15 @@ class StratumTaskBase {
 
     // Connection and network-related methods
     bool isWifiConnected();                                                      ///< Check if Wi-Fi is connected
-    bool resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len); ///< Resolve hostname to IP
-    char m_lastResolvedIp[INET_ADDRSTRLEN] = {0};                                ///< Last resolved IP (for use by ping_task)
+    bool resolveHostname(const char *hostname, int family, char *ip_str, size_t ip_str_len); ///< Resolve hostname to IP
+    char m_lastResolvedIp[INET6_ADDRSTRLEN] = {0};                               ///< Last resolved IP (for use by ping_task)
+    int64_t m_ipv6RetryAfterUs = 0;                                              ///< Skip IPv6 until then after an IPv6 connect failure
+    char m_ipv6SkipHost[256] = {0};                                              ///< Host whose IPv6 connect failed
+    int m_ipv6SkipPort = 0;                                                      ///< Port whose IPv6 connect failed
+    char m_hostBuf[256] = {0};                                                   ///< Pool host without IPv6 literal brackets
+    const char *stripBrackets(const char *host);
+    bool isIpv6Skipped(const char *host, int port);
+    void skipIpv6(const char *host, int port);
 
     void connect();    ///< Establish a connection to the pool
     void disconnect(); ///< Disconnect from the pool
