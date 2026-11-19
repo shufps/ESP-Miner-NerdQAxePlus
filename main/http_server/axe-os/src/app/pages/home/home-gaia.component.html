@@ -295,10 +295,10 @@
           <ng-container *ngIf="info.thermal.vrTemp > 0" [ngTemplateOutlet]="metricRow" [ngTemplateOutletContext]="{ icon: 'thermometer-outline', cls: (isGaiaDark ? 'm-vr' : 'm-cyan'), label: ('PERFORMANCE.VR_TEMP' | translate), value: (info.thermal.vrTemp | number:'1.1-1'), unit: '°C', raw: info.thermal.vrTemp, min: 0, max: vrShutdownTempC(info), dfmt: '1.0-0' }"></ng-container>
           <!-- The dashboard API already provides speed and RPM for each installed fan channel. -->
           <ng-container *ngIf="info.thermal.fans?.[0] as asicFan">
-            <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: 'm-asic', label: ('HOME.FAN_ASICS_LABEL' | translate), value: (asicFan.speed | number:'1.0-0'), unit: '%', raw: asicFan.speed, min: 0, max: 100, dfmt: '1.0-0', secondary: (shouldShowFanRpm(asicFan.speed, asicFan.rpm) ? ((asicFan.rpm | number:'1.0-0') + ' RPM') : ''), hint: (shouldShowLowRpmHint(asicFan.speed, asicFan.rpm) ? ('HOME.FAN_LOW_RPM_HINT' | translate) : '') }"></ng-container>
+            <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: 'm-asic', label: ('HOME.FAN_ASICS_LABEL' | translate), value: (asicFan.speed | number:'1.0-0'), unit: '%', raw: asicFan.speed, min: 0, max: 100, dfmt: '1.0-0', secondary: (shouldShowFanRpm(asicFan.speed, asicFan.rpm) ? ((asicFan.rpm | number:'1.0-0') + ' RPM') : '— RPM'), hint: (shouldShowLowRpmHint(asicFan.speed, asicFan.rpm) ? ('HOME.FAN_LOW_RPM_HINT' | translate) : '') }"></ng-container>
           </ng-container>
           <ng-container *ngIf="info.thermal.fans?.[1] as vrFan">
-            <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: 'm-vr', label: ('HOME.FAN_VR_LABEL' | translate), value: (vrFan.speed | number:'1.0-0'), unit: '%', raw: vrFan.speed, min: 0, max: 100, dfmt: '1.0-0', secondary: (shouldShowFanRpm(vrFan.speed, vrFan.rpm) ? ((vrFan.rpm | number:'1.0-0') + ' RPM') : ''), hint: (shouldShowLowRpmHint(vrFan.speed, vrFan.rpm) ? ('HOME.FAN_LOW_RPM_HINT' | translate) : '') }"></ng-container>
+            <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: 'm-vr', label: ('HOME.FAN_VR_LABEL' | translate), value: (vrFan.speed | number:'1.0-0'), unit: '%', raw: vrFan.speed, min: 0, max: 100, dfmt: '1.0-0', secondary: (shouldShowFanRpm(vrFan.speed, vrFan.rpm) ? ((vrFan.rpm | number:'1.0-0') + ' RPM') : '— RPM'), hint: (shouldShowLowRpmHint(vrFan.speed, vrFan.rpm) ? ('HOME.FAN_LOW_RPM_HINT' | translate) : '') }"></ng-container>
           </ng-container>
         </div>
 
