@@ -232,6 +232,12 @@
   color: var(--text-basic-color);
   font-variant-numeric: tabular-nums;
 }
+.metric-row__secondary {
+  font-size: 0.68rem;
+  color: var(--text-hint-color);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
 .metric-row__unit {
   font-size: 0.72rem;
   font-weight: 600;
@@ -286,6 +292,8 @@
 .metric-row.m-blue   { --m: #e8a23c; }
 .metric-row.m-amber  { --m: #e8a23c; }
 .metric-row.m-red    { --m: #f0584b; }
+.metric-row.m-asic   { --m: #39c5cf; }
+.metric-row.m-vr     { --m: #3fbf9b; }
 .metric-row.m-cyan   { --m: #21c7c7; }
 .metric-row.m-green  { --m: #34d399; }
 
