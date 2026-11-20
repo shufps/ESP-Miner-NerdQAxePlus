@@ -258,6 +258,18 @@ static bool check_otp_or_session(httpd_req_t *req, bool force)
     return false;
 }
 
+bool otpIsBlocked()
+{
+    return isBlocked();
+}
+
+void otpRecordFailure()
+{
+    if (!rateLimit()) {
+        ESP_LOGE(TAG, "too many OTP failures. Blocking ...");
+    }
+}
+
 // Bequeme Variante: sendet 401 + WWW-Authenticate bei Failure
 esp_err_t validateOTP(httpd_req_t *req, bool force)
 {
