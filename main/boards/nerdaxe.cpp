@@ -93,6 +93,14 @@ uint8_t NerdAxe::ds4432_tps40305_bitaxe_voltage_to_reg(float vout)
 
     // this is the transfer function. comes from the DS4432U+ datasheet
     change = fabs((((TPS40305_VFB / BITAXE_RB) - ((vout - TPS40305_VFB) / BITAXE_RA)) / BITAXE_IFS) * 127);
+
+    // The DAC current has 7 bits, bit 7 is the direction. Without the clamp a
+    // voltage below ~0.99 V gives a code > 127, which flips the direction bit
+    // and wraps to a small current: ~1.43 V instead of the requested voltage.
+    // Clamped, the closest reachable voltage is set.
+    if (change > 127.0f) {
+        change = 127.0f;
+    }
     reg = (uint8_t)ceil(change);
 
     // Set the MSB high if the requested voltage is BELOW nominal

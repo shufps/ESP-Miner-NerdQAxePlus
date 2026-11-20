@@ -165,17 +165,20 @@ esp_err_t sendJsonResponse(httpd_req_t* req, JsonDocument& doc)
 
 esp_err_t getPostData(httpd_req_t *req)
 {
-    int total_len = req->content_len;
-    int cur_len = 0;
     char *buf = ((rest_server_context_t *) (req->user_ctx))->scratch;
     int received = 0;
 
-    if (total_len >= SCRATCH_BUFSIZE) {
+    // check the unsigned length first: as an int, >= 2^31 would be negative and
+    // pass the check, and buf[total_len] would then write before the buffer
+    if (req->content_len >= SCRATCH_BUFSIZE) {
         /* Respond with 500 Internal Server Error */
         ESP_LOGE(TAG, "content too long");
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
         return ESP_FAIL;
     }
+
+    int total_len = (int) req->content_len;
+    int cur_len = 0;
 
     while (cur_len < total_len) {
         int remaining = total_len - cur_len;

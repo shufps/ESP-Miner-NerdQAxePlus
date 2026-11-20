@@ -9,6 +9,8 @@
 
 #define MAX_MERKLE_BRANCHES 32
 #define HASH_SIZE 32
+// extranonce2 sizes accepted from a pool (real pools use 4..8 bytes)
+#define MAX_EXTRANONCE_2_LEN 16
 #define COINBASE_SIZE 100
 #define COINBASE2_SIZE 128
 

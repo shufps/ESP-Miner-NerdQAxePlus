@@ -11,6 +11,11 @@ static const char *TAG = "http_ota";
 
 extern bool enter_recovery;
 
+// a client that silently drops off (e.g. WiFi lost mid-upload) only produces
+// receive timeouts; give up after this many in a row instead of blocking the
+// (single) httpd task forever
+#define MAX_RECV_TIMEOUTS 6
+
 
 esp_err_t POST_WWW_update(httpd_req_t *req)
 {
@@ -26,7 +31,12 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    int remaining = req->content_len;
+    if (req->content_len == 0) {
+        // would erase the partition and report success without writing anything
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Empty upload");
+        return ESP_FAIL;
+    }
+    size_t remaining = req->content_len;
 
     const esp_partition_t *www_partition =
         esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, "www");
@@ -52,18 +62,24 @@ esp_err_t POST_WWW_update(httpd_req_t *req)
 
     // don't put it on the stack
     char *buf = (char*) malloc(2048);
+    if (!buf) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
     uint32_t offset = 0;
+    int timeouts = 0;
 
     while (remaining > 0) {
-        int recv_len = httpd_req_recv(req, buf, min(remaining, 2048));
+        int recv_len = httpd_req_recv(req, buf, min(remaining, (size_t) 2048));
 
-        if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
+        if (recv_len == HTTPD_SOCK_ERR_TIMEOUT && ++timeouts < MAX_RECV_TIMEOUTS) {
             continue;
         } else if (recv_len <= 0) {
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
             free(buf);
             return ESP_FAIL;
         }
+        timeouts = 0;
 
         {
             // lock the power management module
@@ -108,8 +124,20 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    esp_ota_handle_t ota_handle;
-    int remaining = req->content_len;
+    esp_ota_handle_t ota_handle = 0;
+
+    if (req->content_len == 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Empty upload");
+        return ESP_FAIL;
+    }
+    size_t remaining = req->content_len;
+
+    // don't put it on the stack
+    char *buf = (char*) malloc(2048);
+    if (!buf) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
 
     // lock the power management module
     LockGuard lg(POWER_MANAGEMENT_MODULE);
@@ -120,26 +148,41 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
     // The device will reboot after the update anyway.
     POWER_MANAGEMENT_MODULE.shutdown();
 
-    const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
-    ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
+    // The board is shut down from here on: every failure has to end in a
+    // restart (into the old firmware), otherwise the miner stays off.
+    auto fail = [&](const char *msg) {
+        if (ota_handle) {
+            esp_ota_abort(ota_handle);
+        }
+        free(buf);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, msg);
+        ESP_LOGE(TAG, "firmware update failed (%s), restarting", msg);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        POWER_MANAGEMENT_MODULE.restart();
+        return ESP_FAIL; // unreachable
+    };
 
-    // don't put it on the stack
-    char *buf = (char*) malloc(2048);
+    const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
+    if (!ota_partition || esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle) != ESP_OK) {
+        ota_handle = 0;
+        return fail("OTA begin failed");
+    }
+
     uint32_t offset = 0;
+    int timeouts = 0;
 
     while (remaining > 0) {
-        int recv_len = httpd_req_recv(req, buf, min(remaining, 2048));
+        int recv_len = httpd_req_recv(req, buf, min(remaining, (size_t) 2048));
 
-        // Timeout Error: Just retry
-        if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
+        // Timeout Error: retry a few times
+        if (recv_len == HTTPD_SOCK_ERR_TIMEOUT && ++timeouts < MAX_RECV_TIMEOUTS) {
             continue;
 
             // Serious Error: Abort OTA
         } else if (recv_len <= 0) {
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Protocol Error");
-            free(buf);
-            return ESP_FAIL;
+            return fail("Protocol Error");
         }
+        timeouts = 0;
 
         // Successful Upload: Flash firmware chunk
         // print each 64kb
@@ -147,10 +190,7 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
             ESP_LOGI(TAG, "flashing to %08lx", offset);
         }
         if (esp_ota_write(ota_handle, (const void *) buf, recv_len) != ESP_OK) {
-            esp_ota_abort(ota_handle);
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Flash Error");
-            free(buf);
-            return ESP_FAIL;
+            return fail("Flash Error");
         }
 
         remaining -= recv_len;
@@ -160,13 +200,14 @@ esp_err_t POST_OTA_update(httpd_req_t *req)
         taskYIELD();
     }
 
-    free(buf);
-
     // Validate and switch to new OTA image and reboot
-    if (esp_ota_end(ota_handle) != ESP_OK || esp_ota_set_boot_partition(ota_partition) != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Validation / Activation Error");
-        return ESP_FAIL;
+    // (esp_ota_end() frees the handle, also when it fails)
+    esp_err_t end_err = esp_ota_end(ota_handle);
+    ota_handle = 0;
+    if (end_err != ESP_OK || esp_ota_set_boot_partition(ota_partition) != ESP_OK) {
+        return fail("Validation / Activation Error");
     }
+    free(buf);
 
     httpd_resp_sendstr(req, "Firmware update complete, rebooting now!\n");
     ESP_LOGI(TAG, "Restarting System because of Firmware update complete");
