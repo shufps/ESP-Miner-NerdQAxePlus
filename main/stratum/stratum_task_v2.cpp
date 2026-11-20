@@ -378,6 +378,12 @@ bool StratumTaskV2::receiveOpenChannelSuccess()
             return false;
         }
 
+        // the job builder keeps extranonce2 in a 32 byte buffer; 0 would make every job identical
+        if (extranonce_size < 1 || extranonce_size > 32) {
+            ESP_LOGE(m_tag, "invalid extranonce_size %d from pool", (int) extranonce_size);
+            return false;
+        }
+
         m_sv2_conn.extranonce_size = (uint8_t)extranonce_size;
         m_sv2_conn.extranonce_prefix_len = extranonce_prefix_len;
         memcpy(m_sv2_conn.extranonce_prefix, extranonce_prefix, extranonce_prefix_len);

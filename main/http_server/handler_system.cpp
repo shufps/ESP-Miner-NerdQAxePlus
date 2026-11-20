@@ -540,7 +540,7 @@ esp_err_t PATCH_update_settings(httpd_req_t *req)
         Config::setPidD((uint16_t) (doc["pidD"].as<float>() * 100.0f));
     }
 #ifdef VR_FREQUENCY_ENABLED
-    if (doc["vrFrequency"].is<uint32_t>()) {
+    if (doc["vrFrequency"].is<uint32_t>() && doc["vrFrequency"].as<uint32_t>() > 0) {
         Config::setVrFrequency(doc["vrFrequency"].as<uint32_t>());
     }
 #endif

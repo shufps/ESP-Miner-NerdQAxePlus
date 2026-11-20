@@ -184,6 +184,10 @@ uint32_t Asic::vrRegToFreq(uint32_t reg) {
 }
 
 void Asic::setVrFrequency(uint32_t freq_hz) {
+    // 0 would divide by zero (and boot-loop the device, this runs on every init)
+    if (freq_hz == 0) {
+        freq_hz = getDefaultVrFrequency();
+    }
     setVrFreqReg(vrFreqToReg(freq_hz));
 }
 

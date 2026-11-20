@@ -62,13 +62,14 @@ static uint64_t decode_varint(const uint8_t *data, int *offset, int data_len)
         return first_byte;
     } else if (first_byte == 0xFD) {
         if (*offset + 2 > data_len) return 0;
-        uint64_t value = data[*offset] | (data[*offset + 1] << 8);
+        uint64_t value = (uint64_t) data[*offset] | ((uint64_t) data[*offset + 1] << 8);
         *offset += 2;
         return value;
     } else if (first_byte == 0xFE) {
         if (*offset + 4 > data_len) return 0;
-        uint64_t value = data[*offset] | (data[*offset + 1] << 8) |
-                        (data[*offset + 2] << 16) | (data[*offset + 3] << 24);
+        /* unsigned: data[] << 24 on an int would sign-extend to a huge value */
+        uint64_t value = (uint64_t) data[*offset] | ((uint64_t) data[*offset + 1] << 8) |
+                        ((uint64_t) data[*offset + 2] << 16) | ((uint64_t) data[*offset + 3] << 24);
         *offset += 4;
         return value;
     } else {
@@ -251,7 +252,7 @@ esp_err_t coinbase_process(const char *coinbase_1,
     int coinbase_1_len = strlen(coinbase_1) / 2;
     int coinbase_1_offset = 41; /* Skip: version(4) + inputcount(1) + prevhash(32) + vout(4) */
 
-    if (coinbase_1_len < coinbase_1_offset) {
+    if (coinbase_1_len <= coinbase_1_offset) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -259,7 +260,7 @@ esp_err_t coinbase_process(const char *coinbase_1,
     hex2bin(coinbase_1 + (coinbase_1_offset * 2), &scriptsig_len, 1);
     coinbase_1_offset++;
 
-    if (coinbase_1_len < coinbase_1_offset) {
+    if (coinbase_1_len <= coinbase_1_offset) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -267,7 +268,7 @@ esp_err_t coinbase_process(const char *coinbase_1,
     hex2bin(coinbase_1 + (coinbase_1_offset * 2), &block_height_len, 1);
     coinbase_1_offset++;
 
-    if (coinbase_1_len < coinbase_1_offset || block_height_len == 0 || block_height_len > 4) {
+    if (block_height_len == 0 || block_height_len > 4 || coinbase_1_offset + block_height_len > coinbase_1_len) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -386,7 +387,7 @@ esp_err_t coinbase_process(const char *coinbase_1,
         if (offset >= coinbase_2_len) break;
         uint64_t script_len = decode_varint(coinbase_2_bin, &offset, coinbase_2_len);
 
-        if (offset + script_len > (size_t)coinbase_2_len) break;
+        if (script_len > (uint64_t) (coinbase_2_len - offset)) break;
 
 #ifdef COINBASE_DECODER_LOG_ADDRESSES
         char output_address[MAX_ADDRESS_STRING_LEN];

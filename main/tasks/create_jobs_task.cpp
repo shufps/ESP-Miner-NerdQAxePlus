@@ -73,14 +73,24 @@ class MiningInfoV1 : public MiningInfoBase {
 
     bm_job* buildBmJob(uint32_t extranonce_2, int pool_id, uint32_t asic_diff) override
     {
+        // the parser only accepts 1..MAX_EXTRANONCE_2_LEN, never size a stack buffer from the pool
+        if (extranonce_2_len < 1 || extranonce_2_len > MAX_EXTRANONCE_2_LEN) {
+            ESP_LOGE(TAG, "invalid extranonce2 size %d", extranonce_2_len);
+            return nullptr;
+        }
+
         // generate extranonce2 hex string
-        char extranonce_2_str[extranonce_2_len * 2 + 1]; // +1 zero termination
-        snprintf(extranonce_2_str, sizeof(extranonce_2_str), "%0*lx", (int) extranonce_2_len * 2, (unsigned long) extranonce_2);
+        char extranonce_2_str[MAX_EXTRANONCE_2_LEN * 2 + 1]; // +1 zero termination
+        snprintf(extranonce_2_str, extranonce_2_len * 2 + 1, "%0*lx", (int) extranonce_2_len * 2, (unsigned long) extranonce_2);
 
         // generate coinbase tx
         int coinbase_tx_len = strlen(current_job->coinbase_1) + strlen(extranonce_str) + strlen(extranonce_2_str) +
                               strlen(current_job->coinbase_2);
         char *coinbase_tx = (char *) MALLOC(coinbase_tx_len + 1);
+        if (!coinbase_tx) {
+            ESP_LOGE(TAG, "no memory for coinbase tx");
+            return nullptr;
+        }
         snprintf(coinbase_tx, coinbase_tx_len + 1, "%s%s%s%s", current_job->coinbase_1, extranonce_str,
                  extranonce_2_str, current_job->coinbase_2);
 
@@ -92,6 +102,10 @@ class MiningInfoV1 : public MiningInfoBase {
 
         // we need malloc because we will save it in the job array
         bm_job *next_job = (bm_job *) MALLOC(sizeof(bm_job));
+        if (!next_job) {
+            ESP_LOGE(TAG, "no memory for job");
+            return nullptr;
+        }
         construct_bm_job(current_job, merkle_root, version_mask, next_job);
         next_job->jobid = strdup(current_job->job_id);
         next_job->extranonce2 = strdup(extranonce_2_str);
@@ -362,6 +376,11 @@ void create_jobs_task(void *pvParameters)
             uint32_t asic_diff = STRATUM_MANAGER->selectAsicDiff(active_pool, mi->getActiveDifficulty());
             next_job = mi->buildBmJob(extranonce_2, active_pool, asic_diff);
         } // mutex
+
+        // out of memory or invalid pool parameters, try again on the next tick
+        if (!next_job) {
+            continue;
+        }
 
         // set asic difficulty
         asics->setJobDifficultyMask(next_job->asic_diff);

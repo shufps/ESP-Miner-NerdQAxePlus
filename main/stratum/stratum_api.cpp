@@ -197,9 +197,29 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
     switch (message->method) {
     case MINING_NOTIFY: {
         ESP_LOGI(TAG, "mining notify");
-        mining_notify *new_work = (mining_notify *) MALLOC(sizeof(mining_notify));
 
+        // [job_id, prevhash, coinb1, coinb2, merkle_branch[], version, nbits, ntime, clean_jobs]
         JsonArray params = doc["params"].as<JsonArray>();
+        if (params.size() < 9 || !params[4].is<JsonArray>()) {
+            ESP_LOGE(TAG, "invalid mining.notify params");
+            return false;
+        }
+        for (int i : {0, 1, 2, 3, 5, 6, 7}) {
+            if (!params[i].is<const char *>()) {
+                ESP_LOGE(TAG, "invalid mining.notify param %d", i);
+                return false;
+            }
+        }
+        if (strlen(params[1].as<const char *>()) != HASH_SIZE * 2) {
+            ESP_LOGE(TAG, "invalid prevhash length");
+            return false;
+        }
+
+        mining_notify *new_work = (mining_notify *) CALLOC(1, sizeof(mining_notify));
+        if (!new_work) {
+            ESP_LOGE(TAG, "no memory for mining.notify");
+            return false;
+        }
 
         new_work->job_id = strdup(params[0].as<const char *>());
         hex2bin(params[1].as<const char *>(), new_work->_prev_block_hash, HASH_SIZE);
@@ -217,7 +237,14 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
         }
 
         for (size_t i = 0; i < new_work->n_merkle_branches; i++) {
-            hex2bin(merkle_branch[i].as<const char *>(), new_work->_merkle_branches[i], HASH_SIZE);
+            const char *branch = merkle_branch[i].as<const char *>();
+            if (!branch || strlen(branch) != HASH_SIZE * 2) {
+                ESP_LOGE(TAG, "invalid merkle branch %d", (int) i);
+                freeMiningNotify(new_work);
+                safe_free(new_work);
+                return false;
+            }
+            hex2bin(branch, new_work->_merkle_branches[i], HASH_SIZE);
         }
 
         new_work->version = strtoul(params[5].as<const char *>(), NULL, 16);
@@ -233,9 +260,15 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
     case MINING_SET_DIFFICULTY:
         message->new_difficulty = doc["params"][0].as<uint32_t>();
         break;
-    case MINING_SET_VERSION_MASK:
-        message->version_mask = strtoul(doc["params"][0].as<const char *>(), NULL, 16);
+    case MINING_SET_VERSION_MASK: {
+        const char *mask = doc["params"][0].as<const char *>();
+        if (!mask) {
+            ESP_LOGE(TAG, "invalid mining.set_version_mask params");
+            return false;
+        }
+        message->version_mask = strtoul(mask, NULL, 16);
         break;
+    }
     case MINING_SET_EXTRANONCE: {
         ESP_LOGI(TAG, "mining.set_extranonce");
 
@@ -248,6 +281,10 @@ bool StratumApi::parseMethods(JsonDocument &doc, const char *method_str, Stratum
             return false;
         }
         message->extranonce_2_len = params[1].as<int>();
+        if (message->extranonce_2_len < 1 || message->extranonce_2_len > MAX_EXTRANONCE_2_LEN) {
+            ESP_LOGE(TAG, "invalid extranonce2 size %d", message->extranonce_2_len);
+            return false;
+        }
 
         const char *extranonce_str = params[0].as<const char *>();
         if (!extranonce_str) {
@@ -307,6 +344,10 @@ bool StratumApi::parseSetupResponses(JsonDocument &doc, StratumApiV1Message *mes
             return false;
         }
         message->extranonce_2_len = result_arr[2].as<int>();
+        if (message->extranonce_2_len < 1 || message->extranonce_2_len > MAX_EXTRANONCE_2_LEN) {
+            ESP_LOGE(TAG, "invalid extranonce2 size %d", message->extranonce_2_len);
+            return false;
+        }
 
         const char *extranonce_str = result_arr[1].as<const char *>();
         if (!extranonce_str) {
