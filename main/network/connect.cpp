@@ -366,7 +366,12 @@ esp_err_t wifi_scan(wifi_ap_record_simple_t *ap_records, uint16_t *ap_count)
 
     if (s_is_scanning) {
         ESP_LOGE(TAG, "WiFi scan timeout");
+        esp_wifi_scan_stop();
         s_is_scanning = false;
+        // resume STA reconnects, otherwise the device never reconnects to its
+        // WiFi until the next reboot
+        s_scan_suppress_reconnect = false;
+        if (s_has_ssid) esp_wifi_connect();
         return ESP_ERR_TIMEOUT;
     }
 

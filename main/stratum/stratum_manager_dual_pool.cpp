@@ -85,12 +85,11 @@ int StratumManagerDualPool::getNextActivePool()
     return PRIMARY;
 }
 
-const char *StratumManagerDualPool::getPoolHost(int pool)
+void StratumManagerDualPool::getPoolHost(int pool, char *dst, size_t len)
 {
-    if (!m_stratumConfig[pool]) {
-        return "-";
-    }
-    return m_stratumConfig[pool]->getHost();
+    PThreadGuard lock(m_mutex);
+    const char *host = m_stratumConfig[pool] ? m_stratumConfig[pool]->getHost() : nullptr;
+    snprintf(dst, len, "%s", host ? host : "-");
 }
 
 int StratumManagerDualPool::getPoolPort(int pool)

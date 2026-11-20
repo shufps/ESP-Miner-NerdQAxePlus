@@ -1,3 +1,5 @@
+#include <atomic>
+
 #include "esp_log.h"
 
 #include "http_cors.h"
@@ -8,18 +10,23 @@
 
 static const char* TAG = "http_websocket";
 
-int websocket_fd = -1;
+// fd of the log websocket, -1 if none. Written by the httpd task (handshake,
+// close) and read by the log task, so atomic.
+static std::atomic<int> s_websocket_fd{-1};
 
 extern httpd_handle_t http_server;
 
 QueueHandle_t log_queue = NULL;
 
-void websocket_reset(void)
+void websocket_close_fd(int fd)
 {
-    // Restore normal logging
-    esp_log_set_vprintf(vprintf);
-    // Invalidate websocket websocket_fd
-    websocket_fd = -1;
+    // only reset if fd is still the active websocket: a failed send on an old
+    // fd must not disable a websocket that was opened in the meantime
+    int expected = fd;
+    if (fd >= 0 && s_websocket_fd.compare_exchange_strong(expected, -1)) {
+        // Restore normal logging
+        esp_log_set_vprintf(vprintf);
+    }
 }
 
 static int log_to_queue(const char * format, va_list args)
@@ -69,11 +76,16 @@ static void send_log_to_websocket(char *message)
     ws_pkt.len = strlen(message);
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
-    if (http_server != NULL && websocket_fd >= 0) {
-        esp_err_t err = httpd_ws_send_frame_async(http_server, websocket_fd, &ws_pkt);
-        if (err != ESP_OK) {
-            // Websocket is probably dead or socket reused
-            websocket_reset();
+    int fd = s_websocket_fd.load();
+    if (http_server != NULL && fd >= 0) {
+        // After the websocket closed, its fd number can be reused by a normal
+        // HTTP connection; httpd_ws_send_frame_async() doesn't check that and
+        // would write log frames into that response.
+        if (httpd_ws_get_fd_info(http_server, fd) != HTTPD_WS_CLIENT_WEBSOCKET) {
+            websocket_close_fd(fd);
+        } else if (httpd_ws_send_frame_async(http_server, fd, &ws_pkt) != ESP_OK) {
+            // Websocket is probably dead
+            websocket_close_fd(fd);
         }
     }
 
@@ -93,7 +105,7 @@ esp_err_t echo_handler(httpd_req_t *req)
 
     if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "Handshake done, the new connection was opened");
-        websocket_fd = httpd_req_to_sockfd(req);
+        s_websocket_fd.store(httpd_req_to_sockfd(req));
         esp_log_set_vprintf(log_to_queue);
         return ESP_OK;
     }
@@ -110,7 +122,7 @@ esp_err_t echo_handler(httpd_req_t *req)
 
     if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE) {
         ESP_LOGI(TAG, "WebSocket closed, disabling log forwarding");
-        websocket_reset();
+        websocket_close_fd(httpd_req_to_sockfd(req));
     }
 
     // We don't care about payload here
@@ -130,7 +142,7 @@ void websocket_log_handler(void* param)
             continue;
         }
 
-        if (websocket_fd == -1) {
+        if (s_websocket_fd.load() == -1) {
             // No active websocket, drop message
             if (message != NULL) {
                 FREE(message);

@@ -35,6 +35,10 @@ esp_err_t getPostData(httpd_req_t *req);
 esp_err_t getJsonData(httpd_req_t *req, JsonDocument &doc);
 esp_err_t validateOTP(httpd_req_t *req, bool force = false);
 
+// shared OTP brute-force protection, for endpoints that check a TOTP themselves
+bool otpIsBlocked();
+void otpRecordFailure();
+
 extern httpd_handle_t http_server;
 
 class ConGuard {
