@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-label="NerdOS is now also available in Rust: nerd-os-rs">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#1c1410"/>
+    </linearGradient>
+    <linearGradient id="rust" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f9844a"/>
+      <stop offset="1" stop-color="#ce422b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.14" cy="0.5" r="0.35">
+      <stop offset="0" stop-color="#f74c00" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#f74c00" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" fill="none" stroke="#ffffff" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="220" rx="18" fill="url(#bg)"/>
+  <rect width="1200" height="220" rx="18" fill="url(#grid)"/>
+  <rect width="1200" height="220" rx="18" fill="url(#glow)"/>
+  <rect x="0.75" y="0.75" width="1198.5" height="218.5" rx="17.5" fill="none" stroke="#f74c00" stroke-opacity="0.35" stroke-width="1.5"/>
+
+  <!-- gear -->
+  <g transform="translate(165 110)">
+    <g fill="url(#rust)">
+      <rect x="-11" y="-78" width="22" height="26" rx="4"/>
+      <rect x="-11" y="-78" width="22" height="26" rx="4" transform="rotate(45)"/>
+      <rect x="-11" y="-78" width="22" height="26" rx="4" transform="rotate(90)"/>
+      <rect x="-11" y="-78" width="22" height="26" rx="4" transform="rotate(135)"/>
+      <rect x="-11" y="-78" width="22" height="26" rx="4" transform="rotate(180)"/>
+      <rect x="-11" y="-78" width="22" height="26" rx="4" transform="rotate(225)"/>
+      <rect x="-11" y="-78" width="22" height="26" rx="4" transform="rotate(270)"/>
+      <rect x="-11" y="-78" width="22" height="26" rx="4" transform="rotate(315)"/>
+      <circle r="58"/>
+    </g>
+    <circle r="40" fill="#14100e"/>
+    <text x="0" y="17" text-anchor="middle" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="48" font-weight="800" fill="url(#rust)">R</text>
+  </g>
+
+  <!-- text -->
+  <g font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="275" y="72" font-size="17" font-weight="700" letter-spacing="3" fill="#f9844a">NEW</text>
+    <text x="275" y="116" font-size="40" font-weight="800" fill="#f0f3f6">NerdOS is now also available in Rust</text>
+    <text x="275" y="152" font-size="19" fill="#9aa4b1">Same boards, same settings · Stratum v1 &amp; v2 · switch any time with the web flasher</text>
+  </g>
+
+  <!-- call to action -->
+  <g transform="translate(275 172)">
+    <rect width="250" height="34" rx="17" fill="url(#rust)"/>
+    <text x="125" y="23" text-anchor="middle" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">shufps/nerd-os-rs  →</text>
+  </g>
+</svg>
