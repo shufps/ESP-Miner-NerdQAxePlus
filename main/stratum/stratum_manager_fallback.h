@@ -47,7 +47,8 @@ class StratumManagerFallback : public StratumManager {
   public:
     StratumManagerFallback();
 
-    virtual const char *getCurrentPoolHost();
+    // copies the host: the config string is freed when the settings are reloaded
+    virtual void getCurrentPoolHost(char *dst, size_t len);
     virtual int getCurrentPoolPort();
 
     virtual int getNextActivePool();

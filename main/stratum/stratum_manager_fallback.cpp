@@ -96,12 +96,11 @@ int StratumManagerFallback::getNextActivePool()
     return m_selected;
 }
 
-const char *StratumManagerFallback::getCurrentPoolHost()
+void StratumManagerFallback::getCurrentPoolHost(char *dst, size_t len)
 {
-    if (!m_stratumConfig[m_selected]) {
-        return "-";
-    }
-    return m_stratumConfig[m_selected]->getHost();
+    PThreadGuard lock(m_mutex);
+    const char *host = m_stratumConfig[m_selected] ? m_stratumConfig[m_selected]->getHost() : nullptr;
+    snprintf(dst, len, "%s", host ? host : "-");
 }
 
 int StratumManagerFallback::getCurrentPoolPort()

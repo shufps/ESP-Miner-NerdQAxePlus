@@ -44,6 +44,9 @@ int PingTask::init_ping_history()
 
 double PingTask::get_recent_packet_loss()
 {
+    // also called from other tasks (API, influx)
+    PThreadGuard g(m_mutex);
+
     uint32_t total_sent = 0;
     uint32_t total_recv = 0;
 
@@ -213,8 +216,11 @@ void PingTask::ping_task()
                 vTaskSuspend(NULL);
             }
 
-            PThreadGuard g(m_mutex);
-            if (!m_manager || !m_manager->isConnected(m_pool)) { // helper public machen
+            // m_mutex only guards the history. It must not be held while calling
+            // into the manager (the manager takes its own mutex and then ours in
+            // loadSettings() -> reset(): opposite lock order), nor during the
+            // ping round or a delay, which would block reset() for seconds.
+            if (!m_manager || !m_manager->isConnected(m_pool)) {
                 vTaskDelay(pdMS_TO_TICKS(10000));
                 continue;
             }
@@ -222,9 +228,15 @@ void PingTask::ping_task()
             // get a guaranteed consistent copy of the config
             m_manager->copyConfigInto(m_pool, cfg);
             const char *hostname = cfg->getHost();
-            const char *ip_str = m_manager->getResolvedIpForPool(m_pool);
 
-            if (!hostname || !ip_str) {
+            // copy the IP: the stratum task rewrites it on reconnect
+            char ip_str[48] = {0};
+            const char *resolved = m_manager->getResolvedIpForPool(m_pool);
+            if (resolved) {
+                snprintf(ip_str, sizeof(ip_str), "%s", resolved);
+            }
+
+            if (!hostname || !ip_str[0]) {
                 ESP_LOGE(m_tag, "No resolved IP for current hostname");
                 vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
                 continue;
@@ -239,7 +251,10 @@ void PingTask::ping_task()
             if (result.success) {
                 ESP_LOGI(m_tag, "round-trip min/avg/max = %.2f/%.2f/%.2f ms", result.min_rtt_ms, result.avg_rtt_ms, result.max_rtt_ms);
             }
-            record_ping_result(PING_COUNT, result.replies);
+            {
+                PThreadGuard g(m_mutex);
+                record_ping_result(PING_COUNT, result.replies);
+            }
             ESP_LOGI(m_tag, "Recent %d-min packet loss: %.1f%%", HISTORY_WINDOW_SEC / 60, 100.0 * get_recent_packet_loss());
         }
         vTaskDelay(pdMS_TO_TICKS(PING_DELAY * 1000));
@@ -249,7 +264,10 @@ void PingTask::ping_task()
 void PingTask::reset() {
     PThreadGuard g(m_mutex);
 
-    memset(m_ping_history, 0, HISTORY_SIZE * sizeof(PingHistory));
+    // can be called by the manager before the task allocated the history
+    if (m_ping_history) {
+        memset(m_ping_history, 0, HISTORY_SIZE * sizeof(PingHistory));
+    }
     m_history_index = 0;
     m_history_count = 0;
     m_last_ping_rtt_ms = 0;

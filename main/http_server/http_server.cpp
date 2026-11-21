@@ -39,7 +39,6 @@ static const char *TAG = "http_server";
 
 httpd_handle_t http_server = NULL;
 
-extern int websocket_fd;
 
 /* Function for stopping the webserver */
 /*
@@ -108,10 +107,7 @@ static esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 static void http_close_cb(void* hd, int sockfd)
 {
     // If our websocket socket is being closed, reset logging
-    if (sockfd == websocket_fd) {
-        ESP_LOGI(TAG, "resetting websocket %d", sockfd);
-        websocket_reset();
-    }
+    websocket_close_fd(sockfd);
     ESP_LOGD(TAG, "http_close_cb: %d", sockfd);
     if (sockfd >= 0) {
         (void)close(sockfd);

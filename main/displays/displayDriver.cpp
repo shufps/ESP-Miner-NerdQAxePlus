@@ -915,7 +915,7 @@ void DisplayDriver::updateCurrentSettings(int pool)
 
     if (STRATUM_MANAGER->isDualPool()) {
         auto *manager = static_cast<StratumManagerDualPool*>(STRATUM_MANAGER);
-        snprintf(strData, sizeof(strData), "%s", manager->getPoolHost(pool));
+        manager->getPoolHost(pool, strData, sizeof(strData));
         lv_label_set_text(m_ui->ui_lbPoolSet, strData); // Update label
         snprintf(strData, sizeof(strData), "%d", manager->getPoolPort(pool));
         lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
@@ -925,7 +925,9 @@ void DisplayDriver::updateCurrentSettings(int pool)
 
     if (STRATUM_MANAGER->isFallback()) {
         auto *manager = static_cast<StratumManagerFallback*>(STRATUM_MANAGER);
-        lv_label_set_text(m_ui->ui_lbPoolSet, manager->getCurrentPoolHost()); // Update label
+        char host[64];
+        manager->getCurrentPoolHost(host, sizeof(host));
+        lv_label_set_text(m_ui->ui_lbPoolSet, host); // Update label
         snprintf(strData, sizeof(strData), "%d", manager->getCurrentPoolPort());
         lv_label_set_text(m_ui->ui_lbPortSet, strData); // Update label
     }
