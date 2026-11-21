@@ -219,7 +219,10 @@ esp_err_t FactoryOTAUpdate::do_firmware_update(esp_http_client_handle_t client)
 
     esp_ota_handle_t ota_handle;
     const esp_partition_t *ota_partition = esp_ota_get_next_update_partition(NULL);
-    ESP_ERROR_CHECK(esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle));
+    if (!ota_partition || esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle) != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_begin failed");
+        return ESP_FAIL;
+    }
 
     for (uint32_t offset = 0; offset < FW_LEN_BYTES; offset += CHUNK_SIZE) {
         esp_err_t err = http_read_chunk(client, buf);
@@ -366,6 +369,11 @@ esp_err_t FactoryOTAUpdate::ota_update_from_factory(const char *start_url, bool 
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "firmware update failed");
             setStep(OtaStep::ERROR, "OTA: error");
+            // the board is shut down: restart into the old firmware, otherwise
+            // the miner stays off until someone reboots it. Wait a bit so the
+            // web UI can still pick up the error state.
+            vTaskDelay(pdMS_TO_TICKS(3000));
+            POWER_MANAGEMENT_MODULE.restart();
             return err;
         }
         ESP_LOGI(TAG, "firmware update successful!");

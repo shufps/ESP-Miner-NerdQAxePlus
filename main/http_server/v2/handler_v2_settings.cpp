@@ -232,7 +232,7 @@ esp_err_t PATCH_V2_settings(httpd_req_t *req)
     if (doc["stratumDifficulty"].is<uint32_t>()) {
         Config::setStratumDifficulty(doc["stratumDifficulty"].as<uint32_t>());
     }
-    if (doc["vrFrequency"].is<uint32_t>()) {
+    if (doc["vrFrequency"].is<uint32_t>() && doc["vrFrequency"].as<uint32_t>() > 0) {
         Config::setVrFrequency(doc["vrFrequency"].as<uint32_t>());
     }
 
