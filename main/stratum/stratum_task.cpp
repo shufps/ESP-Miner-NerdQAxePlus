@@ -8,7 +8,9 @@
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "global_state.h"
+#include "esp_netif.h"
 #include "lwip/dns.h"
+#include "lwip/netdb.h"
 
 #include "asic_jobs.h"
 #include "boards/board.h"
@@ -55,7 +57,55 @@ bool StratumTaskBase::isWifiConnected()
     return NETWORK.hasWifiIp() || NETWORK.hasEthIp();
 }
 
-bool StratumTaskBase::resolveHostname(const char *hostname, char *ip_str, size_t ip_str_len)
+// True if the station or Ethernet interface has a preferred global or
+// unique-local IPv6 address, so IPv6 pool connections can be routed.
+static bool hasRoutableIpv6()
+{
+    const char *ifkeys[] = {"WIFI_STA_DEF", "ETH_DEF"};
+    for (const char *key : ifkeys) {
+        esp_netif_t *netif = esp_netif_get_handle_from_ifkey(key);
+        if (!netif) {
+            continue;
+        }
+        esp_ip6_addr_t addrs[LWIP_IPV6_NUM_ADDRESSES];
+        int count = esp_netif_get_all_preferred_ip6(netif, addrs);
+        for (int i = 0; i < count; i++) {
+            esp_ip6_addr_type_t type = esp_netif_ip6_get_addr_type(&addrs[i]);
+            if (type == ESP_IP6_ADDR_IS_GLOBAL || type == ESP_IP6_ADDR_IS_UNIQUE_LOCAL) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Returns host without the brackets of an "[IPv6 literal]", else host unchanged.
+const char *StratumTaskBase::stripBrackets(const char *host)
+{
+    size_t len = strlen(host);
+    if (len < 3 || host[0] != '[' || host[len - 1] != ']' || len - 2 >= sizeof(m_hostBuf)) {
+        return host;
+    }
+    memcpy(m_hostBuf, host + 1, len - 2);
+    m_hostBuf[len - 2] = '\0';
+    return m_hostBuf;
+}
+
+// IPv6 is skipped only for the host and port whose IPv6 connect failed, so
+// switching pools tries IPv6 right away.
+bool StratumTaskBase::isIpv6Skipped(const char *host, int port)
+{
+    return esp_timer_get_time() < m_ipv6RetryAfterUs && port == m_ipv6SkipPort && !strcmp(host, m_ipv6SkipHost);
+}
+
+void StratumTaskBase::skipIpv6(const char *host, int port)
+{
+    snprintf(m_ipv6SkipHost, sizeof(m_ipv6SkipHost), "%s", host);
+    m_ipv6SkipPort = port;
+    m_ipv6RetryAfterUs = esp_timer_get_time() + 5 * 60 * 1000000LL;
+}
+
+bool StratumTaskBase::resolveHostname(const char *hostname, int family, char *ip_str, size_t ip_str_len)
 {
     struct addrinfo hints;
     struct addrinfo *res;
@@ -63,18 +113,27 @@ bool StratumTaskBase::resolveHostname(const char *hostname, char *ip_str, size_t
 
     // Set up the hints for the lookup
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET; // IPv4
+    hints.ai_family = family;
 
     // Perform the blocking DNS lookup
     err = getaddrinfo(hostname, NULL, &hints, &res);
     if (err != 0 || res == NULL) {
-        ESP_LOGE("DNS", "DNS lookup failed: %d", err);
+        if (family == AF_INET6) {
+            ESP_LOGD("DNS", "No IPv6 address for %s", hostname);
+        } else {
+            ESP_LOGE("DNS", "DNS lookup failed: %d", err);
+        }
         return false;
     }
 
     // Extract the IP address from the result
-    struct sockaddr_in *addr = (struct sockaddr_in *) res->ai_addr;
-    inet_ntop(AF_INET, &(addr->sin_addr), ip_str, ip_str_len);
+    if (res->ai_family == AF_INET6) {
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *) res->ai_addr;
+        inet_ntop(AF_INET6, &(addr6->sin6_addr), ip_str, ip_str_len);
+    } else {
+        struct sockaddr_in *addr = (struct sockaddr_in *) res->ai_addr;
+        inet_ntop(AF_INET, &(addr->sin_addr), ip_str, ip_str_len);
+    }
 
     // save IP adrdress
     strncpy(m_lastResolvedIp, ip_str, sizeof(m_lastResolvedIp));
@@ -190,23 +249,51 @@ void StratumTaskBase::task()
             continue;
         }
 
-        // resolve the IP of the host
-        char ip[INET_ADDRSTRLEN] = {0};
-        if (!resolveHostname(m_config->getHost(), ip, sizeof(ip))) {
-            ESP_LOGE(m_tag, "%s couldn't be resolved!", m_config->getHost());
-            vTaskDelay(pdMS_TO_TICKS(10000));
-            continue;
-        }
-
-        ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d (%s)", m_config->getHost(), m_config->getPort(), ip);
-
         // select transport (protocol-specific)
         m_transport = selectTransport();
 
-        if (!m_transport->connect(m_config->getHost(), ip, m_config->getPort())) {
-            ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", m_config->getHost(), m_config->getPort(), errno);
-            vTaskDelay(pdMS_TO_TICKS(10000));
-            continue;
+        // An IPv6 literal may be written in brackets, as in URLs
+        const char *host = stripBrackets(m_config->getHost());
+        int port = m_config->getPort();
+        ip_addr_t literal;
+        bool isLiteral = ipaddr_aton(host, &literal);
+        char ip[INET6_ADDRSTRLEN] = {0};
+        bool connected = false;
+
+        // Prefer IPv6 for hostnames with an AAAA record when the device has a
+        // routable IPv6 address. If IPv6 can't connect, try IPv4 for the same
+        // host and skip IPv6 for this host for a while. TLS still verifies the
+        // certificate against the hostname.
+        if (!isLiteral && !isIpv6Skipped(host, port) && hasRoutableIpv6() &&
+            resolveHostname(host, AF_INET6, ip, sizeof(ip))) {
+            ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s:%d ([%s])", host, port, ip);
+            connected = m_transport->connect(host, ip, port);
+            if (!connected) {
+                ESP_LOGW(m_tag, "IPv6 connection to %s failed, trying IPv4", host);
+                skipIpv6(host, port);
+            }
+        }
+
+        if (!connected) {
+            // IP literals may be IPv4 or IPv6; hostnames resolve to IPv4 as before.
+            // A hostname without an A record (IPv6-only pool) still uses its AAAA.
+            if (!resolveHostname(host, isLiteral ? AF_UNSPEC : AF_INET, ip, sizeof(ip)) &&
+                (isLiteral || !resolveHostname(host, AF_INET6, ip, sizeof(ip)))) {
+                ESP_LOGE(m_tag, "%s couldn't be resolved!", host);
+                vTaskDelay(pdMS_TO_TICKS(10000));
+                continue;
+            }
+
+            // IPv6 addresses are shown in brackets, as in URLs
+            bool v6 = strchr(ip, ':') != nullptr;
+            ESP_LOGI(m_tag, "Connecting to: stratum+tcp://%s%s%s:%d (%s%s%s)", isLiteral && v6 ? "[" : "", host,
+                     isLiteral && v6 ? "]" : "", port, v6 ? "[" : "", ip, v6 ? "]" : "");
+
+            if (!m_transport->connect(host, ip, port)) {
+                ESP_LOGE(m_tag, "Socket unable to connect to %s:%d (errno %d)", host, port, errno);
+                vTaskDelay(pdMS_TO_TICKS(10000));
+                continue;
+            }
         }
 
         // we are connected but it doesn't mean the server is alive ...

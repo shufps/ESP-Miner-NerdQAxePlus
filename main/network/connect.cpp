@@ -91,6 +91,12 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
         return;
     }
 
+    if (event_base == IP_EVENT && event_id == IP_EVENT_GOT_IP6) {
+        ip_event_got_ip6_t *event = (ip_event_got_ip6_t *) event_data;
+        ESP_LOGI(TAG, "IPv6 address: " IPV6STR, IPV62STR(event->ip6_info.ip));
+        return;
+    }
+
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         s_scan_ap_count = WIFI_SCAN_MAX_APS;
         if (esp_wifi_scan_get_ap_records(&s_scan_ap_count, s_scan_ap_info) != ESP_OK) {
@@ -151,6 +157,9 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
         s_ip_valid = true;
 
         ESP_LOGI(TAG, "WiFi got IP: %s", s_ip_addr);
+
+        // Start IPv6: a link-local address enables router discovery and SLAAC.
+        esp_netif_create_ip6_linklocal(esp_netif_get_handle_from_ifkey("WIFI_STA_DEF"));
 
         s_retry_num = 0;
 
@@ -279,6 +288,9 @@ esp_netif_t *wifi_init(const char *wifi_ssid, const char *wifi_pass, const char 
 
         ESP_ERROR_CHECK(
             esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, nullptr, &instance_got_ip));
+
+        ESP_ERROR_CHECK(
+            esp_event_handler_instance_register(IP_EVENT, IP_EVENT_GOT_IP6, &event_handler, nullptr, nullptr));
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 
