@@ -238,7 +238,7 @@
 
       <!-- GAIA-ONLY bottom dashboard row (NEROQ+ style: pool · power · heat · perf · status) -->
       <!-- One metric row, reused via context: icon + label/value + semicircular min/max gauge -->
-      <ng-template #metricRow let-icon="icon" let-cls="cls" let-fan="fan" let-label="label" let-value="value" let-unit="unit" let-raw="raw" let-min="min" let-max="max" let-dfmt="dfmt">
+      <ng-template #metricRow let-icon="icon" let-cls="cls" let-fan="fan" let-label="label" let-value="value" let-unit="unit" let-raw="raw" let-min="min" let-max="max" let-dfmt="dfmt" let-secondary="secondary" let-hint="hint">
         <div class="metric-row" [ngClass]="cls">
           <span class="metric-row__icon">
             <svg *ngIf="fan; else iconEl" class="fan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -250,6 +250,7 @@
           <span class="metric-row__body">
             <span class="metric-row__label">{{ label }}</span>
             <span class="metric-row__value">{{ value }}<span class="metric-row__unit">{{ unit }}</span></span>
+            <span *ngIf="secondary" class="metric-row__secondary" [attr.title]="hint || null">{{ secondary }}</span>
           </span>
           <span class="metric-gauge">
             <svg class="metric-gauge__svg" viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
@@ -292,7 +293,13 @@
           <div class="nerd-panel__title">Heat</div>
           <ng-container *ngTemplateOutlet="metricRow; context: { icon: 'thermometer-outline', cls: (isGaiaDark && maxAsicTemp(info) < 65 ? 'm-asic' : 'm-red'), label: ('PERFORMANCE.ASIC_TEMP' | translate), value: (maxAsicTemp(info) | number:'1.1-1'), unit: '°C', raw: maxAsicTemp(info), min: 0, max: shutdownTempC(info), dfmt: '1.0-0' }"></ng-container>
           <ng-container *ngIf="info.thermal.vrTemp > 0" [ngTemplateOutlet]="metricRow" [ngTemplateOutletContext]="{ icon: 'thermometer-outline', cls: (isGaiaDark ? 'm-vr' : 'm-cyan'), label: ('PERFORMANCE.VR_TEMP' | translate), value: (info.thermal.vrTemp | number:'1.1-1'), unit: '°C', raw: info.thermal.vrTemp, min: 0, max: vrShutdownTempC(info), dfmt: '1.0-0' }"></ng-container>
-          <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: 'm-amber', label: 'Fan Speed', value: ((info.thermal.fans?.[0]?.speed ?? 0) | number:'1.0-0'), unit: '%', raw: (info.thermal.fans?.[0]?.speed ?? 0), min: 0, max: 100, dfmt: '1.0-0' }"></ng-container>
+          <!-- ASIC fan, and the VR fan on boards with a second fan channel (both Gaia themes). -->
+          <ng-container *ngIf="info.thermal.fans?.[0] as asicFan">
+            <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: (isGaiaDark ? 'm-asic' : 'm-amber'), label: ('HOME.FAN_ASICS_LABEL' | translate), value: (asicFan.speed | number:'1.0-0'), unit: '%', raw: asicFan.speed, min: 0, max: 100, dfmt: '1.0-0', secondary: (shouldShowFanRpm(asicFan.speed, asicFan.rpm) ? ((asicFan.rpm | number:'1.0-0') + ' RPM') : '— RPM'), hint: (shouldShowLowRpmHint(asicFan.speed, asicFan.rpm) ? ('HOME.FAN_LOW_RPM_HINT' | translate) : '') }"></ng-container>
+          </ng-container>
+          <ng-container *ngIf="info.thermal.fans?.[1] as vrFan">
+            <ng-container *ngTemplateOutlet="metricRow; context: { fan: true, cls: (isGaiaDark ? 'm-vr' : 'm-cyan'), label: ('HOME.FAN_VR_LABEL' | translate), value: (vrFan.speed | number:'1.0-0'), unit: '%', raw: vrFan.speed, min: 0, max: 100, dfmt: '1.0-0', secondary: (shouldShowFanRpm(vrFan.speed, vrFan.rpm) ? ((vrFan.rpm | number:'1.0-0') + ' RPM') : '— RPM'), hint: (shouldShowLowRpmHint(vrFan.speed, vrFan.rpm) ? ('HOME.FAN_LOW_RPM_HINT' | translate) : '') }"></ng-container>
+          </ng-container>
         </div>
 
         <!-- Performance -->
