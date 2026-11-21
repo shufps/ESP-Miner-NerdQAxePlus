@@ -177,6 +177,12 @@ esp_err_t POST_create_otp_session(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "OTP disabled");
     }
 
+    // same brute-force protection as validateOTP(): without it this endpoint
+    // allowed unlimited guesses for a 24h session token
+    if (otpIsBlocked()) {
+        return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "blocked for 5 minutes");
+    }
+
     // read otp from the header
     char totp[16] = {0};
     if (!read_header_str(req, "X-TOTP", totp, sizeof(totp))) {
@@ -185,6 +191,7 @@ esp_err_t POST_create_otp_session(httpd_req_t *req)
 
     // validate
     if (!otp.validate(totp)) {
+        otpRecordFailure();
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Invalid TOTP");
     }
 

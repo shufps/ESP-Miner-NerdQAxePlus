@@ -58,7 +58,8 @@ class StratumManagerDualPool : public StratumManager {
         return m_poolDiffErr[i];
     }
 
-    virtual const char *getPoolHost(int pool);
+    // copies the host: the config string is freed when the settings are reloaded
+    virtual void getPoolHost(int pool, char *dst, size_t len);
     virtual int getPoolPort(int pool);
 
     virtual uint32_t selectAsicDiff(int pool, uint32_t poolDiff);
