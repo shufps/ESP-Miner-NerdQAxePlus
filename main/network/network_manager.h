@@ -77,6 +77,7 @@ class NetworkManager {
 
   private:
     void updateDefaultRoute();
+    void applyNetifDns(esp_netif_t *netif, bool allowPublicFallback);
 
     void onWifiGotIp();
     void onWifiDisconnected();

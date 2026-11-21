@@ -6,6 +6,9 @@
 #include "esp_netif.h"
 #include "esp_wifi.h"
 
+#include "lwip/dns.h"
+#include "lwip/ip_addr.h"
+
 static const char *TAG_NET = "netmgr";
 
 NetworkManager *NetworkManager::s_instance = nullptr;
@@ -101,6 +104,7 @@ void NetworkManager::updateDefaultRoute()
         if (err != ESP_OK) {
             ESP_LOGW(TAG_NET, "esp_netif_set_default_netif failed: %s", esp_err_to_name(err));
         }
+        applyNetifDns(m_preferredNetif, m_ethHasIp && m_preferredNetif == m_eth.getNetif());
     }
 
     bool nowAny = (m_wifiHasIp || m_ethHasIp);
@@ -113,6 +117,44 @@ void NetworkManager::updateDefaultRoute()
 
     if (preferredChanged && m_hookPreferredChanged) {
         m_hookPreferredChanged();
+    }
+}
+
+void NetworkManager::applyNetifDns(esp_netif_t *netif, bool allowPublicFallback)
+{
+    if (!netif) {
+        return;
+    }
+
+    // With both WiFi and ETH netifs registered, DHCP DNS from Ethernet is not
+    // always promoted to lwIP's global resolver when WiFi never held a lease,
+    // causing getaddrinfo() -> EAI_FAIL for stratum pools.
+    static constexpr struct {
+        esp_netif_dns_type_t type;
+        u8_t slot;
+        uint8_t fb[4];
+    } kSlots[] = {
+        { ESP_NETIF_DNS_MAIN,   0, { 8, 8, 8, 8 } },
+        { ESP_NETIF_DNS_BACKUP, 1, { 1, 1, 1, 1 } },
+    };
+
+    for (const auto &s : kSlots) {
+        esp_netif_dns_info_t info = {};
+        ip_addr_t addr = {};
+        if (esp_netif_get_dns_info(netif, s.type, &info) == ESP_OK &&
+            info.ip.type == ESP_IPADDR_TYPE_V4 &&
+            info.ip.u_addr.ip4.addr != 0) {
+            addr.type = IPADDR_TYPE_V4;
+            addr.u_addr.ip4.addr = info.ip.u_addr.ip4.addr;
+            ESP_LOGI(TAG_NET, "DNS[%u] from active netif: " IPSTR, s.slot, IP2STR(&info.ip.u_addr.ip4));
+        } else if (allowPublicFallback) {
+            IP_ADDR4(&addr, s.fb[0], s.fb[1], s.fb[2], s.fb[3]);
+            ESP_LOGW(TAG_NET, "ETH lease omitted DNS[%u]; falling back to %u.%u.%u.%u",
+                     s.slot, s.fb[0], s.fb[1], s.fb[2], s.fb[3]);
+        } else {
+            continue;
+        }
+        dns_setserver(s.slot, &addr);
     }
 }
 
