@@ -42,6 +42,9 @@ void Board::loadSettings()
     m_fanInvertPolarity = Config::isFanPolarity(m_fanInvertPolarity);
     m_flipScreen = Config::isFlipScreenEnabled(m_flipScreen);
     m_vrFrequency = Config::getVrFrequency(m_defaultVrFrequency);
+    if (!m_vrFrequency) {
+        m_vrFrequency = m_defaultVrFrequency;
+    }
 
     for (int ch = 0; ch < 2; ch++) {
         m_pidSettings[ch].targetTemp = Config::getFanPidTargetTemp(ch, m_pidSettings[ch].targetTemp);
