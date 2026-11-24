@@ -1,0 +1,42 @@
+name: Feature freeze
+
+# This firmware is superseded by nerd-os-rs: pull requests from others are
+# closed with a pointer to the new repository. The owner's pull requests
+# (security fixes) stay open, and so does a pull request the owner reopens.
+# No code of the pull request is checked out, so pull_request_target with
+# write access is safe here.
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  close:
+    if: >-
+      github.event.pull_request.user.login != 'shufps' &&
+      !(github.event.action == 'reopened' && github.actor == 'shufps')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: pr.number,
+              body: [
+                'Thanks for your contribution!',
+                '',
+                'This firmware is in feature freeze and is superseded by **nerd-os-rs** (the Rust rewrite): https://github.com/shufps/nerd-os-rs',
+                'Only security fixes are made here. Please open your pull request against nerd-os-rs instead.',
+              ].join('\n'),
+            });
+            await github.rest.pulls.update({
+              ...context.repo,
+              pull_number: pr.number,
+              state: 'closed',
+            });
