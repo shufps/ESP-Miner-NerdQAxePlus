@@ -41,9 +41,9 @@
 
   <!-- text -->
   <g font-family="'Segoe UI', Helvetica, Arial, sans-serif">
-    <text x="275" y="72" font-size="17" font-weight="700" letter-spacing="3" fill="#f9844a">NEW</text>
-    <text x="275" y="116" font-size="40" font-weight="800" fill="#f0f3f6">NerdOS is now also available in Rust</text>
-    <text x="275" y="152" font-size="19" fill="#9aa4b1">Same boards, same settings · Stratum v1 &amp; v2 · switch any time with the web flasher</text>
+    <text x="275" y="72" font-size="17" font-weight="700" letter-spacing="3" fill="#f9844a">SUCCESSOR</text>
+    <text x="275" y="116" font-size="40" font-weight="800" fill="#f0f3f6">NerdOS continues in Rust</text>
+    <text x="275" y="152" font-size="19" fill="#9aa4b1">This firmware is in feature freeze · same boards, same settings · web flasher</text>
   </g>
 
   <!-- call to action -->
