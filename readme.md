@@ -1,4 +1,4 @@
-<a href="https://github.com/shufps/nerd-os-rs"><img src="docs/images/nerd-os-rs-banner.svg" alt="NerdOS is now also available in Rust: shufps/nerd-os-rs" width="100%"></a>
+<a href="https://github.com/shufps/nerd-os-rs"><img src="docs/images/nerd-os-rs-banner.svg" alt="NerdOS continues in Rust: shufps/nerd-os-rs" width="100%"></a>
 
 [![](https://dcbadge.vercel.app/api/server/3E8ca2dkcC)](https://discord.gg/3E8ca2dkcC)
 
@@ -6,7 +6,12 @@
 
 Firmware for the NerdAxe and NerdQAxe family of Bitcoin miners (ESP32-S3, ESP-IDF 5.3). It started as a fork of the NerdAxe firmware, modified for the [NerdQAxe+](https://github.com/shufps/qaxe).
 
-There is also a Rust port of this firmware: [**nerd-os-rs**](https://github.com/shufps/nerd-os-rs). It runs on the same boards and uses the same settings on the device, so you can switch between both with the web flasher.
+> [!IMPORTANT]
+> **Feature freeze:** this firmware is no longer developed. Its successor is [**nerd-os-rs**](https://github.com/shufps/nerd-os-rs), the Rust rewrite, where all new features and fixes go. Only security fixes are still made here.
+>
+> nerd-os-rs runs on the same boards and uses the same settings on the device, so you can switch with the web flasher. It is currently in alpha; a stable release is expected within the next couple of weeks.
+>
+> Please open pull requests against nerd-os-rs. Pull requests here are closed automatically.
 
 Credits to the devs:
 - BitAxe devs on OSMU: @skot/ESP-Miner, @ben and @jhonny
@@ -31,7 +36,7 @@ Credits to the devs:
 
 ## Installing and updating
 
-The newest releases are always here: https://github.com/shufps/ESP-Miner-NerdQAxePlus/releases
+For new installations, use [nerd-os-rs](https://github.com/shufps/nerd-os-rs). The releases of this firmware stay available here: https://github.com/shufps/ESP-Miner-NerdQAxePlus/releases
 
 ### Web flasher (recommended)
 
